@@ -1,0 +1,29 @@
+steps:
+  # 1. Build Base Image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/${PROJECT_ID}/gemini-cli-base:latest', 'base']
+
+  # 2. Build ADK Python Sandbox (depends on base)
+  - name: 'gcr.io/cloud-builders/docker'
+    args: 
+      - 'build'
+      - '--build-arg'
+      - 'BASE_IMAGE=gcr.io/${PROJECT_ID}/gemini-cli-base:latest'
+      - '-t'
+      - 'gcr.io/${PROJECT_ID}/adk-gemini-sandbox:latest'
+      - 'adk-python'
+
+  # 3. Build MCP Context7 Sandbox (depends on base)
+  - name: 'gcr.io/cloud-builders/docker'
+    args: 
+      - 'build'
+      - '--build-arg'
+      - 'BASE_IMAGE=gcr.io/${PROJECT_ID}/gemini-cli-base:latest'
+      - '-t'
+      - 'gcr.io/${PROJECT_ID}/gemini-cli-mcp-context7:latest'
+      - 'gemini-cli-mcp-context7'
+
+images:
+  - 'gcr.io/${PROJECT_ID}/gemini-cli-base:latest'
+  - 'gcr.io/${PROJECT_ID}/adk-gemini-sandbox:latest'
+  - 'gcr.io/${PROJECT_ID}/gemini-cli-mcp-context7:latest'

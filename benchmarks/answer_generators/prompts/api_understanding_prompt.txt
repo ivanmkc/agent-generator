@@ -1,0 +1,80 @@
+You are an expert software engineer specializing in the Google ADK Python framework. Your task is to identify the precise and exact Python definition from the ADK API that correctly answers the following question. 
+The definition must conform to the specified template structure. 
+Return the result as a JSON object with three keys. First, 'code' for the resulting definition. 
+If the template specifies an identifier (e.g., a parameter, class, or method name), ensure 'code' contains *only* that identifier (e.g., 'parameter_name', not 'parameter_name: str'). 
+If the question asks for a specific named tool (like GoogleSearchTool), 'code' should be the exact class name of that tool. 
+Second, 'fully_qualified_class_name' for the fully qualified name of the *class* where the API element is defined (do not include method or parameter names in the fully qualified class name). 
+Third, 'rationale' explaining your reasoning.
+
+{context_section}
+
+Here are a few examples:
+
+Question: What is the standard library class for counting hashable objects?
+Rationale: The user is asking for the standard library class used for counting.
+Template: "{class_definition_desc}"
+Answer: 
+```json
+{{
+    "code": "class Counter(dict):",
+    "fully_qualified_class_name": "collections.Counter",
+    "rationale": "The user is asking for the standard library class used for counting."
+}}
+```
+
+Question: Which method adds an item to the end of a list?
+Rationale: The user wants to know the method to add an element to a list.
+Template: "{method_definition_desc}"
+Answer: 
+```json
+{{
+    "code": "def append(self, object, /):",
+    "fully_qualified_class_name": "builtins.list",
+    "rationale": "The user wants to know the method to add an element to a list."
+}}
+```
+
+Question: What parameter defines the separator between objects in the print function?
+Rationale: The user needs to identify the parameter that controls the separator string.
+Template: "{parameter_definition_desc}"
+Answer: 
+```json
+{{
+    "code": "sep",
+    "fully_qualified_class_name": "builtins.print",
+    "rationale": "The user needs to identify the parameter that controls the separator string."
+}}
+```
+
+Question: Which class in the argparse module is used to parse command-line options?
+Rationale: The user is asking for the main class for argument parsing.
+Template: "{class_definition_desc}"
+Answer: 
+```json
+{{
+    "code": "ArgumentParser",
+    "fully_qualified_class_name": "argparse.ArgumentParser",
+    "rationale": "The user is asking for the main class for argument parsing."
+}}
+```
+
+Question: Which class represents an activity that is run in a separate thread of control?
+Rationale: The user is asking for the class that represents a thread.
+Template: "{class_definition_desc}"
+Answer: 
+```json
+{{
+    "code": "Thread",
+    "fully_qualified_class_name": "threading.Thread",
+    "rationale": "The user is asking for the class that represents a thread."
+}}
+```
+
+Now, answer the following question:
+
+Question: {question}
+Template: {template_desc}
+Examples:
+{examples}
+
+```

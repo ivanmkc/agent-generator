@@ -1,0 +1,22 @@
+You are an expert Python software engineer specializing in the ADK (Agent Development Kit) framework. Your task is to fix or implement the provided Python file content.
+
+You must output a JSON object with the following fields:
+1. `rationale`: A detailed explanation of the changes made and why they were necessary.
+2. `code`: The complete, corrected Python file content.
+
+CRITICAL: The `code` field MUST define a function with the exact signature: `def create_agent(model_name: str) -> BaseAgent:`
+
+DO NOT include any other functions or classes in your output unless they are part of the original unfixed file that you are fixing. The code should be a complete and valid Python file and **must include all necessary imports** for the code to function correctly.
+
+Here is the detailed description of what the function should do: {description}
+
+{requirements_section}
+
+{error_output_section}
+
+Here is the full content of the file where you need to fix the `create_agent` function.
+```python
+{file_content}
+```
+
+Ensure your response is valid JSON.

@@ -1,0 +1,145 @@
+benchmarks:
+  - name: '01: A minimal LlmAgent.'
+    benchmark_type: fix_error
+    test_file: benchmarks/benchmark_definitions/fix_errors/cases/01_single_llm_agent/test_agent.py
+    unfixed_file: benchmarks/benchmark_definitions/fix_errors/cases/01_single_llm_agent/unfixed.py
+    fixed_file: benchmarks/benchmark_definitions/fix_errors/cases/01_single_llm_agent/fixed.py
+    description: Create a minimal LlmAgent named 'single_agent'.
+  - name: '02: An LlmAgent with a simple function tool.'
+    benchmark_type: fix_error
+    test_file: benchmarks/benchmark_definitions/fix_errors/cases/02_agent_with_tool/test_agent.py
+    unfixed_file: benchmarks/benchmark_definitions/fix_errors/cases/02_agent_with_tool/unfixed.py
+    fixed_file: benchmarks/benchmark_definitions/fix_errors/cases/02_agent_with_tool/fixed.py
+    description: Create a minimal LlmAgent that can use the `basic_tool`.
+  - name: '03: An LlmAgent that uses output_schema to enforce JSON output.'
+    benchmark_type: fix_error
+    test_file: benchmarks/benchmark_definitions/fix_errors/cases/03_agent_with_output_schema/test_agent.py
+    unfixed_file: benchmarks/benchmark_definitions/fix_errors/cases/03_agent_with_output_schema/unfixed.py
+    fixed_file: benchmarks/benchmark_definitions/fix_errors/cases/03_agent_with_output_schema/fixed.py
+    description: Create a minimal LlmAgent that uses an `output_schema` to produce a JSON output.
+  - name: '04: A SequentialAgent orchestrating two simple agents.'
+    benchmark_type: fix_error
+    test_file: benchmarks/benchmark_definitions/fix_errors/cases/04_sequential_agent/test_agent.py
+    unfixed_file: benchmarks/benchmark_definitions/fix_errors/cases/04_sequential_agent/unfixed.py
+    fixed_file: benchmarks/benchmark_definitions/fix_errors/cases/04_sequential_agent/fixed.py
+    description: Create a `SequentialAgent` that runs two sub-agents in order.
+  - name: '05: A ParallelAgent running two agents concurrently.'
+    benchmark_type: fix_error
+    test_file: benchmarks/benchmark_definitions/fix_errors/cases/05_parallel_agent/test_agent.py
+    unfixed_file: benchmarks/benchmark_definitions/fix_errors/cases/05_parallel_agent/unfixed.py
+    fixed_file: benchmarks/benchmark_definitions/fix_errors/cases/05_parallel_agent/fixed.py
+    description: Create a `ParallelAgent` that runs two sub-agents concurrently.
+  - name: '06: A LoopAgent that runs a sub-agent a fixed number of times.'
+    benchmark_type: fix_error
+    test_file: benchmarks/benchmark_definitions/fix_errors/cases/06_loop_agent/test_agent.py
+    unfixed_file: benchmarks/benchmark_definitions/fix_errors/cases/06_loop_agent/unfixed.py
+    fixed_file: benchmarks/benchmark_definitions/fix_errors/cases/06_loop_agent/fixed.py
+    description: Create a `LoopAgent` that runs a sub-agent a fixed number of times.
+  - name: '07: A root agent delegating a task to a sub-agent.'
+    benchmark_type: fix_error
+    test_file: benchmarks/benchmark_definitions/fix_errors/cases/07_agent_delegation/test_agent.py
+    unfixed_file: benchmarks/benchmark_definitions/fix_errors/cases/07_agent_delegation/unfixed.py
+    fixed_file: benchmarks/benchmark_definitions/fix_errors/cases/07_agent_delegation/fixed.py
+    description: Create a root `LlmAgent` that delegates a task to a sub-agent.
+  - name: '08: A simple custom agent with conditional logic.'
+    benchmark_type: fix_error
+    test_file: benchmarks/benchmark_definitions/fix_errors/cases/08_custom_agent/test_agent.py
+    unfixed_file: benchmarks/benchmark_definitions/fix_errors/cases/08_custom_agent/unfixed.py
+    fixed_file: benchmarks/benchmark_definitions/fix_errors/cases/08_custom_agent/fixed.py
+    description: Create a custom agent that inherits from `BaseAgent` and implements conditional logic. The agent should have two sub-agents, 'agent_a' and 'agent_b'. Based on a boolean `run_agent_a` in the session state, it should run one of the two sub-agents.
+  - name: '10: An agent that writes to and reads from session.state.'
+    benchmark_type: fix_error
+    test_file: benchmarks/benchmark_definitions/fix_errors/cases/10_agent_with_state_management/test_agent.py
+    unfixed_file: benchmarks/benchmark_definitions/fix_errors/cases/10_agent_with_state_management/unfixed.py
+    fixed_file: benchmarks/benchmark_definitions/fix_errors/cases/10_agent_with_state_management/fixed.py
+    description: Create a `SequentialAgent` with two sub-agents. The first sub-agent, 'writer', should write a value to the session state. The second sub-agent, 'reader', should read that value from the session state and include it in its response.
+  - name: '11: A direct implementation test for InMemoryRunner.'
+    benchmark_type: fix_error
+    test_file: benchmarks/benchmark_definitions/fix_errors/cases/11_in_memory_runner_direct/test_agent.py
+    unfixed_file: benchmarks/benchmark_definitions/fix_errors/cases/11_in_memory_runner_direct/unfixed.py
+    fixed_file: benchmarks/benchmark_definitions/fix_errors/cases/11_in_memory_runner_direct/fixed.py
+    description: Create a simple `LlmAgent` that can respond to a greeting.
+  - name: '12: An App instance that includes a basic plugin.'
+    benchmark_type: fix_error
+    test_file: benchmarks/benchmark_definitions/fix_errors/cases/12_app_with_plugin/test_agent.py
+    unfixed_file: benchmarks/benchmark_definitions/fix_errors/cases/12_app_with_plugin/unfixed.py
+    fixed_file: benchmarks/benchmark_definitions/fix_errors/cases/12_app_with_plugin/fixed.py
+    description: Create an `App` instance that includes a basic plugin. The app should have a root agent that can respond to a greeting.
+  - name: '13: An LlmAgent with a BuiltInCodeExecutor.'
+    benchmark_type: fix_error
+    test_file: benchmarks/benchmark_definitions/fix_errors/cases/13_code_executor/test_agent.py
+    unfixed_file: benchmarks/benchmark_definitions/fix_errors/cases/13_code_executor/unfixed.py
+    fixed_file: benchmarks/benchmark_definitions/fix_errors/cases/13_code_executor/fixed.py
+    description: Create an `LlmAgent` that uses a `BuiltInCodeExecutor` to perform calculations.
+  - name: '14: An LlmAgent using an OpenAI model via LiteLlm.'
+    benchmark_type: fix_error
+    test_file: benchmarks/benchmark_definitions/fix_errors/cases/14_agent_with_litellm_openai/test_agent.py
+    unfixed_file: benchmarks/benchmark_definitions/fix_errors/cases/14_agent_with_litellm_openai/unfixed.py
+    fixed_file: benchmarks/benchmark_definitions/fix_errors/cases/14_agent_with_litellm_openai/fixed.py
+    description: Create an `LlmAgent` that uses an OpenAI model via `LiteLlm`.
+  - name: '15: An LlmAgent with an after_model_callback.'
+    benchmark_type: fix_error
+    test_file: benchmarks/benchmark_definitions/fix_errors/cases/15_callbacks/test_agent.py
+    unfixed_file: benchmarks/benchmark_definitions/fix_errors/cases/15_callbacks/unfixed.py
+    fixed_file: benchmarks/benchmark_definitions/fix_errors/cases/15_callbacks/fixed.py
+    description: Create an `LlmAgent` with an `after_model_callback`.
+  - name: '16: Build integrity test for LlmAgent with generate_content_config.'
+    benchmark_type: fix_error
+    test_file: benchmarks/benchmark_definitions/fix_errors/cases/16_generate_content_config/test_agent.py
+    unfixed_file: benchmarks/benchmark_definitions/fix_errors/cases/16_generate_content_config/unfixed.py
+    fixed_file: benchmarks/benchmark_definitions/fix_errors/cases/16_generate_content_config/fixed.py
+    description: Create an `LlmAgent` that uses `generate_content_config` to set the temperature to 0. The agent's instruction should make it always respond with 'Hello world!'.
+  - name: '17: Build integrity test for LlmAgent with input_schema.'
+    benchmark_type: fix_error
+    test_file: benchmarks/benchmark_definitions/fix_errors/cases/17_input_schema/test_agent.py
+    unfixed_file: benchmarks/benchmark_definitions/fix_errors/cases/17_input_schema/unfixed.py
+    fixed_file: benchmarks/benchmark_definitions/fix_errors/cases/17_input_schema/fixed.py
+    description: Create an `LlmAgent` that uses `input_schema` to handle structured input.
+  - name: "18: Build integrity test for LlmAgent with include_contents='none'." 
+    benchmark_type: fix_error
+    test_file: benchmarks/benchmark_definitions/fix_errors/cases/18_include_contents_none/test_agent.py
+    unfixed_file: benchmarks/benchmark_definitions/fix_errors/cases/18_include_contents_none/unfixed.py
+    fixed_file: benchmarks/benchmark_definitions/fix_errors/cases/18_include_contents_none/fixed.py
+    description: "Create an `LlmAgent` with `include_contents` set to `'none'` to make it stateless."
+  - name: '19: Build integrity test for LlmAgent with artifacts.'
+    benchmark_type: fix_error
+    test_file: benchmarks/benchmark_definitions/fix_errors/cases/19_artifacts/test_agent.py
+    unfixed_file: benchmarks/benchmark_definitions/fix_errors/cases/19_artifacts/unfixed.py
+    fixed_file: benchmarks/benchmark_definitions/fix_errors/cases/19_artifacts/fixed.py
+    description: Create an `LlmAgent` that can access data from an artifact.
+  - name: '20: Build integrity test for LlmAgent with expanded callbacks.'
+    benchmark_type: fix_error
+    test_file: benchmarks/benchmark_definitions/fix_errors/cases/20_expanded_callbacks/test_agent.py
+    unfixed_file: benchmarks/benchmark_definitions/fix_errors/cases/20_expanded_callbacks/unfixed.py
+    fixed_file: benchmarks/benchmark_definitions/fix_errors/cases/20_expanded_callbacks/fixed.py
+    description: Create an `LlmAgent` with `before_tool_callback` and `after_tool_callback`.
+  - name: '21: A minimal LlmAgent with an invalid name.'
+    benchmark_type: fix_error
+    test_file: benchmarks/benchmark_definitions/fix_errors/cases/21_invalid_agent_name/test_agent.py
+    unfixed_file: benchmarks/benchmark_definitions/fix_errors/cases/21_invalid_agent_name/unfixed.py
+    fixed_file: benchmarks/benchmark_definitions/fix_errors/cases/21_invalid_agent_name/fixed.py
+    description: Fix the ValueError caused by initializing an agent with a name containing spaces.
+  - name: '22: A minimal LlmAgent with a logic error.'
+    benchmark_type: fix_error
+    test_file: benchmarks/benchmark_definitions/fix_errors/cases/22_logic_error/test_agent.py
+    unfixed_file: benchmarks/benchmark_definitions/fix_errors/cases/22_logic_error/unfixed.py
+    fixed_file: benchmarks/benchmark_definitions/fix_errors/cases/22_logic_error/fixed.py
+    description: Fix the logic error to create a minimal LlmAgent that responds with 'Hello World!'.
+  - name: '23: A minimal LlmAgent with a missing import.'
+    benchmark_type: fix_error
+    test_file: benchmarks/benchmark_definitions/fix_errors/cases/23_missing_import/test_agent.py
+    unfixed_file: benchmarks/benchmark_definitions/fix_errors/cases/23_missing_import/unfixed.py
+    fixed_file: benchmarks/benchmark_definitions/fix_errors/cases/23_missing_import/fixed.py
+    description: Add the missing import statement for `LlmAgent` to create a valid agent.
+  - name: '24: A minimal LlmAgent with an incorrect API usage.'
+    benchmark_type: fix_error
+    test_file: benchmarks/benchmark_definitions/fix_errors/cases/24_incorrect_api_usage/test_agent.py
+    unfixed_file: benchmarks/benchmark_definitions/fix_errors/cases/24_incorrect_api_usage/unfixed.py
+    fixed_file: benchmarks/benchmark_definitions/fix_errors/cases/24_incorrect_api_usage/fixed.py
+    description: Fix the incorrect API usage (parameter name) to create a valid LlmAgent.
+  - name: '25: A SequentialAgent with an interaction error.'
+    benchmark_type: fix_error
+    test_file: benchmarks/benchmark_definitions/fix_errors/cases/25_multi_agent_interaction_error/test_agent.py
+    unfixed_file: benchmarks/benchmark_definitions/fix_errors/cases/25_multi_agent_interaction_error/unfixed.py
+    fixed_file: benchmarks/benchmark_definitions/fix_errors/cases/25_multi_agent_interaction_error/fixed.py
+    description: Fix the multi-agent interaction error in a `SequentialAgent` where the reader agent does not receive the correct output from the writer agent.

@@ -1,0 +1,29 @@
+from __future__ import annotations
+
+from google.adk.agents import LlmAgent
+
+
+def create_agent(model_name: str) -> BaseAgent:
+  """
+  Creates an LlmAgent with an instruction to respond with "Hello World!".
+
+  Instructions:
+      Create an LlmAgent named "logic_agent".
+      Instruct it to always respond with the exact string "Hello World!".
+
+      Requirements:
+      - The agent should be a valid LlmAgent instance.
+      - The agent should respond to the greeting 'Say hello.' with a response containing 'Hello World!'.
+
+  Args:
+      model_name: The name of the LLM model to use.
+
+  Returns:
+      An instance of LlmAgent with the correct logic.
+  """
+  root_agent = LlmAgent(
+      name="logic_agent",
+      model=model_name,
+      instruction="You are a helpful assistant.",
+  )
+  return root_agent

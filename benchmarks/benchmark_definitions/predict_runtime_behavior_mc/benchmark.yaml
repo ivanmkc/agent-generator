@@ -1,0 +1,223 @@
+# Requirement: All multiple-choice questions must include a 'None of the above' option.
+benchmarks:
+  - question: 'Predict the error (if any) when running the following code:'
+    code_snippet_ref:
+      file: benchmarks/benchmark_definitions/predict_runtime_behavior_mc/cases/test_duplicate_agent_name.py
+      section: duplicate_agent_name
+    options:
+      A: No error, but the second agent will be ignored.
+      B: 'TypeError: LlmAgent cannot be instantiated twice.'
+      C: No error, but 'worker' will be renamed to 'worker_1' automatically.
+      D: 'ValueError: Agent name must be unique within the agent tree.'
+      E: None of the above
+    correct_answer: E
+    explanation: While unique agent names are a best practice, the `SequentialAgent` constructor does not strictly enforce uniqueness at runtime, so no error is raised.
+    benchmark_type: multiple_choice
+  - question: "What error does this code raise?"
+    code_snippet_ref:
+      file: benchmarks/benchmark_definitions/predict_runtime_behavior_mc/cases/test_reserved_agent_name.py
+      section: reserved_agent_name
+    options:
+      A: 'ValueError: Model name `gemini-2.5-flash` is invalid.'
+      B: No error.
+      C: 'ValueError: Agent name cannot be `user`.'
+      D: 'TypeError: `instruction` must be a list.'
+      E: A ValidationError indicating the agent name is reserved.
+    correct_answer: E
+    explanation: '`BaseAgent` validates that `name` cannot be ''user'' as it is reserved.'
+    benchmark_type: multiple_choice
+  - question: "In what order will the callbacks and agent output be printed?"
+    code_snippet_ref:
+      file: benchmarks/benchmark_definitions/predict_runtime_behavior_mc/cases/test_callback_execution_order.py
+      section: callback_execution_order
+    options:
+      A: Pre, Post, (Agent Output)
+      B: (Agent Output), Pre, Post
+      C: Post, Pre, (Agent Output)
+      D: Pre, (Agent Output), Post
+      E: None of the above
+    correct_answer: D
+    explanation: Callbacks execute around the agent's main operation.
+    benchmark_type: multiple_choice
+  - question: "What is the default behavior of `ReflectAndRetryToolPlugin`?"
+    code_snippet_ref:
+      file: benchmarks/benchmark_definitions/predict_runtime_behavior_mc/cases/test_retry_plugin_config.py
+      section: retry_plugin_config
+    options:
+      A: It retries only 5xx errors.
+      B: It retries infinite times.
+      C: It retries failed tool calls (default 3 times).
+      D: It asks the user for confirmation before retrying.
+      E: None of the above
+    correct_answer: C
+    explanation: '`ReflectAndRetryToolPlugin` with `max_retries=3` correctly implements the requirement.'
+    benchmark_type: multiple_choice
+  - question: "Predict the error:"
+    code_snippet_ref:
+      file: benchmarks/benchmark_definitions/predict_runtime_behavior_mc/cases/test_generate_content_config_tools_error.py
+      section: generate_content_config_tools_error
+    options:
+      A: 'ValueError: All tools must be set via LlmAgent.tools.'
+      B: 'TypeError: `tools` in `generate_content_config` must be a dict.'
+      C: 'ValueError: `my_tool` is not defined.'
+      D: No error.
+      E: "ValidationError indicating that tools must be configured on the Agent, not the config."
+    correct_answer: E
+    explanation: '`LlmAgent` validates that `generate_content_config` does not contain `tools`; they must be passed to the `tools` argument of `LlmAgent`.'
+    benchmark_type: multiple_choice
+  - question: "Predict the error:"
+    code_snippet_ref:
+      file: benchmarks/benchmark_definitions/predict_runtime_behavior_mc/cases/test_response_schema_invalid_arg.py
+      section: response_schema_invalid_arg
+    options:
+      A: 'ValueError: Use `output_schema` instead of `response_schema`.'
+      B: No error.
+      C: 'TypeError: `response_schema` must be a dict.'
+      D: 'ValueError: Extra inputs are not permitted'
+      E: "ValidationError: 1 validation error for LlmAgent response_schema   Extra inputs are not permitted [type=extra_forbidden, input_value=<class 'test_code_predictions.<locals>.MyPydanticModel'>, input_type=ModelMetaclass]     For further information visit https://errors.pydantic.dev/2.12/v/extra_forbidden"
+    correct_answer: E
+    explanation: '`LlmAgent` uses `output_schema`, not `response_schema`. `response_schema` is likely an invalid kwarg that Pydantic will reject.'
+    benchmark_type: multiple_choice
+  - question: "Is this agent configuration valid?"
+    code_snippet_ref:
+      file: benchmarks/benchmark_definitions/predict_runtime_behavior_mc/cases/test_output_schema_json_enforcement.py
+      section: output_schema_json_enforcement
+    options:
+      A: Yes, it correctly sets up structured output.
+      B: No, `output_schema` must be a dict.
+      C: No, `output_schema` is deprecated.
+      D: Yes, but only for non-streaming requests.
+      E: None of the above
+    correct_answer: A
+    explanation: Setting `output_schema` on `LlmAgent` is the correct way to enforce structured JSON output.
+    benchmark_type: multiple_choice
+  - question: "Does this agent maintain long-term memory?"
+    code_snippet_ref:
+      file: benchmarks/benchmark_definitions/predict_runtime_behavior_mc/cases/test_stateless_agent_history.py
+      section: stateless_agent_history
+    options:
+      A: Yes, it stores everything.
+      B: Yes, but only the last turn.
+      C: No, it treats every turn as a fresh start.
+      D: Yes, in a vector database.
+      E: None of the above
+    correct_answer: C
+    explanation: '`include_contents=''none''` means the model receives no prior history, operating solely on current instruction and input.'
+    benchmark_type: multiple_choice
+  - question: "What happens when this agent is run?"
+    code_snippet_ref:
+      file: benchmarks/benchmark_definitions/predict_runtime_behavior_mc/cases/test_loop_agent_empty_subagents.py
+      section: loop_agent_empty_subagents
+    options:
+      A: 'TypeError: `sub_agents` is required.'
+      B: 'ValueError: `max_iterations` must be set.'
+      C: It runs but does nothing.
+      D: 'ValueError: LoopAgent must have at least one sub-agent.'
+      E: None of the above
+    correct_answer: C
+    explanation: '`sub_agents` defaults to empty list. It runs but does nothing. Thus ''No error at instantiation'' is correct.'
+    benchmark_type: multiple_choice
+  - question: 'Spec: "Use a tool that requires a `session_id` parameter." How does ADK handle `session_id` injection?'
+    code_snippet_ref:
+      file: benchmarks/benchmark_definitions/predict_runtime_behavior_mc/cases/test_tool_session_id_injection.py
+      section: tool_session_id_injection
+    options:
+      A: It throws an error because `session_id` is not in the user prompt.
+      B: It only injects if the type hint is `SessionId`.
+      C: It requires `tool_context` to be accessed manually inside the tool.
+      D: It automatically injects `session_id` if the argument name matches.
+      E: None of the above
+    correct_answer: E
+    explanation: 'ADK injects context via `ToolContext`.'
+    benchmark_type: multiple_choice
+  - question: "Is the `name` attribute mutable?"
+    code_snippet_ref:
+      file: benchmarks/benchmark_definitions/predict_runtime_behavior_mc/cases/test_agent_name_mutability.py
+      section: agent_name_mutability
+    options:
+      A: Yes, Pydantic models are mutable by default.
+      B: No, it raises a ValidationError.
+      C: No, it is ignored.
+      D: Yes, but only during initialization.
+      E: None of the above
+    correct_answer: A
+    explanation: Pydantic models are mutable by default.
+    benchmark_type: multiple_choice
+  - question: 'Predict the error:'
+    code_snippet_ref:
+      file: benchmarks/benchmark_definitions/predict_runtime_behavior_mc/cases/test_agent_clone_invalid_field.py
+      section: agent_clone_invalid_field
+    options:
+      A: No error, field is added.
+      B: 'AttributeError: ''LlmAgent'' object has no attribute ''unknown_field'''
+      C: 'TypeError: Unexpected keyword argument...'
+      D: "ValueError: Cannot update nonexistent fields in LlmAgent: {'unknown_field'}"
+      E: None of the above
+    correct_answer: D
+    explanation: '`clone` method explicitly checks `allowed_fields` and raises `ValueError`.'
+    benchmark_type: multiple_choice
+  - question: "What validation errors occur when initializing this Event?"
+    code_snippet_ref:
+      file: benchmarks/benchmark_definitions/predict_runtime_behavior_mc/cases/test_event_repr_output.py
+      section: event_repr_output
+    options:
+      A: "Input should be a valid dictionary or object."
+      B: "Field required: author."
+      C: "Extra inputs are not permitted: type."
+      D: "All of the above."
+      E: "None of the above"
+    correct_answer: D
+    explanation: The Event object requires `author`, expects `content` to be a model/dict, and does not accept `type`.
+    benchmark_type: multiple_choice
+  - question: "Is `session.state` mutable?"
+    code_snippet_ref:
+      file: benchmarks/benchmark_definitions/predict_runtime_behavior_mc/cases/test_session_state_mutability.py
+      section: session_state_mutability
+    options:
+      A: No, it is immutable.
+      B: Yes, it is a mutable dictionary-like object.
+      C: No, you must use `session.update_state()`.
+      D: Yes, but only for primitive types.
+      E: None of the above
+    correct_answer: B
+    explanation: Session state is a mutable dictionary-like object.
+    benchmark_type: multiple_choice
+  - question: "Predict the standard output of the following Python code:"
+    code_snippet_ref:
+      file: benchmarks/benchmark_definitions/predict_runtime_behavior_mc/cases/test_function_tool_async_run.py
+      section: function_tool_async_run
+    options:
+      A: '{''result'': 8}'
+      B: None
+      C: 'Error: FunctionTool.__init__() got an unexpected keyword argument ''fn'''
+      D: '53'
+      E: None of the above
+    correct_answer: C
+    explanation: FunctionTool wraps the function and returns the result. `run_async` returns a ToolResult object.
+    benchmark_type: multiple_choice
+  - question: "What error message substring is expected when running the code?"
+    code_snippet_ref:
+      file: benchmarks/benchmark_definitions/predict_runtime_behavior_mc/cases/test_llm_agent_name_validation.py
+      section: llm_agent_name_validation
+    options:
+      A: "Caught Error"
+      B: "invalid name"
+      C: "Caught TypeError"
+      D: "No Output"
+      E: "Agent name must be a valid identifier."
+    correct_answer: E
+    explanation: LlmAgent validates the name format (spaces are not allowed), raising a ValueError.
+    benchmark_type: multiple_choice
+  - question: "Why does this code raise a ValidationError?"
+    code_snippet_ref:
+      file: benchmarks/benchmark_definitions/predict_runtime_behavior_mc/cases/test_event_extra_fields_error.py
+      section: event_extra_fields_error
+    options:
+      A: The `type` field is missing.
+      B: The `random_field` argument is not a valid field for Event.
+      C: The `content` field must be a list.
+      D: The `author` field cannot be inferred.
+      E: None of the above
+    correct_answer: B
+    explanation: The `Event` class is a strict Pydantic model and forbids extra fields like `random_field`.
+    benchmark_type: multiple_choice

@@ -1,0 +1,421 @@
+# Requirement: All multiple-choice questions must include a 'None of the above' option.
+benchmarks:
+  - question: "What is the primary reason this `LlmAgent` instantiation fails?"
+    code_snippet_ref:
+      file: benchmarks/benchmark_definitions/diagnose_setup_errors_mc/snippets.py
+      section: missing_model_arg
+    options:
+      A: The `instruction` argument must be a list of strings.
+      B: The `LlmAgent` class is missing the required `model` argument.
+      C: The `name` argument must be unique across the entire project.
+      D: You must always provide a `tools` list, even if empty.
+      E: None of the above
+    correct_answer: B
+    explanation: LlmAgent requires a `model` argument to function.
+    benchmark_type: multiple_choice
+  - question: "You want to give your agent access to a Python function named `calculate_tax`. Why does this fail or behave incorrectly?"
+    code_snippet_ref:
+      file: benchmarks/benchmark_definitions/diagnose_setup_errors_mc/snippets.py
+      section: raw_function_tool
+    options:
+      A: Tools must be defined in a separate file.
+      B: The function must be a static method of a class.
+      C: The argument name should be `functions`, not `tools`.
+      D: Raw Python functions must be wrapped in `FunctionTool`.
+      E: None of the above
+    correct_answer: D
+    explanation: Raw functions must be wrapped using `FunctionTool`.
+    benchmark_type: multiple_choice
+  - question: "How should sub-agents be passed to `SequentialAgent`?"
+    code_snippet_ref:
+      file: benchmarks/benchmark_definitions/diagnose_setup_errors_mc/snippets.py
+      section: sequential_agent_tools
+    options:
+      A: As a list to the `agents` parameter.
+      B: As a list to the `plugins` parameter.
+      C: As a dictionary to the `config` parameter.
+      D: As a list to the `sub_agents` parameter.
+      E: None of the above
+    correct_answer: D
+    explanation: SequentialAgent takes a list of agents in the `sub_agents` parameter.
+    benchmark_type: multiple_choice
+  - question: "You want your agent to be able to run Python code. How should this be fixed to correctly enable the code executor?"
+    code_snippet_ref:
+      file: benchmarks/benchmark_definitions/diagnose_setup_errors_mc/snippets.py
+      section: code_executor_in_tools
+    options:
+      A: Wrap `BuiltInCodeExecutor` inside `FunctionTool`.
+      B: Add `enable_code_execution=True` to the constructor.
+      C: Use the dedicated `code_executor` argument.
+      D: Use the `CodeAgent` class instead of `LlmAgent`.
+      E: None of the above
+    correct_answer: C
+    explanation: BuiltInCodeExecutor is passed to the dedicated `code_executor` argument.
+    benchmark_type: multiple_choice
+  - question: "You have a `root_agent` and a `specialist_agent`. You want the root to delegate tasks to the specialist. What is the correct way to register the specialist for delegation?"
+    code_snippet_ref:
+      file: benchmarks/benchmark_definitions/diagnose_setup_errors_mc/snippets.py
+      section: delegation_in_tools
+    options:
+      A: Use `child_agents=[specialist_agent]`.
+      B: Wrap the specialist in a `Tool` class.
+      C: Use `sub_agents=[specialist_agent]`.
+      D: Use `delegates=[specialist_agent]`.
+      E: None of the above
+    correct_answer: C
+    explanation: Other agents are registered via the `sub_agents` parameter to enable delegation.
+    benchmark_type: multiple_choice
+  - question: "You want two agents to run at the same time and combine their results. `MultiAgent` is not a valid class. Which class should you use?"
+    code_snippet_ref:
+      file: benchmarks/benchmark_definitions/diagnose_setup_errors_mc/snippets.py
+      section: invalid_multi_agent_class
+    options:
+      A: ParallelAgent
+      B: ConcurrentAgent
+      C: BatchAgent
+      D: AsyncAgent
+      E: None of the above
+    correct_answer: A
+    explanation: ParallelAgent is used for running agents concurrently.
+    benchmark_type: multiple_choice
+  - question: "What data type does the `input_schema` argument expect?"
+    code_snippet_ref:
+      file: benchmarks/benchmark_definitions/diagnose_setup_errors_mc/snippets.py
+      section: input_schema_instance
+    options:
+      A: A Pydantic model class.
+      B: A Pydantic model instance.
+      C: A JSON schema dictionary.
+      D: A list of field definitions.
+      E: None of the above
+    correct_answer: A
+    explanation: The class itself (`UserInfo`) is passed to `input_schema`, not an instance.
+    benchmark_type: multiple_choice
+  - question: 'You encounter a `NameError: name ''FunctionTool'' is not defined`. Which import statement is likely missing?'
+    options:
+      A: from google.adk.utils import FunctionTool
+      B: from google.adk.agents import FunctionTool
+      C: from google.adk.tools import FunctionTool
+      D: from google.adk.tools.function_tool import FunctionTool
+      E: None of the above
+    correct_answer: D
+    explanation: FunctionTool is imported from `google.adk.tools.function_tool`.
+    benchmark_type: multiple_choice
+  - question: 'Your root agent has a `specialist_agent` in its `sub_agents` list, but it never delegates to it, even when asked. What is the most likely missing component in the **specialist''s** definition?'
+    options:
+      A: The specialist is missing an `instruction`.
+      B: The specialist must use a different model than the root.
+      C: The specialist is missing a `description`.
+      D: The specialist must be defined in a separate file.
+      E: None of the above
+    correct_answer: C
+    explanation: The specialist needs a `description` for the root agent's planner to know when to use it.
+    benchmark_type: multiple_choice
+  - question: "What is the correct parameter name for enforcing structured output?"
+    code_snippet_ref:
+      file: benchmarks/benchmark_definitions/diagnose_setup_errors_mc/snippets.py
+      section: output_schema_params
+    options:
+      A: output_schema=MyPydanticModel
+      B: structured_output=MyPydanticModel
+      C: response_format='json', response_schema=MyPydanticModel
+      D: format=MyPydanticModel
+      E: None of the above
+    correct_answer: A
+    explanation: '`output_schema` is the standard parameter for enforcing structured output.'
+    benchmark_type: multiple_choice
+  - question: 'You define an agent with an invalid name ''my-agent''. What validation error is raised?'
+    code_snippet_ref:
+      file: benchmarks/benchmark_definitions/diagnose_setup_errors_mc/snippets.py
+      section: invalid_agent_name_hyphen
+    options:
+      A: 'ValueError: Agent name cannot contain hyphens.'
+      B: No error.
+      C: 'ValueError: Agent name must be a valid identifier.'
+      D: SyntaxError.
+      E: None of the above
+    correct_answer: C
+    explanation: Agent names must be valid Python identifiers (letters, numbers, underscores).
+    benchmark_type: multiple_choice
+  - question: "You try to set `system_instruction` inside `generate_content_config`. What error does this cause?"
+    code_snippet_ref:
+      file: benchmarks/benchmark_definitions/diagnose_setup_errors_mc/snippets.py
+      section: gen_config_sys_instr
+    options:
+      A: 'ValueError: generate_content_config is read-only.'
+      B: No error, it works as expected.
+      C: 'TypeError: system_instruction must be a Content object.'
+      D: 'ValueError: System instruction must be set via LlmAgent.instruction.'
+      E: None of the above
+    correct_answer: D
+    explanation: LlmAgent enforces that instructions are set via the `instruction` or `static_instruction` fields, not `generate_content_config`.
+    benchmark_type: multiple_choice
+  - question: "You try to set `tools` inside `generate_content_config`. What error occurs?"
+    code_snippet_ref:
+      file: benchmarks/benchmark_definitions/diagnose_setup_errors_mc/snippets.py
+      section: gen_config_tools
+    options:
+      A: No error.
+      B: 'ValueError: Tools are not supported in this model.'
+      C: 'ValueError: All tools must be set via LlmAgent.tools.'
+      D: 'TypeError: Tools must be a list of functions.'
+      E: None of the above
+    correct_answer: C
+    explanation: Tools must be configured via the `tools` parameter of `LlmAgent`.
+    benchmark_type: multiple_choice
+  - question: "You try to set `response_schema` inside `generate_content_config`. What error occurs?"
+    code_snippet_ref:
+      file: benchmarks/benchmark_definitions/diagnose_setup_errors_mc/snippets.py
+      section: gen_config_response_schema
+    options:
+      A: No error.
+      B: 'TypeError: Schema must be a dict.'
+      C: 'ValueError: response_schema is deprecated.'
+      D: 'ValueError: Response schema must be set via LlmAgent.output_schema.'
+      E: None of the above
+    correct_answer: D
+    explanation: Structured output should be configured via `output_schema` on the `LlmAgent`.
+    benchmark_type: multiple_choice
+  - question: 'You try to initialize a `Runner` with both `app` and `agent`. What error is raised?'
+    code_snippet_ref:
+      file: benchmarks/benchmark_definitions/diagnose_setup_errors_mc/snippets.py
+      section: runner_app_and_agent
+    options:
+      A: 'ValueError: When app is provided, agent should not be provided.'
+      B: 'TypeError: Multiple values for argument ''agent''.'
+      C: 'ValueError: App name mismatch.'
+      D: No error, agent overrides app.root_agent.
+      E: None of the above
+    correct_answer: A
+    explanation: '`app` and `agent` arguments are mutually exclusive in `Runner` initialization.'
+    benchmark_type: multiple_choice
+  - question: "Which argument is missing in this `Runner` initialization?"
+    code_snippet_ref:
+      file: benchmarks/benchmark_definitions/diagnose_setup_errors_mc/snippets.py
+      section: runner_no_app_no_name
+    options:
+      A: "`tools`"
+      B: "`app_name`"
+      C: "`description`"
+      D: "`model_client`"
+      E: None of the above
+    correct_answer: B
+    explanation: If `app` is not provided, `app_name` is required.
+    benchmark_type: multiple_choice
+  - question: 'You define an `App` with an invalid name ''my app''. What error occurs?'
+    code_snippet_ref:
+      file: benchmarks/benchmark_definitions/diagnose_setup_errors_mc/snippets.py
+      section: invalid_app_name
+    options:
+      A: 'ValueError: Invalid app name ''my app''...'
+      B: 'TypeError: Name must be alphanumeric.'
+      C: No error.
+      D: 'ValueError: App name cannot contain spaces.'
+      E: None of the above
+    correct_answer: A
+    explanation: App names must be valid Python identifiers.
+    benchmark_type: multiple_choice
+  - question: 'You try to clone an agent and update `parent_agent`. What error occurs?'
+    code_snippet_ref:
+      file: benchmarks/benchmark_definitions/diagnose_setup_errors_mc/snippets.py
+      section: clone_parent_agent
+    options:
+      A: 'AttributeError: parent_agent is read-only.'
+      B: 'ValueError: Cannot update `parent_agent` field in clone.'
+      C: 'TypeError: parent_agent is immutable.'
+      D: No error.
+      E: None of the above
+    correct_answer: B
+    explanation: '`parent_agent` cannot be updated during cloning; it is set when added to a parent''s sub_agents.'
+    benchmark_type: multiple_choice
+  - question: 'You try to clone an agent and update a non-existent field. What error occurs?'
+    code_snippet_ref:
+      file: benchmarks/benchmark_definitions/diagnose_setup_errors_mc/snippets.py
+      section: clone_unknown_field
+    options:
+      A: 'ValueError: Cannot update nonexistent fields...'
+      B: No error, field is added.
+      C: TypeError.
+      D: AttributeError.
+      E: None of the above
+    correct_answer: A
+    explanation: '`clone` validates that updated fields exist on the agent class.'
+    benchmark_type: multiple_choice
+  - question: 'You initialize a `SequentialAgent` without `sub_agents`. What happens?'
+    code_snippet_ref:
+      file: benchmarks/benchmark_definitions/diagnose_setup_errors_mc/snippets.py
+      section: sequential_empty_subagents
+    options:
+      A: 'ValueError: SequentialAgent requires at least one sub-agent.'
+      B: 'TypeError: Missing required argument ''sub_agents''.'
+      C: RuntimeError on initialization.
+      D: No error, but it won't do anything useful.
+      E: None of the above
+    correct_answer: D
+    explanation: '`sub_agents` defaults to an empty list. It is valid setup, though functionally empty.'
+    benchmark_type: multiple_choice
+  - question: 'You try to add an agent as a sub-agent to two different parents. What error occurs?'
+    code_snippet_ref:
+      file: benchmarks/benchmark_definitions/diagnose_setup_errors_mc/snippets.py
+      section: shared_agent_ownership
+    options:
+      A: No error, shared ownership is allowed.
+      B: 'TypeError: Agent cannot be reused.'
+      C: 'ValueError: Agent `child` already has a parent agent...'
+      D: 'RuntimeError: Circular dependency.'
+      E: None of the above
+    correct_answer: C
+    explanation: An agent instance can only have one parent. It checks `parent_agent` is None before assignment.
+    benchmark_type: multiple_choice
+  - question: "You initialize an `LlmAgent` with a `thinking_config` in `generate_content_config`. What error occurs?"
+    code_snippet_ref:
+      file: benchmarks/benchmark_definitions/diagnose_setup_errors_mc/snippets.py
+      section: gen_config_thinking
+    options:
+      A: 'ValueError: Thinking config should be set via LlmAgent.planner.'
+      B: No error.
+      C: 'ValueError: Model does not support thinking.'
+      D: 'TypeError: thinking_config not supported.'
+      E: None of the above
+    correct_answer: A
+    explanation: Thinking config must be configured via the `planner` field.
+    benchmark_type: multiple_choice
+  - question: "You provide an invalid tool config in YAML. ```yaml tools: - name: 'invalid.tool.format' ``` If the tool cannot be resolved, what happens?"
+    options:
+      A: It defaults to a mock tool.
+      B: It is ignored.
+      C: A warning is logged.
+      D: ImportError or ValueError depending on the resolution failure.
+      E: None of the above
+    correct_answer: D
+    explanation: The tool resolution logic attempts to import and load the tool. Failure raises an exception.
+    benchmark_type: multiple_choice
+  - question: 'You initialize a `RunConfig` with `max_llm_calls` equal to `sys.maxsize`. What error occurs?'
+    code_snippet_ref:
+      file: benchmarks/benchmark_definitions/diagnose_setup_errors_mc/snippets.py
+      section: run_config_max_calls_overflow
+    options:
+      A: TypeError.
+      B: No error.
+      C: OverflowError.
+      D: 'ValueError: max_llm_calls should be less than sys.maxsize.'
+      E: None of the above
+    correct_answer: D
+    explanation: RunConfig validates that max_llm_calls is less than sys.maxsize.
+    benchmark_type: multiple_choice
+  - question: 'You define a `LoopAgent` without specifying `max_iterations`. If `max_iterations` is required (hypothetically), what error would you expect?'
+    code_snippet_ref:
+      file: benchmarks/benchmark_definitions/diagnose_setup_errors_mc/snippets.py
+      section: loop_agent_missing_max_iter
+    options:
+      A: 'ValidationError: Field required.'
+      B: TypeError.
+      C: No error, it defaults to None/Infinite.
+      D: ValueError.
+      E: None of the above
+    correct_answer: C
+    explanation: '`max_iterations` is optional (default None), so no error occurs.'
+    benchmark_type: multiple_choice
+  - question: 'You try to set `parent_agent` manually during initialization. What error occurs?'
+    code_snippet_ref:
+      file: benchmarks/benchmark_definitions/diagnose_setup_errors_mc/snippets.py
+      section: set_parent_agent_init
+    options:
+      A: 'ValueError: parent_agent cannot be set.'
+      B: No error.
+      C: 'ValidationError: parent_agent is init=False.'
+      D: 'TypeError: Unexpected argument.'
+      E: None of the above
+    correct_answer: D
+    explanation: The `parent_agent` field is marked `init=False`, so Pydantic prevents setting it in __init__.
+    benchmark_type: multiple_choice
+  - question: 'You initialize `ContextCacheConfig` with `ttl` as a string. What error occurs?'
+    code_snippet_ref:
+      file: benchmarks/benchmark_definitions/diagnose_setup_errors_mc/snippets.py
+      section: cache_ttl_string
+    options:
+      A: TypeError.
+      B: 'ValidationError: value is not a valid integer.'
+      C: 'ValueError: Invalid format.'
+      D: No error.
+      E: None of the above
+    correct_answer: B
+    explanation: '`ttl` must be an integer (seconds).'
+    benchmark_type: multiple_choice
+  - question: 'You initialize `App` with both `root_agent` and `agents` (hypothetical old API). If `agents` is not a valid parameter, what happens?'
+    code_snippet_ref:
+      file: benchmarks/benchmark_definitions/diagnose_setup_errors_mc/snippets.py
+      section: app_extra_args
+    options:
+      A: No error, agents is ignored.
+      B: 'TypeError: __init__() got an unexpected keyword argument ''agents''.'
+      C: ValueError.
+      D: 'ValidationError: Extra inputs are not permitted.'
+      E: None of the above
+    correct_answer: D
+    explanation: Pydantic models with `extra='forbid'` raise ValidationError for unknown arguments.
+    benchmark_type: multiple_choice
+  - question: 'You initialize `EventsCompactionConfig` with `overlap_size=-1`. What error occurs?'
+    code_snippet_ref:
+      file: benchmarks/benchmark_definitions/diagnose_setup_errors_mc/snippets.py
+      section: compaction_overlap_negative
+    options:
+      A: ValueError.
+      B: TypeError.
+      C: No error.
+      D: ValidationError
+      E: None of the above
+    correct_answer: D
+    explanation: Pydantic validation ensures `overlap_size` has the correct type/constraints.
+    benchmark_type: multiple_choice
+  - question: 'You initialize `EventsCompactionConfig` with `compaction_interval=0`. What error occurs?'
+    code_snippet_ref:
+      file: benchmarks/benchmark_definitions/diagnose_setup_errors_mc/snippets.py
+      section: compaction_interval_zero
+    options:
+      A: TypeError.
+      B: ValueError.
+      C: ValidationError
+      D: No error.
+      E: None of the above
+    correct_answer: C
+    explanation: Pydantic validation ensures `compaction_interval` has the correct type/constraints.
+    benchmark_type: multiple_choice
+  - question: 'You initialize `EventsCompactionConfig` with `summarizer=''string''`. What error occurs?'
+    code_snippet_ref:
+      file: benchmarks/benchmark_definitions/diagnose_setup_errors_mc/snippets.py
+      section: compaction_summarizer_string
+    options:
+      A: ValidationError
+      B: ValueError.
+      C: No error.
+      D: TypeError.
+      E: None of the above
+    correct_answer: A
+    explanation: Pydantic validation ensures `summarizer` has the correct type/constraints.
+    benchmark_type: multiple_choice
+  - question: 'You initialize `ParallelAgent` with `max_workers=''10''` (string). What error occurs?'
+    code_snippet_ref:
+      file: benchmarks/benchmark_definitions/diagnose_setup_errors_mc/snippets.py
+      section: parallel_max_workers_string
+    options:
+      A: ValueError.
+      B: No error.
+      C: 'ValidationError: Input should be a valid integer.'
+      D: TypeError.
+      E: None of the above
+    correct_answer: C
+    explanation: max_workers must be an integer.
+    benchmark_type: multiple_choice
+  - question: 'Which of the following is a VALID agent name?
+
+      A. `my-agent` B. `123agent` C. `my_agent_1` D. `user`'
+    options:
+      A: A
+      B: B
+      C: C
+      D: D
+      E: None of the above
+    correct_answer: C
+    explanation: Agent names must be valid Python identifiers and cannot be reserved words like 'user'.
+    benchmark_type: multiple_choice
