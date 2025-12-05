@@ -18,6 +18,7 @@ This file serves as a central registry of configured generators to ensure consis
 across different evaluation runs.
 """
 
+from enum import StrEnum
 import os
 from pathlib import Path
 import subprocess
@@ -38,9 +39,11 @@ from benchmarks.answer_generators.ground_truth_answer_generator import (
 from benchmarks.answer_generators.trivial_answer_generator import TrivialAnswerGenerator
 from benchmarks.utils import permute
 
-# Define model constants
-GEMINI_2_5_FLASH = "gemini-2.5-flash"
-GEMINI_2_5_PRO = "gemini-2.5-pro"
+# Define model constants as enum
+class ModelName(StrEnum):
+    GEMINI_2_5_FLASH = "gemini-2.5-flash"
+    GEMINI_2_5_PRO = "gemini-2.5-pro"
+    GEMINI_3_0_PRO = "gemini-3.0-pro"
 
 
 # Helper to get project ID for Docker image
@@ -63,49 +66,51 @@ ADK_REPO_INSTRUCTION = (
     "\nCONTEXT: You are working in a Docker container. The current working"
     " directory is `/repos`. The project source code is located in the"
     " subdirectory `./adk-python`. You MUST look into `./adk-python` to find"
-    " source files, tests, or configuration.\n\n"
+    " source files, tests, or configuration. When asked questions about"
+    " adk-python, you MUST refer to the code in `./adk-python` to provide"
+    " answers.\n\n"
 )
 
 # Create pre-configured agent instances for AdkAnswerGenerator
-agent_flash = create_default_adk_agent(model_name=GEMINI_2_5_FLASH)
-agent_pro = create_default_adk_agent(model_name=GEMINI_2_5_PRO)
+agent_flash = create_default_adk_agent(model_name=ModelName.GEMINI_2_5_FLASH)
+agent_pro = create_default_adk_agent(model_name=ModelName.GEMINI_2_5_PRO)
 
 # List of standard candidate generators
 CANDIDATE_GENERATORS = [
     # Gemini CLI Cloud Run Generator
-    GeminiCliCloudRunAnswerGenerator(
-        model_name=GEMINI_2_5_FLASH,
-        dockerfile_dir=Path(
-            "benchmarks/answer_generators/gemini_cli_docker/adk-python"
-        ),
-        service_name="adk-gemini-sandbox",
-        project_id=project_id,
-        auto_deploy=True,
-    ),
+    # GeminiCliCloudRunAnswerGenerator(
+    #     model_name=ModelName.GEMINI_2_5_FLASH,
+    #     dockerfile_dir=Path(
+    #         "benchmarks/answer_generators/gemini_cli_docker/adk-python"
+    #     ),
+    #     service_name="adk-gemini-sandbox",
+    #     project_id=project_id,
+    #     auto_deploy=True,
+    # ),
     # Gemini CLI Docker Generator (Standard)
-    # GeminiCliDockerAnswerGenerator(
-    #     model_name=GEMINI_2_5_FLASH,
-    #     image_name=f"gcr.io/{project_id}/gemini-cli-base:latest",
-    #     context_instruction=ADK_REPO_INSTRUCTION,
-    # ),
-    # GeminiCliDockerAnswerGenerator(
-    #     model_name=GEMINI_2_5_FLASH,
-    #     image_name=f"gcr.io/{project_id}/adk-gemini-sandbox:latest",
-    #     context_instruction=ADK_REPO_INSTRUCTION,
-    # ),
-    # # Gemini CLI Docker Generator (MCP Context7)
-    # GeminiCliDockerAnswerGenerator(
-    #     model_name=GEMINI_2_5_FLASH,
-    #     image_name="gemini-cli-mcp-context7",
-    # ),
-    # Direct Gemini SDK generators (Baselines)
-    *permute(
-        GeminiAnswerGenerator,
-        model_name=[GEMINI_2_5_FLASH],
-        context=[None, Path("llms-relevant.txt")]
+    GeminiCliDockerAnswerGenerator(
+        model_name=ModelName.GEMINI_2_5_FLASH,
+        image_name=f"gcr.io/{project_id}/gemini-cli-base:latest",
+        context_instruction=ADK_REPO_INSTRUCTION,
     ),
-    # Gemini CLI generators
-    GeminiCliAnswerGenerator(model_name=GEMINI_2_5_FLASH),
+    GeminiCliDockerAnswerGenerator(
+        model_name=ModelName.GEMINI_2_5_FLASH,
+        image_name=f"gcr.io/{project_id}/adk-gemini-sandbox:latest",
+        context_instruction=ADK_REPO_INSTRUCTION,
+    ),
+    # Gemini CLI Docker Generator (MCP Context7)
+    GeminiCliDockerAnswerGenerator(
+        model_name=ModelName.GEMINI_2_5_FLASH,
+        image_name="gemini-cli-mcp-context7",
+    ),
+    # Direct Gemini SDK generators (Baselines)
+    # *permute(
+    #     GeminiAnswerGenerator,
+    #     model_name=[ModelName.GEMINI_2_5_FLASH],
+    #     context=[None, Path("llms-relevant.txt")]
+    # ),
+    # # Gemini CLI generators
+    # GeminiCliAnswerGenerator(model_name=ModelName.GEMINI_2_5_FLASH),
     # Control generators
     GroundTruthAnswerGenerator(),
     TrivialAnswerGenerator(),

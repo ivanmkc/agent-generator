@@ -9,7 +9,7 @@ def create_agent(model_name: str) -> BaseAgent:
   Creates a stateless LlmAgent using `include_contents="none"`.
 
   Instructions:
-      Create an LlmAgent named "stateless_agent" (aka StatelessBot) that is stateless.
+      Create an LlmAgent named "StatelessBot" that is stateless.
       It should not retain conversation history (set `include_contents="none"`).
 
       Requirements:
@@ -23,7 +23,7 @@ def create_agent(model_name: str) -> BaseAgent:
       A stateless instance of LlmAgent.
   """
   agent = LlmAgent(
-      name="stateless_agent",
+      name="StatelessBot",
       model=model_name,
       instruction=(
           "Your name is StatelessBot. You are a stateless agent and do not"

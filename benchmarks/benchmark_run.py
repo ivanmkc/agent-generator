@@ -366,6 +366,22 @@ def generate_detailed_reports(raw_results_df: pd.DataFrame, output_dir: Path):
                 "```",
             ])
 
+        elif row["benchmark_type"] == "api_understanding":
+          expected_content = row.get("ground_truth", "") or ""
+          report_lines.extend([
+              "**Expected Answer (Example):**",
+              "```python",
+              expected_content,
+              "```",
+          ])
+
+        elif row["benchmark_type"] == "multiple_choice":
+          expected_content = row.get("ground_truth", "") or ""
+          report_lines.extend([
+              f"**Expected Answer:** {expected_content}",
+              "",
+          ])
+
         report_lines.extend(["---", ""])
 
     # Sanitize filename
@@ -379,10 +395,12 @@ def generate_detailed_reports(raw_results_df: pd.DataFrame, output_dir: Path):
 
 
 # %%
-# Setup unified output directory
 # Parameters cell for papermill
 run_output_dir_str = None
 
+
+# %%
+# Setup unified output directory
 if run_output_dir_str:
   run_output_dir = Path(run_output_dir_str)
 else:

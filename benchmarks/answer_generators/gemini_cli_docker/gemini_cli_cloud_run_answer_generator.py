@@ -91,9 +91,8 @@ class GeminiCliCloudRunAnswerGenerator(GeminiCliAnswerGenerator):
 
   @property
   def name(self) -> str:
-    variant = (
-        self._remote_version if self._remote_version else self.service_name
-    )
+    variant = self.service_name
+    
     return (
         f"GeminiCliCloudRunAnswerGenerator({self.model_name},"
         f" variant={variant})"

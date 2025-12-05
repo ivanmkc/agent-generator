@@ -49,7 +49,7 @@ async def test_create_agent_passes():
   assert "stateless" in response2.lower()
   assert "remember" in response2.lower()
   assert "what is your name" not in response2.lower()
-  assert root_agent.name == "stateless_agent", "Agent name mismatch."
+  assert root_agent.name == "StatelessBot", "Agent name mismatch."
   assert (
       root_agent.include_contents == "none"
   ), "Agent should be stateless (include_contents='none')."

@@ -29,7 +29,7 @@ from benchmarks.data_models import BaseBenchmarkCase
 from benchmarks.data_models import BenchmarkFile
 from benchmarks.data_models import BenchmarkResultType
 from benchmarks.data_models import BenchmarkRunResult
-from benchmarks.data_models import FixErrorBenchmarkCase
+from benchmarks.data_models import ApiUnderstandingBenchmarkCase, MultipleChoiceBenchmarkCase, FixErrorBenchmarkCase
 from benchmarks.logger import BenchmarkLogger
 
 
@@ -53,6 +53,12 @@ async def _run_single_benchmark(
     if isinstance(case, FixErrorBenchmarkCase) and case.fixed_file:
       if case.fixed_file.exists():
         ground_truth = case.fixed_file.read_text(encoding="utf-8")
+    elif isinstance(case, MultipleChoiceBenchmarkCase):
+      ground_truth = case.correct_answer
+    elif isinstance(case, ApiUnderstandingBenchmarkCase):
+      # For now, just take the first valid answer as the ground truth example
+      if case.answers:
+        ground_truth = case.answers[0].answer
 
     start_time = time.time()
     try:
