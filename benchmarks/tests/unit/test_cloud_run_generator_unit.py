@@ -96,7 +96,8 @@ async def test_cloud_run_generator_generate_answer():
     MockSession.return_value.__aenter__.return_value = mock_session
 
     # Mock auth token fetching
-    with patch.object(generator, "_get_id_token", return_value="mock-token"):
+    with patch.object(generator, "_get_id_token", new_callable=AsyncMock) as mock_get_token:
+      mock_get_token.return_value = "mock-token"
 
       # Run generation
       result = await generator.generate_answer(case)
@@ -164,7 +165,8 @@ async def test_cloud_run_generator_setup_resolves_url():
               
               MockSession.return_value.__aenter__.return_value = mock_session
               
-              with patch.object(generator, "_get_id_token", return_value="mock-token"):
+              with patch.object(generator, "_get_id_token", new_callable=AsyncMock) as mock_get_token:
+                  mock_get_token.return_value = "mock-token"
                   await generator.setup()
                   
       assert generator.service_url == "https://resolved-url.run.app"
@@ -259,7 +261,8 @@ async def test_cloud_run_generator_deploy_on_mismatch():
                               with patch("pathlib.Path.exists", return_value=True):
                                   with patch("builtins.open", new_callable=MagicMock):
                                       with patch("pathlib.Path.unlink"):
-                                          with patch.object(generator, "_get_id_token", return_value="mock-token"):
+                                          with patch.object(generator, "_get_id_token", new_callable=AsyncMock) as mock_get_token:
+                                              mock_get_token.return_value = "mock-token"
                                               await generator.setup()
               
               # Verify that deploy updated the URL

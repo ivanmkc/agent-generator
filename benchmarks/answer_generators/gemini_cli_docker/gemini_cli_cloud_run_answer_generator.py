@@ -249,7 +249,7 @@ class GeminiCliCloudRunAnswerGenerator(GeminiCliAnswerGenerator):
       if not self.service_url:
         return None
 
-      token = await asyncio.to_thread(self._get_id_token)
+      token = await self._get_id_token()
 
       url = f"{self.service_url}{endpoint}"
       headers = {}
@@ -440,7 +440,7 @@ class GeminiCliCloudRunAnswerGenerator(GeminiCliAnswerGenerator):
     print(f"    -> Deployed successfully. URL: {self.service_url}")
     return self.service_url
 
-  def _get_id_token(self) -> str | None:
+  async def _get_id_token(self) -> str | None:
     """Obtains an ID token, trying google-auth first, then gcloud fallback.
     Caches the token for 50 minutes.
     """
@@ -450,9 +450,12 @@ class GeminiCliCloudRunAnswerGenerator(GeminiCliAnswerGenerator):
 
     token = None
     # 1. Try standard google-auth (Works for Service Accounts & Metadata Server)
+    # This library call is synchronous/blocking, so we offload it.
     try:
-      token = google.oauth2.id_token.fetch_id_token(
-          self._auth_req, self.service_url
+      token = await asyncio.to_thread(
+          google.oauth2.id_token.fetch_id_token,
+          self._auth_req,
+          self.service_url,
       )
     except Exception:
       # If google-auth fails (e.g. User Account with audience), fall back to gcloud
@@ -463,9 +466,18 @@ class GeminiCliCloudRunAnswerGenerator(GeminiCliAnswerGenerator):
       try:
         # For user accounts, we do not pass --audience.
         # Cloud Run accepts the standard user ID token.
-        token = subprocess.check_output(
-            ["gcloud", "auth", "print-identity-token"], encoding="utf-8"
-        ).strip()
+        proc = await asyncio.create_subprocess_exec(
+            "gcloud",
+            "auth",
+            "print-identity-token",
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        stdout, stderr = await proc.communicate()
+        if proc.returncode == 0:
+          token = stdout.decode("utf-8").strip()
+        else:
+          print(f"Warning: Could not fetch ID token via gcloud: {stderr.decode()}")
       except Exception as e:
         print(f"Warning: Could not fetch ID token: {e}")
         return None
@@ -515,7 +527,7 @@ class GeminiCliCloudRunAnswerGenerator(GeminiCliAnswerGenerator):
     logs: list[TraceLogEvent] = []
 
     # Get ID Token for authentication (may be blocking)
-    token = await asyncio.to_thread(self._get_id_token)
+    token = await self._get_id_token()
 
     headers = {"Content-Type": "application/json"}
     if token:
