@@ -14,6 +14,9 @@ def create_agent(model_name: str) -> BaseAgent:
       1. "agent_one": Responds with "This is the first parallel agent."
       2. "agent_two": Responds with "This is the second parallel agent."
 
+      Requirements:
+      - The final response should contain the word 'parallel'.
+
   Args:
       model_name: The name of the LLM model to use.
 

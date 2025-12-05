@@ -37,6 +37,10 @@ def create_agent(model_name: str) -> BaseAgent:
       - "agent_a" should respond "Agent A was chosen."
       - "agent_b" should respond "Agent B was chosen."
 
+      Requirements:
+      - If `run_agent_a` is true, the final response should contain 'Agent A'.
+      - If `run_agent_a` is false, the final response should contain 'Agent B'.
+
   Args:
       model_name: The name of the LLM model to use.
 

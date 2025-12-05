@@ -18,6 +18,10 @@ def create_agent(model_name: str) -> BaseAgent:
       Create an LlmAgent named "tool_agent" equipped with the `basic_tool`.
       The agent should be able to use the tool when prompted.
 
+      Requirements:
+      - When asked 'Can you use your tool?', the agent should use the `basic_tool` with the query 'test'.
+      - The agent's final response must contain the word 'test'.
+
   Args:
       model_name: The name of the LLM model to use.
 

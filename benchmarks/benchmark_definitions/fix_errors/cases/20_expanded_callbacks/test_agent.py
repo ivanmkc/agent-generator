@@ -38,7 +38,6 @@ async def test_create_agent_passes():
   import fixed
 
   root_agent = fixed.create_agent(MODEL_NAME)
-  tracker = root_agent._test_tracker # Retrieve the tracker instance
 
   # Manually run the agent logic with mocks
   with patch(
@@ -53,7 +52,7 @@ async def test_create_agent_passes():
                   parts=[
                       types.Part(
                           function_call=types.FunctionCall(
-                              name="_mock_tool_func", args={"query": "hello"}
+                              name="mock_tool_func", args={"query": "hello"}
                           )
                       )
                   ],
@@ -88,7 +87,7 @@ async def test_create_agent_passes():
         app_name=app.name, user_id="test-user", state={}
     )
 
-    final_response = ""
+    tool_output_found = False
     async for event in runner.run_async(
         user_id=session.user_id,
         session_id=session.id,
@@ -96,14 +95,20 @@ async def test_create_agent_passes():
             role="user", parts=[types.Part(text="Use the tool with 'hello'")]
         ),
     ):
-      if event.is_final_response() and event.content and event.content.parts:
-        text_parts = [p.text for p in event.content.parts if p.text]
-        if text_parts:
-          final_response = "".join(text_parts)
+      function_responses = event.get_function_responses()
+      if function_responses:
+        for resp in function_responses:
+          # Verify the mutation happened:
+          # 1. Argument 'hello' -> 'HELLO' (visible in output text)
+          # 2. Suffix ' [Verified]' added
+          if (
+              resp.response
+              and "output" in resp.response
+              and "Tool Output: HELLO [Verified]" in resp.response["output"]
+          ):
+            tool_output_found = True
 
-    assert tracker.before_logs
-    assert tracker.after_logs
-    assert "UNIQUE_TOOL_OUTPUT_FOR_TEST: hello" in final_response
+    assert tool_output_found, "Did not find expected mutated tool output."
     assert (
         root_agent.before_tool_callback is not None
     ), "before_tool_callback missing."

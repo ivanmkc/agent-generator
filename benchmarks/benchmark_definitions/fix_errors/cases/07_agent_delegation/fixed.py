@@ -12,6 +12,11 @@ def create_agent(model_name: str) -> BaseAgent:
       Create a "delegator_agent" that delegates to a "specialist_agent" when needed.
       The specialist_agent should be instructed to respond with "specialist ok".
 
+      Requirements:
+      - The root agent should have a sub-agent named 'specialist_agent'.
+      - When the root agent is asked for a specialist, it should delegate the task to the 'specialist_agent'.
+      - The final response should contain the phrase 'specialist ok'.
+
   Args:
       model_name: The name of the LLM model to use.
 

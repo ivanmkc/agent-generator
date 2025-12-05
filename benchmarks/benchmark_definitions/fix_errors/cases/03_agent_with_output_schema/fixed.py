@@ -19,6 +19,10 @@ def create_agent(model_name: str) -> BaseAgent:
       Create an LlmAgent named "output_schema_agent" that uses `BasicOutputSchema`
       to enforce structured JSON output.
 
+      Requirements:
+      - The agent's output must be a valid JSON string.
+      - The JSON output must contain the keys 'field_one' and 'field_two'.
+
   Args:
       model_name: The name of the LLM model to use.
 

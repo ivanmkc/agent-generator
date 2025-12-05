@@ -14,6 +14,9 @@ def create_agent(model_name: str) -> BaseAgent:
       1. "agent_one": Responds with "one".
       2. "agent_two": Responds with "two".
 
+      Requirements:
+      - The final response should come from the second agent, containing the word 'two'.
+
   Args:
       model_name: The name of the LLM model to use.
 

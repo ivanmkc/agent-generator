@@ -13,6 +13,10 @@ def create_agent(model_name: str) -> BaseAgent:
       Create an LlmAgent named "code_exec_agent" equipped with a `BuiltInCodeExecutor`.
       The agent should be instructed to use the code executor to calculate "2 + 2".
 
+      Requirements:
+      - The agent should be able to calculate 2 + 2.
+      - The final response should contain the number 4.
+
   Args:
       model_name: The name of the LLM model to use.
 

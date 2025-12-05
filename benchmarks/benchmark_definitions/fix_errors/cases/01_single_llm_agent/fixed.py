@@ -11,6 +11,9 @@ def create_agent(model_name: str) -> BaseAgent:
   Instructions:
       Create a helpful LlmAgent named "single_agent" that responds to greetings.
 
+      Requirements:
+      - The agent should respond to the greeting 'Hello' with a response containing 'Hello'.
+
   Args:
       model_name: The name of the LLM model to use.
 
