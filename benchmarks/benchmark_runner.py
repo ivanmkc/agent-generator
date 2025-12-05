@@ -27,12 +27,11 @@ from typing import Generic
 from typing import Optional
 from typing import TypeVar
 
-from benchmarks.data_models import ApiUnderstandingBenchmarkCase
+from benchmarks.data_models import ApiUnderstandingBenchmarkCase, MultipleChoiceBenchmarkCase # Moved from within runner properties
 from benchmarks.data_models import BaseBenchmarkCase
 from benchmarks.data_models import BenchmarkResultType
 from benchmarks.data_models import FixErrorBenchmarkCase
 from benchmarks.data_models import GeneratedAnswer
-from benchmarks.data_models import MultipleChoiceBenchmarkCase
 import benchmarks.validation_utils as validation_utils
 
 # A TypeVar to create a generic link between a runner and the case it handles.

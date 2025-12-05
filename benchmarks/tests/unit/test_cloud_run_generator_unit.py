@@ -17,7 +17,7 @@
 import asyncio
 import json
 import os
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, AsyncMock
 from unittest.mock import patch
 from pathlib import Path
 
@@ -80,12 +80,20 @@ async def test_cloud_run_generator_generate_answer():
       "returncode": 0,
   })
 
-  # Mock urlopen context manager
-  with patch("urllib.request.urlopen") as mock_urlopen:
-    mock_response = MagicMock()
-    mock_response.read.return_value = service_response_body.encode("utf-8")
+  # Mock aiohttp
+  with patch("aiohttp.ClientSession") as MockSession:
+    mock_session = MockSession.return_value
+    mock_response = AsyncMock()
     mock_response.status = 200
-    mock_urlopen.return_value.__enter__.return_value = mock_response
+    mock_response.text.return_value = service_response_body
+    
+    # Mock post context manager
+    mock_post_cm = AsyncMock()
+    mock_post_cm.__aenter__.return_value = mock_response
+    mock_session.post.return_value = mock_post_cm
+    
+    # Mock context manager for session itself (async with aiohttp.ClientSession() as session)
+    MockSession.return_value.__aenter__.return_value = mock_session
 
     # Mock auth token fetching
     with patch.object(generator, "_get_id_token", return_value="mock-token"):
@@ -94,15 +102,15 @@ async def test_cloud_run_generator_generate_answer():
       result = await generator.generate_answer(case)
 
       # Verify request construction
-      call_args = mock_urlopen.call_args
-      assert call_args is not None
-      req = call_args[0][0]  # The Request object
-
-      assert req.full_url == "https://mock-service.run.app"
-      assert req.get_header("Authorization") == "Bearer mock-token"
+      # Call args for session.post
+      mock_session.post.assert_called_once()
+      args, kwargs = mock_session.post.call_args
+      
+      assert args[0] == "https://mock-service.run.app"
+      assert kwargs["headers"]["Authorization"] == "Bearer mock-token"
       
       # Verify payload
-      payload = json.loads(req.data)
+      payload = kwargs["json"]
       assert "args" in payload
       assert payload["args"][0] == "gemini"
       assert "--output-format" in payload["args"]
@@ -132,25 +140,29 @@ async def test_cloud_run_generator_setup_resolves_url():
   # Mock google.auth.default
   with patch("google.auth.default", return_value=(None, "test-project")):
       
-      # Mock ServicesClient
-      with patch("benchmarks.answer_generators.gemini_cli_docker.gemini_cli_cloud_run_answer_generator.ServicesClient") as MockServicesClient:
+      # Mock ServicesAsyncClient
+      with patch("benchmarks.answer_generators.gemini_cli_docker.gemini_cli_cloud_run_answer_generator.ServicesAsyncClient") as MockServicesClient:
           mock_client = MockServicesClient.return_value
           
           # Mock get_service returning a service with URI
           mock_service = MagicMock()
           mock_service.uri = "https://resolved-url.run.app"
           
-          # Since setup calls await asyncio.to_thread(client.get_service, ...), 
-          # mocking client.get_service is sufficient. 
-          # asyncio.to_thread runs the synchronous function in a thread.
-          mock_client.get_service.return_value = mock_service
+          # get_service is now native async
+          mock_client.get_service = AsyncMock(return_value=mock_service)
           
-          # Mock health check (urlopen)
-          with patch("urllib.request.urlopen") as mock_urlopen:
-              mock_response = MagicMock()
+          # Mock health check (aiohttp)
+          with patch("aiohttp.ClientSession") as MockSession:
+              mock_session = MockSession.return_value
+              mock_response = AsyncMock()
               mock_response.status = 200
-              mock_response.read.return_value = b"version-id"
-              mock_urlopen.return_value.__enter__.return_value = mock_response
+              mock_response.text.return_value = "version-id"
+              
+              mock_get_cm = AsyncMock()
+              mock_get_cm.__aenter__.return_value = mock_response
+              mock_session.get.return_value = mock_get_cm
+              
+              MockSession.return_value.__aenter__.return_value = mock_session
               
               with patch.object(generator, "_get_id_token", return_value="mock-token"):
                   await generator.setup()
@@ -175,8 +187,8 @@ async def test_cloud_run_generator_deploy_on_mismatch():
       # Mock google.auth.default
       with patch("google.auth.default", return_value=(MagicMock(), "test-project")):
           
-          # Mock ServicesClient
-          with patch("benchmarks.answer_generators.gemini_cli_docker.gemini_cli_cloud_run_answer_generator.ServicesClient") as MockServicesClient:
+          # Mock ServicesAsyncClient
+          with patch("benchmarks.answer_generators.gemini_cli_docker.gemini_cli_cloud_run_answer_generator.ServicesAsyncClient") as MockServicesClient:
               mock_client = MockServicesClient.return_value
               
               # First call to get_service (resolution) - returns existing service
@@ -185,40 +197,57 @@ async def test_cloud_run_generator_deploy_on_mismatch():
               
               # Mock get_service. 
               # It's called twice: 1. resolution, 2. check exists before update/create (in _deploy_from_source)
-              mock_client.get_service.return_value = existing_service
+              mock_client.get_service = AsyncMock(return_value=existing_service)
               
-              # Mock update_service (in _deploy_from_source)
+              # Mock update_service (in _deploy_from_source) - returns Operation
               mock_operation = MagicMock()
+              # Operation.result() is async/coroutine in async client usage?
+              # Actually usually operation is awaited or operation.result() is awaited.
+              # In the code: response = await operation.result()
               mock_deploy_response = MagicMock()
               mock_deploy_response.uri = "https://deployed.run.app"
-              mock_operation.result.return_value = mock_deploy_response
-              mock_client.update_service.return_value = mock_operation
               
-              # Mock urllib for version check - return mismatch
-              with patch("urllib.request.urlopen") as mock_urlopen:
-                  def urlopen_side_effect(req, **kwargs):
-                      mock_resp = MagicMock()
+              mock_operation.result = AsyncMock(return_value=mock_deploy_response)
+              
+              mock_client.update_service = AsyncMock(return_value=mock_operation)
+              
+              # Mock aiohttp for version check - return mismatch
+              with patch("aiohttp.ClientSession") as MockSession:
+                  mock_session = MockSession.return_value
+                  
+                  # We need different responses for different calls?
+                  # 1. /version -> old-hash
+                  # 2. subsequent?
+                  
+                  # We can use side_effect on text() or on get()
+                  
+                  def get_side_effect(url, **kwargs):
+                      mock_resp = AsyncMock()
                       mock_resp.status = 200
-                      if "version" in req.full_url:
-                          mock_resp.read.return_value = b"old-hash" # Mismatch!
+                      if "version" in url:
+                          mock_resp.text.return_value = "old-hash"
                       else:
-                          mock_resp.read.return_value = b"Ready"
+                          mock_resp.text.return_value = "Ready"
                       
-                      cm = MagicMock()
-                      cm.__enter__.return_value = mock_resp
+                      cm = AsyncMock()
+                      cm.__aenter__.return_value = mock_resp
                       return cm
-                  mock_urlopen.side_effect = urlopen_side_effect
+
+                  mock_session.get.side_effect = get_side_effect
+                  MockSession.return_value.__aenter__.return_value = mock_session
                   
                   # Mock cloud_deploy_utils
                   with patch("benchmarks.answer_generators.cloud_deploy_utils.archive_code_and_upload") as mock_archive:
                       mock_archive.return_value = "gs://bucket/archive.tar.gz"
                       
                       with patch("benchmarks.answer_generators.cloud_deploy_utils.build_and_push_docker_images") as mock_build:
+                          mock_build_operation = MagicMock()
                           mock_build_result = MagicMock()
-                          mock_build_result.images = ["gcr.io/test-project/adk-gemini-sandbox:latest"]
+                          mock_build_result.images = ["gcr.io/test-project/test-service:latest"]
                           mock_build_result.log_url = "http://logs"
                           mock_build_result.logs_bucket = "gs://logs"
-                          mock_build.return_value = mock_build_result
+                          mock_build_operation.result.return_value = mock_build_result
+                          mock_build.return_value = mock_build_operation
                           
                           # Mock google.cloud.storage.Client
                           with patch("google.cloud.storage.Client") as MockStorageClient:
@@ -232,7 +261,7 @@ async def test_cloud_run_generator_deploy_on_mismatch():
               # Verify that deploy updated the URL
               assert generator.service_url == "https://deployed.run.app"
               
-              # Verify update_service was called (because get_service succeeded)
+              # Verify update_service was called
               mock_client.update_service.assert_called()
 
 

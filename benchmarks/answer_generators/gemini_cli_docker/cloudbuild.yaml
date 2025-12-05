@@ -1,3 +1,6 @@
+substitutions:
+  _VERSION: "unknown"
+
 steps:
   # 1. Build Base Image
   - name: 'gcr.io/cloud-builders/docker'
@@ -9,6 +12,8 @@ steps:
       - 'build'
       - '--build-arg'
       - 'BASE_IMAGE=gcr.io/${PROJECT_ID}/gemini-cli-base:latest'
+      - '--build-arg'
+      - 'VERSION=${_VERSION}'
       - '-t'
       - 'gcr.io/${PROJECT_ID}/adk-gemini-sandbox:latest'
       - 'adk-python'
@@ -23,7 +28,18 @@ steps:
       - 'gcr.io/${PROJECT_ID}/gemini-cli-mcp-context7:latest'
       - 'gemini-cli-mcp-context7'
 
+  # 4. Build ADK Docs Extension Sandbox (depends on base)
+  - name: 'gcr.io/cloud-builders/docker'
+    args: 
+      - 'build'
+      - '--build-arg'
+      - 'BASE_IMAGE=gcr.io/${PROJECT_ID}/gemini-cli-base:latest'
+      - '-t'
+      - 'gcr.io/${PROJECT_ID}/adk-docs-ext:latest'
+      - 'adk-docs-ext'
+
 images:
   - 'gcr.io/${PROJECT_ID}/gemini-cli-base:latest'
   - 'gcr.io/${PROJECT_ID}/adk-gemini-sandbox:latest'
   - 'gcr.io/${PROJECT_ID}/gemini-cli-mcp-context7:latest'
+  - 'gcr.io/${PROJECT_ID}/adk-docs-ext:latest'

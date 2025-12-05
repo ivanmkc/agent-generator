@@ -105,7 +105,6 @@ class FixErrorBenchmarkCase(BaseBenchmarkCase):
 
   @property
   def runner(self) -> "PytestBenchmarkRunner":
-
     from benchmarks.benchmark_runner import PytestBenchmarkRunner
 
     return PytestBenchmarkRunner()
@@ -179,7 +178,6 @@ class ApiUnderstandingBenchmarkCase(BaseBenchmarkCase):
 
   @property
   def runner(self) -> "ApiUnderstandingRunner":
-    # TODO: Resolve circular imports properly, not with these scoped imports.
     from benchmarks.benchmark_runner import ApiUnderstandingRunner
 
     return ApiUnderstandingRunner()

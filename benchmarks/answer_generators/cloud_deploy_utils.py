@@ -102,7 +102,8 @@ def build_and_push_docker_images(
     staging_bucket: str,
     repo_root: Path,
     timeout_in_seconds: int = 1200, # 20 minutes
-) -> Build:
+    substitutions: Optional[dict[str, str]] = None,
+) -> operation.Operation:
     """Builds and pushes Docker images using the Cloud Build API."""
     # Load build steps from YAML
     print(f"    [utils] Loading Cloud Build config from {repo_root / CLOUD_BUILD_CONFIG_PATH}...")
@@ -136,8 +137,8 @@ def build_and_push_docker_images(
     if "images" in cloudbuild_config:
         build.images = cloudbuild_config["images"]
     
-    # Pass project_id as a substitution for the YAML
-    # build.substitutions = {"PROJECT_ID": project_id}
+    if substitutions:
+        build.substitutions = substitutions
 
     build.timeout = duration_pb2.Duration(seconds=timeout_in_seconds)
     build.queue_ttl = duration_pb2.Duration(seconds=timeout_in_seconds)
@@ -147,7 +148,7 @@ def build_and_push_docker_images(
     print(f"    [utils] Build submitted. Operation ID: {operation.operation.name}")
 
     # Block and wait for the result
-    operation_result = operation.result(timeout=timeout_in_seconds)
-    print(f"    [utils] Cloud Build operation completed.")
-    
-    return operation_result
+    # The `operation` object is the google.api_core.operation.Operation wrapper,
+    # which has the .result() method for polling.
+    # TODO: I don't think operation is of type Build. Check it. Might be a coroutine that can be awaited.
+    return operation

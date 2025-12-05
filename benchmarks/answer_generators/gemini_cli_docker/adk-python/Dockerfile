@@ -8,9 +8,9 @@ RUN mkdir -p /repos
 # Clone the adk-python repository into /repos/adk-python
 RUN git clone https://github.com/google/adk-python.git /repos/adk-python
 
-# Copy version.txt if it exists (in the build context) to the working directory
-# Note: We assume version.txt is in the context root (adk-python dir)
-COPY version.txt /repos/version.txt
+# Write version.txt from build argument
+ARG VERSION=unknown
+RUN echo "${VERSION}" > /repos/version.txt
 
 # Set the final working directory to /repos
 WORKDIR /repos

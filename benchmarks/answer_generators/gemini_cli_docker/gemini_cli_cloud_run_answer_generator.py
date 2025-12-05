@@ -21,21 +21,21 @@ import json
 import os
 import subprocess
 import time
-import urllib.error
-import urllib.request
 from pathlib import Path
 from typing import Any
 
+import aiohttp
 # Google Cloud API imports
 import google.auth
 import google.auth.transport.requests
 import google.oauth2.id_token
-from google.api_core import exceptions as api_exceptions
+from google.api_core import client_options, exceptions as api_exceptions # Added client_options
 from google.cloud import storage
+from google.cloud.devtools import cloudbuild_v1 # Added import
 from google.cloud.devtools.cloudbuild_v1.types import Source, StorageSource
 from google.cloud.run_v2 import (
     Service,
-    ServicesClient,
+    ServicesAsyncClient,
     Container,
     RevisionTemplate,
     RevisionScaling,
@@ -49,6 +49,10 @@ from benchmarks.answer_generators import cloud_deploy_utils
 from benchmarks.answer_generators.gemini_cli_answer_generator import (
     GeminiCliAnswerGenerator,
 )
+
+# Cloud Build API endpoint
+SERVICE_BASE_PATH = "cloudbuild.googleapis.com"
+
 from benchmarks.data_models import TraceLogEvent
 from benchmarks.utils import parse_cli_stream_json_output
 
@@ -65,6 +69,7 @@ class GeminiCliCloudRunAnswerGenerator(GeminiCliAnswerGenerator):
       region: str = "us-central1",
       context_instruction: str | None = None,
       auto_deploy: bool = False,
+      image_name: str | None = None,
   ):
     """
     Args:
@@ -75,6 +80,8 @@ class GeminiCliCloudRunAnswerGenerator(GeminiCliAnswerGenerator):
         region: Cloud Run region.
         context_instruction: Instruction to prepend.
         auto_deploy: If True, automatically deploys/updates the service in setup().
+        image_name: Optional override for the image name (excluding registry/project).
+                    Defaults to service_name (with exception for adk-python).
     """
     super().__init__(model_name=model_name, cli_path="gemini")
     self.dockerfile_dir = Path(dockerfile_dir)
@@ -88,6 +95,13 @@ class GeminiCliCloudRunAnswerGenerator(GeminiCliAnswerGenerator):
     self._id_token = None
     self._id_token_time = 0
     self._remote_version = None
+
+    if image_name:
+      self.image_name = image_name
+    elif service_name == "adk-python":
+      self.image_name = "adk-gemini-sandbox"
+    else:
+      self.image_name = service_name
 
   @property
   def name(self) -> str:
@@ -109,6 +123,9 @@ class GeminiCliCloudRunAnswerGenerator(GeminiCliAnswerGenerator):
         ".ipynb_checkpoints",
         "node_modules",
         "venv",
+        "version.txt",        # Added to default ignores
+        "package-lock.json",  # Added to default ignores
+        "npm-debug.log",      # Added to default ignores
     ]
     gitignore_path = directory / ".gitignore"
     if gitignore_path.exists():
@@ -151,18 +168,6 @@ class GeminiCliCloudRunAnswerGenerator(GeminiCliAnswerGenerator):
           i += 1
 
       for file in files:
-        if (
-            file
-            in (
-                "version.txt",
-                ".DS_Store",
-                "package-lock.json",
-                "npm-debug.log",
-            )
-            or file.endswith(".pyc")
-        ):
-          continue
-
         rel_path = (Path(root) / file).relative_to(directory).as_posix()
         should_ignore = False
         for pattern in ignore_patterns:
@@ -216,11 +221,11 @@ class GeminiCliCloudRunAnswerGenerator(GeminiCliAnswerGenerator):
     if not self.service_url:
       try:
         print(f"  - Resolving URL for service '{self.service_name}'...")
-        client = ServicesClient()
+        client = ServicesAsyncClient()
         name = (
             f"projects/{self.project_id}/locations/{self.region}/services/{self.service_name}"
         )
-        service = await asyncio.to_thread(client.get_service, name=name)
+        service = await client.get_service(name=name)
         if service.uri:
           self.service_url = service.uri
           print(f"    -> Found existing service: {self.service_url}")
@@ -240,27 +245,28 @@ class GeminiCliCloudRunAnswerGenerator(GeminiCliAnswerGenerator):
       return
 
     # Helper for HTTP checks
-    def check_health(endpoint: str = "/") -> tuple[int, str] | None:
+    async def check_health(endpoint: str = "/") -> tuple[int, str] | None:
       if not self.service_url:
         return None
 
-      token = self._get_id_token()
+      token = await asyncio.to_thread(self._get_id_token)
 
       url = f"{self.service_url}{endpoint}"
-      req = urllib.request.Request(url, method="GET")
+      headers = {}
       if token:
-        req.add_header("Authorization", f"Bearer {token}")
+        headers["Authorization"] = f"Bearer {token}"
 
       try:
-        with urllib.request.urlopen(req, timeout=10) as response:
-          return response.status, response.read().decode("utf-8")
+        async with aiohttp.ClientSession() as session:
+          async with session.get(url, headers=headers, timeout=10) as response:
+            return response.status, await response.text()
       except Exception:
         return None
 
     # 3. Check Remote Version
     remote_version = None
     if self.service_url:
-      health_result = await asyncio.to_thread(check_health, endpoint="/version")
+      health_result = await check_health(endpoint="/version")
       if health_result and health_result[0] == 200:
         remote_version = health_result[1].strip()
         self._remote_version = remote_version
@@ -298,55 +304,49 @@ class GeminiCliCloudRunAnswerGenerator(GeminiCliAnswerGenerator):
           f"Dockerfile directory not found: {self.dockerfile_dir}"
       )
 
-    version_file = self.dockerfile_dir / "version.txt"
+    # Project ID should be resolved in setup()
+    if not self.project_id:
+      raise RuntimeError("Project ID not resolved during setup.")
+
+    # Stage 1: Build Images using Cloud Build API
+    print(f"    -> Archiving and uploading source for build...")
+    repo_root = self.dockerfile_dir.parent  # The gemini_cli_docker directory
+
+    # Create a staging bucket if it doesn't exist
+    staging_bucket_name = f"{self.project_id}-adk-benchmark-staging"
+    storage_client = storage.Client(
+        project=self.project_id, credentials=google.auth.default()[0]
+    )
+    bucket = storage_client.bucket(staging_bucket_name)
+    if not bucket.exists():
+      print(f"    -> Creating GCS staging bucket: {staging_bucket_name}")
+      bucket.create(location=self.region)  # Use region for bucket location
+
+    print(f"    -> Submitting Cloud Build for project {self.project_id}...")
+
+    build_operation = await asyncio.to_thread(
+        cloud_deploy_utils.build_and_push_docker_images,
+        project_id=self.project_id,
+        staging_bucket=staging_bucket_name,
+        repo_root=repo_root,
+        substitutions={"_VERSION": version_id},
+    )
+
+    print(
+        "    -> Waiting for Cloud Build to complete (this may take several"
+        " minutes)..."
+    )
 
     try:
-      with open(version_file, "w") as f:
-        f.write(version_id)
-
-      # Project ID should be resolved in setup()
-      if not self.project_id:
-        raise RuntimeError("Project ID not resolved during setup.")
-
-      # Stage 1: Build Images using Cloud Build API
-      print(f"    -> Archiving and uploading source for build...")
-      repo_root = self.dockerfile_dir.parent  # The gemini_cli_docker directory
-
-      # Create a staging bucket if it doesn't exist
-      staging_bucket_name = f"{self.project_id}-adk-benchmark-staging"
-      storage_client = storage.Client(
-          project=self.project_id, credentials=google.auth.default()[0]
-      )
-      bucket = storage_client.bucket(staging_bucket_name)
-      if not bucket.exists():
-        print(f"    -> Creating GCS staging bucket: {staging_bucket_name}")
-        bucket.create(location=self.region)  # Use region for bucket location
-
-      print(f"    -> Submitting Cloud Build for project {self.project_id}...")
-
-      build_op = await asyncio.to_thread(
-          cloud_deploy_utils.build_and_push_docker_images,
-          project_id=self.project_id,
-          staging_bucket=staging_bucket_name,
-          repo_root=repo_root,
-      )
-
-      print(
-          "    -> Waiting for Cloud Build to complete (this may take several"
-          " minutes)..."
-      )
-      # build_op is now directly the Build object
-      build_result = build_op  # Correctly assigned
-
-      print(f"    -> Cloud Build Log URL: {build_result.log_url}")
-      print(f"    -> Cloud Build Logs Bucket: {build_result.logs_bucket}")
+      build_result = await asyncio.to_thread(build_operation.result, timeout=1200)
 
       print("    -> Build successful.")
 
       # Extract image name from build result
       image_name = None
+      
       expected_image_full_name = (
-          f"gcr.io/{self.project_id}/adk-gemini-sandbox:latest"
+          f"gcr.io/{self.project_id}/{self.image_name}:latest"
       )
 
       print(f"    [debug] Build Result Images: {build_result.images}")
@@ -362,78 +362,83 @@ class GeminiCliCloudRunAnswerGenerator(GeminiCliAnswerGenerator):
             " build results."
         )
 
-      # Stage 2: Deploy to Cloud Run using Cloud Run API
-      print(
-          f"    -> Deploying image {image_name} to Cloud Run service"
-          f" {self.service_name}..."
+    except api_exceptions.GoogleAPICallError as e:
+      print(f"    [DEBUG EXCEPTION] Type of build_operation: {type(build_operation)}")
+      print(f"    [DEBUG EXCEPTION] Value of build_operation: {build_operation}")
+      # If the build failed, build_operation still contains the log_url.
+      # We can extract the build ID from build_operation.name.
+      build_id = build_operation.operation.name.split('/')[-1]
+      failing_build_log_url = (
+          f"https://console.cloud.google.com/cloud-build/builds/{build_id}"
+          f"?project={self.project_id}"
+      )
+      print(f"    ! Cloud Build FAILED. Log URL: {failing_build_log_url}")
+      raise RuntimeError(
+          f"Cloud Build failed. Check logs at {failing_build_log_url}. Original error: {e}"
+      ) from e
+
+
+    # Stage 2: Deploy to Cloud Run using Cloud Run API
+    print(
+        f"    -> Deploying image {image_name} to Cloud Run service"
+        f" {self.service_name}..."
+    )
+
+    client = ServicesAsyncClient()
+    service_name_full = (
+        f"projects/{self.project_id}/locations/{self.region}/services/{self.service_name}"
+    )
+
+    # Define the service configuration
+    service = Service(
+        template=RevisionTemplate(
+            containers=[
+                Container(
+                    image=image_name,
+                    command=["python3"],
+                    args=["/usr/local/bin/cli_server.py"],
+                )
+            ],
+            scaling=RevisionScaling(
+                min_instance_count=0,
+                max_instance_count=1,
+            ),
+        ),
+        traffic=[
+            TrafficTarget(
+                percent=100,
+                type_=TrafficTargetAllocationType.TRAFFIC_TARGET_ALLOCATION_TYPE_LATEST,
+            )
+        ],
+        # Allow unauthenticated access. Note: In a production environment, you might use IAM for stricter control.
+    )
+
+    # Check if service exists
+    existing_service = None
+    try:
+      existing_service = await client.get_service(name=service_name_full)
+    except api_exceptions.NotFound:
+      pass
+
+    if existing_service:
+      print(f"    -> Updating existing service '{self.service_name}'...")
+      service.name = service_name_full
+      operation = await client.update_service(service=service)
+    else:
+      print(f"    -> Creating new service '{self.service_name}'...")
+      # For creation, service.name must be empty. It is derived from parent + service_id.
+      operation = await client.create_service(
+          parent=f"projects/{self.project_id}/locations/{self.region}",
+          service_id=self.service_name,
+          service=service,
       )
 
-      client = ServicesClient()
-      service_name_full = (
-          f"projects/{self.project_id}/locations/{self.region}/services/{self.service_name}"
-      )
+    print("    -> Waiting for Cloud Run deployment to complete...")
+    response = await operation.result()  # Wait for the LRO to complete
 
-      # Define the service configuration
-      service = Service(
-          template=RevisionTemplate(
-              containers=[
-                  Container(
-                      image=image_name,
-                      command=["python3"],
-                      args=["/usr/local/bin/cli_server.py"],
-                  )
-              ],
-              scaling=RevisionScaling(
-                  min_instance_count=0,
-                  max_instance_count=1,
-              ),
-          ),
-          traffic=[
-              TrafficTarget(
-                  percent=100,
-                  type_=TrafficTargetAllocationType.TRAFFIC_TARGET_ALLOCATION_TYPE_LATEST,
-              )
-          ],
-          # Allow unauthenticated access. Note: In a production environment, you might use IAM for stricter control.
-      )
-
-      # Check if service exists
-      existing_service = None
-      try:
-        existing_service = await asyncio.to_thread(
-            client.get_service, name=service_name_full
-        )
-      except api_exceptions.NotFound:
-        pass
-
-      if existing_service:
-        print(f"    -> Updating existing service '{self.service_name}'...")
-        service.name = service_name_full
-        operation = await asyncio.to_thread(
-            client.update_service, service=service
-        )
-      else:
-        print(f"    -> Creating new service '{self.service_name}'...")
-        # For creation, service.name must be empty. It is derived from parent + service_id.
-        operation = await asyncio.to_thread(
-            client.create_service,
-            parent=f"projects/{self.project_id}/locations/{self.region}",
-            service_id=self.service_name,
-            service=service,
-        )
-
-      print("    -> Waiting for Cloud Run deployment to complete...")
-      response = await asyncio.to_thread(
-          operation.result
-      )  # Wait for the LRO to complete
-
-      self.service_url = response.uri
-      print(f"    -> Deployed successfully. URL: {self.service_url}")
-      return self.service_url
-
-    finally:
-      if version_file.exists():
-        version_file.unlink()
+    self.service_url = response.uri
+    print(f"    -> Deployed successfully. URL: {self.service_url}")
+    return self.service_url
 
   def _get_id_token(self) -> str | None:
     """Obtains an ID token, trying google-auth first, then gcloud fallback.
@@ -509,27 +514,22 @@ class GeminiCliCloudRunAnswerGenerator(GeminiCliAnswerGenerator):
 
     logs: list[TraceLogEvent] = []
 
-    def make_request():
-      # Get ID Token for authentication
-      token = self._get_id_token()
+    # Get ID Token for authentication (may be blocking)
+    token = await asyncio.to_thread(self._get_id_token)
 
-      req = urllib.request.Request(
-          self.service_url,
-          data=json.dumps(payload).encode("utf-8"),
-          headers={"Content-Type": "application/json"},
-          method="POST",
-      )
-      if token:
-        req.add_header("Authorization", f"Bearer {token}")
+    headers = {"Content-Type": "application/json"}
+    if token:
+      headers["Authorization"] = f"Bearer {token}"
 
-      try:
-        with urllib.request.urlopen(req) as response:
-          return response.read().decode("utf-8"), response.status
-      except urllib.error.HTTPError as e:
-        return e.read().decode("utf-8"), e.code
-
-    # Run blocking I/O in thread
-    response_body, status_code = await asyncio.to_thread(make_request)
+    try:
+      async with aiohttp.ClientSession() as session:
+        async with session.post(
+            self.service_url, json=payload, headers=headers
+        ) as response:
+          status_code = response.status
+          response_body = await response.text()
+    except aiohttp.ClientError as e:
+      raise RuntimeError(f"Network error calling Cloud Run: {e}")
 
     if status_code != 200:
       raise RuntimeError(
