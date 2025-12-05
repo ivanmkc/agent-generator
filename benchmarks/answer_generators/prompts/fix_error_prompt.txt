@@ -6,7 +6,7 @@ You must output a JSON object with the following fields:
 
 CRITICAL: The `code` field MUST define a function with the exact signature: `def create_agent(model_name: str) -> BaseAgent:`
 
-DO NOT include any other functions or classes in your output unless they are part of the original unfixed file that you are fixing. The code should be a complete and valid Python file and **must include all necessary imports** for the code to function correctly.
+DO NOT include any other functions or classes in your output unless they are part of the original unfixed file that you are fixing. The code should be a complete and valid Python file and **must include all necessary imports** for the code to function correctly. Verify that your code is syntactically valid and that all strings (especially triple-quoted docstrings) are properly terminated.
 
 Here is the detailed description of what the function should do: {description}
 
