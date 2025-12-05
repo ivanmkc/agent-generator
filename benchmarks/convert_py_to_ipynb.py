@@ -5,13 +5,16 @@ from pathlib import Path
 import nbformat as nbf
 
 
-def convert():
-  input_file = Path("benchmark_run.py")
+import sys
+
+def convert(input_filepath: str):
+  input_file = Path(input_filepath)
   if not input_file.exists():
-    # Using logging here would be better but keeping it simple for now.
-    return
+    print(f"Error: Input file not found at {input_filepath}")
+    sys.exit(1)
 
   nb = nbf.v4.new_notebook()
+  nb.metadata["kernelspec"] = {"display_name": "python3", "language": "python", "name": "python3"}
   nb.cells = []
 
   with open(input_file, "r", encoding="utf-8") as f:
@@ -76,4 +79,7 @@ def convert():
 
 
 if __name__ == "__main__":
-  convert()
+  if len(sys.argv) < 2:
+    print("Usage: python convert_py_to_ipynb.py <input_python_file>")
+    sys.exit(1)
+  convert(sys.argv[1])
