@@ -35,6 +35,17 @@
             "problemMatcher": []
         },
         {
+            "label": "Convert Benchmark Script",
+            "type": "shell",
+            "command": "cd benchmarks && ../env/bin/python convert_py_to_ipynb.py benchmark_run.py",
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": []
+        },
+        {
             "label": "Build and Push Docker Images",
             "type": "shell",
             "command": "./benchmarks/answer_generators/gemini_cli_docker/build_and_push_images.sh",

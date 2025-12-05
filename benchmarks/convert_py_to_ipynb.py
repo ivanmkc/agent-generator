@@ -6,17 +6,22 @@ import nbformat as nbf
 
 
 import sys
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
 def convert(input_filepath: str):
   input_file = Path(input_filepath)
   if not input_file.exists():
-    print(f"Error: Input file not found at {input_filepath}")
+    logging.error(f"Input file not found at {input_filepath}")
     sys.exit(1)
 
   nb = nbf.v4.new_notebook()
   nb.metadata["kernelspec"] = {"display_name": "python3", "language": "python", "name": "python3"}
   nb.cells = []
 
+  logging.info(f"Reading input file: {input_file}")
   with open(input_file, "r", encoding="utf-8") as f:
     lines = f.readlines()
 
@@ -74,12 +79,15 @@ def convert(input_filepath: str):
       cell.metadata["tags"].append("parameters")
 
   output_file = input_file.with_suffix(".ipynb")
+  logging.info(f"Writing notebook to: {output_file}")
   with open(output_file, "w", encoding="utf-8") as f:
     nbf.write(nb, f)
+  
+  logging.info("Conversion successful.")
 
 
 if __name__ == "__main__":
   if len(sys.argv) < 2:
-    print("Usage: python convert_py_to_ipynb.py <input_python_file>")
+    logging.error("Usage: python convert_py_to_ipynb.py <input_python_file>")
     sys.exit(1)
   convert(sys.argv[1])
