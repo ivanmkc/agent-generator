@@ -324,8 +324,7 @@ class GeminiCliCloudRunAnswerGenerator(GeminiCliAnswerGenerator):
 
     print(f"    -> Submitting Cloud Build for project {self.project_id}...")
 
-    build_operation = await asyncio.to_thread(
-        cloud_deploy_utils.build_and_push_docker_images,
+    build_operation = await cloud_deploy_utils.build_and_push_docker_images(
         project_id=self.project_id,
         staging_bucket=staging_bucket_name,
         repo_root=repo_root,
@@ -338,7 +337,8 @@ class GeminiCliCloudRunAnswerGenerator(GeminiCliAnswerGenerator):
     )
 
     try:
-      build_result = await asyncio.to_thread(build_operation.result, timeout=1200)
+      # For AsyncClient operations, result() is a coroutine
+      build_result = await build_operation.result(timeout=1200)
 
       print("    -> Build successful.")
 

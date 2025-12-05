@@ -246,8 +246,12 @@ async def test_cloud_run_generator_deploy_on_mismatch():
                           mock_build_result.images = ["gcr.io/test-project/test-service:latest"]
                           mock_build_result.log_url = "http://logs"
                           mock_build_result.logs_bucket = "gs://logs"
-                          mock_build_operation.result.return_value = mock_build_result
-                          mock_build.return_value = mock_build_operation
+                          
+                          # Async operation result()
+                          mock_build_operation.result = AsyncMock(return_value=mock_build_result)
+                          
+                          # Async build_and_push_docker_images
+                          mock_build.side_effect = AsyncMock(return_value=mock_build_operation)
                           
                           # Mock google.cloud.storage.Client
                           with patch("google.cloud.storage.Client") as MockStorageClient:

@@ -1,3 +1,4 @@
+import asyncio
 import os
 import subprocess
 import tarfile
@@ -97,7 +98,7 @@ def archive_code_and_upload(
     return remote_file_path
 
 
-def build_and_push_docker_images(
+async def build_and_push_docker_images(
     project_id: str,
     staging_bucket: str,
     repo_root: Path,
@@ -112,7 +113,7 @@ def build_and_push_docker_images(
     # Authorize the client with Google defaults
     credentials, _ = google.auth.default()
 
-    client = cloudbuild_v1.services.cloud_build.CloudBuildClient(
+    client = cloudbuild_v1.services.cloud_build.CloudBuildAsyncClient(
         credentials=credentials
     )
 
@@ -120,7 +121,11 @@ def build_and_push_docker_images(
     # We are uploading the whole repo root as context.
     # The cloudbuild.yaml uses paths relative to this root.
     print(f"    [utils] Preparing source archive...")
-    source_archive_gcs_uri = archive_code_and_upload(repo_root, staging_bucket, project_id)
+    
+    # Run blocking upload in thread
+    source_archive_gcs_uri = await asyncio.to_thread(
+        archive_code_and_upload, repo_root, staging_bucket, project_id
+    )
     
     (source_archived_file_gcs_bucket, source_archived_file_gcs_object,) = (
         utils.extract_bucket_and_prefix_from_gcs_path(source_archive_gcs_uri)
@@ -144,11 +149,9 @@ def build_and_push_docker_images(
     build.queue_ttl = duration_pb2.Duration(seconds=timeout_in_seconds)
 
     print(f"    [utils] Submitting Cloud Build job for project {project_id}...")
-    operation = client.create_build(project_id=project_id, build=build)
+    operation = await client.create_build(project_id=project_id, build=build)
     print(f"    [utils] Build submitted. Operation ID: {operation.operation.name}")
 
-    # Block and wait for the result
-    # The `operation` object is the google.api_core.operation.Operation wrapper,
-    # which has the .result() method for polling.
-    # TODO: I don't think operation is of type Build. Check it. Might be a coroutine that can be awaited.
+    # Return the operation object. 
+    # For async clients, operation.result() is a coroutine.
     return operation
