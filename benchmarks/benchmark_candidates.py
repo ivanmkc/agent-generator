@@ -98,6 +98,16 @@ CANDIDATE_GENERATORS = [
         project_id=project_id,
         auto_deploy=True,
     ),
+    # Gemini CLI Cloud Run Generator (Standalone Base - for baseline comparison)
+    GeminiCliCloudRunAnswerGenerator(
+        model_name=ModelName.GEMINI_2_5_FLASH,
+        dockerfile_dir=Path(
+            "benchmarks/answer_generators/gemini_cli_docker/base"
+        ),
+        service_name="gemini-cli-base",
+        project_id=project_id,
+        auto_deploy=True, # Auto-deploy the base image
+    ),
     # Gemini CLI Docker Generator (Standard)
     # GeminiCliDockerAnswerGenerator(
     #     model_name=ModelName.GEMINI_2_5_FLASH,

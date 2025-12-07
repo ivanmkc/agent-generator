@@ -34,6 +34,12 @@ IMAGE_DEFINITIONS = {
         "dependencies": [],
         "build_args": {},
     },
+    "gemini-cli-base": {
+        "source_dir": "base",
+        "dockerfile": "base/Dockerfile",
+        "dependencies": [],
+        "build_args": {},
+    },
     "adk-python": {
         "source_dir": "adk-python",
         "dockerfile": "adk-python/Dockerfile",

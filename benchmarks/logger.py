@@ -48,6 +48,7 @@ class BenchmarkLogger(abc.ABC):
       validation_error: Optional[str],
       temp_test_file: Optional[Path],
       answer_data: Optional[dict] = None,
+      trace_logs: Optional[list[Any]] = None,
   ) -> None:
     """Logs the result of a test execution."""
     pass
@@ -78,6 +79,7 @@ class ConsoleBenchmarkLogger(BenchmarkLogger):
       validation_error: Optional[str],
       temp_test_file: Optional[Path],
       answer_data: Optional[dict] = None,
+      trace_logs: Optional[list[Any]] = None,
   ) -> None:
     status = "PASSED" if result == "pass" else "FAILED"
     print(f"--- TEST {status} for {benchmark_name} ---")
@@ -121,6 +123,7 @@ class TraceMarkdownLogger(BenchmarkLogger):
       validation_error: Optional[str],
       temp_test_file: Optional[Path],
       answer_data: Optional[dict] = None,
+      trace_logs: Optional[list[Any]] = None,
   ) -> None:
     status_icon = "✅" if result == "pass" else "❌"
     status_text = "PASSED" if result == "pass" else "FAILED"
@@ -133,6 +136,15 @@ class TraceMarkdownLogger(BenchmarkLogger):
       if answer_data:
         f.write("**Generated Answer:**\n")
         f.write(f"```json\n{json.dumps(answer_data, indent=2)}\n```\n")
+      if trace_logs:
+        f.write("**Trace Logs:**\n")
+        # Format trace logs nicely if possible, or just dump JSON
+        # Since TraceLogEvent is a Pydantic model (or dict), try to dump it
+        try:
+            logs_data = [t.model_dump() if hasattr(t, "model_dump") else t for t in trace_logs]
+            f.write(f"```json\n{json.dumps(logs_data, indent=2)}\n```\n")
+        except Exception:
+            f.write(f"```\n{str(trace_logs)}\n```\n")
       f.write("\n")
 
   def finalize_run(self) -> None:
@@ -192,7 +204,13 @@ class JsonTraceLogger(BenchmarkLogger):
       validation_error: Optional[str],
       temp_test_file: Optional[Path],
       answer_data: Optional[dict] = None,
+      trace_logs: Optional[list[Any]] = None,
   ) -> None:
+    # Convert trace_logs to dicts if they are Pydantic models
+    logs_data = None
+    if trace_logs:
+        logs_data = [t.model_dump() if hasattr(t, "model_dump") else t for t in trace_logs]
+
     self._log_event(
         "test_result",
         {
@@ -201,6 +219,7 @@ class JsonTraceLogger(BenchmarkLogger):
             "validation_error": validation_error,
             "temp_test_file": str(temp_test_file) if temp_test_file else None,
             "answer_data": answer_data,
+            "trace_logs": logs_data,
         },
     )
 

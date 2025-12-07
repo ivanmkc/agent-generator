@@ -125,6 +125,9 @@ async def _run_single_benchmark(
           answer_data=(
               generated_answer.output.model_dump() if generated_answer else None
           ),
+          trace_logs=(
+              generated_answer.trace_logs if generated_answer else None
+          ),
       )
 
     # Extract the actual answer string based on the output type

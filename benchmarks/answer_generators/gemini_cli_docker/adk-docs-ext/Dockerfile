@@ -1,4 +1,4 @@
-ARG BASE_IMAGE=gemini-cli-base
+ARG BASE_IMAGE=adk-gemini-sandbox:base
 FROM ${BASE_IMAGE}
 
 USER root
@@ -17,15 +17,8 @@ RUN chmod +x /usr/local/bin/entrypoint.sh
 # Install the extension
 RUN gemini extensions install https://github.com/derailed-dash/adk-docs-ext
 
-# Create /repos directory and clone the repository
-RUN mkdir -p /repos
-RUN git clone https://github.com/google/adk-python.git /repos/adk-python
-
-# Copy the context file
-COPY GEMINI.md /repos/GEMINI.md
-
-# Set working directory to /repos where GEMINI.md is located
-WORKDIR /repos
+# Set working directory to /app (common practice for standalone apps)
+WORKDIR /app
 
 # Set the entrypoint
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
