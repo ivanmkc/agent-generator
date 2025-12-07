@@ -302,7 +302,7 @@ async def test_docker_command_construction_vertex_adc():
       assert "GOOGLE_APPLICATION_CREDENTIALS=/tmp/google_credentials.json" in [
           arg
           for arg in cmd
-          if arg.startswith("GOOGLE_APPLICATION_CREDENTIALS=")
+          if str(arg).startswith("GOOGLE_APPLICATION_CREDENTIALS=")
       ]
 
       # Volume mount

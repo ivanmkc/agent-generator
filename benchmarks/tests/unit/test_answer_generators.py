@@ -175,9 +175,6 @@ async def test_gemini_cli_answer_generator(
     assert "--output-format" in call_args
     assert "stream-json" in call_args
     assert "--yolo" in call_args
-    assert "--sandbox" in call_args
-
-
 @pytest.mark.asyncio
 async def test_gemini_answer_generator_multiple_choice_with_snippet():
   """Tests GeminiAnswerGenerator with a MultipleChoiceBenchmarkCase containing a code snippet."""

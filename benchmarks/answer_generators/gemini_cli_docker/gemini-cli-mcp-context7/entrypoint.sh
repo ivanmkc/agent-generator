@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Substitute environment variables in settings.json
-envsubst < /etc/gemini-cli/settings.json.template > /etc/gemini-cli/settings.json
+envsubst < /root/.gemini/settings.json.template > /root/.gemini/settings.json
 
 # Check for GEMINI_API_KEY or Vertex AI credentials
 if [ -z "$GEMINI_API_KEY" ] && [ -z "$GOOGLE_GENAI_USE_VERTEXAI" ]; then
@@ -9,5 +9,5 @@ if [ -z "$GEMINI_API_KEY" ] && [ -z "$GOOGLE_GENAI_USE_VERTEXAI" ]; then
   exit 1
 fi
 
-# Pass through all arguments to the gemini CLI
-exec gemini "$@"
+# Pass through all arguments
+exec "$@"

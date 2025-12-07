@@ -17,8 +17,8 @@
 # --- Concurrency Settings ---
 
 # Global Concurrency: How many benchmark cases to run in parallel client-side.
-# We set this high (50) to speed up execution, relying on Cloud Run to scale out.
-MAX_BENCHMARK_CONCURRENCY = 40
+# Increased to 400 to target <10m runtime by running all tests in parallel.
+MAX_BENCHMARK_CONCURRENCY = 400
 
 # Per-Instance Concurrency: How many requests a SINGLE Cloud Run container handles.
 # Tested stable limit is 10 requests per 4GB/4CPU instance.
@@ -26,9 +26,9 @@ MAX_BENCHMARK_CONCURRENCY = 40
 MAX_INSTANCE_CONCURRENCY = 10
 
 # Max Instances: How many containers Cloud Run is allowed to spin up.
-# 50 global requests / 10 per instance = 5 instances needed minimum.
-# We set limit to 10 to allow buffer.
-MAX_CLOUD_RUN_INSTANCES = 10
+# 100 global requests / 10 per instance = 10 instances needed minimum.
+# We set limit to 100 to allow practically unlimited scale-out.
+MAX_CLOUD_RUN_INSTANCES = 100
 
 # --- Resource Limits ---
 

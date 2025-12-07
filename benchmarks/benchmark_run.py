@@ -1,5 +1,6 @@
 """Script to run benchmarks and analyze results."""
 
+import asyncio
 import re
 from pathlib import Path
 from typing import List
@@ -55,7 +56,7 @@ async def run_comparison(logger: JsonTraceLogger) -> List[BenchmarkRunResult]:
       benchmark_suites=benchmark_suites,
       answer_generators=answer_generators,
       max_concurrency=MAX_BENCHMARK_CONCURRENCY,
-      max_retries=0,
+      max_retries=3,
       logger=logger,
   )
 
@@ -443,30 +444,34 @@ run_output_dir_str = None
 
 
 # %%
-# Setup unified output directory
-if run_output_dir_str:
-  run_output_dir = Path(run_output_dir_str)
-else:
-  current_timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-  run_output_dir = Path("benchmark_runs") / current_timestamp
+async def main():
+  # Setup unified output directory
+  if run_output_dir_str:
+    run_output_dir = Path(run_output_dir_str)
+  else:
+    current_timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    run_output_dir = Path("benchmark_runs") / current_timestamp
 
-run_output_dir.mkdir(parents=True, exist_ok=True)
+  run_output_dir.mkdir(parents=True, exist_ok=True)
 
-# Initialize logger
-logger = JsonTraceLogger(output_dir=str(run_output_dir), filename="trace.jsonl")
+  # Initialize logger
+  logger = JsonTraceLogger(output_dir=str(run_output_dir), filename="trace.jsonl")
 
-# Execute the benchmarks
-benchmark_run_results = await run_comparison(logger=logger)
+  # Execute the benchmarks
+  benchmark_run_results = await run_comparison(logger=logger)
 
-# %%
-raw_results_df = process_results(benchmark_run_results)
+  # %%
+  raw_results_df = process_results(benchmark_run_results)
 
-# %%
-if not raw_results_df.empty:
-  print_summary(raw_results_df)
-  print_metrics(raw_results_df)
-  print_time_profiling(raw_results_df)
-  print_detailed_breakdown(raw_results_df)
-  generate_detailed_reports(raw_results_df, output_dir=run_output_dir)
-else:
-  print("No results returned.")
+  # %%
+  if not raw_results_df.empty:
+    print_summary(raw_results_df)
+    print_metrics(raw_results_df)
+    print_time_profiling(raw_results_df)
+    print_detailed_breakdown(raw_results_df)
+    generate_detailed_reports(raw_results_df, output_dir=run_output_dir)
+  else:
+    print("No results returned.")
+
+if __name__ == "__main__":
+  asyncio.run(main())

@@ -18,7 +18,7 @@ import asyncio
 import json
 from pathlib import Path
 import re
-from typing import Any
+from typing import Any, Optional
 
 from benchmarks.answer_generators.gemini_answer_generator import GeminiAnswerGenerator
 from benchmarks.answer_generators.llm_base import LlmAnswerGenerator
@@ -33,6 +33,7 @@ from benchmarks.data_models import MultipleChoiceBenchmarkCase
 from benchmarks.data_models import TraceLogEvent
 from benchmarks.data_models import UsageMetadata
 from benchmarks.utils import parse_cli_stream_json_output
+from pydantic import BaseModel
 
 
 class GeminiCliAnswerGenerator(GeminiAnswerGenerator):
@@ -60,9 +61,13 @@ class GeminiCliAnswerGenerator(GeminiAnswerGenerator):
     return base.replace("GeminiAnswerGenerator", "GeminiCliAnswerGenerator")
 
   async def generate_answer(
-      self, benchmark_case: BaseBenchmarkCase
+      self,
+      benchmark_case: BaseBenchmarkCase
   ) -> GeneratedAnswer:
     """Generates an answer using the gemini CLI."""
+    prompt: str
+    response_schema: BaseModel | None = None
+
     if isinstance(benchmark_case, FixErrorBenchmarkCase):
       prompt = self._create_prompt_for_fix_error(benchmark_case)
       response_schema = FixErrorAnswerOutput
@@ -77,7 +82,8 @@ class GeminiCliAnswerGenerator(GeminiAnswerGenerator):
           f"Unsupported benchmark case type: {type(benchmark_case)}"
       )
 
-    # Append explicit JSON enforcement instructions since CLI doesn't support response_schema
+    # Append explicit JSON enforcement instructions to the prompt.
+    # This guides the model to produce structured output.
     schema_json = json.dumps(response_schema.model_json_schema(), indent=2)
     prompt += (
         "\n\nIMPORTANT: You must output PURE JSON matching this schema. Do not"
@@ -85,11 +91,23 @@ class GeminiCliAnswerGenerator(GeminiAnswerGenerator):
         f" outside the JSON object.\nJSON Schema:\n{schema_json}\n"
     )
 
+    # Construct cli_args to always include --output-format stream-json, --model, --yolo, --debug, and the prompt as a positional argument
+    cli_args = [
+        "--output-format",
+        "stream-json",
+        "--model",
+        self.model_name,
+        "--yolo",
+        "--debug",
+        prompt, # Positional argument for the prompt
+        # "--sandbox", # Removed because we are already in a container
+    ]
+
     # Run the CLI command
-    cli_response, logs = await self._run_cli_command(prompt)
+    cli_response_dict, logs = await self._run_cli_command(cli_args)
 
     # Extract the 'response' field which contains the model's text output
-    model_text = cli_response.get("response", "")
+    model_text = cli_response_dict.get("response", "")
 
     # The model's text output is expected to be a JSON string (because the prompt asks for it)
     # potentially wrapped in markdown code blocks.
@@ -108,8 +126,8 @@ class GeminiCliAnswerGenerator(GeminiAnswerGenerator):
       ) from e
 
     usage_metadata = None
-    if "stats" in cli_response:
-      stats = cli_response["stats"]
+    if "stats" in cli_response_dict:
+      stats = cli_response_dict["stats"]
       usage_metadata = UsageMetadata(
           total_tokens=stats.get("total_token_count"),
           prompt_tokens=stats.get("prompt_token_count"),
@@ -121,19 +139,18 @@ class GeminiCliAnswerGenerator(GeminiAnswerGenerator):
     )
 
   async def _run_cli_command(
-      self, prompt: str
+      self,
+      cli_args: list[str],
+      direct_command_parts: Optional[list[str]] = None
   ) -> tuple[dict[str, Any], list[TraceLogEvent]]:
     """Executes the gemini CLI command and returns the parsed JSON output and raw logs."""
     args = [
         self.cli_path,
-        prompt,  # Pass prompt as positional argument
-        "--output-format",
-        "stream-json", # Changed from "json" to "stream-json"
-        "--model",
-        self.model_name,
-        "--yolo",
-        "--sandbox",
     ]
+    if direct_command_parts:
+        args.extend(direct_command_parts)
+    else:
+        args.extend(cli_args)
 
     # Create subprocess
     proc = await asyncio.create_subprocess_exec(
@@ -147,11 +164,23 @@ class GeminiCliAnswerGenerator(GeminiAnswerGenerator):
     stdout_str = stdout.decode()
     stderr_str = stderr.decode()
 
-    # Parse stdout using the new utility function
-    response_dict, logs = parse_cli_stream_json_output(stdout_str)
+    # Initialize logs with stderr content first
+    logs: list[TraceLogEvent] = []
+    for line in stderr_str.splitlines():
+        if line.strip():
+            logs.append(TraceLogEvent(type="CLI_STDERR", source="podman", content=line.strip()))
 
-    if stderr_str:
-      logs.append(TraceLogEvent(type="CLI_STDERR", content=stderr_str))
+    # Parse stdout. If stream-json, parse events. Otherwise, treat as raw message.
+    response_dict = {"stdout": stdout_str, "stderr": stderr_str, "exit_code": proc.returncode, "response": ""}
+    if "--output-format" in cli_args and "stream-json" in cli_args:
+        parsed_response_dict, parsed_logs = parse_cli_stream_json_output(stdout_str)
+        response_dict.update(parsed_response_dict)
+        logs.extend(parsed_logs)
+    else:
+        # If not stream-json, treat stdout as a single response message for logging purposes
+        if stdout_str.strip():
+            logs.append(TraceLogEvent(type="CLI_STDOUT_RAW", source="podman", content=stdout_str.strip()))
+        response_dict["response"] = stdout_str.strip()  # Direct text response
 
     if proc.returncode != 0:
       error_msg = stderr_str.strip() or stdout_str.strip()
@@ -160,6 +189,40 @@ class GeminiCliAnswerGenerator(GeminiAnswerGenerator):
       )
 
     return response_dict, logs
+
+  async def get_mcp_tools(self) -> list[str]:
+    """Returns a list of available MCP tools (servers) and extensions."""
+    tools = []
+
+    # 1. List MCP Servers
+    # Output format: "✓ context7: https://..." or similar
+    try:
+        mcp_res, _ = await self._run_cli_command([], direct_command_parts=["mcp", "list"])
+        for line in mcp_res.get("stdout", "").splitlines():
+            # Look for checkmark or name followed by URL
+            # e.g. "✓ context7: ..."
+            match = re.search(r"(?:✓|\*|-)?\s*([a-zA-Z0-9_-]+):\s*https?://", line)
+            if match:
+                tools.append(match.group(1))
+    except Exception:
+        pass
+
+    # 2. List Extensions
+    # Output format: "adk-docs-ext (v...)" or just list
+    try:
+        ext_res, _ = await self._run_cli_command([], direct_command_parts=["extensions", "list"])
+        for line in ext_res.get("stdout", "").splitlines():
+             stripped = line.strip()
+             # Heuristic to filter out empty lines, errors, headers, or "No extensions" messages
+             if (stripped and 
+                 not stripped.lower().startswith("error") and 
+                 not stripped.lower().startswith("usage") and
+                 "no extensions installed" not in stripped.lower()):
+                 tools.append(stripped.split()[0]) # Take first word as potential name
+    except Exception:
+        pass
+
+    return list(set(tools))
 
   def _extract_json_from_text(self, text: str) -> str:
     """Extracts JSON content from a string, handling markdown code blocks."""
@@ -172,5 +235,3 @@ class GeminiCliAnswerGenerator(GeminiAnswerGenerator):
 
     # If no code blocks, assume the whole text is JSON
     return text
-
-    

@@ -41,9 +41,7 @@ async def test_podman_generator_run_cli_command():
     mock_exec.return_value = mock_process
 
     # Run command
-    response, logs = await generator._run_cli_command("Test Prompt")
-
-    # Assertions
+    response, logs = await generator._run_cli_command(["--output-format", "stream-json", "Test Prompt"])
     mock_exec.assert_called_once()
     call_args = mock_exec.call_args[0]
 
@@ -55,9 +53,9 @@ async def test_podman_generator_run_cli_command():
     assert "Test Prompt" in call_args
 
     # Check response parsing
-    assert response["response"] == "Hello"
     assert len(logs) == 1
     assert logs[0].type == "message"
+    assert logs[0].content == 'Hello'
 
 
 @pytest.mark.asyncio
@@ -84,8 +82,7 @@ async def test_podman_generator_env_vars():
       mock_process.returncode = 0
       mock_exec.return_value = mock_process
 
-      await generator._run_cli_command("prompt")
-
+      await generator._run_cli_command(["prompt"])
       call_args = mock_exec.call_args[0]
       # Check for env var flags
       assert "-e" in call_args

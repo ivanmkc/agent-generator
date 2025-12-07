@@ -18,13 +18,15 @@ import asyncio
 import json
 import os
 import subprocess
+import re
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
-from benchmarks.answer_generators.gemini_cli_answer_generator import (
-    GeminiCliAnswerGenerator,
-)
+from benchmarks.answer_generators.gemini_cli_answer_generator import \
+    GeminiCliAnswerGenerator
 from benchmarks.data_models import TraceLogEvent
+from benchmarks.utils import parse_cli_stream_json_output
+
 
 # Define known images and their build configurations
 IMAGE_DEFINITIONS = {
@@ -66,7 +68,7 @@ DEFAULT_IMAGE_PREFIX = "adk-gemini-sandbox"
 class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
   """An AnswerGenerator that uses the gemini CLI inside a Podman container."""
 
-  def __init__(
+  def __init__(  # pylint: disable=super-init-not-called
       self,
       dockerfile_dir: str | Path,
       service_name: str,
@@ -97,13 +99,15 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
     """
     super().__init__(model_name=model_name, cli_path="gemini")
     
-    # Resolve image name logic similar to Cloud Run generator
-    if image_name:
-      self.image_name = image_name
-    elif service_name == "adk-python":
-        self.image_name = "adk-gemini-sandbox:adk-python"
+    # Determine the effective image key (e.g., "adk-python" from "adk-gemini-sandbox:adk-python")
+    effective_image_key = image_name.split(":")[-1] if image_name and ":" in image_name else (image_name or service_name)
+
+    # Always store the fully qualified local image name
+    if effective_image_key in IMAGE_DEFINITIONS or image_name and image_name.startswith(f"{DEFAULT_IMAGE_PREFIX}:"):
+        self.image_name = image_name if image_name and image_name.startswith(f"{DEFAULT_IMAGE_PREFIX}:") else f"{DEFAULT_IMAGE_PREFIX}:{effective_image_key}"
     else:
-      self.image_name = service_name
+        # For unmanaged or custom images, use the provided name directly
+        self.image_name = image_name or service_name
 
     self.dockerfile_dir = Path(dockerfile_dir)
     self.context_instruction = context_instruction
@@ -118,6 +122,10 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
         f"GeminiCliPodmanAnswerGenerator({self.model_name},"
         f" image={self.image_name})"
     )
+
+  async def setup(self) -> None:
+    """Ensures the Podman image is built and ready."""
+    await self._ensure_image_ready()
 
   async def _ensure_image_ready(self):
     """Checks if the requested image exists and builds it if necessary."""
@@ -248,33 +256,22 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
         
     print(f"Successfully built {full_image_name}")
 
+  # Override _run_cli_command from parent to handle Podman-specific execution
   async def _run_cli_command(
-      self, prompt: str
+      self, cli_args: list[str], direct_command_parts: Optional[list[str]] = None
   ) -> tuple[dict[str, Any], list[TraceLogEvent]]:
-    """Executes the gemini CLI command inside Podman and returns the parsed JSON output."""
-    
+    """Executes the gemini CLI command inside Podman and returns the parsed output and raw logs."""
     # Ensure image is ready before running
     await self._ensure_image_ready()
 
-    full_prompt = prompt
-    if self.context_instruction:
-      full_prompt = self.context_instruction + prompt
-
     # Prepare Podman command
-    # We need to run the container, pass auth env vars, and execute the gemini command.
-
     podman_args = ["podman", "run", "--rm"]
 
-    # Handle Authentication
-    # 1. Check for GEMINI_API_KEY
+    # Handle Authentication (env vars)
     if os.environ.get("GEMINI_API_KEY"):
       podman_args.extend(["-e", "GEMINI_API_KEY"])
-
-    # Pass CONTEXT7_API_KEY if present (for MCP)
     if os.environ.get("CONTEXT7_API_KEY"):
       podman_args.extend(["-e", "CONTEXT7_API_KEY"])
-
-    # 2. Check for Vertex AI params
     if os.environ.get("GOOGLE_GENAI_USE_VERTEXAI"):
       podman_args.extend(["-e", "GOOGLE_GENAI_USE_VERTEXAI"])
       if os.environ.get("GOOGLE_API_KEY"):
@@ -284,39 +281,30 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
       if os.environ.get("GOOGLE_CLOUD_LOCATION"):
         podman_args.extend(["-e", "GOOGLE_CLOUD_LOCATION"])
 
-      # Handle ADC file mapping
-      adc_path = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
-      if adc_path:
-        # We must mount the file into the container
-        # Use a fixed path inside the container to avoid path issues
-        container_adc_path = "/tmp/google_credentials.json"
-        podman_args.extend(["-v", f"{adc_path}:{container_adc_path}"])
-        podman_args.extend(
-            ["-e", f"GOOGLE_APPLICATION_CREDENTIALS={container_adc_path}"]
-        )
+    adc_path = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
+    if adc_path:
+      container_adc_path = "/tmp/google_credentials.json"
+      podman_args.extend(["-v", f"{adc_path}:{container_adc_path}"])
+      podman_args.extend(
+          ["-e", f"GOOGLE_APPLICATION_CREDENTIALS={container_adc_path}"]
+      )
+    
+    # Explicitly set GEMINI_CONFIG_DIR for the container
+    podman_args.extend(["-e", "GEMINI_CONFIG_DIR=/root/.gemini/"])
 
     # Podman Image
     podman_args.append(self.image_name)
 
-    # Gemini Command (inside container)
-    # Note: we use the same arguments as the base class, but 'gemini' is the entrypoint or command
-    gemini_args = [
-        self.cli_path,  # "gemini"
-        full_prompt,
-        "--output-format",
-        "stream-json",  # Enabled output-format stream-json for better tracing
-        "--model",
-        self.model_name,
-        "--yolo",
-        # "--sandbox",  <-- Removed because we are already in a container
-    ]
-
-    # Construct the full command arguments
-    cmd_args = podman_args + gemini_args
+    # Full command to execute inside the container
+    # The cli_path (gemini) and cli_args are passed as direct arguments to the container.
+    if direct_command_parts:
+        full_command = [self.cli_path] + direct_command_parts
+    else:
+        full_command = [self.cli_path] + cli_args
 
     # Create subprocess
     proc = await asyncio.create_subprocess_exec(
-        *cmd_args,
+        *podman_args, *full_command,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
     )
@@ -326,87 +314,28 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
     stdout_str = stdout.decode()
     stderr_str = stderr.decode()
 
+    # Initialize logs with stderr content first
     logs: list[TraceLogEvent] = []
+    for line in stderr_str.splitlines():
+        if line.strip():
+            logs.append(TraceLogEvent(type="CLI_STDERR", source="podman", content=line.strip()))
 
-    # Process stderr as a raw log event if present
-    if stderr_str:
-      logs.append(
-          TraceLogEvent(
-              type="PODMAN_CLI_STDERR", source="podman", content=stderr_str
-          )
-      )
+    # Parse stdout. If stream-json, parse events. Otherwise, treat as raw message.
+    response_dict = {"stdout": stdout_str, "stderr": stderr_str, "exit_code": proc.returncode, "response": ""}
+    if "--output-format" in cli_args and "stream-json" in cli_args:
+        parsed_response_dict, parsed_logs = parse_cli_stream_json_output(stdout_str)
+        response_dict.update(parsed_response_dict)
+        logs.extend(parsed_logs)
+    else:
+        # If not stream-json, treat stdout as a single response message for logging purposes
+        if stdout_str.strip():
+            logs.append(TraceLogEvent(type="CLI_STDOUT_RAW", source="podman", content=stdout_str.strip()))
+        response_dict["response"] = stdout_str.strip()  # Direct text response
 
     if proc.returncode != 0:
       error_msg = stderr_str.strip() or stdout_str.strip()
       raise RuntimeError(
-          f"Gemini CLI (Podman) failed with code {proc.returncode}: {error_msg}"
+          f"Gemini CLI failed with code {proc.returncode}: {error_msg}"
       )
-
-    # Parse NDJSON events to reconstruct the response object and detailed logs
-    response_dict = {"response": ""}
-
-    for line in stdout_str.splitlines():
-      line = line.strip()
-      if not line:
-        continue
-      try:
-        event = json.loads(line)
-        event_type = event.get("type")
-        timestamp = event.get("timestamp")
-
-        # Handle potential 'data' wrapper if present (though usually flat in CLI)
-        event_data = event.get("data", event)
-
-        # Create a structured TraceLogEvent
-        log_event = TraceLogEvent(
-            type=event_type or "unknown",
-            source="podman",
-            timestamp=timestamp,
-            details=event,  # Store full raw event in details
-        )
-
-        if event_type == "init":
-          log_event.type = "system_init"
-          log_event.content = event
-
-        elif event_type == "message":
-          role = event_data.get("role")
-          log_event.role = role
-          content = event_data.get("content")
-          log_event.content = content
-
-          if role in ["model", "assistant"]:
-            # Aggregate model response for the final output
-            if isinstance(content, list):
-              for part in content:
-                if isinstance(part, dict) and "text" in part:
-                  response_dict["response"] += part["text"]
-            elif isinstance(content, str):
-              response_dict["response"] += content
-
-        elif event_type == "tool_use":
-          log_event.tool_name = event_data.get("tool_name")
-          log_event.tool_call_id = event_data.get("tool_id")
-          log_event.tool_input = event_data.get("parameters")
-
-        elif event_type == "tool_result":
-          log_event.tool_call_id = event_data.get("tool_id")
-          log_event.tool_output = str(event_data.get("output"))
-
-        elif event_type == "result":
-          log_event.type = "system_result"
-          if "stats" in event_data:
-            response_dict["stats"] = event_data["stats"]
-            log_event.content = event_data["stats"]
-
-        logs.append(log_event)
-
-      except json.JSONDecodeError:
-        # Fallback for non-JSON lines
-        logs.append(
-            TraceLogEvent(
-                type="PODMAN_CLI_STDOUT_RAW", source="podman", content=line
-            )
-        )
 
     return response_dict, logs

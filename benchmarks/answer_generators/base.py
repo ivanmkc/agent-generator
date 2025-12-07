@@ -41,6 +41,10 @@ class AnswerGenerator(abc.ABC):
     """Generates an answer for a given benchmark case."""
     pass
 
+  async def get_mcp_tools(self) -> list[str]:
+    """Returns a list of available MCP tools."""
+    return []
+
   async def setup(self) -> None:
     """Performs any necessary setup (e.g., deploying services) before running benchmarks."""
     pass
