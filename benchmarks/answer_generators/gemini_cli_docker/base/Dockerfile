@@ -27,6 +27,9 @@ RUN mkdir -p /etc/apt/keyrings \
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh \
     && mv /root/.local/bin/uv /usr/local/bin/uv
 
+# Install Python dependencies for the server (FastAPI/Uvicorn)
+RUN pip install --no-cache-dir fastapi uvicorn
+
 # Install Gemini CLI
 RUN npm install -g @google/gemini-cli
 

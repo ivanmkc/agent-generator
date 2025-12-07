@@ -17,6 +17,7 @@
 import asyncio
 import json
 import os
+import subprocess
 from pathlib import Path
 from typing import Any
 
@@ -25,45 +26,229 @@ from benchmarks.answer_generators.gemini_cli_answer_generator import (
 )
 from benchmarks.data_models import TraceLogEvent
 
+# Define known images and their build configurations
+IMAGE_DEFINITIONS = {
+    "base": {
+        "source_dir": "base",
+        "dockerfile": "base/Dockerfile",
+        "dependencies": [],
+        "build_args": {},
+    },
+    "adk-python": {
+        "source_dir": "adk-python",
+        "dockerfile": "adk-python/Dockerfile",
+        "dependencies": ["base"],
+        "build_args": {"BASE_IMAGE": "adk-gemini-sandbox:base"},
+    },
+    "mcp-context7": {
+        "source_dir": "gemini-cli-mcp-context7",
+        "dockerfile": "gemini-cli-mcp-context7/Dockerfile",
+        "dependencies": ["base"],
+        "build_args": {"BASE_IMAGE": "adk-gemini-sandbox:base"},
+    },
+    "adk-docs-ext": {
+        "source_dir": "adk-docs-ext",
+        "dockerfile": "adk-docs-ext/Dockerfile",
+        "dependencies": ["base"],
+        "build_args": {"BASE_IMAGE": "adk-gemini-sandbox:base"},
+    },
+}
+
+DEFAULT_IMAGE_PREFIX = "adk-gemini-sandbox"
+
 
 class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
   """An AnswerGenerator that uses the gemini CLI inside a Podman container."""
 
   def __init__(
       self,
-      image_name: str,
+      dockerfile_dir: str | Path,
+      service_name: str,
       model_name: str = "gemini-2.5-pro",
-      context: str | Path | None = None,
+      project_id: str | None = None,
+      region: str = "us-central1",
       context_instruction: str | None = None,
+      auto_deploy: bool = False,
+      image_name: str | None = None,
+      force_deploy: bool = False,
   ):
     """Initializes the GeminiCliPodmanAnswerGenerator.
 
+    Matches the API of GeminiCliCloudRunAnswerGenerator for interchangeability.
+
     Args:
-      image_name: The name of the Podman image to use. This can be a full
-        repository path (e.g., "gcr.io/my-project/my-image:latest") or a
-        local image name (e.g., "my-local-image").
-      model_name: The name of the Gemini model to use. Defaults to "gemini-2.5-pro".
-      context: Optional path to a context file or directory to mount into the
-        Podman container.
-      context_instruction: Optional instruction to prepend to the user prompt.
+      dockerfile_dir: Path to the directory containing the Dockerfile.
+        Used if building a custom image. If using a managed image (e.g. adk-python),
+        this can be any path (even dummy) if auto_deploy is False or image is managed.
+      service_name: Used as the default image name (or alias).
+      model_name: The name of the Gemini model to use.
+      project_id: Ignored (compatibility).
+      region: Ignored (compatibility).
+      context_instruction: Instruction to prepend to the user prompt.
+      auto_deploy: Whether to automatically build the image.
+      image_name: The Podman image name. If None, derived from service_name.
+      force_deploy: If True, rebuilds the image even if it exists.
     """
-    super().__init__(model_name=model_name, context=context, cli_path="gemini")
-    self.image_name = image_name
+    super().__init__(model_name=model_name, cli_path="gemini")
+    
+    # Resolve image name logic similar to Cloud Run generator
+    if image_name:
+      self.image_name = image_name
+    elif service_name == "adk-python":
+        self.image_name = "adk-gemini-sandbox:adk-python"
+    else:
+      self.image_name = service_name
+
+    self.dockerfile_dir = Path(dockerfile_dir)
     self.context_instruction = context_instruction
+    self.auto_deploy = auto_deploy
+    self.force_deploy = force_deploy
+    self._image_checked = False
 
   @property
   def name(self) -> str:
     """Returns a unique name for this generator instance."""
-    base = super().name
     return (
         f"GeminiCliPodmanAnswerGenerator({self.model_name},"
         f" image={self.image_name})"
     )
 
+  async def _ensure_image_ready(self):
+    """Checks if the requested image exists and builds it if necessary."""
+    if self._image_checked and not self.force_deploy:
+      return
+      
+    # Determine if this is a managed image
+    image_tag = self.image_name
+    if ":" in image_tag:
+      # e.g. adk-gemini-sandbox:adk-python -> adk-python
+      image_key = image_tag.split(":")[-1]
+    else:
+      image_key = image_tag
+
+    # 1. Check if it's a known managed image
+    if image_key in IMAGE_DEFINITIONS:
+      if self.auto_deploy or self.force_deploy:
+         await self._build_image_chain(image_key, force=self.force_deploy)
+         
+      self._image_checked = True
+      # Reset force_deploy after first check to avoid rebuilding on every call if object is reused
+      self.force_deploy = False 
+      return
+      
+    # 2. If not managed, check if we have a dockerfile_dir to build from
+    if (self.auto_deploy or self.force_deploy) and self.dockerfile_dir and self.dockerfile_dir.exists():
+        await self._build_custom_image(force=self.force_deploy)
+        self._image_checked = True
+        self.force_deploy = False
+        return
+
+    # 3. Otherwise, just check existence (assume pre-built)
+    self._image_checked = True
+    
+  async def _build_custom_image(self, force: bool = False):
+    """Builds an image from self.dockerfile_dir."""
+    full_image_name = self.image_name
+    
+    if not force:
+        # Check if image exists
+        proc = await asyncio.create_subprocess_exec(
+            "podman", "image", "exists", full_image_name,
+            stdout=asyncio.subprocess.DEVNULL,
+            stderr=asyncio.subprocess.DEVNULL
+        )
+        await proc.wait()
+        
+        if proc.returncode == 0:
+            return # Already exists
+
+    print(f"Building Custom Podman image: {full_image_name} from {self.dockerfile_dir}...")
+    
+    build_cmd = [
+        "podman", "build",
+        "-t", full_image_name,
+        str(self.dockerfile_dir)
+    ]
+    
+    # If a Dockerfile exists explicitly in the dir, use it (otherwise defaults to Dockerfile)
+    if (self.dockerfile_dir / "Dockerfile").exists():
+         build_cmd.extend(["-f", str(self.dockerfile_dir / "Dockerfile")])
+
+    build_proc = await asyncio.create_subprocess_exec(
+        *build_cmd,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE
+    )
+    stdout, stderr = await build_proc.communicate()
+    
+    if build_proc.returncode != 0:
+        error_msg = stderr.decode().strip() or stdout.decode().strip()
+        raise RuntimeError(f"Failed to build custom image {full_image_name}: {error_msg}")
+        
+    print(f"Successfully built {full_image_name}")
+
+  async def _build_image_chain(self, image_key: str, force: bool = False):
+    """Recursively builds dependencies and then the target image."""
+    definition = IMAGE_DEFINITIONS[image_key]
+    
+    # 1. Build dependencies first
+    for dep_key in definition["dependencies"]:
+      # Propagate force to dependencies
+      await self._build_image_chain(dep_key, force=force)
+
+    # 2. Check if current image exists
+    full_image_name = f"{DEFAULT_IMAGE_PREFIX}:{image_key}"
+    
+    if not force:
+        # Check if image exists
+        proc = await asyncio.create_subprocess_exec(
+            "podman", "image", "exists", full_image_name,
+            stdout=asyncio.subprocess.DEVNULL,
+            stderr=asyncio.subprocess.DEVNULL
+        )
+        await proc.wait()
+        
+        if proc.returncode == 0:
+          return
+
+    # 3. Build the image
+    print(f"Building Podman image: {full_image_name}...")
+    
+    base_path = Path(__file__).parent
+    source_path = base_path / definition["source_dir"]
+    dockerfile_path = base_path / definition["dockerfile"]
+    
+    build_cmd = [
+        "podman", "build",
+        "-t", full_image_name,
+        "-f", str(dockerfile_path),
+    ]
+    
+    for arg_name, arg_val in definition["build_args"].items():
+        build_cmd.extend(["--build-arg", f"{arg_name}={arg_val}"])
+        
+    build_cmd.append(str(source_path))
+
+    build_proc = await asyncio.create_subprocess_exec(
+        *build_cmd,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE
+    )
+    stdout, stderr = await build_proc.communicate()
+    
+    if build_proc.returncode != 0:
+        error_msg = stderr.decode().strip() or stdout.decode().strip()
+        raise RuntimeError(f"Failed to build image {full_image_name}: {error_msg}")
+        
+    print(f"Successfully built {full_image_name}")
+
   async def _run_cli_command(
       self, prompt: str
   ) -> tuple[dict[str, Any], list[TraceLogEvent]]:
     """Executes the gemini CLI command inside Podman and returns the parsed JSON output."""
+    
+    # Ensure image is ready before running
+    await self._ensure_image_ready()
 
     full_prompt = prompt
     if self.context_instruction:

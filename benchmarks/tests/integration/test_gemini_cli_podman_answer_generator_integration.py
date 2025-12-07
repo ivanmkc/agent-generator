@@ -37,21 +37,7 @@ class PodmanLogEntry(BaseModel):
   tool_name: Optional[str] = None
 
 
-# Helper to get image name (duplicated from candidates for test isolation)
-def get_podman_image_name():
-  try:
-    project_id = (
-        os.environ.get("GOOGLE_CLOUD_PROJECT")
-        or subprocess.check_output(
-            ["gcloud", "config", "get-value", "project"], text=True
-        ).strip()
-    )
-    return f"gcr.io/{project_id}/adk-gemini-sandbox:latest"
-  except:
-    return "adk-gemini-sandbox:latest"
-
-
-PODMAN_IMAGE = get_podman_image_name()
+PODMAN_IMAGE = "adk-gemini-sandbox:adk-python"
 
 
 def podman_available():
@@ -96,9 +82,12 @@ async def test_podman_generator_integration_adk_question(
   )
 
   generator = GeminiCliPodmanAnswerGenerator(
+      dockerfile_dir=tmp_path,
+      service_name="adk-python",
       model_name="gemini-2.5-flash",
-      image_name="adk-gemini-sandbox:adk-python",
+      image_name=PODMAN_IMAGE,
       context_instruction=repo_instruction,
+      auto_deploy=True,
   )
 
   try:
@@ -121,6 +110,7 @@ async def test_podman_generator_integration_adk_question(
                 "read_file",
                 "glob",
                 "codebase_investigator",
+                "search_file_content",
             ]
         ):
           tool_used = True
@@ -137,6 +127,7 @@ async def test_podman_generator_integration_adk_question(
                       "read_file",
                       "glob",
                       "codebase_investigator",
+                      "search_file_content",
                   ]
               ):
                 tool_used = True
@@ -147,7 +138,7 @@ async def test_podman_generator_integration_adk_question(
 
     assert tool_used, (
         "Expected tool usage"
-        " (list_directory/read_file/glob/codebase_investigator) in logs. Logs"
+        " (list_directory/read_file/glob/codebase_investigator/search_file_content) in logs. Logs"
         f" preview:\n{result.trace_logs[:500]}"
     )
   except RuntimeError as e:

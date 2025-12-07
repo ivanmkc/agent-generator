@@ -19,7 +19,10 @@ from benchmarks.data_models import ApiUnderstandingBenchmarkCase
 async def test_podman_generator_run_cli_command():
   """Test that _run_cli_command constructs the correct Podman command."""
   generator = GeminiCliPodmanAnswerGenerator(
-      image_name="test-image", model_name="gemini-2.5-flash"
+      dockerfile_dir=".",
+      service_name="test-service",
+      image_name="test-image",
+      model_name="gemini-2.5-flash",
   )
 
   # Mock asyncio.create_subprocess_exec
@@ -59,8 +62,11 @@ async def test_podman_generator_run_cli_command():
 
 @pytest.mark.asyncio
 async def test_podman_generator_env_vars():
-  """Test that environment variables are passed to the Podman container."""
-  generator = GeminiCliPodmanAnswerGenerator(image_name="test-image")
+  generator = GeminiCliPodmanAnswerGenerator(
+      dockerfile_dir=".",
+      service_name="test-service",
+      image_name="test-image"
+  )
 
   with patch.dict(
       "os.environ",
@@ -91,7 +97,11 @@ async def test_podman_generator_env_vars():
 @pytest.mark.asyncio
 async def test_podman_generator_generate_answer():
   """Test the full generate_answer flow with a mock case."""
-  generator = GeminiCliPodmanAnswerGenerator(image_name="test-image")
+  generator = GeminiCliPodmanAnswerGenerator(
+      dockerfile_dir=".",
+      service_name="test-service",
+      image_name="test-image"
+  )
 
   case = ApiUnderstandingBenchmarkCase(
       name="Test Case",

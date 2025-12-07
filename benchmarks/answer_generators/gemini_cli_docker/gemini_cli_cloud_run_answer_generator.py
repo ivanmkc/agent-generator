@@ -37,6 +37,7 @@ from google.cloud.run_v2 import (
     Service,
     ServicesAsyncClient,
     Container,
+    ResourceRequirements,
     RevisionTemplate,
     RevisionScaling,
     TrafficTarget,
@@ -48,6 +49,12 @@ from google.protobuf import duration_pb2
 from benchmarks.answer_generators import cloud_deploy_utils
 from benchmarks.answer_generators.gemini_cli_answer_generator import (
     GeminiCliAnswerGenerator,
+)
+from benchmarks.config import (
+    CLOUD_RUN_CPU_LIMIT,
+    CLOUD_RUN_MEMORY_LIMIT,
+    MAX_CLOUD_RUN_INSTANCES,
+    MAX_INSTANCE_CONCURRENCY,
 )
 
 # Cloud Build API endpoint
@@ -70,6 +77,7 @@ class GeminiCliCloudRunAnswerGenerator(GeminiCliAnswerGenerator):
       context_instruction: str | None = None,
       auto_deploy: bool = False,
       image_name: str | None = None,
+      force_deploy: bool = False,
   ):
     """
     Args:
@@ -82,6 +90,7 @@ class GeminiCliCloudRunAnswerGenerator(GeminiCliAnswerGenerator):
         auto_deploy: If True, automatically deploys/updates the service in setup().
         image_name: Optional override for the image name (excluding registry/project).
                     Defaults to service_name (with exception for adk-python).
+        force_deploy: If True, forces a deployment in setup() even if versions match.
     """
     super().__init__(model_name=model_name, cli_path="gemini")
     self.dockerfile_dir = Path(dockerfile_dir)
@@ -91,6 +100,7 @@ class GeminiCliCloudRunAnswerGenerator(GeminiCliAnswerGenerator):
     self.region = region
     self.context_instruction = context_instruction
     self.auto_deploy = auto_deploy
+    self.force_deploy = force_deploy
     self._auth_req = google.auth.transport.requests.Request()
     self._id_token = None
     self._id_token_time = 0
@@ -265,7 +275,7 @@ class GeminiCliCloudRunAnswerGenerator(GeminiCliAnswerGenerator):
 
     # 3. Check Remote Version
     remote_version = None
-    if self.service_url:
+    if self.service_url and not self.force_deploy:
       health_result = await check_health(endpoint="/version")
       if health_result and health_result[0] == 200:
         remote_version = health_result[1].strip()
@@ -277,15 +287,22 @@ class GeminiCliCloudRunAnswerGenerator(GeminiCliAnswerGenerator):
         print("  - Remote service unreachable or no version endpoint.")
 
     # 4. Decide Action
+    should_deploy = False
     if self.auto_deploy and self.dockerfile_dir:
-      if local_hash == remote_version:
-        print("    -> Versions match. Skipping deployment.")
-      else:
-        print(
-            f"    -> Version mismatch (Local: {local_hash[:8]}, Remote:"
-            f" {remote_version[:8] if remote_version else 'None'})."
-            " Deploying..."
-        )
+        if self.force_deploy:
+            print("    -> Force deploy requested. Deploying...")
+            should_deploy = True
+        elif local_hash == remote_version:
+            print("    -> Versions match. Skipping deployment.")
+        else:
+            print(
+                f"    -> Version mismatch (Local: {local_hash[:8]}, Remote:"
+                f" {remote_version[:8] if remote_version else 'None'})."
+                " Deploying..."
+            )
+            should_deploy = True
+    
+    if should_deploy:
         self.service_url = await self._deploy_from_source(
             version_id=local_hash
         )
@@ -397,12 +414,22 @@ class GeminiCliCloudRunAnswerGenerator(GeminiCliAnswerGenerator):
                     image=image_name,
                     command=["python3"],
                     args=["/usr/local/bin/cli_server.py"],
+                    resources=ResourceRequirements(
+                        limits={
+                            "cpu": CLOUD_RUN_CPU_LIMIT,
+                            "memory": CLOUD_RUN_MEMORY_LIMIT,
+                        }
+                    ),
                 )
             ],
             scaling=RevisionScaling(
                 min_instance_count=0,
-                max_instance_count=1,
+                max_instance_count=MAX_CLOUD_RUN_INSTANCES,
             ),
+            # Set per-instance concurrency to the tested stable limit.
+            # Cloud Run will scale out (add instances) if load exceeds this * active_instances.
+            max_instance_request_concurrency=MAX_INSTANCE_CONCURRENCY,
+            timeout=duration_pb2.Duration(seconds=900), # Set request timeout to 15 minutes
         ),
         traffic=[
             TrafficTarget(

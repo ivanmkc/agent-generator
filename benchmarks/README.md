@@ -90,6 +90,8 @@ You can also run this via the **Run Task** command:
 *   Select **Tasks: Run Task**.
 *   Choose **Run Benchmark Notebook (Timestamped)**.
 
+> **Note regarding Cloud Run:** If running benchmarks against Google Cloud Run, refer to `benchmarks/answer_generators/gemini_cli_docker/README.md` for important configuration details regarding concurrency and resource scaling.
+
 ### Verification Tools
 
 #### Multiple Choice Leak Checker (`check_mc_leaks.py`)

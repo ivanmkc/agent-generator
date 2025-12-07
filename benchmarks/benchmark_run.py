@@ -10,6 +10,7 @@ import pandas as pd
 
 from benchmarks import benchmark_orchestrator
 from benchmarks.benchmark_candidates import CANDIDATE_GENERATORS
+from benchmarks.config import MAX_BENCHMARK_CONCURRENCY
 from benchmarks.data_models import BenchmarkRunResult
 from benchmarks.logger import JsonTraceLogger
 
@@ -48,10 +49,13 @@ async def run_comparison(logger: JsonTraceLogger) -> List[BenchmarkRunResult]:
   answer_generators = CANDIDATE_GENERATORS
 
   print("Executing benchmarks...")
+  # max_concurrency matches Cloud Run instance memory limits (defined in config.py).
+  # High concurrency causes OOM due to multiple Node.js CLI processes (~200MB each).
   benchmark_results = await benchmark_orchestrator.run_benchmarks(
       benchmark_suites=benchmark_suites,
       answer_generators=answer_generators,
-      max_concurrency=20,
+      max_concurrency=MAX_BENCHMARK_CONCURRENCY,
+      max_retries=0,
       logger=logger,
   )
 
@@ -83,6 +87,10 @@ def process_results(
     raw_results_df["final_error_type"] = raw_results_df.apply(
         extract_error_type, axis=1
     )
+    # Ensure status is a string
+    raw_results_df["status_str"] = raw_results_df["status"].apply(
+        lambda x: x.value if hasattr(x, "value") else str(x)
+    )
   return raw_results_df
 
 
@@ -93,15 +101,38 @@ def print_summary(raw_results_df: pd.DataFrame):
     print("No results to summarize.")
     return
 
+  # Calculate counts
+  # passed: result == 1
+  # crashes: status_str == 'fail_crash'
+  # valid_failures: status_str == 'fail_validation'
+  
+  df = raw_results_df.copy()
+  df["is_crash"] = df["status_str"] == "fail_crash"
+  
   # 1. General Pass/Total Summary
-  summary_df = raw_results_df.groupby(["answer_generator", "suite"]).agg(
+  summary_df = df.groupby(["answer_generator", "suite"]).agg(
       passed=("result", "sum"),
+      crashes=("is_crash", "sum"),
       total=("result", "count"),
   )
-  summary_df["pass_rate"] = summary_df["passed"] / summary_df["total"]
+  
+  # Overall System Pass Rate: Passed / Total
+  summary_df["system_pass_rate"] = summary_df["passed"] / summary_df["total"]
+  
+  # Model Accuracy: Passed / (Total - Crashes)
+  # Represents quality on valid attempts (excluding infra errors/rate limits)
+  summary_df["valid_attempts"] = summary_df["total"] - summary_df["crashes"]
+  summary_df["model_accuracy"] = summary_df.apply(
+      lambda row: row["passed"] / row["valid_attempts"] if row["valid_attempts"] > 0 else 0.0,
+      axis=1
+  )
 
   print(f"{Bcolors.HEADER}--- Benchmark Summary ---\n{Bcolors.ENDC}")
-  print(summary_df)
+  # Format as percentages
+  display_df = summary_df.copy()
+  display_df["system_pass_rate"] = display_df["system_pass_rate"].map("{:.1%}".format)
+  display_df["model_accuracy"] = display_df["model_accuracy"].map("{:.1%}".format)
+  print(display_df[["passed", "crashes", "total", "system_pass_rate", "model_accuracy"]])
   print("\n")
 
 
@@ -121,15 +152,32 @@ def print_metrics(raw_results_df: pd.DataFrame):
 
   df["tokens"] = df.apply(lambda r: get_meta(r, "total_tokens"), axis=1)
   df["cost"] = df.apply(lambda r: get_meta(r, "cost"), axis=1)
+  df["is_crash"] = df["status_str"] == "fail_crash"
+
+  # Helper to aggregate metrics including the new rates
+  def aggregate_metrics(grouped):
+    return grouped.agg(
+        avg_latency=("latency", "mean"),
+        avg_tokens=("tokens", "mean"),
+        total_cost=("cost", "sum"),
+        passed=("result", "sum"),
+        crashes=("is_crash", "sum"),
+        count=("result", "count"),
+    )
+
+  def calculate_rates(metrics_df):
+    metrics_df["system_pass_rate"] = metrics_df["passed"] / metrics_df["count"]
+    
+    valid_attempts = metrics_df["count"] - metrics_df["crashes"]
+    metrics_df["model_accuracy"] = metrics_df.apply(
+        lambda row: row["passed"] / valid_attempts[row.name] if valid_attempts[row.name] > 0 else 0.0,
+        axis=1
+    )
+    return metrics_df.drop(columns=["passed", "crashes"]) # Keep count, maybe remove others to keep table clean
 
   # 1. Per Answer Generator Breakdown
-  gen_metrics = df.groupby("answer_generator").agg(
-      avg_latency=("latency", "mean"),
-      avg_tokens=("tokens", "mean"),
-      total_cost=("cost", "sum"),
-      pass_rate=("result", "mean"),
-      count=("result", "count"),
-  )
+  gen_metrics = aggregate_metrics(df.groupby("answer_generator"))
+  gen_metrics = calculate_rates(gen_metrics)
   gen_metrics = gen_metrics.rename(columns={"avg_latency": "avg_latency (s)"})
 
   print(f"{Bcolors.HEADER}--- Metrics by Answer Generator ---\n{Bcolors.ENDC}")
@@ -137,13 +185,8 @@ def print_metrics(raw_results_df: pd.DataFrame):
   print("\n")
 
   # 2. Detailed Breakdown by Generator and Suite
-  detailed_metrics = df.groupby(["answer_generator", "suite"]).agg(
-      avg_latency=("latency", "mean"),
-      avg_tokens=("tokens", "mean"),
-      total_cost=("cost", "sum"),
-      pass_rate=("result", "mean"),
-      count=("result", "count"),
-  )
+  detailed_metrics = aggregate_metrics(df.groupby(["answer_generator", "suite"]))
+  detailed_metrics = calculate_rates(detailed_metrics)
   detailed_metrics = detailed_metrics.rename(
       columns={"avg_latency": "avg_latency (s)"}
   )

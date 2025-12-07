@@ -1,78 +1,76 @@
-import http.server
-import json
+import asyncio
 import os
-import subprocess
-import sys
+import json
+from fastapi import FastAPI, Request, Response, HTTPException
+from fastapi.responses import JSONResponse, PlainTextResponse
 
-class RequestHandler(http.server.BaseHTTPRequestHandler):
-    def do_POST(self):
+app = FastAPI()
+
+@app.post("/")
+async def run_command(request: Request):
+    try:
+        # FastAPI handles JSON automatically, but for raw flexibility we can read body
         try:
-            length = int(self.headers.get('content-length', 0))
-            body = self.rfile.read(length)
-            data = json.loads(body)
-            
-            # Expecting 'args' list: ["gemini", "prompt", ...]
-            args = data.get('args', [])
-            
-            # Optional: 'env' dictionary to merge with system env
-            request_env = data.get('env', {})
-            
-            if not args or args[0] != "gemini":
-                self.send_response(400)
-                self.end_headers()
-                self.wfile.write(b"Invalid command. Must start with 'gemini'.")
-                return
+            data = await request.json()
+        except json.JSONDecodeError:
+            raise HTTPException(status_code=400, detail="Invalid JSON")
 
-            print(f"Executing: {args}")
-            
-            # Merge env
-            full_env = os.environ.copy()
-            full_env.update(request_env)
+        # Expecting 'args' list: ["gemini", "prompt", ...]
+        args = data.get('args', [])
+        
+        # Optional: 'env' dictionary to merge with system env
+        request_env = data.get('env', {})
+        
+        if not args or args[0] != "gemini":
+             raise HTTPException(status_code=400, detail="Invalid command. Must start with 'gemini'.")
 
-            # Run the command
-            result = subprocess.run(
-                args,
-                capture_output=True,
-                text=True,
-                check=False,
-                env=full_env 
-            )
-            
-            response = {
-                "stdout": result.stdout,
-                "stderr": result.stderr,
-                "returncode": result.returncode
-            }
-            
-            self.send_response(200)
-            self.send_header('Content-type', 'application/json')
-            self.end_headers()
-            self.wfile.write(json.dumps(response).encode())
-            
-        except Exception as e:
-            print(f"Error: {e}")
-            self.send_response(500)
-            self.end_headers()
-            self.wfile.write(str(e).encode())
+        print(f"Executing: {args}")
+        
+        # Merge env
+        full_env = os.environ.copy()
+        full_env.update(request_env)
 
-    def do_GET(self):
-        if self.path == "/version":
-            self.send_response(200)
-            self.end_headers()
-            try:
-                with open("version.txt", "r") as f:
-                    version = f.read().strip()
-                self.wfile.write(version.encode())
-            except FileNotFoundError:
-                self.wfile.write(b"unknown")
-        else:
-            # Health check
-            self.send_response(200)
-            self.end_headers()
-            self.wfile.write(b"Gemini CLI Server Ready")
+        # Run the command asynchronously
+        # This is the non-blocking magic
+        proc = await asyncio.create_subprocess_exec(
+            *args,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+            env=full_env
+        )
+        
+        stdout, stderr = await proc.communicate()
+        
+        response = {
+            "stdout": stdout.decode(),
+            "stderr": stderr.decode(),
+            "returncode": proc.returncode
+        }
+        
+        return JSONResponse(content=response)
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error: {e}")
+        return PlainTextResponse(str(e), status_code=500)
+
+@app.get("/version")
+async def get_version():
+    try:
+        if os.path.exists("version.txt"):
+            with open("version.txt", "r") as f:
+                return f.read().strip()
+        return "unknown"
+    except Exception:
+        return "unknown"
+
+@app.get("/")
+async def health_check():
+    return PlainTextResponse("Gemini CLI Server Ready")
 
 if __name__ == "__main__":
+    import uvicorn
     port = int(os.environ.get("PORT", 8080))
-    print(f"Starting server on port {port}")
-    server = http.server.HTTPServer(('0.0.0.0', port), RequestHandler)
-    server.serve_forever()
+    print(f"Starting FastAPI server on port {port}")
+    uvicorn.run(app, host="0.0.0.0", port=port)
