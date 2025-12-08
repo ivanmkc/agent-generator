@@ -18,8 +18,6 @@ import subprocess
 from typing import Optional
 
 from pydantic import BaseModel
-from pydantic import Field
-from pydantic import ValidationError
 import pytest
 
 from benchmarks.answer_generators.gemini_cli_docker.gemini_cli_podman_answer_generator import (
@@ -28,13 +26,6 @@ from benchmarks.answer_generators.gemini_cli_docker.gemini_cli_podman_answer_gen
 from benchmarks.data_models import MultipleChoiceBenchmarkCase
 from benchmarks.data_models import TraceLogEvent
 from benchmarks.tests.integration.predefined_cases import ADK_QUESTION_DOCKER_CASE
-
-
-class PodmanLogEntry(BaseModel):
-  """Represents a single log entry from the Podman CLI output."""
-
-  type: str
-  tool_name: Optional[str] = None
 
 
 PODMAN_IMAGE = "adk-gemini-sandbox:adk-python"
@@ -115,26 +106,6 @@ async def test_podman_generator_integration_adk_question(
         ):
           tool_used = True
           break
-      elif log_entry.type == "PODMAN_CLI_STDOUT" and log_entry.content:
-        for line in log_entry.content.splitlines():
-          try:
-            parsed_entry = PodmanLogEntry.model_validate_json(line)
-            if parsed_entry.type == "tool_use" and parsed_entry.tool_name:
-              if any(
-                  tool in parsed_entry.tool_name
-                  for tool in [
-                      "list_directory",
-                      "read_file",
-                      "glob",
-                      "codebase_investigator",
-                      "search_file_content",
-                  ]
-              ):
-                tool_used = True
-                break
-          except (ValidationError, ValueError):
-            # Not a valid JSON or not matching the schema, continue
-            pass
 
     assert tool_used, (
         "Expected tool usage"
