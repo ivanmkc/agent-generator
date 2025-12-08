@@ -22,6 +22,14 @@ import requests
 import statistics
 import json
 
+"""
+Stress tests to determine optimal concurrency limits for local containerized servers.
+
+This test file runs a local server (via Podman) and ramps up concurrent requests
+to identify the breaking point where latency spikes or failures occur. It helps
+in tuning the `MAX_INSTANCE_CONCURRENCY` configuration.
+"""
+
 # Stress test to find optimal concurrency limits for the server image.
 
 IMAGE_NAME = "adk-gemini-sandbox:base"
@@ -48,11 +56,16 @@ def local_server():
 
     # We assume IMAGE_NAME is already built with the server implementation we want to test
     print(f"Starting container {CONTAINER_NAME}...")
+    
+    # Cleanup previous instances if they exist
+    subprocess.run(["podman", "rm", "-f", CONTAINER_NAME], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    
     cmd = [
         "podman", "run", "--rm", "-d",
         "--name", CONTAINER_NAME,
         "-p", f"{PORT}:8080",
         IMAGE_NAME,
+        # TODO: Isn't this command already a dapent of a Docker file?
         "python3", "/usr/local/bin/cli_server.py"
     ]
     

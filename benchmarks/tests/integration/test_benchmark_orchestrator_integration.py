@@ -12,7 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Integration test for the benchmark orchestrator."""
+"""
+Integration test for the benchmark orchestrator's end-to-end execution flow.
+
+DISTINCTION FROM `test_unified_generators.py`:
+This test verifies the `benchmark_orchestrator` module (System Testing), whereas
+`test_unified_generators.py` verifies individual `AnswerGenerator` implementations
+(Component Testing).
+
+Primary Goals:
+1. Ensure the framework correctly loads benchmark definitions from YAML.
+2. Verify the pipeline can dispatch tasks to multiple generators.
+3. specific validation that the orchestrator aggregates results correctly.
+4. Uses `GroundTruthAnswerGenerator` as a stable baseline to validate the
+   framework mechanics without relying on stochastic LLM behavior.
+"""
 
 import pandas as pd
 import pytest

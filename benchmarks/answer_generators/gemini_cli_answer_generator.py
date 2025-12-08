@@ -191,38 +191,75 @@ class GeminiCliAnswerGenerator(GeminiAnswerGenerator):
     return response_dict, logs
 
   async def get_mcp_tools(self) -> list[str]:
-    """Returns a list of available MCP tools (servers) and extensions."""
+    """Returns a list of available MCP tools (servers)."""
     tools = []
 
-    # 1. List MCP Servers
-    # Output format: "✓ context7: https://..." or similar
     try:
         mcp_res, _ = await self._run_cli_command([], direct_command_parts=["mcp", "list"])
         for line in mcp_res.get("stdout", "").splitlines():
-            # Look for checkmark or name followed by URL
-            # e.g. "✓ context7: ..."
-            match = re.search(r"(?:✓|\*|-)?\s*([a-zA-Z0-9_-]+):\s*https?://", line)
-            if match:
-                tools.append(match.group(1))
-    except Exception:
-        pass
+            # 1. Clean the line of ANSI codes immediately
+            clean_line = self._strip_ansi(line).strip()
+            
+            if not clean_line or clean_line == "Configured MCP servers:" or clean_line == "(none)":
+                continue
 
-    # 2. List Extensions
-    # Output format: "adk-docs-ext (v...)" or just list
-    try:
-        ext_res, _ = await self._run_cli_command([], direct_command_parts=["extensions", "list"])
-        for line in ext_res.get("stdout", "").splitlines():
-             stripped = line.strip()
-             # Heuristic to filter out empty lines, errors, headers, or "No extensions" messages
-             if (stripped and 
-                 not stripped.lower().startswith("error") and 
-                 not stripped.lower().startswith("usage") and
-                 "no extensions installed" not in stripped.lower()):
-                 tools.append(stripped.split()[0]) # Take first word as potential name
+            # 2. Extract part before the first colon
+            # TS Output: "${statusIndicator} ${serverName} (from ...): ..."
+            # Example: "✓ weather (from ext): ..."
+            tool_name_with_status = clean_line.split(':', 1)[0].strip()
+
+            # 3. Remove leading status indicators
+            # TS uses: ✓, …, ✗. Added * just in case.
+            tool_name_candidate = re.sub(r"^[✓✗…*]?\s*", "", tool_name_with_status)
+            
+            # 4. Remove "(from extension_name)" suffix
+            tool_name_candidate = re.sub(r"\s*\(from\s+.*\)", "", tool_name_candidate).strip()
+
+            if tool_name_candidate:
+                tools.append(tool_name_candidate)
     except Exception:
         pass
 
     return list(set(tools))
+
+  async def get_gemini_cli_extensions(self) -> list[str]:
+    """Returns a list of available Gemini CLI extensions."""
+    extensions = []
+
+    # 2. List Extensions
+    # Output format: "✓ adk-docs-ext (v...)" or just "adk-docs-ext"
+    try:
+        ext_res, _ = await self._run_cli_command([], direct_command_parts=["extensions", "list"])
+        property_keys = ["ID:", "name:", "Path:", "Source:", "Enabled", "Context", "MCP"]
+        
+        for line in ext_res.get("stdout", "").splitlines():
+             # 1. Strip ANSI first so we can reliably check indentation
+             clean_line = self._strip_ansi(line)
+
+             # 2. Structural Check: 
+             # TS Output: "\n ID:..." -> This results in a line starting with a space.
+             # We skip indented lines to ignore details.
+             if clean_line.startswith(" ") or clean_line.startswith("\t"):
+                 continue
+
+             stripped = clean_line.strip()
+             
+             # 3. Content Check (Redundant safety net, but good to keep)
+             if (not stripped or 
+                 stripped.lower().startswith("error") or 
+                 "no extensions installed" in stripped.lower()):
+                 continue
+
+             # 4. Regex extraction
+             # TS Output: "✓ extension-name (version)"
+             # We allow for alphanumeric, underscores, dashes, and @/ (for scoped packages)
+             match = re.search(r"^[✓✗…*]?\s*([ @a-zA-Z0-9_/-]+)(?:\s*\(.*\))?", stripped)
+             if match:
+                 extensions.append(match.group(1).strip())
+    except Exception:
+        pass
+
+    return list(set(extensions))
 
   def _extract_json_from_text(self, text: str) -> str:
     """Extracts JSON content from a string, handling markdown code blocks."""
@@ -235,3 +272,7 @@ class GeminiCliAnswerGenerator(GeminiAnswerGenerator):
 
     # If no code blocks, assume the whole text is JSON
     return text
+
+  def _strip_ansi(self, text: str) -> str:
+      """Removes ANSI escape codes from string."""
+      return re.sub(r'\x1b\[[0-9;]*m', '', text)

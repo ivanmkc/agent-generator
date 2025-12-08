@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Master test file for running all benchmarks."""
+"""Integration tests for Baseline Answer Generators (Ground Truth and Trivial)."""
 
 import pandas as pd
 import pytest
@@ -25,12 +25,13 @@ from benchmarks.answer_generators import TrivialAnswerGenerator
 @pytest.mark.asyncio
 async def test_benchmarks():
   """
-  Runs a comprehensive benchmark test suite.
+  Runs a comprehensive benchmark test suite against baseline generators.
 
-  This test evaluates multiple answer generators against all available benchmark
-  suites. Its primary assertion is that the GroundTruthAnswerGenerator achieves
-  a perfect score (100% pass rate), which validates the integrity of the
-  benchmark framework itself.
+  This test evaluates:
+  1. GroundTruthAnswerGenerator: Must achieve a perfect score (100% pass rate) to
+     validate the integrity of the benchmark definitions and runner logic.
+  2. TrivialAnswerGenerator: Must achieve a low score (sanity check) to ensure
+     benchmarks are not trivially solvable by random/empty answers.
   """
   benchmark_suites = [
       "benchmarks/benchmark_definitions/api_understanding/benchmark.yaml",

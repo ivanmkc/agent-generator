@@ -47,7 +47,6 @@ from benchmarks.data_models import StringMatchAnswer
 def mock_api_case() -> ApiUnderstandingBenchmarkCase:
   """Returns a mock ApiUnderstandingBenchmarkCase for testing."""
   return ApiUnderstandingBenchmarkCase(
-      name="Test Case",
       description="A test case.",
       question="What is the class for a session?",
       rationale="To test the generator.",

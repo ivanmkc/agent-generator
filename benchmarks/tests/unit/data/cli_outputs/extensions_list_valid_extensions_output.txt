@@ -1,0 +1,11 @@
+✓ adk-docs-ext (1.0.2)
+ ID: 578b6b4d21d04110a810cf5a6e134650a8c2c9445bc6c7dd405ab446a2c8eca6
+ name: d4297b02d940c3e8e8e07524b050c9b19a9f7d6a0c4afc64d7d42194ea41b7f3
+ Path: /root/.gemini/extensions/adk-docs-ext
+ Source: https://github.com/derailed-dash/adk-docs-ext (Type: git)
+ Enabled (User): true
+ Enabled (Workspace): true
+ Context files:
+  /root/.gemini/extensions/adk-docs-ext/GEMINI.md
+ MCP servers:
+  adk-docs-mcp

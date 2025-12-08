@@ -32,7 +32,7 @@ import yaml
 
 # Define project root
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-DEFINITIONS_DIR = PROJECT_ROOT / "benchmarks" / "benchmark_definitions"
+DEFINITIONS_DIR = PROJECT_ROOT / "benchmark_definitions"
 
 
 def get_mc_benchmark_files() -> List[Path]:

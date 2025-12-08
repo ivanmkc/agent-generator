@@ -1,0 +1,11 @@
+Error generating content via API. Full report available at: /tmp/gemini-client-error-generateJson-api-2025-12-07T21-20-45-008Z.json
+[Routing] ClassifierStrategy failed: Error: Failed to generate content: {"error":{"code":400,"message":"API key not valid. Please pass a valid API key.","status":"INVALID_ARGUMENT","details":[{"@type":"type.googleapis.com/google.rpc.ErrorInfo","reason":"API_KEY_INVALID","domain":"googleapis.com","metadata":{"service":"generativelanguage.googleapis.com"}},{"@type":"type.googleapis.com/google.rpc.LocalizedMessage","locale":"en-US","message":"API key not valid. Please pass a valid API key."}]}}
+    at BaseLlmClient._generateWithRetry (file:///usr/lib/node_modules/@google/gemini-cli/node_modules/@google/gemini-cli-core/dist/src/core/baseLlmClient.js:125:19)
+    at async BaseLlmClient.generateJson (file:///usr/lib/node_modules/@google/gemini-cli/node_modules/@google/gemini-cli-core/dist/src/core/baseLlmClient.js:40:24)
+    at async ClassifierStrategy.route (file:///usr/lib/node_modules/@google/gemini-cli/node_modules/@google/gemini-cli-core/dist/src/routing/strategies/classifierStrategy.js:126:34)
+    at async CompositeStrategy.route (file:///usr/lib/node_modules/@google/gemini-cli/node_modules/@google/gemini-cli-core/dist/src/routing/strategies/compositeStrategy.js:30:34)
+    at async ModelRouterService.route (file:///usr/lib/node_modules/@google/gemini-cli/node_modules/@google/gemini-cli-core/dist/src/routing/modelRouterService.js:44:24)
+    at async GeminiClient.sendMessageStream (file:///usr/lib/node_modules/@google/gemini-cli/node_modules/@google/gemini-cli-core/dist/src/core/client.js:418:30)
+    at async file:///usr/lib/node_modules/@google/gemini-cli/dist/src/nonInteractiveCli.js:191:34
+    at async main (file:///usr/lib/node_modules/@google/gemini-cli/dist/src/gemini.js:398:9)
+Error when talking to Gemini API Full report available at: /tmp/gemini-client-error-Turn.run-sendMessageStream-2025-12-07T21-20-45-160Z.json

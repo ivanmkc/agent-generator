@@ -101,7 +101,6 @@ async def test_podman_generator_generate_answer():
   )
 
   case = ApiUnderstandingBenchmarkCase(
-      name="Test Case",
       description="Test",
       category="Test",
       question="Generate code",

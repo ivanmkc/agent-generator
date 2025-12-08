@@ -1,0 +1,4 @@
+  File "/Users/ivanmkc/Documents/code/agent-generator/benchmarks/benchmark_run.py", line 459
+    benchmark_run_results = await run_comparison(logger=logger)
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+SyntaxError: 'await' outside function

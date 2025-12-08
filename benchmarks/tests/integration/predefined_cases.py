@@ -24,7 +24,6 @@ from benchmarks.data_models import StringMatchAnswer
 
 # A simple API Understanding case
 SIMPLE_API_UNDERSTANDING_CASE = ApiUnderstandingBenchmarkCase(
-    name="Trivial Test Case",
     description="Trivial test case for integration.",
     category="Core",
     question=(
@@ -60,7 +59,6 @@ SIMPLE_MULTIPLE_CHOICE_CASE = MultipleChoiceBenchmarkCase(
 
 # A multiple choice case for concurrency testing
 CONCURRENCY_TEST_CASE = ApiUnderstandingBenchmarkCase(
-    name="Concurrency Test",
     description="Concurrency Test",
     category="Core",
     question="Return `class Trivial:`.",
@@ -88,7 +86,7 @@ GEMINI_CLI_MC_CASE = MultipleChoiceBenchmarkCase(
 # A multiple choice case for Docker integration (ADK Knowledge)
 ADK_QUESTION_DOCKER_CASE = MultipleChoiceBenchmarkCase(
     question=(
-        "What is the name of the base class for all agents in"
+        "What class does `LlmAgent` inherit from directly in"
         " `google.adk.agents`?"
     ),
     options={
@@ -99,7 +97,7 @@ ADK_QUESTION_DOCKER_CASE = MultipleChoiceBenchmarkCase(
     },
     correct_answer="B",
     benchmark_type=BenchmarkType.MULTIPLE_CHOICE,
-    explanation="BaseAgent is the base class.",
+    explanation="LlmAgent inherits from BaseAgent.",
 )
 
 # Content for Fix Error Minimal Agent test case
@@ -120,3 +118,38 @@ FIX_ERROR_MINIMAL_AGENT_CONTENT = {
     "unfixed_file_content": "def unfixed(): pass",
     "fixed_file_content": "def fixed(): pass",
 }
+
+# A case for checking ADK BaseAgent knowledge (used in extensions testing)
+ADK_BASE_AGENT_QUESTION_CASE_EASY = ApiUnderstandingBenchmarkCase(
+    category="Core Class Signatures & Initialization",
+    question="What is the foundational class for all agents in the ADK?",
+    rationale="All agents must inherit from `google.adk.agents.base_agent.BaseAgent`, which provides the core interface for execution and configuration.",
+    template="identifier",
+    answers=[
+        {"answer_template": "StringMatchAnswer", "answer": "BaseAgent", "fully_qualified_class_name": ["google.adk.agents.base_agent.BaseAgent"]}
+    ],
+    file=Path("src/google/adk/agents/base_agent.py")
+)
+
+# An intermediate case for checking ADK internals (requires deeper lookup)
+ADK_BASE_AGENT_QUESTION_CASE_INTERMEDIATE = ApiUnderstandingBenchmarkCase(
+    category="Core Class Relationships & Design Patterns",
+    question=(
+        "In `google.adk.agents.llm_agent.LlmAgent`, what is the exact name of the method "
+        "that is responsible for executing the agent's main logic and returns an `AsyncIterator[Event]`?"
+    ),
+    rationale=(
+        "The `run_async` method is the standard entry point for asynchronous agent execution "
+        "in the ADK, returning an iterator of events."
+    ),
+    template="identifier",
+    answers=[
+        {
+            "answer_template": "StringMatchAnswer",
+            "answer": "run_async",
+            "fully_qualified_class_name": ["google.adk.agents.llm_agent.LlmAgent"],
+        }
+    ],
+    file=Path("src/google/adk/agents/llm_agent.py"),
+)
+

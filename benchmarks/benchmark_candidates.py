@@ -119,11 +119,11 @@ CANDIDATE_GENERATORS = [
     #     image_name=f"gcr.io/{project_id}/adk-gemini-sandbox:latest",
     #     context_instruction=ADK_REPO_INSTRUCTION,
     # ),
-    # Gemini CLI Docker Generator (MCP Context7)
-    GeminiCliDockerAnswerGenerator(
-        model_name=ModelName.GEMINI_2_5_FLASH,
-        image_name="gemini-cli-mcp-context7",
-    ),
+    # # Gemini CLI Docker Generator (MCP Context7)
+    # GeminiCliDockerAnswerGenerator(
+    #     model_name=ModelName.GEMINI_2_5_FLASH,
+    #     image_name="gemini-cli-mcp-context7",
+    # ),
     # Direct Gemini SDK generators (Baselines)
     # *permute(
     #     GeminiAnswerGenerator,

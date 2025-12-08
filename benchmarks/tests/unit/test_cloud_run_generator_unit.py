@@ -24,6 +24,11 @@ from pathlib import Path
 import pytest
 from google.api_core import exceptions as api_exceptions
 from google.cloud import storage
+from google.cloud.run_v2 import (
+    EnvVar,
+    EnvVarSource,
+    SecretKeySelector,
+)
 
 from benchmarks.answer_generators.gemini_cli_docker.gemini_cli_cloud_run_answer_generator import \
     GeminiCliCloudRunAnswerGenerator
@@ -46,7 +51,6 @@ async def test_cloud_run_generator_generate_answer():
 
   # Mock case
   case = ApiUnderstandingBenchmarkCase(
-      name="Test",
       description="Test",
       category="Test",
       question="Test question",
@@ -116,8 +120,9 @@ async def test_cloud_run_generator_generate_answer():
       assert payload["args"][0] == "gemini"
       assert "--output-format" in payload["args"]
       
-      # Verify Env vars passed
+      # Verify Env vars passed (GEMINI_API_KEY should NOT be in payload.env anymore)
       assert "env" in payload
+      assert "GEMINI_API_KEY" not in payload["env"]
       
       # Verify result parsing
       assert result.output.code == "class Test:"
@@ -263,13 +268,116 @@ async def test_cloud_run_generator_deploy_on_mismatch():
                                       with patch("pathlib.Path.unlink"):
                                           with patch.object(generator, "_get_id_token", new_callable=AsyncMock) as mock_get_token:
                                               mock_get_token.return_value = "mock-token"
-                                              await generator.setup()
+                                              
+                                              # Mock check_secret_exists -> True (default)
+                                              with patch.object(generator, "_check_secret_exists", return_value=True):
+                                                  await generator.setup()
               
               # Verify that deploy updated the URL
               assert generator.service_url == "https://deployed.run.app"
               
               # Verify update_service was called
               mock_client.update_service.assert_called()
+
+
+@pytest.mark.asyncio
+async def test_deploy_from_source_secret_env_var():
+  """Test that _deploy_from_source correctly configures the GEMINI_API_KEY as a secret environment variable."""
+  
+  generator = GeminiCliCloudRunAnswerGenerator(
+      dockerfile_dir=Path("/tmp/fake-dir"),
+      service_name="test-service",
+      project_id="test-project",
+      region="us-central1"
+  )
+  
+  with patch.object(generator, "project_id", "test-project"):
+      with patch("benchmarks.answer_generators.cloud_deploy_utils.build_and_push_docker_images") as mock_build:
+          mock_build_operation = MagicMock()
+          mock_build_result = MagicMock()
+          mock_build_result.images = ["gcr.io/test-project/test-service:latest"]
+          mock_build_operation.result = AsyncMock(return_value=mock_build_result)
+          mock_build.side_effect = AsyncMock(return_value=mock_build_operation)
+          
+          with patch("google.cloud.storage.Client") as MockStorageClient:
+              with patch("pathlib.Path.exists", return_value=True):
+                  # Mock ServicesAsyncClient for deployment calls
+                  with patch("benchmarks.answer_generators.gemini_cli_docker.gemini_cli_cloud_run_answer_generator.ServicesAsyncClient") as MockServicesClient:
+                      mock_client = MockServicesClient.return_value
+                      mock_operation = MagicMock()
+                      mock_deploy_response = MagicMock()
+                      mock_deploy_response.uri = "https://deployed.run.app"
+                      mock_operation.result = AsyncMock(return_value=mock_deploy_response)
+                      
+                      # Mock get_service to simulate service not existing initially, then creating it.
+                      mock_client.get_service = AsyncMock(side_effect=api_exceptions.NotFound("Service not found"))
+                      mock_client.create_service = AsyncMock(return_value=mock_operation)
+                      
+                      # Mock check_secret_exists -> True
+                      with patch.object(generator, "_check_secret_exists", return_value=True) as mock_check_secret:
+                          await generator._deploy_from_source(version_id="test-version")
+                      
+                          # Assert create_service was called
+                          mock_client.create_service.assert_called_once()
+                          
+                          # Extract the service object from the call
+                          args, kwargs = mock_client.create_service.call_args
+                          service = kwargs["service"]
+                          
+                          # Verify the environment variable configuration
+                          assert len(service.template.containers) == 1
+                          container = service.template.containers[0]
+                          assert len(container.env) == 1
+                          env_var = container.env[0]
+                          
+                          assert env_var.name == "GEMINI_API_KEY"
+                          assert env_var.value_source is not None
+                          assert env_var.value_source.secret_key_ref is not None
+                          assert env_var.value_source.secret_key_ref.secret == "gemini-api-key"
+                          assert env_var.value_source.secret_key_ref.version == "latest"
+
+@pytest.mark.asyncio
+async def test_deploy_from_source_no_secret():
+  """Test that _deploy_from_source skips mounting if secret does not exist."""
+  
+  generator = GeminiCliCloudRunAnswerGenerator(
+      dockerfile_dir=Path("/tmp/fake-dir"),
+      service_name="test-service",
+      project_id="test-project",
+      region="us-central1"
+  )
+  
+  with patch.object(generator, "project_id", "test-project"):
+      with patch("benchmarks.answer_generators.cloud_deploy_utils.build_and_push_docker_images") as mock_build:
+          mock_build_operation = MagicMock()
+          mock_build_result = MagicMock()
+          mock_build_result.images = ["gcr.io/test-project/test-service:latest"]
+          mock_build_operation.result = AsyncMock(return_value=mock_build_result)
+          mock_build.side_effect = AsyncMock(return_value=mock_build_operation)
+          
+          with patch("google.cloud.storage.Client") as MockStorageClient:
+              with patch("pathlib.Path.exists", return_value=True):
+                  # Mock ServicesAsyncClient for deployment calls
+                  with patch("benchmarks.answer_generators.gemini_cli_docker.gemini_cli_cloud_run_answer_generator.ServicesAsyncClient") as MockServicesClient:
+                      mock_client = MockServicesClient.return_value
+                      mock_operation = MagicMock()
+                      mock_deploy_response = MagicMock()
+                      mock_deploy_response.uri = "https://deployed.run.app"
+                      mock_operation.result = AsyncMock(return_value=mock_deploy_response)
+                      
+                      mock_client.get_service = AsyncMock(side_effect=api_exceptions.NotFound("Service not found"))
+                      mock_client.create_service = AsyncMock(return_value=mock_operation)
+                      
+                      # Mock check_secret_exists -> False
+                      with patch.object(generator, "_check_secret_exists", return_value=False) as mock_check_secret:
+                          await generator._deploy_from_source(version_id="test-version")
+                          
+                          args, kwargs = mock_client.create_service.call_args
+                          service = kwargs["service"]
+                          
+                          # Verify NO environment variables mounted
+                          container = service.template.containers[0]
+                          assert len(container.env) == 0
 
 
 def test_calculate_source_hash_logic(tmp_path):

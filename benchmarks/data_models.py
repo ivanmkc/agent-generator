@@ -83,6 +83,11 @@ class BaseBenchmarkCase(pydantic.BaseModel, abc.ABC):
 
     raise NotImplementedError
 
+  @abc.abstractmethod
+  def validate_answer_format(self, output: "AnswerOutput") -> None:
+    """Validates that the answer output matches the expected format for this case type."""
+    raise NotImplementedError
+
 
 class FixErrorBenchmarkCase(BaseBenchmarkCase):
   """Represents a single fix_error benchmark case, where the model needs to correct or complete a Python code snippet."""
@@ -108,6 +113,13 @@ class FixErrorBenchmarkCase(BaseBenchmarkCase):
     from benchmarks.benchmark_runner import PytestBenchmarkRunner
 
     return PytestBenchmarkRunner()
+
+  def validate_answer_format(self, output: "AnswerOutput") -> None:
+    """Validates that the output is a FixErrorAnswerOutput."""
+    if not isinstance(output, FixErrorAnswerOutput):
+        raise AssertionError(f"Expected FixErrorAnswerOutput, got {type(output)}")
+    if not output.code:
+        raise AssertionError("FixErrorAnswerOutput code field is empty")
 
 
 class StringMatchAnswer(pydantic.BaseModel):
@@ -182,6 +194,13 @@ class ApiUnderstandingBenchmarkCase(BaseBenchmarkCase):
 
     return ApiUnderstandingRunner()
 
+  def validate_answer_format(self, output: "AnswerOutput") -> None:
+    """Validates that the output is an ApiUnderstandingAnswerOutput."""
+    if not isinstance(output, ApiUnderstandingAnswerOutput):
+        raise AssertionError(f"Expected ApiUnderstandingAnswerOutput, got {type(output)}")
+    if not output.code and not output.fully_qualified_class_name:
+        raise AssertionError("ApiUnderstandingAnswerOutput code and FQN are both empty")
+
 
 class MultipleChoiceBenchmarkCase(BaseBenchmarkCase):
   """Represents a single multiple choice benchmark case, where the model selects the correct option from a list."""
@@ -203,6 +222,13 @@ class MultipleChoiceBenchmarkCase(BaseBenchmarkCase):
     from benchmarks.benchmark_runner import MultipleChoiceRunner
 
     return MultipleChoiceRunner()
+
+  def validate_answer_format(self, output: "AnswerOutput") -> None:
+    """Validates that the output is a MultipleChoiceAnswerOutput."""
+    if not isinstance(output, MultipleChoiceAnswerOutput):
+        raise AssertionError(f"Expected MultipleChoiceAnswerOutput, got {type(output)}")
+    if not output.answer:
+        raise AssertionError("MultipleChoiceAnswerOutput answer field is empty")
 
 
 BenchmarkCase = Annotated[

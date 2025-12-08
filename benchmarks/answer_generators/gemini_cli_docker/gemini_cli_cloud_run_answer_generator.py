@@ -42,6 +42,9 @@ from google.cloud.run_v2 import (
     RevisionScaling,
     TrafficTarget,
     TrafficTargetAllocationType,
+    EnvVar,
+    EnvVarSource,
+    SecretKeySelector,
 )
 from google.protobuf import duration_pb2
 
@@ -314,6 +317,27 @@ class GeminiCliCloudRunAnswerGenerator(GeminiCliAnswerGenerator):
     if self.service_url:
       print(f"  - Target Service: {self.service_url}")
 
+  async def _check_secret_exists(self, secret_id: str) -> bool:
+    """Checks if a secret exists in Secret Manager via gcloud."""
+    # We use gcloud here to avoid adding google-cloud-secret-manager dependency
+    # just for this check, assuming gcloud is available where this runs.
+    try:
+      proc = await asyncio.create_subprocess_exec(
+          "gcloud",
+          "secrets",
+          "describe",
+          secret_id,
+          "--project",
+          self.project_id,
+          stdout=asyncio.subprocess.PIPE,
+          stderr=asyncio.subprocess.PIPE,
+      )
+      await proc.communicate()
+      return proc.returncode == 0
+    except Exception as e:
+      print(f"    ! Warning: Could not check for secret '{secret_id}': {e}")
+      return False
+
   async def _deploy_from_source(self, version_id: str) -> str:
     """Builds and deploys the service using Cloud Build and Cloud Run APIs."""
     if not self.dockerfile_dir or not self.dockerfile_dir.exists():
@@ -406,6 +430,26 @@ class GeminiCliCloudRunAnswerGenerator(GeminiCliAnswerGenerator):
         f"projects/{self.project_id}/locations/{self.region}/services/{self.service_name}"
     )
 
+    # Check if secret exists
+    has_api_key_secret = await self._check_secret_exists("gemini-api-key")
+    
+    env_vars = []
+    if has_api_key_secret:
+        print("    -> Found 'gemini-api-key' secret. Mounting it.")
+        env_vars.append(
+            EnvVar(
+                name="GEMINI_API_KEY",
+                value_source=EnvVarSource(
+                    secret_key_ref=SecretKeySelector(
+                        secret="gemini-api-key",
+                        version="latest",
+                    )
+                ),
+            )
+        )
+    else:
+        print("    -> 'gemini-api-key' secret not found. Skipping mount.")
+
     # Define the service configuration
     service = Service(
         template=RevisionTemplate(
@@ -421,6 +465,7 @@ class GeminiCliCloudRunAnswerGenerator(GeminiCliAnswerGenerator):
                             "memory": CLOUD_RUN_MEMORY_LIMIT,
                         }
                     ),
+                    env=env_vars,
                 )
             ],
             scaling=RevisionScaling(
@@ -539,7 +584,7 @@ class GeminiCliCloudRunAnswerGenerator(GeminiCliAnswerGenerator):
     payload = {
         "args": gemini_args,
         "env": {
-            "GEMINI_API_KEY": os.environ.get("GEMINI_API_KEY", ""),
+            # GEMINI_API_KEY is now mounted as a secret env var on Cloud Run
             "GOOGLE_GENAI_USE_VERTEXAI": os.environ.get(
                 "GOOGLE_GENAI_USE_VERTEXAI", ""
             ),

@@ -1,0 +1,7 @@
+
+{
+  "adkDocsExt": {
+    "baseUrl": "${ADK_DOCS_EXT_BASE_URL}"
+  }
+}
+

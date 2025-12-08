@@ -1,0 +1,3 @@
+Configured MCP servers:
+
+✓ context7: https://mcp.context7.com/mcp (http) - Connected

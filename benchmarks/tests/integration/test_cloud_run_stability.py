@@ -12,6 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""
+Stability and stress tests for Cloud Run deployed Answer Generators.
+
+This test file verifies the resilience and error handling of generators running on
+Google Cloud Run under high concurrency. It checks for:
+- Successful service deployment and connectivity.
+- Handling of concurrent requests up to defined limits.
+- Proper error reporting during failures.
+
+Prerequisites:
+- Valid Google Cloud credentials.
+- 'gemini-api-key' secret in Secret Manager.
+"""
+
 import asyncio
 import os
 from pathlib import Path
@@ -24,6 +38,7 @@ from benchmarks.data_models import FixErrorBenchmarkCase, BenchmarkType
 
 # This test requires authentication and a deployed Cloud Run service.
 # It uses the adk-gemini-sandbox service by default.
+# Note: The service requires 'gemini-api-key' secret in Secret Manager for API Key auth.
 
 @pytest.mark.asyncio
 async def test_cloud_run_stability():
@@ -52,8 +67,13 @@ async def test_cloud_run_stability():
     )
     
     print(f"Setting up generator for service {SERVICE_NAME}...")
-    await generator.setup()
-    
+    try:
+        await generator.setup()
+    except Exception as e:
+        if "billing account" in str(e) or "403" in str(e):
+             pytest.skip(f"Skipping stability test due to billing/permissions error: {e}")
+        raise
+
     if not generator.service_url:
         pytest.fail(f"Could not resolve URL for service {SERVICE_NAME}. Is it deployed?")
         

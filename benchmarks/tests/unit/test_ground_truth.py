@@ -37,6 +37,7 @@ GROUND_TRUTH_DIR = Path("benchmarks/ground_truth/fix_errors")
 GROUND_TRUTH_FILES = list(GROUND_TRUTH_DIR.glob("test_*.py"))
 
 
+@pytest.mark.skipif(not GROUND_TRUTH_FILES, reason="No ground truth files found")
 @pytest.mark.parametrize(
     "ground_truth_file",
     GROUND_TRUTH_FILES,

@@ -17,7 +17,9 @@
 import asyncio
 import json
 import os
+import shutil
 import subprocess
+import tempfile
 import re
 from pathlib import Path
 from typing import Any, Optional
@@ -109,6 +111,7 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
         # For unmanaged or custom images, use the provided name directly
         self.image_name = image_name or service_name
 
+    self.service_name = service_name
     self.dockerfile_dir = Path(dockerfile_dir)
     self.context_instruction = context_instruction
     self.auto_deploy = auto_deploy
@@ -264,78 +267,105 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
     # Ensure image is ready before running
     await self._ensure_image_ready()
 
-    # Prepare Podman command
-    podman_args = ["podman", "run", "--rm"]
+    # Create a temporary directory on the host to capture logs
+    host_tmp_dir = tempfile.mkdtemp()
 
-    # Handle Authentication (env vars)
-    if os.environ.get("GEMINI_API_KEY"):
-      podman_args.extend(["-e", "GEMINI_API_KEY"])
-    if os.environ.get("CONTEXT7_API_KEY"):
-      podman_args.extend(["-e", "CONTEXT7_API_KEY"])
-    if os.environ.get("GOOGLE_GENAI_USE_VERTEXAI"):
-      podman_args.extend(["-e", "GOOGLE_GENAI_USE_VERTEXAI"])
-      if os.environ.get("GOOGLE_API_KEY"):
-        podman_args.extend(["-e", "GOOGLE_API_KEY"])
-      if os.environ.get("GOOGLE_CLOUD_PROJECT"):
-        podman_args.extend(["-e", "GOOGLE_CLOUD_PROJECT"])
-      if os.environ.get("GOOGLE_CLOUD_LOCATION"):
-        podman_args.extend(["-e", "GOOGLE_CLOUD_LOCATION"])
+    try:
+        # Prepare Podman command
+        podman_args = ["podman", "run", "--rm"]
+        
+        # Mount the host temp dir to /tmp in the container to capture error logs
+        podman_args.extend(["-v", f"{host_tmp_dir}:/tmp"])
 
-    adc_path = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
-    if adc_path:
-      container_adc_path = "/tmp/google_credentials.json"
-      podman_args.extend(["-v", f"{adc_path}:{container_adc_path}"])
-      podman_args.extend(
-          ["-e", f"GOOGLE_APPLICATION_CREDENTIALS={container_adc_path}"]
-      )
-    
-    # Explicitly set GEMINI_CONFIG_DIR for the container
-    podman_args.extend(["-e", "GEMINI_CONFIG_DIR=/root/.gemini/"])
+        # Handle Authentication (env vars)
+        if os.environ.get("GEMINI_API_KEY"):
+          podman_args.extend(["-e", "GEMINI_API_KEY"])
+        if os.environ.get("CONTEXT7_API_KEY"):
+          podman_args.extend(["-e", "CONTEXT7_API_KEY"])
+        if os.environ.get("GOOGLE_GENAI_USE_VERTEXAI"):
+          podman_args.extend(["-e", "GOOGLE_GENAI_USE_VERTEXAI"])
+          if os.environ.get("GOOGLE_API_KEY"):
+            podman_args.extend(["-e", "GOOGLE_API_KEY"])
+          if os.environ.get("GOOGLE_CLOUD_PROJECT"):
+            podman_args.extend(["-e", "GOOGLE_CLOUD_PROJECT"])
+          if os.environ.get("GOOGLE_CLOUD_LOCATION"):
+            podman_args.extend(["-e", "GOOGLE_CLOUD_LOCATION"])
 
-    # Podman Image
-    podman_args.append(self.image_name)
+        adc_path = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
+        if adc_path:
+          container_adc_path = "/tmp/google_credentials.json"
+          podman_args.extend(["-v", f"{adc_path}:{container_adc_path}"])
+          podman_args.extend(
+              ["-e", f"GOOGLE_APPLICATION_CREDENTIALS={container_adc_path}"]
+          )
+        
+        # Explicitly set GEMINI_CONFIG_DIR for the container
+        podman_args.extend(["-e", "GEMINI_CONFIG_DIR=/root/.gemini/"])
 
-    # Full command to execute inside the container
-    # The cli_path (gemini) and cli_args are passed as direct arguments to the container.
-    if direct_command_parts:
-        full_command = [self.cli_path] + direct_command_parts
-    else:
-        full_command = [self.cli_path] + cli_args
+        # Podman Image
+        podman_args.append(self.image_name)
 
-    # Create subprocess
-    proc = await asyncio.create_subprocess_exec(
-        *podman_args, *full_command,
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE,
-    )
+        # Full command to execute inside the container
+        # The cli_path (gemini) and cli_args are passed as direct arguments to the container.
+        if direct_command_parts:
+            full_command = [self.cli_path] + direct_command_parts
+        else:
+            full_command = [self.cli_path] + cli_args
 
-    stdout, stderr = await proc.communicate()
+        # Create subprocess
+        proc = await asyncio.create_subprocess_exec(
+            *podman_args, *full_command,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
 
-    stdout_str = stdout.decode()
-    stderr_str = stderr.decode()
+        stdout, stderr = await proc.communicate()
 
-    # Initialize logs with stderr content first
-    logs: list[TraceLogEvent] = []
-    for line in stderr_str.splitlines():
-        if line.strip():
-            logs.append(TraceLogEvent(type="CLI_STDERR", source="podman", content=line.strip()))
+        stdout_str = stdout.decode()
+        stderr_str = stderr.decode()
 
-    # Parse stdout. If stream-json, parse events. Otherwise, treat as raw message.
-    response_dict = {"stdout": stdout_str, "stderr": stderr_str, "exit_code": proc.returncode, "response": ""}
-    if "--output-format" in cli_args and "stream-json" in cli_args:
-        parsed_response_dict, parsed_logs = parse_cli_stream_json_output(stdout_str)
-        response_dict.update(parsed_response_dict)
-        logs.extend(parsed_logs)
-    else:
-        # If not stream-json, treat stdout as a single response message for logging purposes
-        if stdout_str.strip():
-            logs.append(TraceLogEvent(type="CLI_STDOUT_RAW", source="podman", content=stdout_str.strip()))
-        response_dict["response"] = stdout_str.strip()  # Direct text response
+        # Initialize logs with stderr content first
+        logs: list[TraceLogEvent] = []
+        for line in stderr_str.splitlines():
+            if line.strip():
+                logs.append(TraceLogEvent(type="CLI_STDERR", source="podman", content=line.strip()))
 
-    if proc.returncode != 0:
-      error_msg = stderr_str.strip() or stdout_str.strip()
-      raise RuntimeError(
-          f"Gemini CLI failed with code {proc.returncode}: {error_msg}"
-      )
+        if proc.returncode != 0:
+          error_msg = stderr_str.strip() or stdout_str.strip()
+          
+          # Check for detailed error logs in the mounted temp dir
+          detailed_logs = ""
+          try:
+              for file_name in os.listdir(host_tmp_dir):
+                  if file_name.startswith("gemini-client-error"):
+                      file_path = os.path.join(host_tmp_dir, file_name)
+                      with open(file_path, "r") as f:
+                          content = f.read()
+                          detailed_logs += f"\n--- {file_name} ---\n{content}\n"
+          except Exception as e:
+              detailed_logs += f"\n(Failed to read detailed error logs: {e})"
 
-    return response_dict, logs
+          if detailed_logs:
+              error_msg += f"\n\nDetailed In-Container Error Logs:{detailed_logs}"
+
+          raise RuntimeError(
+              f"Gemini CLI failed with code {proc.returncode}: {error_msg}"
+          )
+
+        # Parse stdout. If stream-json, parse events. Otherwise, treat as raw message.
+        response_dict = {"stdout": stdout_str, "stderr": stderr_str, "exit_code": proc.returncode, "response": ""}
+        if "--output-format" in cli_args and "stream-json" in cli_args:
+            parsed_response_dict, parsed_logs = parse_cli_stream_json_output(stdout_str)
+            response_dict.update(parsed_response_dict)
+            logs.extend(parsed_logs)
+        else:
+            # If not stream-json, treat stdout as a single response message for logging purposes
+            if stdout_str.strip():
+                logs.append(TraceLogEvent(type="CLI_STDOUT_RAW", source="podman", content=stdout_str.strip()))
+            response_dict["response"] = stdout_str.strip()  # Direct text response
+
+        return response_dict, logs
+
+    finally:
+        # Cleanup temporary directory
+        shutil.rmtree(host_tmp_dir, ignore_errors=True)
