@@ -141,6 +141,7 @@ class GeminiCliAnswerGenerator(GeminiAnswerGenerator):
   async def _run_cli_command(
       self,
       cli_args: list[str],
+      # TODO: consider merging cli_args and direct_command_parts
       direct_command_parts: Optional[list[str]] = None
   ) -> tuple[dict[str, Any], list[TraceLogEvent]]:
     """Executes the gemini CLI command and returns the parsed JSON output and raw logs."""

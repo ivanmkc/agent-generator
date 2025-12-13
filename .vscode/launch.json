@@ -8,7 +8,10 @@
             "program": "${file}",
             "console": "integratedTerminal",
             "justMyCode": true,
-            "python": "${workspaceFolder}/env/bin/python"
+            "python": "${workspaceFolder}/env/bin/python",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"
+            }
         },
         {
             "name": "Debug test file",

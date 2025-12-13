@@ -12,17 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""An AnswerGenerator that uses the gemini CLI inside a Podman container."""
+"""An AnswerGenerator that uses the gemini CLI hosted in a local Podman container."""
 
 import asyncio
+import atexit
 import json
 import os
 import shutil
 import subprocess
 import tempfile
 import re
+import uuid
+import socket
+import time
 from pathlib import Path
 from typing import Any, Optional
+
+import aiohttp
 
 from benchmarks.answer_generators.gemini_cli_answer_generator import \
     GeminiCliAnswerGenerator
@@ -68,7 +74,7 @@ DEFAULT_IMAGE_PREFIX = "adk-gemini-sandbox"
 
 
 class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
-  """An AnswerGenerator that uses the gemini CLI inside a Podman container."""
+  """An AnswerGenerator that uses the gemini CLI hosted in a local Podman container (API Server mode)."""
 
   def __init__(  # pylint: disable=super-init-not-called
       self,
@@ -81,34 +87,21 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
       auto_deploy: bool = False,
       image_name: str | None = None,
       force_deploy: bool = False,
+      reuse_container: bool = True, # Deprecated/Ignored, always runs as server
   ):
     """Initializes the GeminiCliPodmanAnswerGenerator.
 
     Matches the API of GeminiCliCloudRunAnswerGenerator for interchangeability.
-
-    Args:
-      dockerfile_dir: Path to the directory containing the Dockerfile.
-        Used if building a custom image. If using a managed image (e.g. adk-python),
-        this can be any path (even dummy) if auto_deploy is False or image is managed.
-      service_name: Used as the default image name (or alias).
-      model_name: The name of the Gemini model to use.
-      project_id: Ignored (compatibility).
-      region: Ignored (compatibility).
-      context_instruction: Instruction to prepend to the user prompt.
-      auto_deploy: Whether to automatically build the image.
-      image_name: The Podman image name. If None, derived from service_name.
-      force_deploy: If True, rebuilds the image even if it exists.
     """
     super().__init__(model_name=model_name, cli_path="gemini")
     
-    # Determine the effective image key (e.g., "adk-python" from "adk-gemini-sandbox:adk-python")
+    # Determine the effective image key
     effective_image_key = image_name.split(":")[-1] if image_name and ":" in image_name else (image_name or service_name)
 
     # Always store the fully qualified local image name
     if effective_image_key in IMAGE_DEFINITIONS or image_name and image_name.startswith(f"{DEFAULT_IMAGE_PREFIX}:"):
         self.image_name = image_name if image_name and image_name.startswith(f"{DEFAULT_IMAGE_PREFIX}:") else f"{DEFAULT_IMAGE_PREFIX}:{effective_image_key}"
     else:
-        # For unmanaged or custom images, use the provided name directly
         self.image_name = image_name or service_name
 
     self.service_name = service_name
@@ -117,6 +110,12 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
     self.auto_deploy = auto_deploy
     self.force_deploy = force_deploy
     self._image_checked = False
+    self._setup_completed = False
+    
+    # Server state
+    self._container_name = f"gemini-cli-server-{uuid.uuid4().hex[:8]}"
+    self._port: int | None = None
+    self._base_url: str | None = None
 
   @property
   def name(self) -> str:
@@ -127,29 +126,30 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
     )
 
   async def setup(self) -> None:
-    """Ensures the Podman image is built and ready."""
+    """Ensures the Podman image is built and starts the API server container."""
+    if self._setup_completed:
+        return
+
+    print(f"[Podman Setup] Starting setup for {self.name}")
     await self._ensure_image_ready()
+    await self._start_server_container()
+    self._setup_completed = True
+    print(f"[Podman Setup] Setup for {self.name} completed. Listening on {self._base_url}")
 
   async def _ensure_image_ready(self):
     """Checks if the requested image exists and builds it if necessary."""
+    print(f"[Podman Ensure Image] Checking image readiness for {self.image_name}")
     if self._image_checked and not self.force_deploy:
       return
       
-    # Determine if this is a managed image
     image_tag = self.image_name
-    if ":" in image_tag:
-      # e.g. adk-gemini-sandbox:adk-python -> adk-python
-      image_key = image_tag.split(":")[-1]
-    else:
-      image_key = image_tag
+    image_key = image_tag.split(":")[-1] if ":" in image_tag else image_tag
 
     # 1. Check if it's a known managed image
     if image_key in IMAGE_DEFINITIONS:
       if self.auto_deploy or self.force_deploy:
          await self._build_image_chain(image_key, force=self.force_deploy)
-         
       self._image_checked = True
-      # Reset force_deploy after first check to avoid rebuilding on every call if object is reused
       self.force_deploy = False 
       return
       
@@ -168,26 +168,18 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
     full_image_name = self.image_name
     
     if not force:
-        # Check if image exists
         proc = await asyncio.create_subprocess_exec(
             "podman", "image", "exists", full_image_name,
             stdout=asyncio.subprocess.DEVNULL,
             stderr=asyncio.subprocess.DEVNULL
         )
         await proc.wait()
-        
         if proc.returncode == 0:
-            return # Already exists
+            return
 
     print(f"Building Custom Podman image: {full_image_name} from {self.dockerfile_dir}...")
     
-    build_cmd = [
-        "podman", "build",
-        "-t", full_image_name,
-        str(self.dockerfile_dir)
-    ]
-    
-    # If a Dockerfile exists explicitly in the dir, use it (otherwise defaults to Dockerfile)
+    build_cmd = ["podman", "build", "-t", full_image_name, str(self.dockerfile_dir)]
     if (self.dockerfile_dir / "Dockerfile").exists():
          build_cmd.extend(["-f", str(self.dockerfile_dir / "Dockerfile")])
 
@@ -207,28 +199,21 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
   async def _build_image_chain(self, image_key: str, force: bool = False):
     """Recursively builds dependencies and then the target image."""
     definition = IMAGE_DEFINITIONS[image_key]
-    
-    # 1. Build dependencies first
     for dep_key in definition["dependencies"]:
-      # Propagate force to dependencies
       await self._build_image_chain(dep_key, force=force)
 
-    # 2. Check if current image exists
     full_image_name = f"{DEFAULT_IMAGE_PREFIX}:{image_key}"
     
     if not force:
-        # Check if image exists
         proc = await asyncio.create_subprocess_exec(
             "podman", "image", "exists", full_image_name,
             stdout=asyncio.subprocess.DEVNULL,
             stderr=asyncio.subprocess.DEVNULL
         )
         await proc.wait()
-        
         if proc.returncode == 0:
           return
 
-    # 3. Build the image
     print(f"Building Podman image: {full_image_name}...")
     
     base_path = Path(__file__).parent
@@ -236,11 +221,8 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
     dockerfile_path = base_path / definition["dockerfile"]
     
     build_cmd = [
-        "podman", "build",
-        "-t", full_image_name,
-        "-f", str(dockerfile_path),
+        "podman", "build", "-t", full_image_name, "-f", str(dockerfile_path),
     ]
-    
     for arg_name, arg_val in definition["build_args"].items():
         build_cmd.extend(["--build-arg", f"{arg_name}={arg_val}"])
         
@@ -259,113 +241,170 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
         
     print(f"Successfully built {full_image_name}")
 
-  # Override _run_cli_command from parent to handle Podman-specific execution
-  async def _run_cli_command(
-      self, cli_args: list[str], direct_command_parts: Optional[list[str]] = None
-  ) -> tuple[dict[str, Any], list[TraceLogEvent]]:
-    """Executes the gemini CLI command inside Podman and returns the parsed output and raw logs."""
-    # Ensure image is ready before running
-    await self._ensure_image_ready()
+  async def _start_server_container(self):
+      """Starts the container in daemon mode exposing the API server."""
+      # 1. Find a free port
+      sock = socket.socket()
+      sock.bind(("", 0))
+      self._port = sock.getsockname()[1]
+      sock.close()
+      
+      self._base_url = f"http://localhost:{self._port}"
+      
+      # 2. Register cleanup
+      atexit.register(self._cleanup_server_container)
+      
+      print(f"[Podman Setup] Starting server container: {self._container_name} on port {self._port}")
+      
+      podman_args = [
+          "podman", "run", "-d", "--rm", 
+          "--name", self._container_name,
+          "-p", f"{self._port}:8080"
+      ]
+      
+      # Pass Env Vars
+      for env_var in ["GEMINI_API_KEY", "CONTEXT7_API_KEY", "GOOGLE_GENAI_USE_VERTEXAI", 
+                      "GOOGLE_API_KEY", "GOOGLE_CLOUD_PROJECT", "GOOGLE_CLOUD_LOCATION"]:
+          if os.environ.get(env_var):
+              podman_args.extend(["-e", env_var])
 
-    # Create a temporary directory on the host to capture logs
-    host_tmp_dir = tempfile.mkdtemp()
-
-    try:
-        # Prepare Podman command
-        podman_args = ["podman", "run", "--rm"]
-        
-        # Mount the host temp dir to /tmp in the container to capture error logs
-        podman_args.extend(["-v", f"{host_tmp_dir}:/tmp"])
-
-        # Handle Authentication (env vars)
-        if os.environ.get("GEMINI_API_KEY"):
-          podman_args.extend(["-e", "GEMINI_API_KEY"])
-        if os.environ.get("CONTEXT7_API_KEY"):
-          podman_args.extend(["-e", "CONTEXT7_API_KEY"])
-        if os.environ.get("GOOGLE_GENAI_USE_VERTEXAI"):
-          podman_args.extend(["-e", "GOOGLE_GENAI_USE_VERTEXAI"])
-          if os.environ.get("GOOGLE_API_KEY"):
-            podman_args.extend(["-e", "GOOGLE_API_KEY"])
-          if os.environ.get("GOOGLE_CLOUD_PROJECT"):
-            podman_args.extend(["-e", "GOOGLE_CLOUD_PROJECT"])
-          if os.environ.get("GOOGLE_CLOUD_LOCATION"):
-            podman_args.extend(["-e", "GOOGLE_CLOUD_LOCATION"])
-
-        adc_path = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
-        if adc_path:
-          container_adc_path = "/tmp/google_credentials.json"
-          podman_args.extend(["-v", f"{adc_path}:{container_adc_path}"])
-          podman_args.extend(
-              ["-e", f"GOOGLE_APPLICATION_CREDENTIALS={container_adc_path}"]
-          )
-        
-        # Explicitly set GEMINI_CONFIG_DIR for the container
-        podman_args.extend(["-e", "GEMINI_CONFIG_DIR=/root/.gemini/"])
-
-        # Podman Image
-        podman_args.append(self.image_name)
-
-        # Full command to execute inside the container
-        # The cli_path (gemini) and cli_args are passed as direct arguments to the container.
-        if direct_command_parts:
-            full_command = [self.cli_path] + direct_command_parts
-        else:
-            full_command = [self.cli_path] + cli_args
-
-        # Create subprocess
-        proc = await asyncio.create_subprocess_exec(
-            *podman_args, *full_command,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
+      # ADC Credentials
+      adc_path = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
+      if adc_path:
+        # We need to mount the creds file
+        # And tell the container where it is
+        container_adc_path = "/tmp/google_credentials.json"
+        podman_args.extend(["-v", f"{adc_path}:{container_adc_path}"])
+        podman_args.extend(
+            ["-e", f"GOOGLE_APPLICATION_CREDENTIALS={container_adc_path}"]
         )
+      
+      # Config Dir
+      podman_args.extend(["-e", "GEMINI_CONFIG_DIR=/root/.gemini/"])
 
-        stdout, stderr = await proc.communicate()
+      podman_args.append(self.image_name)
+      # Explicitly run the server, which works for both CMD-only images (overrides CMD)
+      # and ENTRYPOINT images (passed as args to entrypoint script)
+      podman_args.extend(["python3", "/usr/local/bin/cli_server.py"])
+      
+      proc = await asyncio.create_subprocess_exec(
+          *podman_args,
+          stdout=asyncio.subprocess.PIPE,
+          stderr=asyncio.subprocess.PIPE,
+          stdin=asyncio.subprocess.DEVNULL
+      )
+      stdout, stderr = await proc.communicate()
+      
+      if proc.returncode != 0:
+          error_msg = stderr.decode().strip() or stdout.decode().strip()
+          raise RuntimeError(f"Failed to start server container: {error_msg}")
 
-        stdout_str = stdout.decode()
-        stderr_str = stderr.decode()
-
-        # Initialize logs with stderr content first
-        logs: list[TraceLogEvent] = []
-        for line in stderr_str.splitlines():
-            if line.strip():
-                logs.append(TraceLogEvent(type="CLI_STDERR", source="podman", content=line.strip()))
-
-        if proc.returncode != 0:
-          error_msg = stderr_str.strip() or stdout_str.strip()
-          
-          # Check for detailed error logs in the mounted temp dir
-          detailed_logs = ""
+      # 3. Wait for Health Check
+      print("[Podman Setup] Waiting for server health check...")
+      max_retries = 20
+      for i in range(max_retries):
           try:
-              for file_name in os.listdir(host_tmp_dir):
-                  if file_name.startswith("gemini-client-error"):
-                      file_path = os.path.join(host_tmp_dir, file_name)
-                      with open(file_path, "r") as f:
-                          content = f.read()
-                          detailed_logs += f"\n--- {file_name} ---\n{content}\n"
-          except Exception as e:
-              detailed_logs += f"\n(Failed to read detailed error logs: {e})"
-
-          if detailed_logs:
-              error_msg += f"\n\nDetailed In-Container Error Logs:{detailed_logs}"
-
-          raise RuntimeError(
-              f"Gemini CLI failed with code {proc.returncode}: {error_msg}"
+              async with aiohttp.ClientSession() as session:
+                  async with session.get(self._base_url, timeout=1.0) as resp:
+                      if resp.status == 200:
+                          print("[Podman Setup] Server ready.")
+                          return
+          except Exception:
+              pass
+          await asyncio.sleep(0.5)
+      
+      # If we get here, it failed. Try to get logs.
+      logs = ""
+      try:
+          log_proc = await asyncio.create_subprocess_exec(
+              "podman", "logs", self._container_name,
+              stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
           )
+          l_out, l_err = await log_proc.communicate()
+          logs = (l_out + l_err).decode()
+      except Exception:
+          logs = "Could not retrieve logs."
+          
+      self._cleanup_server_container()
+      raise RuntimeError(f"Server container failed to start healthy. Logs:\n{logs}")
 
-        # Parse stdout. If stream-json, parse events. Otherwise, treat as raw message.
-        response_dict = {"stdout": stdout_str, "stderr": stderr_str, "exit_code": proc.returncode, "response": ""}
-        if "--output-format" in cli_args and "stream-json" in cli_args:
-            parsed_response_dict, parsed_logs = parse_cli_stream_json_output(stdout_str)
-            response_dict.update(parsed_response_dict)
-            logs.extend(parsed_logs)
-        else:
-            # If not stream-json, treat stdout as a single response message for logging purposes
-            if stdout_str.strip():
-                logs.append(TraceLogEvent(type="CLI_STDOUT_RAW", source="podman", content=stdout_str.strip()))
-            response_dict["response"] = stdout_str.strip()  # Direct text response
+  def _cleanup_server_container(self):
+      """Stops the persistent container."""
+      if not self._container_name:
+          return
+      try:
+          subprocess.run(
+              ["podman", "kill", self._container_name],
+              stdout=subprocess.DEVNULL, 
+              stderr=subprocess.DEVNULL,
+              timeout=5
+          )
+      except Exception:
+          pass
 
-        return response_dict, logs
+  async def _run_cli_command(
+      self,
+      cli_args: list[str],
+      direct_command_parts: Optional[list[str]] = None
+  ) -> tuple[dict[str, Any], list[TraceLogEvent]]:
+    """Executes the gemini CLI command via the local API server."""
+    if not self._setup_completed:
+      await self.setup()
 
-    finally:
-        # Cleanup temporary directory
-        shutil.rmtree(host_tmp_dir, ignore_errors=True)
+    # Construct args list for server
+    # Server expects ["gemini", "arg1", ...]
+    # cli_args are ["--flag", ...]
+    # direct_command_parts are ["subcmd", ...]
+    
+    full_args = [self.cli_path] # "gemini"
+    if direct_command_parts:
+        full_args.extend(direct_command_parts)
+    else:
+        full_args.extend(cli_args)
+
+    payload = {
+        "args": full_args,
+        "env": {
+            # Pass extra envs if needed per request, but we mostly did it at startup
+        }
+    }
+
+    logs: list[TraceLogEvent] = []
+    
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.post(self._base_url, json=payload) as response:
+                if response.status != 200:
+                    text = await response.text()
+                    raise RuntimeError(f"API Server returned {response.status}: {text}")
+                
+                result = await response.json()
+    except Exception as e:
+        raise RuntimeError(f"Failed to communicate with Podman API server: {e}")
+
+    stdout_str = result.get("stdout", "")
+    stderr_str = result.get("stderr", "")
+    returncode = result.get("returncode", 0)
+
+    # Initialize logs with stderr content
+    for line in stderr_str.splitlines():
+        if line.strip():
+            logs.append(TraceLogEvent(type="CLI_STDERR", source="podman_server", content=line.strip()))
+
+    response_dict = {"stdout": stdout_str, "stderr": stderr_str, "exit_code": returncode, "response": ""}
+    
+    # Parse stdout
+    if "--output-format" in cli_args and "stream-json" in cli_args:
+        parsed_response_dict, parsed_logs = parse_cli_stream_json_output(stdout_str)
+        response_dict.update(parsed_response_dict)
+        logs.extend(parsed_logs)
+    else:
+        if stdout_str.strip():
+            logs.append(TraceLogEvent(type="CLI_STDOUT_RAW", source="podman_server", content=stdout_str.strip()))
+        response_dict["response"] = stdout_str.strip()
+
+    if returncode != 0:
+        error_msg = stderr_str.strip() or stdout_str.strip()
+        raise RuntimeError(f"Gemini CLI failed with code {returncode}: {error_msg}")
+
+    return response_dict, logs

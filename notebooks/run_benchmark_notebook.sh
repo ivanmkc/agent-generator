@@ -20,7 +20,7 @@ log "Output Directory: $OUTPUT_DIR"
 # We need to run the conversion script which is inside benchmarks/
 # and expects benchmark_run.py in its CWD.
 log "Converting benchmark_run.py to notebook..."
-(cd benchmarks && ../env/bin/python convert_py_to_ipynb.py benchmark_run.py) 2>&1 | tee -a "$LOG_FILE"
+env/bin/python notebooks/convert_py_to_ipynb.py benchmarks/benchmark_run.py 2>&1 | tee -a "$LOG_FILE"
 
 # 3. Run papermill
 # - Input: benchmarks/benchmark_run.ipynb (generated above)

@@ -379,7 +379,7 @@ class GeminiCliCloudRunAnswerGenerator(GeminiCliAnswerGenerator):
 
     try:
       # For AsyncClient operations, result() is a coroutine
-      build_result = await build_operation.result(timeout=1200)
+      build_result = await build_operation.result(timeout=3600)
 
       print("    -> Build successful.")
 

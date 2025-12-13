@@ -1,4 +1,5 @@
 from .gemini_cli_docker_answer_generator import GeminiCliDockerAnswerGenerator
 from .gemini_cli_cloud_run_answer_generator import GeminiCliCloudRunAnswerGenerator
+from .gemini_cli_podman_answer_generator import GeminiCliPodmanAnswerGenerator
 
-__all__ = ["GeminiCliDockerAnswerGenerator", "GeminiCliCloudRunAnswerGenerator"]
+__all__ = ["GeminiCliDockerAnswerGenerator", "GeminiCliCloudRunAnswerGenerator", "GeminiCliPodmanAnswerGenerator"]

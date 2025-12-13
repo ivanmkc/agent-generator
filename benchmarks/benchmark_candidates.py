@@ -1,4 +1,8 @@
 # Copyright 2025 Google LLC
+
+# %%
+# Parameters cell for papermill
+run_output_dir_str = "benchmark_runs/default_output" # This will be overwritten by papermill
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -32,6 +36,7 @@ from benchmarks.answer_generators.gemini_cli_answer_generator import (
 from benchmarks.answer_generators.gemini_cli_docker import (
     GeminiCliDockerAnswerGenerator,
     GeminiCliCloudRunAnswerGenerator,
+    GeminiCliPodmanAnswerGenerator
 )
 from benchmarks.answer_generators.ground_truth_answer_generator import (
     GroundTruthAnswerGenerator,
@@ -78,7 +83,7 @@ agent_pro = create_default_adk_agent(model_name=ModelName.GEMINI_2_5_PRO)
 # List of standard candidate generators
 CANDIDATE_GENERATORS = [
     # Gemini CLI Cloud Run Generator
-    GeminiCliCloudRunAnswerGenerator(
+    GeminiCliPodmanAnswerGenerator(
         model_name=ModelName.GEMINI_2_5_FLASH,
         dockerfile_dir=Path(
             "benchmarks/answer_generators/gemini_cli_docker/adk-python"
@@ -88,26 +93,26 @@ CANDIDATE_GENERATORS = [
         project_id=project_id,
         auto_deploy=True,
     ),
-    # Gemini CLI Cloud Run Generator (ADK Docs Extension)
-    GeminiCliCloudRunAnswerGenerator(
-        model_name=ModelName.GEMINI_2_5_FLASH,
-        dockerfile_dir=Path(
-            "benchmarks/answer_generators/gemini_cli_docker/adk-docs-ext"
-        ),
-        service_name="adk-docs-ext",
-        project_id=project_id,
-        auto_deploy=True,
-    ),
-    # Gemini CLI Cloud Run Generator (Standalone Base - for baseline comparison)
-    GeminiCliCloudRunAnswerGenerator(
-        model_name=ModelName.GEMINI_2_5_FLASH,
-        dockerfile_dir=Path(
-            "benchmarks/answer_generators/gemini_cli_docker/base"
-        ),
-        service_name="gemini-cli-base",
-        project_id=project_id,
-        auto_deploy=True, # Auto-deploy the base image
-    ),
+    # # Gemini CLI Cloud Run Generator (ADK Docs Extension)
+    # GeminiCliCloudRunAnswerGenerator(
+    #     model_name=ModelName.GEMINI_2_5_FLASH,
+    #     dockerfile_dir=Path(
+    #         "benchmarks/answer_generators/gemini_cli_docker/adk-docs-ext"
+    #     ),
+    #     service_name="adk-docs-ext",
+    #     project_id=project_id,
+    #     auto_deploy=True,
+    # ),
+    # # Gemini CLI Cloud Run Generator (Standalone Base - for baseline comparison)
+    # GeminiCliCloudRunAnswerGenerator(
+    #     model_name=ModelName.GEMINI_2_5_FLASH,
+    #     dockerfile_dir=Path(
+    #         "benchmarks/answer_generators/gemini_cli_docker/base"
+    #     ),
+    #     service_name="gemini-cli-base",
+    #     project_id=project_id,
+    #     auto_deploy=True, # Auto-deploy the base image
+    # ),
     # Gemini CLI Docker Generator (Standard)
     # GeminiCliDockerAnswerGenerator(
     #     model_name=ModelName.GEMINI_2_5_FLASH,

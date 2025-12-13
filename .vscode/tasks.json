@@ -26,7 +26,7 @@
         {
             "label": "Run Benchmark Notebook (Timestamped)",
             "type": "shell",
-            "command": "./benchmarks/run_benchmark_notebook.sh",
+            "command": "./notebooks/run_benchmark_notebook.sh",
             "group": "test",
             "presentation": {
                 "reveal": "always",
