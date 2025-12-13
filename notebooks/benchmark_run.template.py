@@ -460,10 +460,8 @@ async def main():
   # Execute the benchmarks
   benchmark_run_results = await run_comparison(logger=logger)
 
-  # %%
   raw_results_df = process_results(benchmark_run_results)
 
-  # %%
   if not raw_results_df.empty:
     print_summary(raw_results_df)
     print_metrics(raw_results_df)

@@ -19,15 +19,12 @@ log "Output Directory: $OUTPUT_DIR"
 # 2. Convert Python script to Notebook
 # We need to run the conversion script which is inside benchmarks/
 # and expects benchmark_run.py in its CWD.
-log "Converting benchmark_run.py to notebook..."
-env/bin/python notebooks/convert_py_to_ipynb.py benchmarks/benchmark_run.py 2>&1 | tee -a "$LOG_FILE"
+log "Converting benchmark_run.template.py to notebook..."
+env/bin/python notebooks/convert_py_to_ipynb.py notebooks/benchmark_run.template.py 2>&1 | tee -a "$LOG_FILE"
 
 # 3. Run papermill
-# - Input: benchmarks/benchmark_run.ipynb (generated above)
-# - Output: $OUTPUT_DIR/output.ipynb
-# - Parameter 'run_output_dir_str': Passes the output directory to the notebook code
-#   so traces and reports are saved in the same place.
-env/bin/papermill benchmarks/benchmark_run.ipynb "$OUTPUT_DIR/output.ipynb" \
+# - Input: notebooks/benchmark_run.ipynb (generated above)
+env/bin/papermill notebooks/benchmark_run.template.ipynb "$OUTPUT_DIR/output.ipynb" \
   --cwd . \
   -k python3 \
   -p run_output_dir_str "$OUTPUT_DIR" 2>&1 | tee -a "$LOG_FILE"

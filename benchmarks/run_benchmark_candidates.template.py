@@ -1,4 +1,4 @@
-"Script to run benchmarks and analyze results."
+"""Script to run benchmarks and analyze results."""
 
 import asyncio
 import re
@@ -26,8 +26,11 @@ pd.set_option("display.max_colwidth", None)
 pd.set_option("display.max_rows", None)
 
 
-# %%
-# ANSI escape codes for colors
+# %% Parameters cell for papermill
+run_output_dir_str = None
+
+
+# %% ANSI escape codes for colors
 class Bcolors:
   HEADER = "\033[95m"
   OKBLUE = "\033[94m"
@@ -40,7 +43,6 @@ class Bcolors:
   UNDERLINE = "\033[4m"
 
 
-# %%
 async def run_comparison(logger: JsonTraceLogger) -> List[BenchmarkRunResult]:
   """Sets up and runs the benchmark comparison."""
   print("Configuring benchmark run...")
@@ -80,8 +82,6 @@ def extract_error_type(row) -> str:
     return str(et)
   return "OtherError"
 
-
-# %%
 def process_results(
     benchmark_run_results: List[BenchmarkRunResult],
 ) -> pd.DataFrame:
@@ -101,8 +101,6 @@ def process_results(
     )
   return raw_results_df
 
-
-# %%
 def print_summary(raw_results_df: pd.DataFrame):
   """Prints a high-level summary of pass rates."""
   if raw_results_df.empty:
@@ -143,8 +141,6 @@ def print_summary(raw_results_df: pd.DataFrame):
   print(display_df[["passed", "crashes", "total", "system_pass_rate", "model_accuracy"]])
   print("\n")
 
-
-# %%
 def print_metrics(raw_results_df: pd.DataFrame):
   """Prints performance and cost metrics."""
   if raw_results_df.empty:
@@ -203,8 +199,6 @@ def print_metrics(raw_results_df: pd.DataFrame):
   print(detailed_metrics.round(4))
   print("\n")
 
-
-# %%
 def print_time_profiling(raw_results_df: pd.DataFrame):
   """Analyzes latency and execution time to identify bottlenecks."""
   if raw_results_df.empty:
@@ -261,8 +255,6 @@ def print_time_profiling(raw_results_df: pd.DataFrame):
     print(call_stats.round(2))
     print("\n")
 
-
-# %%
 def print_detailed_breakdown(raw_results_df: pd.DataFrame):
   """Prints detailed error breakdown and Gemini CLI failures."""
   if raw_results_df.empty:
@@ -316,162 +308,4 @@ def print_detailed_breakdown(raw_results_df: pd.DataFrame):
       for _, failure_row in cli_failures.head(3).iterrows():
         print(
             f"\nBenchmark: {failure_row['benchmark_name']} (Suite:"
-            f" {failure_row['suite']})"
-        )
-        print(f"Error Type: {failure_row['final_error_type']}")
-        print(f"Validation Error: {failure_row['validation_error']}")
-        print("-" * 60)
-    else:
-      print("No Gemini CLI failures found in this run.")
-    # -----------------------------------------------
-  else:
-    print(f"{Bcolors.OKGREEN}No failures detected!{Bcolors.ENDC}")
-
-def strip_ansi(text: str) -> str:
-  """Strips ANSI escape codes from the text."""
-  ansi_escape = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
-  return ansi_escape.sub("", text)
-
-
-# %%
-def generate_detailed_reports(raw_results_df: pd.DataFrame, output_dir: Path):
-  """Generates detailed Markdown reports for each answer generator."""
-  if raw_results_df.empty:
-    return
-
-  print(f"\n{Bcolors.HEADER}--- Generating Detailed Reports ---{Bcolors.ENDC}")
-  print(f"Output Directory: {output_dir.absolute()}")
-
-  for generator, group in raw_results_df.groupby("answer_generator"):
-    report_lines = [f"# Benchmark Report: {generator}", ""]
-
-    # Summary
-    total = len(group)
-    passed = len(group[group["result"] == 1])
-    pass_rate = (passed / total) * 100 if total > 0 else 0
-
-    report_lines.extend([
-        "## Summary",
-        f"- **Total Cases:** {total}",
-        f"- **Passed:** {passed}",
-        f"- **Pass Rate:** {pass_rate:.2f}%",
-        "",
-        "## Details",
-        "",
-    ])
-
-    for _, row in group.iterrows():
-      status_icon = "✅" if row["result"] == 1 else "❌"
-      report_lines.extend([
-          f"### {status_icon} {row['benchmark_name']}",
-          f"- **Suite:** {row['suite']}",
-          f"- **Status:** {row['status']}",
-          f"- **Error Type:** {row['final_error_type']}",
-          "",
-      ])
-
-      if row["validation_error"]:
-        cleaned_error = strip_ansi(str(row["validation_error"]))
-        report_lines.extend(
-            ["**Validation Error:**", "```", cleaned_error, "```", ""]
-        )
-
-      if row["rationale"]:
-        cleaned_rationale = strip_ansi(str(row["rationale"]))
-        report_lines.extend(["**Rationale:**", cleaned_rationale, ""])
-
-        report_lines.extend([
-            "**Generated Answer:**",
-            "```python",
-            str(row["answer"]),
-            "```",
-        ])
-
-        # Add diff for fix_errors benchmarks
-        if row["benchmark_type"] == "fix_error":
-          fixed_content = row.get("ground_truth", "") or ""
-
-          generated_content = str(row["answer"])
-          diff = difflib.unified_diff(
-              [l.rstrip() for l in fixed_content.splitlines(keepends=True)],
-              [l.rstrip() for l in generated_content.splitlines(keepends=True)],
-              fromfile="expected/fixed.py",
-              tofile="generated/answer.py",
-          )
-
-          diff_text = "\n".join(diff)
-
-          if diff_text:
-            report_lines.extend([
-                "**Diff (Expected vs. Generated):**",
-                "```diff",
-                diff_text,
-                "```",
-            ])
-          else:
-            report_lines.extend([
-                "**Diff (Expected vs. Generated):**",
-                "```",
-                "No differences.",
-                "```",
-            ])
-
-        elif row["benchmark_type"] == "api_understanding":
-          expected_content = row.get("ground_truth", "") or ""
-          report_lines.extend([
-              "**Expected Answer (Example):**",
-              "```python",
-              expected_content,
-              "```",
-          ])
-
-        elif row["benchmark_type"] == "multiple_choice":
-          expected_content = row.get("ground_truth", "") or ""
-          report_lines.extend([
-              f"**Expected Answer:** {expected_content}",
-              "",
-          ])
-
-        report_lines.extend(["---", ""])
-
-    # Sanitize filename
-    safe_name = "".join(
-        c if c.isalnum() or c in "._- " else "_" for c in generator
-    )
-    file_path = output_dir / f"{safe_name}_report.md"
-    with open(file_path, "w", encoding="utf-8-sig") as f:
-      f.write("\n".join(report_lines))
-      print(f"  - Report saved: {file_path}")
-
-
-# %%
-async def main():
-  # Setup unified output directory
-  current_timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-  run_output_dir = Path("benchmark_runs") / current_timestamp
-  run_output_dir.mkdir(parents=True, exist_ok=True)
-
-  # Initialize logger
-  logger = JsonTraceLogger(output_dir=str(run_output_dir), filename="trace.jsonl")
-
-  try:
-      # Execute the benchmarks
-      benchmark_run_results = await run_comparison(logger=logger)
-
-      # %%
-      raw_results_df = process_results(benchmark_run_results)
-
-      # %%
-      if not raw_results_df.empty:
-        print_summary(raw_results_df)
-        print_metrics(raw_results_df)
-        print_time_profiling(raw_results_df)
-        print_detailed_breakdown(raw_results_df)
-        generate_detailed_reports(raw_results_df, output_dir=run_output_dir)
-      else:
-        print("No results returned.")
-  finally:
-      logger.finalize_run()
-
-if __name__ == "__main__":
-  asyncio.run(main())
+            f
