@@ -5,6 +5,12 @@ import re
 from pathlib import Path
 from typing import List
 from datetime import datetime
+import sys
+import os
+
+# Add root to sys.path if not there
+if str(Path.cwd()) not in sys.path:
+    sys.path.append(str(Path.cwd()))
 
 import difflib
 import pandas as pd
@@ -41,21 +47,22 @@ async def run_comparison(logger: JsonTraceLogger) -> List[BenchmarkRunResult]:
 
   benchmark_suites = [
       "benchmarks/benchmark_definitions/api_understanding/benchmark.yaml",
-      "benchmarks/benchmark_definitions/fix_errors/benchmark.yaml",
-      "benchmarks/benchmark_definitions/diagnose_setup_errors_mc/benchmark.yaml",
-      "benchmarks/benchmark_definitions/configure_adk_features_mc/benchmark.yaml",
-      "benchmarks/benchmark_definitions/predict_runtime_behavior_mc/benchmark.yaml",
+      # "benchmarks/benchmark_definitions/fix_errors/benchmark.yaml",
+      # "benchmarks/benchmark_definitions/diagnose_setup_errors_mc/benchmark.yaml",
+      # "benchmarks/benchmark_definitions/configure_adk_features_mc/benchmark.yaml",
+      # "benchmarks/benchmark_definitions/predict_runtime_behavior_mc/benchmark.yaml",
   ]
 
   answer_generators = CANDIDATE_GENERATORS
 
-  print("Executing benchmarks...")
+  print(f"Executing benchmarks with {len(answer_generators)} generators...")
   # max_concurrency matches Cloud Run instance memory limits (defined in config.py).
   # High concurrency causes OOM due to multiple Node.js CLI processes (~200MB each).
+  # Reduced to 10 for local Podman stability.
   benchmark_results = await benchmark_orchestrator.run_benchmarks(
       benchmark_suites=benchmark_suites,
       answer_generators=answer_generators,
-      max_concurrency=MAX_BENCHMARK_CONCURRENCY,
+      max_concurrency=10,
       max_retries=3,
       logger=logger,
   )
@@ -63,6 +70,7 @@ async def run_comparison(logger: JsonTraceLogger) -> List[BenchmarkRunResult]:
   return benchmark_results
 
 
+# %%
 def extract_error_type(row) -> str:
   """Extracts error type from the result row."""
   if "error_type" in row and pd.notna(row["error_type"]):
@@ -320,10 +328,9 @@ def print_detailed_breakdown(raw_results_df: pd.DataFrame):
   else:
     print(f"{Bcolors.OKGREEN}No failures detected!{Bcolors.ENDC}")
 
-
 def strip_ansi(text: str) -> str:
   """Strips ANSI escape codes from the text."""
-  ansi_escape = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
+  ansi_escape = re.compile(r"\x1B(?:[@-Z\-_]|[0-?]*[ -/]*[@-~])")
   return ansi_escape.sub("", text)
 
 
@@ -444,32 +451,31 @@ run_output_dir_str = None
 
 
 # %%
-async def main():
-  # Setup unified output directory
-  if run_output_dir_str:
-    run_output_dir = Path(run_output_dir_str)
-  else:
-    current_timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    run_output_dir = Path("benchmark_runs") / current_timestamp
+# Setup unified output directory
+if run_output_dir_str:
+  run_output_dir = Path(run_output_dir_str)
+else:
+  current_timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+  run_output_dir = Path("benchmark_runs") / current_timestamp
 
-  run_output_dir.mkdir(parents=True, exist_ok=True)
+run_output_dir.mkdir(parents=True, exist_ok=True)
 
-  # Initialize logger
-  logger = JsonTraceLogger(output_dir=str(run_output_dir), filename="trace.jsonl")
+# Initialize logger
+logger = JsonTraceLogger(output_dir=str(run_output_dir), filename="trace.jsonl")
 
-  # Execute the benchmarks
-  benchmark_run_results = await run_comparison(logger=logger)
+try:
+    # Execute the benchmarks
+    benchmark_run_results = await run_comparison(logger=logger)
 
-  raw_results_df = process_results(benchmark_run_results)
+    raw_results_df = process_results(benchmark_run_results)
 
-  if not raw_results_df.empty:
-    print_summary(raw_results_df)
-    print_metrics(raw_results_df)
-    print_time_profiling(raw_results_df)
-    print_detailed_breakdown(raw_results_df)
-    generate_detailed_reports(raw_results_df, output_dir=run_output_dir)
-  else:
-    print("No results returned.")
-
-if __name__ == "__main__":
-  asyncio.run(main())
+    if not raw_results_df.empty:
+      print_summary(raw_results_df)
+      print_metrics(raw_results_df)
+      print_time_profiling(raw_results_df)
+      print_detailed_breakdown(raw_results_df)
+      generate_detailed_reports(raw_results_df, output_dir=run_output_dir)
+    else:
+      print("No results returned.")
+finally:
+    logger.finalize_run()
