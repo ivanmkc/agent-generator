@@ -62,7 +62,7 @@ async def run_comparison(logger: JsonTraceLogger) -> List[BenchmarkRunResult]:
   benchmark_results = await benchmark_orchestrator.run_benchmarks(
       benchmark_suites=benchmark_suites,
       answer_generators=answer_generators,
-      max_concurrency=10,
+      max_concurrency=MAX_BENCHMARK_CONCURRENCY,
       max_retries=3,
       logger=logger,
   )
@@ -463,19 +463,26 @@ run_output_dir.mkdir(parents=True, exist_ok=True)
 # Initialize logger
 logger = JsonTraceLogger(output_dir=str(run_output_dir), filename="trace.jsonl")
 
-try:
-    # Execute the benchmarks
-    benchmark_run_results = await run_comparison(logger=logger)
+# %%
+# Execute the benchmarks
+benchmark_run_results = await run_comparison(logger=logger)
 
-    raw_results_df = process_results(benchmark_run_results)
+# %%
+raw_results_df = process_results(benchmark_run_results)
 
-    if not raw_results_df.empty:
-      print_summary(raw_results_df)
-      print_metrics(raw_results_df)
-      print_time_profiling(raw_results_df)
-      print_detailed_breakdown(raw_results_df)
-      generate_detailed_reports(raw_results_df, output_dir=run_output_dir)
-    else:
-      print("No results returned.")
-finally:
-    logger.finalize_run()
+# %%
+print_summary(raw_results_df)
+
+# %%
+print_metrics(raw_results_df)
+
+# %%
+print_time_profiling(raw_results_df)
+
+# %%
+print_detailed_breakdown(raw_results_df)
+
+# %%
+generate_detailed_reports(raw_results_df, output_dir=run_output_dir)
+
+logger.finalize_run()
