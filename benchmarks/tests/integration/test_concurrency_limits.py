@@ -65,8 +65,6 @@ def local_server():
         "--name", CONTAINER_NAME,
         "-p", f"{PORT}:8080",
         IMAGE_NAME,
-        # TODO: Isn't this command already a dapent of a Docker file?
-        "python3", "/usr/local/bin/cli_server.py"
     ]
     
     try:
