@@ -106,6 +106,7 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
     self.force_deploy = force_deploy
     self._image_checked = False
     self._setup_completed = False
+    self._setup_lock: asyncio.Lock | None = None
     
     # Server state
     self._container_name = f"gemini-cli-server-{uuid.uuid4().hex[:8]}"
@@ -122,14 +123,22 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
 
   async def setup(self) -> None:
     """Ensures the Podman image is built and starts the API server container."""
-    if self._setup_completed:
-        return
+    if self._setup_lock is None:
+        self._setup_lock = asyncio.Lock()
+        
+    async with self._setup_lock:
+        if self._setup_completed:
+            return
 
-    print(f"[Podman Setup] Starting setup for {self.name}")
-    await self._ensure_image_ready()
-    await self._start_server_container()
-    self._setup_completed = True
-    print(f"[Podman Setup] Setup for {self.name} completed. Listening on {self._base_url}")
+        print(f"[Podman Setup] Starting setup for {self.name}")
+        await self._ensure_image_ready()
+        
+        # Ensure any previous container is cleaned up before starting a new one
+        self._cleanup_server_container()
+        
+        await self._start_server_container()
+        self._setup_completed = True
+        print(f"[Podman Setup] Setup for {self.name} completed. Listening on {self._base_url}")
 
   async def _ensure_image_ready(self):
     """Checks if the requested image exists and builds it if necessary."""
@@ -375,6 +384,8 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
                 
                 result = await response.json()
     except Exception as e:
+        # Mark setup as incomplete so next retry attempts to restart the container
+        self._setup_completed = False
         raise RuntimeError(f"Failed to communicate with Podman API server: {e}")
 
     stdout_str = result.get("stdout", "")
