@@ -19,13 +19,7 @@ Primary unified integration test suite for all Answer Generator implementations.
 import pytest
 import json
 from pathlib import Path
-from benchmarks.data_models import (
-    ApiUnderstandingAnswerOutput,
-    FixErrorAnswerOutput,
-    MultipleChoiceAnswerOutput,
-    BenchmarkType
-)
-# Import for type hinting; pytest automatically finds fixtures in conftest
+# Import for type hinting; pytest automatically finds fixtures in conftes
 from benchmarks.tests.integration.conftest import GeneratorTestCase
 
 @pytest.mark.asyncio

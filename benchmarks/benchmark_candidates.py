@@ -82,15 +82,21 @@ agent_pro = create_default_adk_agent(model_name=ModelName.GEMINI_2_5_PRO)
 
 # List of standard candidate generators
 CANDIDATE_GENERATORS = [
-    # Gemini CLI Cloud Run Generator
+      GeminiCliPodmanAnswerGenerator(
+        model_name=ModelName.GEMINI_2_5_FLASH,
+        dockerfile_dir=Path(
+            "benchmarks/answer_generators/gemini_cli_docker/base"
+        ),
+        image_name="gemini_cli_docker_base",
+        auto_deploy=True,
+    ),
     GeminiCliPodmanAnswerGenerator(
         model_name=ModelName.GEMINI_2_5_FLASH,
         dockerfile_dir=Path(
             "benchmarks/answer_generators/gemini_cli_docker/adk-python"
         ),
-        service_name="adk-python",
+        image_name="gemini_cli_docker_adk_python",
         context_instruction=ADK_REPO_INSTRUCTION,
-        project_id=project_id,
         auto_deploy=True,
     ),
     # # Gemini CLI Cloud Run Generator (ADK Docs Extension)

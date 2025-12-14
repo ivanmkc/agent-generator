@@ -79,15 +79,11 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
   def __init__(  # pylint: disable=super-init-not-called
       self,
       dockerfile_dir: str | Path,
-      service_name: str,
+      image_name: str,
       model_name: str = "gemini-2.5-pro",
-      project_id: str | None = None,
-      region: str = "us-central1",
       context_instruction: str | None = None,
       auto_deploy: bool = False,
-      image_name: str | None = None,
       force_deploy: bool = False,
-      reuse_container: bool = True, # Deprecated/Ignored, always runs as server
   ):
     """Initializes the GeminiCliPodmanAnswerGenerator.
 
@@ -96,15 +92,14 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
     super().__init__(model_name=model_name, cli_path="gemini")
     
     # Determine the effective image key
-    effective_image_key = image_name.split(":")[-1] if image_name and ":" in image_name else (image_name or service_name)
+    effective_image_key = image_name.split(":")[-1] if ":" in image_name else image_name
 
     # Always store the fully qualified local image name
-    if effective_image_key in IMAGE_DEFINITIONS or image_name and image_name.startswith(f"{DEFAULT_IMAGE_PREFIX}:"):
-        self.image_name = image_name if image_name and image_name.startswith(f"{DEFAULT_IMAGE_PREFIX}:") else f"{DEFAULT_IMAGE_PREFIX}:{effective_image_key}"
+    if effective_image_key in IMAGE_DEFINITIONS or image_name.startswith(f"{DEFAULT_IMAGE_PREFIX}:"):
+        self.image_name = image_name if image_name.startswith(f"{DEFAULT_IMAGE_PREFIX}:") else f"{DEFAULT_IMAGE_PREFIX}:{effective_image_key}"
     else:
-        self.image_name = image_name or service_name
+        self.image_name = image_name
 
-    self.service_name = service_name
     self.dockerfile_dir = Path(dockerfile_dir)
     self.context_instruction = context_instruction
     self.auto_deploy = auto_deploy

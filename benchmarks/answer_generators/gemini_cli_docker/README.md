@@ -69,7 +69,7 @@ from benchmarks.answer_generators.gemini_cli_docker import GeminiCliPodmanAnswer
 # Uses local image 'adk-gemini-sandbox:adk-python'
 # Automatically builds if missing
 generator = GeminiCliPodmanAnswerGenerator(
-    service_name="adk-python", 
+    image_name="adk-python", 
     dockerfile_dir="benchmarks/answer_generators/gemini_cli_docker/adk-python",
     model_name="gemini-2.5-flash"
 )

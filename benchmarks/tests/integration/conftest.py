@@ -137,12 +137,12 @@ async def podman_base_test_case(model_name: str) -> GeneratorTestCase:
 
     gen = GeminiCliPodmanAnswerGenerator(
         dockerfile_dir=Path("benchmarks/answer_generators/gemini_cli_docker/adk-python"),
-        service_name="stress-test-server",
+        image_name="stress-test-server",
         auto_deploy=True,
         model_name=model_name
     )
     
-    print(f"--- [Setup] Initializing {gen.service_name} ---")
+    print(f"--- [Setup] Initializing {gen.image_name} ---")
     await gen.setup()
     
     return GeneratorTestCase(
@@ -160,18 +160,19 @@ async def podman_adk_docs_test_case(model_name: str) -> GeneratorTestCase:
 
     gen = GeminiCliPodmanAnswerGenerator(
         dockerfile_dir=Path("benchmarks/answer_generators/gemini_cli_docker/adk-docs-ext"),
-        service_name="adk-docs-ext",
+        image_name="adk-docs-ext",
         auto_deploy=True,
         model_name=model_name
     )
 
-    print(f"--- [Setup] Initializing {gen.service_name} ---")
+    print(f"--- [Setup] Initializing {gen.image_name} ---")
     await gen.setup()
     
     # Specific case for this tool
     case = ADK_BASE_AGENT_QUESTION_CASE_INTERMEDIATE
     
     # Traces relevant to this specific case and tool combination
+    # TODO: refine trace indicators (i.e. context7)
     traces = ["extension", "context", "loading"]
 
     return GeneratorTestCase(
@@ -192,18 +193,19 @@ async def podman_context7_test_case(model_name: str) -> GeneratorTestCase:
 
     gen = GeminiCliPodmanAnswerGenerator(
         dockerfile_dir=Path("benchmarks/answer_generators/gemini_cli_docker/gemini-cli-mcp-context7"),
-        service_name="mcp-context7",
+        image_name="mcp-context7",
         auto_deploy=True,
         model_name=model_name
     )
 
-    print(f"--- [Setup] Initializing {gen.service_name} ---")
+    print(f"--- [Setup] Initializing {gen.image_name} ---")
     await gen.setup()
     
     # Specific case for this tool
     case = ADK_BASE_AGENT_QUESTION_CASE_INTERMEDIATE
     
     # Traces relevant to this specific case and tool combination
+    # TODO: refine trace indicators (i.e. context7)
     traces = ["extension", "context", "loading"]
 
     return GeneratorTestCase(
