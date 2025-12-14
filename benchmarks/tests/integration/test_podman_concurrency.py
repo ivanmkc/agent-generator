@@ -22,7 +22,6 @@ async def test_podman_shared_instance_concurrency(model_name):
         auto_deploy=True,
         model_name=model_name
     )
-
     # 2. Define a worker that tries to use the generator
     async def worker(worker_id):
         # This will call setup() internally if not ready

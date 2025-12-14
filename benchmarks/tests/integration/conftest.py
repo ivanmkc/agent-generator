@@ -57,6 +57,7 @@ class GeneratorTestCase:
     # Simple lists of strings for expected tools
     expected_gemini_cli_extensions: List[str] = field(default_factory=list)
     expected_mcp_tools: List[str] = field(default_factory=list)
+    expected_context_files: List[str] = field(default_factory=list)
     
     custom_case: BaseBenchmarkCase = field(default=None)
 
@@ -148,7 +149,8 @@ async def podman_base_test_case(model_name: str) -> GeneratorTestCase:
     return GeneratorTestCase(
         id="podman-base",
         generator=gen,
-        expected_gemini_cli_extensions=[]
+        expected_gemini_cli_extensions=[],
+        expected_context_files=["/repos/GEMINI.md"]
     )
 
 

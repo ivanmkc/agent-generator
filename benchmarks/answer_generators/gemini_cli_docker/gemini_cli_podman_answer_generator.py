@@ -256,7 +256,7 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
         )
       
       # Config Dir
-      podman_args.extend(["-e", "GEMINI_CONFIG_DIR=/root/.gemini/"])
+      podman_args.extend(["-e", "GEMINI_CONFIG_DIR=/tmp/.gemini/"])
 
       podman_args.append(self.image_name)
       # Explicitly run the server, which works for both CMD-only images (overrides CMD)
