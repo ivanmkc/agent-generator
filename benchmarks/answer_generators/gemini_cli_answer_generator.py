@@ -168,8 +168,7 @@ class GeminiCliAnswerGenerator(GeminiAnswerGenerator):
     logs: list[TraceLogEvent] = []
     for line in stderr_str.splitlines():
         if line.strip():
-            # TODO: This code is not podman specific so should not be hardcoded as such.
-            logs.append(TraceLogEvent(type="CLI_STDERR", source="podman", content=line.strip()))
+            logs.append(TraceLogEvent(type="CLI_STDERR", source=self.name, content=line.strip()))
 
     # Parse stdout. If stream-json, parse events. Otherwise, treat as raw message.
     response_dict = {"stdout": stdout_str, "stderr": stderr_str, "exit_code": proc.returncode, "response": ""}
@@ -180,8 +179,7 @@ class GeminiCliAnswerGenerator(GeminiAnswerGenerator):
     else:
         # If not stream-json, treat stdout as a single response message for logging purposes
         if stdout_str.strip():
-            # TODO: This code is not podman specific so should not be hardcoded as such.
-            logs.append(TraceLogEvent(type="CLI_STDOUT_RAW", source="podman", content=stdout_str.strip()))
+            logs.append(TraceLogEvent(type="CLI_STDOUT_RAW", source=self.name, content=stdout_str.strip()))
         response_dict["response"] = stdout_str.strip()  # Direct text response
 
     if proc.returncode != 0:
