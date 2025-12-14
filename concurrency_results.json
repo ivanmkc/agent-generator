@@ -2,55 +2,55 @@
   {
     "concurrency": 5,
     "success_rate": 100.0,
-    "duration": 0.521481990814209,
-    "throughput": 9.588058817128692
+    "duration": 0.513916015625,
+    "throughput": 9.729216152019003
   },
   {
     "concurrency": 10,
     "success_rate": 100.0,
-    "duration": 0.5238063335418701,
-    "throughput": 19.091025365008605
+    "duration": 0.5229010581970215,
+    "throughput": 19.124076808106487
   },
   {
     "concurrency": 20,
     "success_rate": 100.0,
-    "duration": 0.5468769073486328,
-    "throughput": 36.57130102085303
+    "duration": 0.5463800430297852,
+    "throughput": 36.6045580455246
   },
   {
     "concurrency": 40,
     "success_rate": 100.0,
-    "duration": 0.5421853065490723,
-    "throughput": 73.77551460144497
+    "duration": 0.5427188873291016,
+    "throughput": 73.70298129267839
   },
   {
     "concurrency": 60,
     "success_rate": 100.0,
-    "duration": 0.5417170524597168,
-    "throughput": 110.75892798198691
+    "duration": 0.5515367984771729,
+    "throughput": 108.78693890537079
   },
   {
     "concurrency": 80,
     "success_rate": 100.0,
-    "duration": 0.5706570148468018,
-    "throughput": 140.1892869423094
+    "duration": 0.5699617862701416,
+    "throughput": 140.36028717560873
   },
   {
     "concurrency": 100,
     "success_rate": 100.0,
-    "duration": 0.5699746608734131,
-    "throughput": 175.44639589199073
+    "duration": 0.5699987411499023,
+    "throughput": 175.4389839497931
   },
   {
     "concurrency": 120,
     "success_rate": 100.0,
-    "duration": 1.0536558628082275,
-    "throughput": 113.88917789549737
+    "duration": 1.0619521141052246,
+    "throughput": 112.9994454609746
   },
   {
     "concurrency": 150,
     "success_rate": 100.0,
-    "duration": 1.1009039878845215,
-    "throughput": 136.25166376973297
+    "duration": 1.1026909351348877,
+    "throughput": 136.03086342743092
   }
 ]

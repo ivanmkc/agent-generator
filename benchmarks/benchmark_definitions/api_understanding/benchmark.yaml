@@ -396,7 +396,6 @@ benchmarks:
         fully_qualified_class_name:
           - google.adk.agents.parallel_agent.ParallelAgent
     file: src/google/adk/agents/parallel_agent.py
-# TODO: Double check that this question is well-posed and that the answer is correct and unambiguous.
   - category: Core Class Signatures & Initialization
     question: Which class provides the capability to add plugins or other advanced features to an agent?
     rationale: For advanced configurations, wrap your root agent in an `App` object. The `App` class provides parameters for adding plugins, configuring event compaction, and managing other application-level settings.
