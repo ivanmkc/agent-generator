@@ -92,7 +92,8 @@ class GeminiCliAnswerGenerator(GeminiAnswerGenerator):
     )
 
     # Construct cli_args to always include --output-format stream-json, --model, --yolo, --debug, and the prompt as a positional argument
-    cli_args = [
+    command_parts = [
+        self.cli_path,
         "--output-format",
         "stream-json",
         "--model",
@@ -103,7 +104,7 @@ class GeminiCliAnswerGenerator(GeminiAnswerGenerator):
     ]
 
     # Run the CLI command
-    cli_response_dict, logs = await self._run_cli_command(cli_args)
+    cli_response_dict, logs = await self._run_cli_command(command_parts)
 
     # Extract the 'response' field which contains the model's text output
     model_text = cli_response_dict.get("response", "")
@@ -139,22 +140,13 @@ class GeminiCliAnswerGenerator(GeminiAnswerGenerator):
 
   async def _run_cli_command(
       self,
-      cli_args: list[str],
-      # TODO: consider merging cli_args and direct_command_parts
-      direct_command_parts: Optional[list[str]] = None
+      command_parts: list[str],
   ) -> tuple[dict[str, Any], list[TraceLogEvent]]:
     """Executes the gemini CLI command and returns the parsed JSON output and raw logs."""
-    args = [
-        self.cli_path,
-    ]
-    if direct_command_parts:
-        args.extend(direct_command_parts)
-    else:
-        args.extend(cli_args)
 
     # Create subprocess
     proc = await asyncio.create_subprocess_exec(
-        *args,
+        *command_parts,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
     )
@@ -172,7 +164,7 @@ class GeminiCliAnswerGenerator(GeminiAnswerGenerator):
 
     # Parse stdout. If stream-json, parse events. Otherwise, treat as raw message.
     response_dict = {"stdout": stdout_str, "stderr": stderr_str, "exit_code": proc.returncode, "response": ""}
-    if "--output-format" in cli_args and "stream-json" in cli_args:
+    if "--output-format" in command_parts and "stream-json" in command_parts:
         parsed_response_dict, parsed_logs = parse_cli_stream_json_output(stdout_str)
         response_dict.update(parsed_response_dict)
         logs.extend(parsed_logs)
@@ -195,7 +187,7 @@ class GeminiCliAnswerGenerator(GeminiAnswerGenerator):
     tools = []
 
     try:
-        mcp_res, _ = await self._run_cli_command([], direct_command_parts=["mcp", "list"])
+        mcp_res, _ = await self._run_cli_command([self.cli_path, "mcp", "list"])
         # TODO: Add comments explaining the stdout generation process in TS
         for line in mcp_res.get("stdout", "").splitlines():
             # 1. Clean the line of ANSI codes immediately
@@ -232,9 +224,7 @@ class GeminiCliAnswerGenerator(GeminiAnswerGenerator):
     # TODO: Explain why there are two output formats in extreme detail.
     # Output format: "✓ adk-docs-ext (v...)" or just "adk-docs-ext"
     try:
-        ext_res, _ = await self._run_cli_command([], direct_command_parts=["extensions", "list"])
-        # TODO: Check why this is unused and remove if unneeded.
-        property_keys = ["ID:", "name:", "Path:", "Source:", "Enabled", "Context", "MCP"]
+        ext_res, _ = await self._run_cli_command([self.cli_path, "extensions", "list"])
         
         for line in ext_res.get("stdout", "").splitlines():
              # 1. Strip ANSI first so we can reliably check indentation

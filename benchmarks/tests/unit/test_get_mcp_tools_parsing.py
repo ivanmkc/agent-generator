@@ -1,3 +1,4 @@
+import json
 import pytest
 from pathlib import Path
 from typing import Any, Optional
@@ -18,9 +19,21 @@ class MockGeminiCliAnswerGenerator(GeminiCliAnswerGenerator):
         stdout = ""
         # Check what command is being run
         if "mcp" in cmd and "list" in cmd:
-            stdout = self.mcp_list_output
+            if "--output-format" in cmd and "json" in cmd:
+                if self.mcp_list_output.strip() == "Configured MCP servers:\n(none)":
+                    stdout = json.dumps({"servers": []})
+                else:
+                    stdout = json.dumps({"servers": [{"name": "context7"}]})
+            else:
+                stdout = self.mcp_list_output
         elif "extensions" in cmd and "list" in cmd:
-            stdout = self.extensions_list_output
+            if "--output-format" in cmd and "json" in cmd:
+                if self.extensions_list_output.strip() == "": # Assuming empty string means no extensions
+                    stdout = json.dumps({"extensions": []})
+                else:
+                    stdout = json.dumps({"extensions": [{"id": "adk-docs-ext"}]})
+            else:
+                stdout = self.extensions_list_output
         
         # Return success (exit_code 0) to allow parsing to proceed
         return {"stdout": stdout, "stderr": "", "exit_code": 0}, []
