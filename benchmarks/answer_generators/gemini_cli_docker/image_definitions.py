@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import List, Dict, Optional
+from typing import List, Dict
 
 @dataclass(frozen=True)
 class ImageDefinition:
@@ -13,10 +13,6 @@ DEFAULT_IMAGE_PREFIX = "adk-gemini-sandbox"
 # Define known images and their build configurations
 IMAGE_DEFINITIONS: Dict[str, ImageDefinition] = {
     "base": ImageDefinition(
-        source_dir="base",
-        dockerfile="base/Dockerfile",
-    ),
-    "gemini-cli-base": ImageDefinition(
         source_dir="base",
         dockerfile="base/Dockerfile",
     ),

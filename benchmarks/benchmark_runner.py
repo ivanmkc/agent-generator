@@ -183,41 +183,6 @@ class PytestBenchmarkRunner(BenchmarkRunner[FixErrorBenchmarkCase]):
       # 4. Create __init__.py to make it a package (helps with relative imports)
       (tmp_path / "__init__.py").touch()
 
-    elif benchmark_case.agent_file:  # Fallback for deprecated agent_file
-
-      test_file_path = project_root / benchmark_case.test_file
-
-      # Verify signature before proceeding (legacy check)
-      sig_error = self._verify_signature(code_to_test)
-      if sig_error:
-        from benchmarks.data_models import BenchmarkErrorType
-
-        return (
-            BenchmarkResultType.FAIL_VALIDATION,
-            f"Signature Verification Failed:\n{sig_error}",
-            None,
-            BenchmarkErrorType.MODEL_ANSWER_DID_NOT_MATCH_TEMPLATE,
-        )
-
-      # For deprecated agent_file, we assume the generated code is still only the agent definition,
-      # and it needs to be injected into the original agent_file content.
-      # However, since the prompt specifies the candidate should return the *entire* unfixed.py,
-      # this legacy branch might become obsolete or need further adjustment.
-      # For now, if this branch is hit, we treat `code_to_test` as the full agent file.
-      (tmp_path / "agent.py").write_text(code_to_test, encoding="utf-8")
-
-      # 3. Read and write test file
-      test_content = read_file(test_file_path)
-      target_test_file.write_text(test_content, encoding="utf-8")
-
-      # 4. Create __init__.py to make it a package (helps with relative imports)
-      (tmp_path / "__init__.py").touch()
-
-    else:  # Legacy single-file mode with no agent_file explicitly set
-      test_file_path = project_root / benchmark_case.test_file
-      # In this legacy mode, code_to_test should contain the full file.
-      target_test_file.write_text(code_to_test, encoding="utf-8")
-
     # Prepare environment with PYTHONPATH including the temp directory and project root
     env = os.environ.copy()
     pythonpath = env.get("PYTHONPATH", "")

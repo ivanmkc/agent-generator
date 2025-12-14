@@ -9,7 +9,7 @@ RUN mkdir -p /repos
 RUN git clone https://github.com/google/adk-python.git /repos/adk-python
 
 # Copy the GEMINI.md for context
-COPY GEMINI.md /repos/adk-python/GEMINI.md
+COPY GEMINI.md /repos/GEMINI.md
 
 # Write version.txt from build argument
 ARG VERSION=unknown
