@@ -122,7 +122,7 @@ async def test_generator_memory_context(test_case: GeneratorTestCase) -> None:
          pytest.skip(f"No expected context files defined for {test_case.id}")
 
     # Ensure generator is set up so container is running (if applicable)
-    if hasattr(generator, "setup") and hasattr(generator, "_setup_completed") and not generator._setup_completed:
+    if hasattr(generator, "setup"):
         await generator.setup()
     
     # 1. Run /memory list

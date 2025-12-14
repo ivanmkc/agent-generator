@@ -46,5 +46,10 @@ class AnswerGenerator(abc.ABC):
     return []
 
   async def setup(self) -> None:
-    """Performs any necessary setup (e.g., deploying services) before running benchmarks."""
+    """
+    Performs any necessary setup (e.g., deploying services) before running benchmarks.
+    
+    This method MUST be idempotent. Calling it multiple times should not cause issues
+    and should simply ensure the generator is in a ready state.
+    """
     pass
