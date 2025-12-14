@@ -16,6 +16,7 @@
 Primary unified integration test suite for all Answer Generator implementations.
 """
 
+import re # Import re for regex parsing
 import pytest
 import json
 from pathlib import Path
@@ -113,7 +114,7 @@ async def test_generator_execution(test_case: GeneratorTestCase, tmp_path: Path)
 @pytest.mark.asyncio
 async def test_generator_memory_context(test_case: GeneratorTestCase) -> None:
     """
-    Verifies that the generator can load context from memory using /memory list.
+    Verifies that the generator loads the expected context files by inspecting debug logs.
     """
     generator = test_case.generator
 
@@ -121,29 +122,52 @@ async def test_generator_memory_context(test_case: GeneratorTestCase) -> None:
     if not test_case.expected_context_files:
          pytest.skip(f"No expected context files defined for {test_case.id}")
 
-    # Ensure generator is set up so container is running (if applicable)
-    if hasattr(generator, "setup"):
-        await generator.setup()
+    # Ensure generator is set up (e.g., container running)
+    await generator.setup()
     
-    # 1. Run /memory list
-    print(f"[{test_case.id}] Running /memory list...")
-    if hasattr(generator, "_run_cli_command"):
-        # Pass full command parts: gemini /memory list
-        # We assume generator.cli_path is 'gemini'
-        try:
-            response, logs = await generator._run_cli_command([generator.cli_path, "/memory", "list"])
-            stdout = response.get("stdout", "")
-            print(f"[{test_case.id}] /memory list output:\n{stdout}")
-            
-            # Check for LLM refusal/explanation
-            if "I cannot" in stdout or "I am unable" in stdout or "I am a specialized agent" in stdout:
-                pytest.skip(f"[{test_case.id}] CLI returned LLM explanation instead of command output: {stdout.strip()[:100]}...")
-            
-            for expected_file in test_case.expected_context_files:
-                assert expected_file in stdout, f"Expected context file '{expected_file}' not found in /memory list output."
-                
-        except Exception as e:
-            pytest.fail(f"[{test_case.id}] Failed to run /memory list: {e}")
-            
+    # We need a CLI generator to run commands and get debug logs
+    if not hasattr(generator, "_run_cli_command"):
+        pytest.skip(f"Generator {test_case.id} does not support _run_cli_command.")
+
+    print(f"[{test_case.id}] Running gemini --debug to inspect memory context...")
+    
+    # Run a simple command with --debug to trigger context loading logs
+    # Using a trivial command like 'hello' as the prompt to minimize side effects
+    command_parts = [generator.cli_path, "--debug", "hello"]
+    try:
+        response_dict, logs = await generator._run_cli_command(command_parts)
+    except Exception as e:
+        pytest.fail(f"[{test_case.id}] Failed to run debug command: {e}")
+
+    # Combine all log content for easier searching
+    full_logs_content = "\n".join([event.content for event in logs if event.content])
+    print(f"[{test_case.id}] Full debug logs (snippet):\n{full_logs_content[:1000]}...")
+
+    # Regex to find the specific debug line for loaded context paths
+    # Example: [DEBUG] [MemoryDiscovery] Final ordered GEMINI.md paths to read: ["/path/to/GEMINI.md"]
+    match = re.search(
+        r"\[DEBUG\] \[MemoryDiscovery\] Final ordered GEMINI\.md paths to read: \[(.*?)\]",
+        full_logs_content,
+    )
+
+    if not match:
+        pytest.fail(f"[{test_case.id}] 'Final ordered GEMINI.md paths' debug line not found in logs.")
+
+    # Extract the paths string and parse as JSON array
+    paths_str = match.group(1).replace("'", "\"") # Replace single quotes with double for valid JSON
+    
+    # Handle empty list case (e.g. if paths_str is empty)
+    if not paths_str.strip():
+        loaded_paths = []
     else:
-        pytest.skip(f"Generator {test_case.id} does not support _run_cli_command")
+        try:
+            loaded_paths = json.loads(f"[{paths_str}]")
+        except json.JSONDecodeError as e:
+            pytest.fail(f"[{test_case.id}] Failed to parse loaded paths JSON from debug logs: {e}\nRaw paths string: {paths_str}")
+
+
+    print(f"[{test_case.id}] Discovered loaded context paths: {loaded_paths}")
+
+    # Assert that all expected files are present in the loaded paths
+    for expected_file in test_case.expected_context_files:
+        assert expected_file in loaded_paths, f"Expected context file '{expected_file}' not found in loaded memory paths. Available: {loaded_paths}"
