@@ -100,7 +100,6 @@ class GeminiCliAnswerGenerator(GeminiAnswerGenerator):
         "--yolo",
         "--debug",
         prompt, # Positional argument for the prompt
-        # "--sandbox", # Removed because we are already in a container
     ]
 
     # Run the CLI command
@@ -169,6 +168,7 @@ class GeminiCliAnswerGenerator(GeminiAnswerGenerator):
     logs: list[TraceLogEvent] = []
     for line in stderr_str.splitlines():
         if line.strip():
+            # TODO: This code is not podman specific so should not be hardcoded as such.
             logs.append(TraceLogEvent(type="CLI_STDERR", source="podman", content=line.strip()))
 
     # Parse stdout. If stream-json, parse events. Otherwise, treat as raw message.
@@ -180,6 +180,7 @@ class GeminiCliAnswerGenerator(GeminiAnswerGenerator):
     else:
         # If not stream-json, treat stdout as a single response message for logging purposes
         if stdout_str.strip():
+            # TODO: This code is not podman specific so should not be hardcoded as such.
             logs.append(TraceLogEvent(type="CLI_STDOUT_RAW", source="podman", content=stdout_str.strip()))
         response_dict["response"] = stdout_str.strip()  # Direct text response
 
@@ -197,6 +198,7 @@ class GeminiCliAnswerGenerator(GeminiAnswerGenerator):
 
     try:
         mcp_res, _ = await self._run_cli_command([], direct_command_parts=["mcp", "list"])
+        # TODO: Add comments explaining the stdout generation process in TS
         for line in mcp_res.get("stdout", "").splitlines():
             # 1. Clean the line of ANSI codes immediately
             clean_line = self._strip_ansi(line).strip()
@@ -228,9 +230,12 @@ class GeminiCliAnswerGenerator(GeminiAnswerGenerator):
     extensions = []
 
     # 2. List Extensions
+    # TODO: Add comments explaining the stdout generation process in TS
+    # TODO: Explain why there are two output formats in extreme detail.
     # Output format: "✓ adk-docs-ext (v...)" or just "adk-docs-ext"
     try:
         ext_res, _ = await self._run_cli_command([], direct_command_parts=["extensions", "list"])
+        # TODO: Check why this is unused and remove if unneeded.
         property_keys = ["ID:", "name:", "Path:", "Source:", "Enabled", "Context", "MCP"]
         
         for line in ext_res.get("stdout", "").splitlines():

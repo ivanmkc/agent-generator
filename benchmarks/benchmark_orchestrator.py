@@ -50,6 +50,7 @@ async def _run_single_benchmark(
     generated_answer = None
     ground_truth = None
 
+    # TODO: Refactor so BaseBenchmarkCase implementations are no longer dependencies but rather only BaseBenchmarkCase is imported.
     if isinstance(case, FixErrorBenchmarkCase) and case.fixed_file:
       if case.fixed_file.exists():
         ground_truth = case.fixed_file.read_text(encoding="utf-8")

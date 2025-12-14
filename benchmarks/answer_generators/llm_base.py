@@ -14,9 +14,7 @@
 
 """Base class for LLM-based answer generators with shared prompt logic."""
 
-import hashlib
 from pathlib import Path
-from typing import Any
 
 from benchmarks.answer_generators.base import AnswerGenerator
 from benchmarks.data_models import AnswerTemplate

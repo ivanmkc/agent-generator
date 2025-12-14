@@ -17,7 +17,7 @@ import pandas as pd
 
 from benchmarks import benchmark_orchestrator
 from benchmarks.benchmark_candidates import CANDIDATE_GENERATORS
-from benchmarks.config import MAX_BENCHMARK_CONCURRENCY
+from benchmarks.config import PODMAN_CONFIG, CLOUD_RUN_CONFIG
 from benchmarks.data_models import BenchmarkRunResult
 from benchmarks.logger import JsonTraceLogger
 
@@ -56,13 +56,13 @@ async def run_comparison(logger: JsonTraceLogger) -> List[BenchmarkRunResult]:
   answer_generators = CANDIDATE_GENERATORS
 
   print(f"Executing benchmarks with {len(answer_generators)} generators...")
-  # max_concurrency matches Cloud Run instance memory limits (defined in config.py).
-  # High concurrency causes OOM due to multiple Node.js CLI processes (~200MB each).
-  # Reduced to 10 for local Podman stability.
+  # max_concurrency matches the configured limit for the target environment.
+  # Use PODMAN_CONFIG.MAX_GLOBAL_CONCURRENCY (40) for local runs to avoid OOM.
+  # Use CLOUD_RUN_CONFIG.MAX_GLOBAL_CONCURRENCY (400) for Cloud Run runs.
   benchmark_results = await benchmark_orchestrator.run_benchmarks(
       benchmark_suites=benchmark_suites,
       answer_generators=answer_generators,
-      max_concurrency=MAX_BENCHMARK_CONCURRENCY,
+      max_concurrency=PODMAN_CONFIG.MAX_GLOBAL_CONCURRENCY,
       max_retries=3,
       logger=logger,
   )

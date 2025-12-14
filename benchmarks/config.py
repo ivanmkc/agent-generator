@@ -14,24 +14,33 @@
 
 """Configuration constants for benchmarks."""
 
-# --- Concurrency Settings ---
+from dataclasses import dataclass
 
-# Global Concurrency: How many benchmark cases to run in parallel client-side.
-# Increased to 400 to target <10m runtime by running all tests in parallel.
-MAX_BENCHMARK_CONCURRENCY = 400
+@dataclass(frozen=True)
+class CloudRunConfig:
+    """Configuration settings for Cloud Run environment."""
+    # Global Concurrency: How many benchmark cases to run in parallel client-side.
+    # Cloud Run scales horizontally, so this can be high.
+    MAX_GLOBAL_CONCURRENCY: int = 400
+    
+    # Per-Instance Concurrency: How many requests a SINGLE Cloud Run container handles.
+    # Tested stable limit is 10 requests per 4GB/4CPU instance.
+    MAX_INSTANCE_CONCURRENCY: int = 10
+    
+    # Max Instances: How many containers Cloud Run is allowed to spin up.
+    MAX_INSTANCES: int = 100
+    
+    # Resource Limits
+    MEMORY_LIMIT: str = "4Gi"
+    CPU_LIMIT: str = "4"
 
-# Per-Instance Concurrency: How many requests a SINGLE Cloud Run container handles.
-# Tested stable limit is 10 requests per 4GB/4CPU instance.
-# Exceeding this causes OOM or CPU thrashing due to heavy Node.js CLI processes.
-MAX_INSTANCE_CONCURRENCY = 10
+@dataclass(frozen=True)
+class PodmanConfig:
+    """Configuration settings for local Podman environment."""
+    # Global Concurrency: Constrained by local machine resources (CPU/RAM).
+    # 20-40 is a safe range for a typical dev machine (e.g. M1/M2/M3 Max).
+    MAX_GLOBAL_CONCURRENCY: int = 40
 
-# Max Instances: How many containers Cloud Run is allowed to spin up.
-# 100 global requests / 10 per instance = 10 instances needed minimum.
-# We set limit to 100 to allow practically unlimited scale-out.
-MAX_CLOUD_RUN_INSTANCES = 100
-
-# --- Resource Limits ---
-
-# Optimized for stability/cost. 4Gi is sufficient for 10 concurrent requests.
-CLOUD_RUN_MEMORY_LIMIT = "4Gi"
-CLOUD_RUN_CPU_LIMIT = "4"
+# Instantiate for usage
+CLOUD_RUN_CONFIG = CloudRunConfig()
+PODMAN_CONFIG = PodmanConfig()

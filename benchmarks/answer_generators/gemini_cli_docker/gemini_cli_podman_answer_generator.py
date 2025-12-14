@@ -37,6 +37,8 @@ from benchmarks.utils import parse_cli_stream_json_output
 
 
 # Define known images and their build configurations
+# TODO: Move this into its own module, and used typed data structures instead of dicts. 
+# TODO: Avoid using global state and inject this in as an arg instead.
 IMAGE_DEFINITIONS = {
     "base": {
         "source_dir": "base",
@@ -70,6 +72,7 @@ IMAGE_DEFINITIONS = {
     },
 }
 
+# TODO: Avoid hardcoded strings. Is this even needed?
 DEFAULT_IMAGE_PREFIX = "adk-gemini-sandbox"
 
 

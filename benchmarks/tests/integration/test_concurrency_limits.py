@@ -27,7 +27,7 @@ Stress tests to determine optimal concurrency limits for local containerized ser
 
 This test file runs a local server (via Podman) and ramps up concurrent requests
 to identify the breaking point where latency spikes or failures occur. It helps
-in tuning the `MAX_INSTANCE_CONCURRENCY` configuration.
+in tuning the `CLOUD_RUN_CONFIG.MAX_INSTANCE_CONCURRENCY` configuration.
 """
 
 # Stress test to find optimal concurrency limits for the server image.

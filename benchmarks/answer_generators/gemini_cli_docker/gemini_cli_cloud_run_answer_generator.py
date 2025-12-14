@@ -53,12 +53,7 @@ from benchmarks.answer_generators import cloud_deploy_utils
 from benchmarks.answer_generators.gemini_cli_answer_generator import (
     GeminiCliAnswerGenerator,
 )
-from benchmarks.config import (
-    CLOUD_RUN_CPU_LIMIT,
-    CLOUD_RUN_MEMORY_LIMIT,
-    MAX_CLOUD_RUN_INSTANCES,
-    MAX_INSTANCE_CONCURRENCY,
-)
+from benchmarks.config import CLOUD_RUN_CONFIG
 
 # Cloud Build API endpoint
 SERVICE_BASE_PATH = "cloudbuild.googleapis.com"
@@ -461,8 +456,8 @@ class GeminiCliCloudRunAnswerGenerator(GeminiCliAnswerGenerator):
                     args=["python3", "/usr/local/bin/cli_server.py"],
                     resources=ResourceRequirements(
                         limits={
-                            "cpu": CLOUD_RUN_CPU_LIMIT,
-                            "memory": CLOUD_RUN_MEMORY_LIMIT,
+                            "cpu": CLOUD_RUN_CONFIG.CPU_LIMIT,
+                            "memory": CLOUD_RUN_CONFIG.MEMORY_LIMIT,
                         }
                     ),
                     env=env_vars,
@@ -470,11 +465,11 @@ class GeminiCliCloudRunAnswerGenerator(GeminiCliAnswerGenerator):
             ],
             scaling=RevisionScaling(
                 min_instance_count=0,
-                max_instance_count=MAX_CLOUD_RUN_INSTANCES,
+                max_instance_count=CLOUD_RUN_CONFIG.MAX_INSTANCES,
             ),
             # Set per-instance concurrency to the tested stable limit.
             # Cloud Run will scale out (add instances) if load exceeds this * active_instances.
-            max_instance_request_concurrency=MAX_INSTANCE_CONCURRENCY,
+            max_instance_request_concurrency=CLOUD_RUN_CONFIG.MAX_INSTANCE_CONCURRENCY,
             timeout=duration_pb2.Duration(seconds=900), # Set request timeout to 15 minutes
         ),
         traffic=[

@@ -96,9 +96,6 @@ class FixErrorBenchmarkCase(BaseBenchmarkCase):
   description: str
   benchmark_type: Literal[BenchmarkType.FIX_ERROR] = BenchmarkType.FIX_ERROR
   test_file: Path
-  agent_file: Path | None = (
-      None  # DEPRECATED: Use unfixed_file and fixed_file instead
-  )
   unfixed_file: Path | None = None
   fixed_file: Path | None = None
   requirements: list[str] | None = None

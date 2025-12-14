@@ -33,7 +33,7 @@ import pytest
 from benchmarks.answer_generators.gemini_cli_docker.gemini_cli_cloud_run_answer_generator import (
     GeminiCliCloudRunAnswerGenerator,
 )
-from benchmarks.config import MAX_BENCHMARK_CONCURRENCY
+from benchmarks.config import CLOUD_RUN_CONFIG
 from benchmarks.data_models import FixErrorBenchmarkCase, BenchmarkType
 
 # This test requires authentication and a deployed Cloud Run service.
@@ -46,7 +46,7 @@ async def test_cloud_run_stability():
     SERVICE_NAME = "adk-gemini-sandbox"
     DOCKERFILE_DIR = "benchmarks/answer_generators/gemini_cli_docker/adk-python" 
     MODEL = "gemini-2.5-flash"
-    CONCURRENCY = MAX_BENCHMARK_CONCURRENCY  # Should be 50 now (Horizontal Scaling Test)
+    CONCURRENCY = CLOUD_RUN_CONFIG.MAX_GLOBAL_CONCURRENCY  # Should be 400 now (Horizontal Scaling Test)
     
     # Check if we have credentials
     if not os.environ.get("GOOGLE_APPLICATION_CREDENTIALS") and not os.environ.get("GOOGLE_CLOUD_PROJECT"):

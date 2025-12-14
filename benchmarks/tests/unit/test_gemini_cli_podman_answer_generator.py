@@ -39,11 +39,13 @@ async def test_podman_generator_setup(mock_subprocess):
     with patch("socket.socket") as mock_socket:
         mock_socket.return_value.getsockname.return_value = [0, 12345] # port 12345
         
-        # Mock aiohttp for health check
-        with patch("aiohttp.ClientSession.get") as mock_get:
+        # Mock aiohttp for health check (which now uses POST)
+        with patch("aiohttp.ClientSession.post") as mock_post:
             mock_resp = MagicMock()
             mock_resp.status = 200
-            mock_get.return_value.__aenter__.return_value = mock_resp
+            # Return valid health check response
+            mock_resp.json = AsyncMock(return_value={"returncode": 0})
+            mock_post.return_value.__aenter__.return_value = mock_resp
             
             # Mock image existence check to avoid build logic
             generator._ensure_image_ready = AsyncMock()
@@ -87,10 +89,11 @@ async def test_podman_generator_env_vars_setup(mock_subprocess):
         with patch("socket.socket") as mock_socket:
             mock_socket.return_value.getsockname.return_value = [0, 12345]
             
-            with patch("aiohttp.ClientSession.get") as mock_get:
+            with patch("aiohttp.ClientSession.post") as mock_post:
                 mock_resp = MagicMock()
                 mock_resp.status = 200
-                mock_get.return_value.__aenter__.return_value = mock_resp
+                mock_resp.json = AsyncMock(return_value={"returncode": 0})
+                mock_post.return_value.__aenter__.return_value = mock_resp
                 
                 await generator.setup()
                 

@@ -96,6 +96,7 @@ CANDIDATE_GENERATORS = [
             "benchmarks/answer_generators/gemini_cli_docker/adk-python"
         ),
         image_name="gemini_cli_docker_adk_python",
+        # TODO: Consider removing all context_instruction args and embedding it into the docker image directly with a GEMINI.md or equivalent.
         context_instruction=ADK_REPO_INSTRUCTION,
         auto_deploy=True,
     ),
