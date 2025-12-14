@@ -309,10 +309,21 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
       for i in range(max_retries):
           try:
               async with aiohttp.ClientSession() as session:
-                  async with session.get(self._base_url, timeout=1.0) as resp:
+                  # Functional Health Check: Try to actually run the CLI
+                  # Must start with 'gemini' to pass server validation
+                  payload = {"args": [self.cli_path, "--version"]}
+                  async with session.post(self._base_url, json=payload, timeout=2.0) as resp:
                       if resp.status == 200:
-                          print("[Podman Setup] Server ready.")
-                          return
+                          data = await resp.json()
+                          # Support both keys just in case, but server sends 'returncode'
+                          exit_code = data.get("returncode", data.get("exit_code"))
+                          if exit_code == 0:
+                              print("[Podman Setup] Server ready (Functional Check Passed).")
+                              return
+                          else:
+                              print(f"[Podman Setup] Health check failed: {data}")
+                      else:
+                           print(f"[Podman Setup] Health check HTTP error: {resp.status}")
           except Exception:
               pass
           await asyncio.sleep(0.5)
