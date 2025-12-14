@@ -207,7 +207,7 @@ benchmarks:
       file: benchmarks/benchmark_definitions/diagnose_setup_errors_mc/snippets.py
       section: invalid_app_name
     options:
-      A: 'ValueError: Invalid app name ''my app''...'
+      A: 'ValueError: Invalid app name (shows the provided name)...'
       B: 'TypeError: Name must be alphanumeric.'
       C: No error.
       D: 'ValueError: App name cannot contain spaces.'

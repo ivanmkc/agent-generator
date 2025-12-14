@@ -151,7 +151,7 @@ benchmarks:
       A: No error, field is added.
       B: 'AttributeError: ''LlmAgent'' object has no attribute ''unknown_field'''
       C: 'TypeError: Unexpected keyword argument...'
-      D: "ValueError: Cannot update nonexistent fields in LlmAgent: {'unknown_field'}"
+      D: "ValueError: Cannot update nonexistent fields (lists the invalid field)"
       E: None of the above
     correct_answer: D
     explanation: '`clone` method explicitly checks `allowed_fields` and raises `ValueError`.'
