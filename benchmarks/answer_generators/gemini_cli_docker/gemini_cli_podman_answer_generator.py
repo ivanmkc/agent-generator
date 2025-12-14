@@ -34,47 +34,11 @@ from benchmarks.answer_generators.gemini_cli_answer_generator import \
     GeminiCliAnswerGenerator
 from benchmarks.data_models import TraceLogEvent
 from benchmarks.utils import parse_cli_stream_json_output
-
-
-# Define known images and their build configurations
-# TODO: Move this into its own module, and used typed data structures instead of dicts. 
-# TODO: Avoid using global state and inject this in as an arg instead.
-IMAGE_DEFINITIONS = {
-    "base": {
-        "source_dir": "base",
-        "dockerfile": "base/Dockerfile",
-        "dependencies": [],
-        "build_args": {},
-    },
-    "gemini-cli-base": {
-        "source_dir": "base",
-        "dockerfile": "base/Dockerfile",
-        "dependencies": [],
-        "build_args": {},
-    },
-    "adk-python": {
-        "source_dir": "adk-python",
-        "dockerfile": "adk-python/Dockerfile",
-        "dependencies": ["base"],
-        "build_args": {"BASE_IMAGE": "adk-gemini-sandbox:base"},
-    },
-    "mcp-context7": {
-        "source_dir": "gemini-cli-mcp-context7",
-        "dockerfile": "gemini-cli-mcp-context7/Dockerfile",
-        "dependencies": ["base"],
-        "build_args": {"BASE_IMAGE": "adk-gemini-sandbox:base"},
-    },
-    "adk-docs-ext": {
-        "source_dir": "adk-docs-ext",
-        "dockerfile": "adk-docs-ext/Dockerfile",
-        "dependencies": ["base"],
-        "build_args": {"BASE_IMAGE": "adk-gemini-sandbox:base"},
-    },
-}
-
-# TODO: Avoid hardcoded strings. Is this even needed?
-DEFAULT_IMAGE_PREFIX = "adk-gemini-sandbox"
-
+from benchmarks.answer_generators.gemini_cli_docker.image_definitions import (
+    ImageDefinition,
+    IMAGE_DEFINITIONS,
+    DEFAULT_IMAGE_PREFIX,
+)
 
 class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
   """An AnswerGenerator that uses the gemini CLI hosted in a local Podman container (API Server mode)."""
@@ -87,6 +51,9 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
       context_instruction: str | None = None,
       auto_deploy: bool = False,
       force_deploy: bool = False,
+      # Injected dependencies
+      image_definitions: dict[str, ImageDefinition] = IMAGE_DEFINITIONS,
+      default_image_prefix: str = DEFAULT_IMAGE_PREFIX,
   ):
     """Initializes the GeminiCliPodmanAnswerGenerator.
 
@@ -98,10 +65,12 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
     effective_image_key = image_name.split(":")[-1] if ":" in image_name else image_name
 
     # Always store the fully qualified local image name
-    if effective_image_key in IMAGE_DEFINITIONS or image_name.startswith(f"{DEFAULT_IMAGE_PREFIX}:"):
-        self.image_name = image_name if image_name.startswith(f"{DEFAULT_IMAGE_PREFIX}:") else f"{DEFAULT_IMAGE_PREFIX}:{effective_image_key}"
+    if effective_image_key in image_definitions or image_name.startswith(f"{default_image_prefix}:"):
+        self.image_name = image_name if image_name.startswith(f"{default_image_prefix}:") else f"{default_image_prefix}:{effective_image_key}"
     else:
         self.image_name = image_name
+    self._image_definitions = image_definitions
+    self._default_image_prefix = default_image_prefix
 
     self.dockerfile_dir = Path(dockerfile_dir)
     self.context_instruction = context_instruction
@@ -153,7 +122,7 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
     image_key = image_tag.split(":")[-1] if ":" in image_tag else image_tag
 
     # 1. Check if it's a known managed image
-    if image_key in IMAGE_DEFINITIONS:
+    if image_key in self._image_definitions:
       if self.auto_deploy or self.force_deploy:
          await self._build_image_chain(image_key, force=self.force_deploy)
       self._image_checked = True
@@ -205,11 +174,11 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
 
   async def _build_image_chain(self, image_key: str, force: bool = False):
     """Recursively builds dependencies and then the target image."""
-    definition = IMAGE_DEFINITIONS[image_key]
-    for dep_key in definition["dependencies"]:
+    definition = self._image_definitions[image_key]
+    for dep_key in definition.dependencies:
       await self._build_image_chain(dep_key, force=force)
 
-    full_image_name = f"{DEFAULT_IMAGE_PREFIX}:{image_key}"
+    full_image_name = f"{self._default_image_prefix}:{image_key}"
     
     if not force:
         proc = await asyncio.create_subprocess_exec(
@@ -224,13 +193,13 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
     print(f"Building Podman image: {full_image_name}...")
     
     base_path = Path(__file__).parent
-    source_path = base_path / definition["source_dir"]
-    dockerfile_path = base_path / definition["dockerfile"]
+    source_path = base_path / definition.source_dir
+    dockerfile_path = base_path / definition.dockerfile
     
     build_cmd = [
         "podman", "build", "-t", full_image_name, "-f", str(dockerfile_path),
     ]
-    for arg_name, arg_val in definition["build_args"].items():
+    for arg_name, arg_val in definition.build_args.items():
         build_cmd.extend(["--build-arg", f"{arg_name}={arg_val}"])
         
     build_cmd.append(str(source_path))
