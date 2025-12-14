@@ -188,7 +188,9 @@ class GeminiCliAnswerGenerator(GeminiAnswerGenerator):
 
     try:
         mcp_res, _ = await self._run_cli_command([self.cli_path, "mcp", "list"])
-        # TODO: Add comments explaining the stdout generation process in TS
+        # TODO: The gemini CLI often returns LLM-generated explanations instead of raw tool lists.
+        # This requires a more robust parsing strategy or a way to force raw CLI output.
+        # The current parsing relies on specific plain-text formatting which is unreliable.
         for line in mcp_res.get("stdout", "").splitlines():
             # 1. Clean the line of ANSI codes immediately
             clean_line = self._strip_ansi(line).strip()
@@ -220,12 +222,13 @@ class GeminiCliAnswerGenerator(GeminiAnswerGenerator):
     extensions = []
 
     # 2. List Extensions
-    # TODO: Add comments explaining the stdout generation process in TS
+    # TODO: The gemini CLI often returns LLM-generated explanations instead of raw tool lists.
+    # This requires a more robust parsing strategy or a way to force raw CLI output.
+    # The current parsing relies on specific plain-text formatting which is unreliable.
     # TODO: Explain why there are two output formats in extreme detail.
     # Output format: "✓ adk-docs-ext (v...)" or just "adk-docs-ext"
     try:
         ext_res, _ = await self._run_cli_command([self.cli_path, "extensions", "list"])
-        
         for line in ext_res.get("stdout", "").splitlines():
              # 1. Strip ANSI first so we can reliably check indentation
              clean_line = self._strip_ansi(line)
