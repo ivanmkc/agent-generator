@@ -88,6 +88,11 @@ class BaseBenchmarkCase(pydantic.BaseModel, abc.ABC):
     """Validates that the answer output matches the expected format for this case type."""
     raise NotImplementedError
 
+  @abc.abstractmethod
+  def get_ground_truth(self) -> Optional[str]:
+    """Returns the ground truth answer for the benchmark case, if applicable."""
+    raise NotImplementedError
+
 
 class FixErrorBenchmarkCase(BaseBenchmarkCase):
   """Represents a single fix_error benchmark case, where the model needs to correct or complete a Python code snippet."""
@@ -117,6 +122,11 @@ class FixErrorBenchmarkCase(BaseBenchmarkCase):
         raise AssertionError(f"Expected FixErrorAnswerOutput, got {type(output)}")
     if not output.code:
         raise AssertionError("FixErrorAnswerOutput code field is empty")
+
+  def get_ground_truth(self) -> Optional[str]:
+    if self.fixed_file and self.fixed_file.exists():
+        return self.fixed_file.read_text(encoding="utf-8")
+    return None
 
 
 class StringMatchAnswer(pydantic.BaseModel):
@@ -198,6 +208,11 @@ class ApiUnderstandingBenchmarkCase(BaseBenchmarkCase):
     if not output.code and not output.fully_qualified_class_name:
         raise AssertionError("ApiUnderstandingAnswerOutput code and FQN are both empty")
 
+  def get_ground_truth(self) -> Optional[str]:
+    if self.answers:
+        return self.answers[0].answer
+    return None
+
 
 class MultipleChoiceBenchmarkCase(BaseBenchmarkCase):
   """Represents a single multiple choice benchmark case, where the model selects the correct option from a list."""
@@ -226,6 +241,9 @@ class MultipleChoiceBenchmarkCase(BaseBenchmarkCase):
         raise AssertionError(f"Expected MultipleChoiceAnswerOutput, got {type(output)}")
     if not output.answer:
         raise AssertionError("MultipleChoiceAnswerOutput answer field is empty")
+
+  def get_ground_truth(self) -> Optional[str]:
+    return self.correct_answer
 
 
 BenchmarkCase = Annotated[
