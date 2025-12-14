@@ -67,14 +67,6 @@ def get_gcloud_project():
 
 project_id = get_gcloud_project()
 
-ADK_REPO_INSTRUCTION = (
-    "\nCONTEXT: You are working in a Docker container. The current working"
-    " directory is `/repos`. The project source code is located in the"
-    " subdirectory `./adk-python`. You MUST look into `./adk-python` to find"
-    " source files, tests, or configuration. When asked questions about"
-    " adk-python, you MUST refer to the code in `./adk-python` to provide"
-    " answers.\n\n"
-)
 
 # Create pre-configured agent instances for AdkAnswerGenerator
 agent_flash = create_default_adk_agent(model_name=ModelName.GEMINI_2_5_FLASH)
@@ -96,8 +88,6 @@ CANDIDATE_GENERATORS = [
             "benchmarks/answer_generators/gemini_cli_docker/adk-python"
         ),
         image_name="gemini_cli_docker_adk_python",
-        # TODO: Consider removing all context_instruction args and embedding it into the docker image directly with a GEMINI.md or equivalent.
-        context_instruction=ADK_REPO_INSTRUCTION,
         auto_deploy=True,
     ),
     # # Gemini CLI Cloud Run Generator (ADK Docs Extension)

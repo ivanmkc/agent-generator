@@ -1,0 +1,1 @@
+CONTEXT: You are working in a Docker container. The current working directory is `/repos`. The project source code is located in the subdirectory `./adk-python`. You MUST look into `./adk-python` to find source files, tests, or configuration. When asked questions about adk-python, you MUST refer to the code in `./adk-python` to provide answers.
