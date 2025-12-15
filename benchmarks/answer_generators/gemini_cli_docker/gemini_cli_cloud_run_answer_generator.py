@@ -104,6 +104,7 @@ class GeminiCliCloudRunAnswerGenerator(GeminiCliAnswerGenerator):
     self._id_token_time = 0
     self._remote_version = None
 
+    # TODO: Remove hardcoded image naming logic
     if image_name:
       self.image_name = image_name
     elif service_name == "adk-python":

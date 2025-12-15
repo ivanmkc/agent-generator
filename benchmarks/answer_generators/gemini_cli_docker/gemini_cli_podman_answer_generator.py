@@ -117,6 +117,12 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
     print(f"[Podman Ensure Image] Checking image readiness for {self.image_name}")
     if self._image_checked and not self.force_deploy:
       return
+
+    # Always ensure the 'base' image is available if we are in auto-deploy mode.
+    # This prevents build failures for custom images that depend on it (like adk-python)
+    # when the local environment tries to pull 'base' from docker.io instead of building it.
+    if (self.auto_deploy or self.force_deploy) and "base" in self._image_definitions:
+        await self._build_image_chain("base", force=self.force_deploy)
       
     image_tag = self.image_name
     image_key = image_tag.split(":")[-1] if ":" in image_tag else image_tag
@@ -153,11 +159,13 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
         if proc.returncode == 0:
             return
 
-    print(f"Building Custom Podman image: {full_image_name} from {self.dockerfile_dir}...")
+    print(f"Building Custom Podman image: {full_image_name} from {self.dockerfile_dir.parent} (Dockerfile: {self.dockerfile_dir.name}/Dockerfile)...")
     
-    build_cmd = ["podman", "build", "-t", full_image_name, str(self.dockerfile_dir)]
-    if (self.dockerfile_dir / "Dockerfile").exists():
-         build_cmd.extend(["-f", str(self.dockerfile_dir / "Dockerfile")])
+    build_cmd = [
+        "podman", "build", "-t", full_image_name,
+        "-f", str(self.dockerfile_dir / "Dockerfile"),
+        str(self.dockerfile_dir.parent)
+    ]
 
     build_proc = await asyncio.create_subprocess_exec(
         *build_cmd,
@@ -214,8 +222,6 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
     if build_proc.returncode != 0:
         error_msg = stderr.decode().strip() or stdout.decode().strip()
         raise RuntimeError(f"Failed to build image {full_image_name}: {error_msg}")
-        
-    print(f"Successfully built {full_image_name}")
 
   async def _start_server_container(self):
       """Starts the container in daemon mode exposing the API server."""

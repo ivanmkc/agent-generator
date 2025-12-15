@@ -53,18 +53,17 @@ async def test_generator_memory_context(test_case: GeneratorTestCase) -> None:
     print(f"[{test_case.id}] Full debug logs (snippet):\n{full_logs_content[:1000]}...")
 
     # Regex to find the specific debug line for loaded context paths
-    # Example: [DEBUG] [MemoryDiscovery] Final ordered GEMINI.md paths to read: ["/path/to/GEMINI.md"]
+    # Example: [DEBUG] [MemoryDiscovery] Final ordered INSTRUCTIONS.md paths to read: ["/path/to/INSTRUCTIONS.md"]
     match = re.search(
-        r"\\[DEBUG\\] \\ [MemoryDiscovery] Final ordered GEMINI\.md paths to read: \\\\[(.*?)\\\\]",
+        r"\[DEBUG\] \[MemoryDiscovery\] Final ordered INSTRUCTIONS.md paths to read: (.*)",
         full_logs_content,
     )
-
     if not match:
         # If the debug line is not found, check if it's an LLM refusal
         if "I cannot" in full_logs_content or "I am unable" in full_logs_content or "I am a specialized agent" in full_logs_content:
             pytest.skip(f"[{test_case.id}] CLI returned LLM explanation instead of debug memory logs: {full_logs_content.strip()[:100]}...")
         else:
-            pytest.fail(f"[{test_case.id}] 'Final ordered GEMINI.md paths' debug line not found in logs, and no LLM refusal detected.")
+            pytest.fail(f"[{test_case.id}] 'Final ordered INSTRUCTIONS.md paths' debug line not found in logs, and no LLM refusal detected.")
 
     # Extract the paths string and parse as JSON array
     paths_str = match.group(1).replace("'", '"') # Replace single quotes with double for valid JSON
@@ -74,7 +73,8 @@ async def test_generator_memory_context(test_case: GeneratorTestCase) -> None:
         loaded_paths = []
     else:
         try:
-            loaded_paths = json.loads(f"[{paths_str}]")
+            # The regex now captures the entire JSON array string directly
+            loaded_paths = json.loads(paths_str)
         except json.JSONDecodeError as e:
             pytest.fail(f"[{test_case.id}] Failed to parse loaded paths JSON from debug logs: {e}\nRaw paths string: {paths_str}")
 

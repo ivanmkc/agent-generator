@@ -75,6 +75,27 @@ generator = GeminiCliPodmanAnswerGenerator(
 )
 ```
 
+## Troubleshooting
+
+### Podman Base Image Not Found / Docker Hub Pull Attempt
+
+**Problem:** When running local Podman benchmarks, you might encounter errors like `RuntimeError: Failed to build custom image ...: Error: creating build container: unable to copy from source docker://adk-gemini-sandbox:base: ... requested access to the resource is denied`. This indicates that Podman is attempting to pull the `adk-gemini-sandbox:base` image from `docker.io` instead of building it locally, or resolving it from your local image store. This often happens because:
+1.  The `base` image has not been built yet.
+2.  Your Podman environment (especially on macOS where Podman runs in a VM) is misconfigured to prioritize remote registries or fails to correctly resolve local image names.
+
+**Workaround (Manual Build):**
+You can manually build the `base` image once to populate your local Podman image store. After this, subsequent builds for dependent images (like `adk-python`) should succeed without attempting a remote pull.
+
+```bash
+podman build -t adk-gemini-sandbox:base -f benchmarks/answer_generators/gemini_cli_docker/base/Dockerfile benchmarks/answer_generators/gemini_cli_docker/base
+```
+
+**Permanent Fix (Podman Configuration):**
+For a permanent solution, investigate your Podman configuration files *inside your Podman Machine VM* (if on macOS/Windows) or on your Linux host. Specifically, check:
+
+*   **`/etc/containers/registries.conf`** or **`~/.config/containers/registries.conf`**: Ensure that `adk-gemini-sandbox` is not implicitly being mapped to a remote registry, or explicitly add `localhost/adk-gemini-sandbox` to your `[registries.insecure]` or `[registries.search]` lists if you intend to manage it locally.
+*   **`/etc/containers/policy.json`** or **`~/.config/containers/policy.json`**: Review policies that might restrict local image resolution or impose signing requirements that block un-pushed local images.
+
 ## Cloud Run Deployment
 
 To run benchmarks against a Cloud Run hosted environment (instead of local Docker), you can deploy the sandbox as a service.

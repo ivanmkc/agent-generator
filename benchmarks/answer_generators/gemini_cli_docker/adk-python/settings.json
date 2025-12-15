@@ -1,0 +1,11 @@
+{
+  "context": {
+    "fileName": [
+      "INSTRUCTIONS.md"
+    ],
+    "includeDirectories": [
+      "./"
+    ],
+    "loadMemoryFromIncludeDirectories": true
+  }
+}

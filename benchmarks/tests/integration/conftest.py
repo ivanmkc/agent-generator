@@ -138,7 +138,7 @@ async def podman_base_test_case(model_name: str) -> GeneratorTestCase:
 
     gen = GeminiCliPodmanAnswerGenerator(
         dockerfile_dir=Path("benchmarks/answer_generators/gemini_cli_docker/adk-python"),
-        image_name="stress-test-server",
+        image_name="adk-gemini-sandbox:adk-python",
         auto_deploy=True,
         model_name=model_name
     )
@@ -150,7 +150,7 @@ async def podman_base_test_case(model_name: str) -> GeneratorTestCase:
         id="podman-base",
         generator=gen,
         expected_gemini_cli_extensions=[],
-        expected_context_files=["/repos/GEMINI.md"]
+        expected_context_files=["/workdir/INSTRUCTIONS.md"]
     )
 
 

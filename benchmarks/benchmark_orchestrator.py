@@ -162,7 +162,10 @@ async def run_benchmarks(
     logger: Optional[BenchmarkLogger] = None,
 ) -> List[BenchmarkRunResult]:
   """
-  Runs all benchmark suites against all answer generators in parallel and returns raw results.
+  Runs all benchmark suites against all answer generators.
+  
+  Execution is serialized by AnswerGenerator to manage resources (e.g. one Podman image at a time),
+  but benchmarks *within* a single generator run in parallel up to `max_concurrency`.
   """
   # Check for duplicate generator names to prevent result collisions
   generator_names = [g.name for g in answer_generators]
@@ -176,56 +179,57 @@ async def run_benchmarks(
     )
 
   semaphore = asyncio.Semaphore(max_concurrency)
-  tasks = []
   results = []
-  completed_tasks_count = 0
 
-  # Ensure all generators are set up and their names are finalized before use.
+  # Initialize tracking dictionaries
+  # We'll populate total tasks as we process each generator
+  completed_by_generator = {g.name: 0 for g in answer_generators}
+  tasks_by_generator = {g.name: 0 for g in answer_generators}
+
   for generator in answer_generators:
+      print(f"\n=== Processing Answer Generator: {generator.name} ===")
+      
       print(f"  - Setting up answer generator: {generator.name}...")
       await generator.setup()  # Initialize/Deploy if needed
 
-  # Initialize tracking dictionaries after setup, when generator names are stable.
-  tasks_by_generator = {g.name: 0 for g in answer_generators}
-  completed_by_generator = {g.name: 0 for g in answer_generators}
+      generator_tasks = []
 
-  for suite_file in benchmark_suites:
-    print(f"--- Loading benchmark suite: {suite_file} ---")
-    with open(suite_file, "r", encoding="utf-8") as f:
-      data = yaml.safe_load(f)
-    benchmark_file = BenchmarkFile.model_validate(data)
+      for suite_file in benchmark_suites:
+        print(f"  - Loading benchmark suite: {suite_file}")
+        with open(suite_file, "r", encoding="utf-8") as f:
+          data = yaml.safe_load(f)
+        benchmark_file = BenchmarkFile.model_validate(data)
 
-    for generator in answer_generators:
-      print(
-          f"  - Adding benchmarks for answer generator: {generator.name}..."
-      )
-      for case in benchmark_file.benchmarks:
-        tasks.append(
-            _run_single_benchmark(
-                suite_file,
-                case,
-                generator,
-                semaphore,
-                logger,
-                max_retries,
-                min_wait,
-                max_wait,
+        for case in benchmark_file.benchmarks:
+            generator_tasks.append(
+                _run_single_benchmark(
+                    suite_file,
+                    case,
+                    generator,
+                    semaphore,
+                    logger,
+                    max_retries,
+                    min_wait,
+                    max_wait,
+                )
             )
-        )
-        tasks_by_generator[generator.name] += 1
+      
+      total_gen_tasks = len(generator_tasks)
+      tasks_by_generator[generator.name] = total_gen_tasks
+      
+      print(
+          f"  - Running {total_gen_tasks} benchmarks in parallel for {generator.name}"
+          f" (max_concurrency={max_concurrency})..."
+      )
 
-  print(
-      f"\n--- Running {len(tasks)} benchmarks in parallel"
-      f" (max_concurrency={max_concurrency}) ---\n"
-  )
+      for task_future in asyncio.as_completed(generator_tasks):
+        result = await task_future
+        results.append(result)
+        completed_by_generator[result.answer_generator] += 1
+      
+      print(f"  - Completed all tasks for {generator.name}.")
 
-  for task_future in asyncio.as_completed(tasks):
-    result = await task_future
-    results.append(result)
-    completed_by_generator[result.answer_generator] += 1
-    completed_tasks_count += 1
-
-  # Final progress reporting for each generator
+  # Final progress reporting
   print("\n--- Summary of Progress per Answer Generator ---")
   for gen_name, total_tasks in tasks_by_generator.items():
     completed = completed_by_generator[gen_name]

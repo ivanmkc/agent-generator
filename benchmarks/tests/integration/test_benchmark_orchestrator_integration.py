@@ -76,3 +76,70 @@ async def test_benchmark_orchestrator_integration():
   assert (
       pass_rate > 0.75
   ), "GroundTruthAnswerGenerator should achieve a high pass rate."
+
+
+@pytest.mark.asyncio
+async def test_benchmark_orchestrator_sequential_execution():
+  """
+  Verifies that generators are processed sequentially.
+  """
+  import time
+  from benchmarks.answer_generators.base import AnswerGenerator
+  from benchmarks.data_models import GeneratedAnswer, ApiUnderstandingAnswerOutput, BaseBenchmarkCase
+
+  class MockAnswerGenerator(AnswerGenerator):
+      def __init__(self, name):
+          self._name = name
+          self.setup_time = 0
+          self.generation_times = []
+          self.setup_called = 0
+
+      @property
+      def name(self) -> str:
+          return self._name
+
+      async def setup(self) -> None:
+          self.setup_called += 1
+          self.setup_time = time.time()
+          await asyncio.sleep(0.1) # Simulate setup work
+
+      async def generate_answer(
+          self, benchmark_case: BaseBenchmarkCase
+      ) -> GeneratedAnswer:
+          self.generation_times.append(time.time())
+          # Return a valid output that matches one of the types in the union (ApiUnderstandingAnswerOutput)
+          output = ApiUnderstandingAnswerOutput(
+              code="print('mock')",
+              rationale="mock rationale",
+              fully_qualified_class_name="mock.module.Class"
+          )
+          return GeneratedAnswer(output=output)
+
+  gen1 = MockAnswerGenerator("gen1")
+  gen2 = MockAnswerGenerator("gen2")
+
+  # Use a small suite to run quickly
+  benchmark_suites = [
+      "benchmarks/benchmark_definitions/api_understanding/benchmark.yaml" 
+  ]
+  
+  import asyncio
+  await benchmark_orchestrator.run_benchmarks(
+      benchmark_suites, [gen1, gen2], max_retries=0
+  )
+
+  assert gen1.setup_called == 1
+  assert gen2.setup_called == 1
+
+  # Verify Sequential Execution:
+  # gen2.setup() should happen AFTER gen1 has finished its work.
+  # Since we can't easily track "finished work" time from the outside without complex mocks,
+  # checking that gen2.setup_time > gen1.generation_times[-1] is a good proxy.
+  # This assumes gen1 had at least one task.
+  
+  if gen1.generation_times:
+      last_gen1_activity = max(gen1.generation_times)
+      assert gen2.setup_time > last_gen1_activity, (
+          f"gen2 setup ({gen2.setup_time}) started before gen1 finished generation ({last_gen1_activity})"
+      )
+
