@@ -111,7 +111,7 @@ async def test_podman_generator_env_vars_setup(mock_subprocess):
 
 @pytest.mark.asyncio
 async def test_podman_generator_run_cli_command():
-    """Test _run_cli_command sends correct HTTP request."""
+    """Test run_cli_command sends correct HTTP request."""
     generator = GeminiCliPodmanAnswerGenerator(
         dockerfile_dir=".",
         image_name="test-image",
@@ -134,7 +134,7 @@ async def test_podman_generator_run_cli_command():
         mock_resp.json = AsyncMock(return_value=mock_response_data)
         mock_post.return_value.__aenter__.return_value = mock_resp
         
-        response, logs = await generator._run_cli_command(["--output-format", "stream-json", "Test Prompt"])
+        response, logs = await generator.run_cli_command(["--output-format", "stream-json", "Test Prompt"])
         
         # Verify call arguments
         mock_post.assert_called_once()

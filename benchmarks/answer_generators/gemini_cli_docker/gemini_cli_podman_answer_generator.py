@@ -39,121 +39,37 @@ from benchmarks.answer_generators.gemini_cli_docker.image_definitions import (
     IMAGE_DEFINITIONS,
     IMAGE_PREFIX,
 )
+from benchmarks.answer_generators.hash_utils import calculate_source_hash
 
 class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
   """An AnswerGenerator that uses the gemini CLI hosted in a local Podman container (API Server mode)."""
+# ... (existing init) ...
 
-  def __init__(  # pylint: disable=super-init-not-called
-      self,
-      dockerfile_dir: str | Path,
-      image_name: str,
-      model_name: str = "gemini-2.5-pro",
-      context_instruction: str | None = None,
-      auto_deploy: bool = False,
-      force_deploy: bool = False,
-      # Injected dependencies
-      image_definitions: dict[str, ImageDefinition] = IMAGE_DEFINITIONS,
-      service_url: str | None = None,
-  ):
-    """Initializes the GeminiCliPodmanAnswerGenerator.
+# ... (inside class) ...
 
-    Matches the API of GeminiCliCloudRunAnswerGenerator for interchangeability.
-    """
-    super().__init__(model_name=model_name, cli_path="gemini")
-    
-    self.image_name = image_name
-    self._image_definitions = image_definitions
-
-    self.dockerfile_dir = Path(dockerfile_dir)
-    self.context_instruction = context_instruction
-    self.auto_deploy = auto_deploy
-    self.force_deploy = force_deploy
-    self._image_checked = False
-    self._setup_completed = False
-    self._setup_lock: asyncio.Lock | None = None
-    
-    # Server state
-    self._container_name = f"gemini-cli-server-{uuid.uuid4().hex[:8]}"
-    self._port: int | None = None
-    
-    if service_url:
-        self._base_url = service_url
-        self._setup_completed = True # Assume ready if URL provided
-        self._is_proxy = True
-    else:
-        self._base_url = None
-        self._is_proxy = False
-
-  @property
-  def name(self) -> str:
-    """Returns a unique name for this generator instance."""
-    return (
-        f"GeminiCliPodmanAnswerGenerator({self.model_name},"
-        f" image={self.image_name})"
-    )
-
-  async def setup(self) -> None:
-    """Ensures the Podman image is built and starts the API server container."""
-    if self._is_proxy:
-        print(f"[Podman Setup] Running in Proxy Mode against {self._base_url}")
-        return
-
-    if self._setup_lock is None:
-        self._setup_lock = asyncio.Lock()
-        
-    async with self._setup_lock:
-        if self._setup_completed:
-            return
-
-        print(f"[Podman Setup] Starting setup for {self.name}")
-        await self._ensure_image_ready()
-        
-        # # Ensure any previous container is cleaned up before starting a new one
-        # self._cleanup_server_container()
-        
-        await self._start_server_container()
-        self._setup_completed = True
-        print(f"[Podman Setup] Setup for {self.name} completed. Listening on {self._base_url}")
-
-  async def teardown(self) -> None:
-      """Stops the persistent container."""
-      if self._is_proxy:
-          return
-      self._cleanup_server_container()
-
-  async def _ensure_image_ready(self):
-    """Checks if the requested image exists and builds it if necessary."""
-    print(f"[Podman Ensure Image] Checking image readiness for {self.image_name}")
-    if self._image_checked and not self.force_deploy:
-      return
-
-    # Always ensure the 'base' image is available if we are in auto-deploy mode.
-    # This prevents build failures for custom images that depend on it (like adk-python)
-    # when the local environment tries to pull 'base' from docker.io instead of building it.
-    base_image = f"{IMAGE_PREFIX}:base"
-    if (self.auto_deploy or self.force_deploy) and base_image in self._image_definitions:
-        await self._build_image_chain(base_image, force=self.force_deploy)
-      
-    # 1. Check if it's a known managed image
-    if self.image_name in self._image_definitions:
-      if self.auto_deploy or self.force_deploy:
-         await self._build_image_chain(self.image_name, force=self.force_deploy)
-      self._image_checked = True
-      self.force_deploy = False 
-      return
-    
-    # If we get here, the image is not a known managed image.
-    raise RuntimeError(
-        f"Image '{self.image_name}' is not a known managed image and no "
-        "dockerfile_dir was provided for a custom build."
-    )
+  async def _get_image_label(self, image_name: str, label_key: str) -> str | None:
+      """Retrieves a label value from a Podman image."""
+      try:
+          proc = await asyncio.create_subprocess_exec(
+              "podman", "inspect", "--format", f"{{{{.Config.Labels.{label_key}}}}}", image_name,
+              stdout=asyncio.subprocess.PIPE,
+              stderr=asyncio.subprocess.DEVNULL
+          )
+          stdout, _ = await proc.communicate()
+          if proc.returncode == 0:
+              val = stdout.decode().strip()
+              return val if val != "<no value>" else None
+      except Exception:
+          pass
+      return None
 
   async def _execute_podman_build(
       self,
       image_name: str,
       dockerfile_path: Path,
       context_path: Path,
-      build_args: Optional[dict[str, str]] = None
+      build_args: Optional[dict[str, str]] = None,
+      labels: Optional[dict[str, str]] = None,
   ):
     """Executes the podman build command."""
     print(f"Building Podman image: {image_name} from {context_path} (Dockerfile: {dockerfile_path.name})...")
@@ -167,6 +83,10 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
         for arg_name, arg_val in build_args.items():
             build_cmd.extend(["--build-arg", f"{arg_name}={arg_val}"])
             
+    if labels:
+        for k, v in labels.items():
+            build_cmd.extend(["--label", f"{k}={v}"])
+
     build_cmd.append(str(context_path))
 
     build_proc = await asyncio.create_subprocess_exec(
@@ -174,6 +94,7 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE
     )
+# ... (rest of method) ...
     stdout, stderr = await build_proc.communicate()
     
     if build_proc.returncode != 0:
@@ -190,26 +111,42 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
 
     full_image_name = image_key
     
-    if not force:
+    base_path = Path(__file__).parent
+    source_path = base_path / definition.source_dir
+    dockerfile_path = base_path / definition.dockerfile
+
+    # Calculate local source hash
+    current_hash = calculate_source_hash(source_path)
+    
+    should_build = force
+    
+    if not should_build:
+        # Check if image exists
         proc = await asyncio.create_subprocess_exec(
             "podman", "image", "exists", full_image_name,
             stdout=asyncio.subprocess.DEVNULL,
             stderr=asyncio.subprocess.DEVNULL
         )
         await proc.wait()
-        if proc.returncode == 0:
-          return
+        if proc.returncode != 0:
+            should_build = True
+        else:
+            # Check hash label
+            existing_hash = await self._get_image_label(full_image_name, "source_hash")
+            if existing_hash != current_hash:
+                print(f"[Podman Build] Source change detected for {full_image_name} (old: {existing_hash}, new: {current_hash}). Rebuilding.")
+                should_build = True
+            else:
+                print(f"[Podman Build] Image {full_image_name} is up to date (hash: {current_hash}).")
 
-    base_path = Path(__file__).parent
-    source_path = base_path / definition.source_dir
-    dockerfile_path = base_path / definition.dockerfile
-    
-    await self._execute_podman_build(
-        image_name=full_image_name,
-        dockerfile_path=dockerfile_path,
-        context_path=source_path,
-        build_args=definition.build_args
-    )
+    if should_build:
+        await self._execute_podman_build(
+            image_name=full_image_name,
+            dockerfile_path=dockerfile_path,
+            context_path=source_path,
+            build_args=definition.build_args,
+            labels={"source_hash": current_hash}
+        )
 
   async def _start_server_container(self):
       """Starts the container in daemon mode exposing the API server."""
