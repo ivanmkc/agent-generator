@@ -287,7 +287,7 @@ async def run_orchestrator():
             test_file = __file__
             
             cmd = [
-                "env/bin/python", "-m", "pytest", "-n", "auto", "-v",
+                "env/bin/python", "-m", "pytest", "-n", "auto", "-v", "--profile",
                 "--import-mode=importlib",
                 # Filter strictly for this test case parameter
                 "-k", gen_id, 

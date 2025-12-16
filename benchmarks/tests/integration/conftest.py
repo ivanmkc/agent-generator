@@ -145,11 +145,14 @@ async def podman_base_test_case(model_name: str) -> GeneratorTestCase:
             service_url=os.environ["TEST_GENERATOR_URL"]
         )
     else:
+        # Check for parallel execution without orchestrator
+        if os.environ.get("PYTEST_XDIST_WORKER") and not os.environ.get("TEST_GENERATOR_URL"):
+            pytest.skip("Skipping resource-heavy Podman test in parallel mode without orchestrator. Use 'python benchmarks/tests/integration/test_unified_generators.py' for optimized execution.")
+
         if not has_cmd("podman"):
             pytest.skip("Podman not installed")
 
         gen = GeminiCliPodmanAnswerGenerator(
-            dockerfile_dir=Path("benchmarks/answer_generators/gemini_cli_docker/adk-python"),
             image_name="gemini-cli:adk-python",
             auto_deploy=True,
             model_name=model_name
@@ -179,6 +182,10 @@ async def podman_adk_docs_test_case(model_name: str) -> GeneratorTestCase:
             service_url=os.environ["TEST_GENERATOR_URL"]
         )
     else:
+        # Check for parallel execution without orchestrator
+        if os.environ.get("PYTEST_XDIST_WORKER") and not os.environ.get("TEST_GENERATOR_URL"):
+            pytest.skip("Skipping resource-heavy Podman test in parallel mode without orchestrator. Use 'python benchmarks/tests/integration/test_unified_generators.py' for optimized execution.")
+
         if not has_cmd("podman"):
             pytest.skip("Podman not installed")
 
@@ -221,6 +228,10 @@ async def podman_context7_test_case(model_name: str) -> GeneratorTestCase:
             service_url=os.environ["TEST_GENERATOR_URL"]
         )
     else:
+        # Check for parallel execution without orchestrator
+        if os.environ.get("PYTEST_XDIST_WORKER") and not os.environ.get("TEST_GENERATOR_URL"):
+            pytest.skip("Skipping resource-heavy Podman test in parallel mode without orchestrator. Use 'python benchmarks/tests/integration/test_unified_generators.py' for optimized execution.")
+
         if not has_cmd("podman"):
             pytest.skip("Podman not installed")
 
