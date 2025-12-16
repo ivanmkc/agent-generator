@@ -42,7 +42,7 @@ class Bcolors:
 
 # %%
 async def run_comparison(logger: JsonTraceLogger) -> List[BenchmarkRunResult]:
-  """Sets up and runs the benchmark comparison."""
+  """Sets up and runs the benchmark comparison sequentially per generator."""
   print("Configuring benchmark run...")
 
   benchmark_suites = [
@@ -56,18 +56,41 @@ async def run_comparison(logger: JsonTraceLogger) -> List[BenchmarkRunResult]:
   answer_generators = CANDIDATE_GENERATORS
 
   print(f"Executing benchmarks with {len(answer_generators)} generators...")
-  # max_concurrency matches the configured limit for the target environment.
-  # Use PODMAN_CONFIG.MAX_GLOBAL_CONCURRENCY (40) for local runs to avoid OOM.
-  # Use CLOUD_RUN_CONFIG.MAX_GLOBAL_CONCURRENCY (400) for Cloud Run runs.
-  benchmark_results = await benchmark_orchestrator.run_benchmarks(
-      benchmark_suites=benchmark_suites,
-      answer_generators=answer_generators,
-      max_concurrency=PODMAN_CONFIG.MAX_GLOBAL_CONCURRENCY,
-      max_retries=3,
-      logger=logger,
-  )
+  
+  all_results = []
 
-  return benchmark_results
+  # Run generators sequentially to enforce "One Generator at a Time"
+  # This optimizes resource usage (containers) and ensures clean teardown.
+  for generator in answer_generators:
+      print(f"\n--- Starting Generator: {generator.name} ---")
+      
+      try:
+          # Explicit setup (optional, but good for pre-flight check)
+          if hasattr(generator, "setup"):
+              print(f"[{generator.name}] Setting up...")
+              await generator.setup()
+
+          # Run benchmarks for this single generator
+          # max_concurrency applies to tests *within* this generator
+          results = await benchmark_orchestrator.run_benchmarks(
+              benchmark_suites=benchmark_suites,
+              answer_generators=[generator], 
+              max_concurrency=PODMAN_CONFIG.MAX_GLOBAL_CONCURRENCY,
+              max_retries=3,
+              logger=logger,
+          )
+          all_results.extend(results)
+      
+      except Exception as e:
+          print(f"[{generator.name}] Error during execution: {e}")
+      
+      finally:
+          # Explicit teardown to free resources before next generator
+          if hasattr(generator, "teardown"):
+              print(f"[{generator.name}] Tearing down...")
+              await generator.teardown()
+
+  return all_results
 
 
 # %%
