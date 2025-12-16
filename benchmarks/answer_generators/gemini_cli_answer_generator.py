@@ -47,13 +47,12 @@ class GeminiCliAnswerGenerator(GeminiAnswerGenerator):
       context: str | Path | None = None,
       cli_path: str = "gemini",
   ):
-    # Initialize the grandparent LlmAnswerGenerator to set up prompts logic
-    LlmAnswerGenerator.__init__(self, context=context)
-
-    # Do not call GeminiAnswerGenerator.__init__ to avoid initializing the genai client.
-    self.model_name = model_name
-    self.context = context
+    # Call the direct parent (GeminiAnswerGenerator) and pass relevant arguments.
+    super().__init__(model_name=model_name, context=context)
+    
+    # cli_path is specific to this class and not passed up the chain.
     self.cli_path = cli_path
+    self._setup_completed = False
 
   @property
   def name(self) -> str:
@@ -67,6 +66,11 @@ class GeminiCliAnswerGenerator(GeminiAnswerGenerator):
       benchmark_case: BaseBenchmarkCase
   ) -> GeneratedAnswer:
     """Generates an answer using the gemini CLI."""
+    if not self._setup_completed:
+      raise RuntimeError(
+          f"Generator {self.name} has not been set up. Please call setup() first."
+      )
+
     prompt: str
     response_schema: BaseModel | None = None
 
@@ -150,9 +154,9 @@ class GeminiCliAnswerGenerator(GeminiAnswerGenerator):
     """
     raise NotImplementedError("Subclasses must implement run_cli_command")
 
-  async def setup(self) -> None:
+  async def setup(self, force_deploy: bool = False) -> None:
     """Performs any necessary setup (e.g., starting containers)."""
-    pass
+    self._setup_completed = True
 
   async def teardown(self) -> None:
     """Performs cleanup (e.g., stopping containers)."""
@@ -160,6 +164,10 @@ class GeminiCliAnswerGenerator(GeminiAnswerGenerator):
 
   async def get_mcp_tools(self) -> list[str]:
     """Returns a list of available MCP tools (servers)."""
+    if not self._setup_completed:
+      raise RuntimeError(
+          f"Generator {self.name} has not been set up. Please call setup() first."
+      )
     tools = []
 
     try:
@@ -192,6 +200,10 @@ class GeminiCliAnswerGenerator(GeminiAnswerGenerator):
 
   async def get_gemini_cli_extensions(self) -> list[str]:
     """Returns a list of available Gemini CLI extensions."""
+    if not self._setup_completed:
+      raise RuntimeError(
+          f"Generator {self.name} has not been set up. Please call setup() first."
+      )
     extensions = []
 
     # 2. List Extensions

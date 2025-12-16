@@ -222,10 +222,25 @@ async def run_benchmarks(
           f" (max_concurrency={max_concurrency})..."
       )
 
+      start_gen_time = time.time()
+      last_log_time = time.time()
+      log_interval_minutes = 1 # Log every minute
+
       for task_future in asyncio.as_completed(generator_tasks):
         result = await task_future
         results.append(result)
         completed_by_generator[result.answer_generator] += 1
+        
+        current_time = time.time()
+        if (current_time - last_log_time) / 60 >= log_interval_minutes:
+            elapsed_minutes = (current_time - start_gen_time) / 60
+            completed_tasks = completed_by_generator[result.answer_generator]
+            total_tasks = tasks_by_generator[result.answer_generator]
+            print(
+                f"  - {generator.name}: {completed_tasks}/{total_tasks} tasks "
+                f"completed in {elapsed_minutes:.1f} minutes."
+            )
+            last_log_time = current_time
       
       print(f"  - Completed all tasks for {generator.name}.")
 

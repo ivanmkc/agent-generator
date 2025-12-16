@@ -12,6 +12,7 @@ __pycache__/
 benchmark_runs/
 # Also ignore benchmark_run.ipynb if it's generated
 benchmarks/benchmark_run.ipynb
+notebooks/*.ipynb
 
 # Temporary files for Docker builds
 benchmarks/answer_generators/gemini_cli_docker/source_archive_*.tar.gz

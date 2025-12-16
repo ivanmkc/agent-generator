@@ -83,28 +83,18 @@ class GeminiCliCloudRunAnswerGenerator(GeminiCliAnswerGenerator):
       force_deploy: bool = False,
       service_url: str | None = None,
   ):
-    """
-    Args:
-        dockerfile_dir: Path to the directory containing the Dockerfile to deploy.
-        service_name: Name of the Cloud Run service.
-        model_name: The model name.
-        project_id: Google Cloud Project ID. Auto-detected if None.
-        region: Cloud Run region.
-        context_instruction: Instruction to prepend.
-        auto_deploy: If True, automatically deploys/updates the service in setup().
-        image_name: Optional override for the image name (excluding registry/project).
-                    Defaults to service_name (with exception for adk-python).
-        force_deploy: If True, forces a deployment in setup() even if versions match.
-        service_url: If provided, runs in Proxy Mode using this URL without deploying.
-    """
-    super().__init__(model_name=model_name, cli_path="gemini")
+    # Store all arguments specific to this class first
     self.dockerfile_dir = Path(dockerfile_dir)
     self.service_name = service_name
     self.project_id = project_id
     self.region = region
-    self.context_instruction = context_instruction
+    self.context_instruction = context_instruction # Store locally
     self.auto_deploy = auto_deploy
     self.force_deploy = force_deploy
+    
+    # Then call the parent constructor with only the arguments it expects
+    super().__init__(model_name=model_name, cli_path="gemini", context=self.context_instruction)
+    
     self._auth_req = google.auth.transport.requests.Request()
     self._id_token = None
     self._id_token_time = 0

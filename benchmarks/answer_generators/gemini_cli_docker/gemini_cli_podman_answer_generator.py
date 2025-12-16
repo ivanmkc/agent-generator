@@ -43,7 +43,48 @@ from benchmarks.answer_generators.hash_utils import calculate_source_hash
 
 class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
   """An AnswerGenerator that uses the gemini CLI hosted in a local Podman container (API Server mode)."""
-# ... (existing init) ...
+class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
+  """An AnswerGenerator that uses the gemini CLI hosted in a local Podman container (API Server mode)."""
+
+  def __init__(
+      self,
+      dockerfile_dir: str | Path,
+      image_name: str,
+      model_name: str = "gemini-2.5-pro",
+      context_instruction: str | None = None,
+      auto_deploy: bool = False,
+      force_deploy: bool = False,
+      # Injected dependencies
+      image_definitions: dict[str, ImageDefinition] = IMAGE_DEFINITIONS,
+      service_url: str | None = None,
+  ):
+    # Store all arguments specific to this class
+    self.image_name = image_name
+    self._image_definitions = image_definitions
+    self.dockerfile_dir = Path(dockerfile_dir)
+    self.context_instruction = context_instruction
+    self.auto_deploy = auto_deploy
+    self.force_deploy = force_deploy
+
+    # Call the parent constructor with only the arguments it expects
+    super().__init__(model_name=model_name, cli_path="gemini", context=self.context_instruction)
+    
+    self._image_checked = False
+    self._setup_completed = False
+    self._setup_lock: asyncio.Lock | None = None
+    
+    # Server state
+    self._container_name = f"gemini-cli-server-{uuid.uuid4().hex[:8]}"
+    self._port: int | None = None
+    
+    if service_url:
+        self._base_url = service_url
+        self._setup_completed = True # Assume ready if URL provided
+        self._is_proxy = True
+    else:
+        self._base_url = None
+        self._is_proxy = False
+
 
 # ... (inside class) ...
 
