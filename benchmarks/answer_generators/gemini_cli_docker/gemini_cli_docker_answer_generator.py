@@ -62,14 +62,28 @@ class GeminiCliDockerAnswerGenerator(GeminiCliAnswerGenerator):
         f" image={self.image_name})"
     )
 
-  async def _run_cli_command(
-      self, prompt: str
+  async def run_cli_command(
+      self, command_parts: list[str]
   ) -> tuple[dict[str, Any], list[TraceLogEvent]]:
     """Executes the gemini CLI command inside Docker and returns the parsed JSON output."""
 
-    full_prompt = prompt
-    if self.context_instruction:
-      full_prompt = self.context_instruction + prompt
+    # Extract prompt from the last argument (convention from base class)
+    # If the command doesn't have a prompt (e.g. 'mcp list'), we don't modify it.
+    
+    # Heuristic: If the last arg is a long string or looks like a prompt, we treat it as such.
+    # Commands like 'mcp list' won't have a prompt.
+    # The base class constructs command_parts as [cli_path, flags..., prompt].
+    
+    # We check if we are running a 'generate' command (implied by presence of --model etc)
+    # vs a tool command (mcp list).
+    is_generation = "--model" in command_parts
+    
+    final_command_parts = list(command_parts)
+
+    if is_generation and self.context_instruction:
+        prompt = final_command_parts[-1]
+        full_prompt = self.context_instruction + prompt
+        final_command_parts[-1] = full_prompt
 
     # Create a temporary directory on the host to capture logs
     host_tmp_dir = tempfile.mkdtemp()
@@ -117,17 +131,11 @@ class GeminiCliDockerAnswerGenerator(GeminiCliAnswerGenerator):
         docker_args.append(self.image_name)
 
         # Gemini Command (inside container)
-        # Note: we use the same arguments as the base class, but 'gemini' is the entrypoint or command
-        gemini_args = [
-            self.cli_path,  # "gemini"
-            full_prompt,
-            "--output-format",
-            "stream-json",  # Enabled output-format stream-json for better tracing
-            "--model",
-            self.model_name,
-            "--yolo",
-            # "--sandbox",  <-- Removed because we are already in a container
-        ]
+        # Use the final_command_parts passed from the base class
+        # But ensure the executable matches what we expect inside the container?
+        # self.cli_path is 'gemini'. If base passed 'gemini', it should be fine.
+        
+        gemini_args = final_command_parts
 
         # Construct the full command arguments
         cmd_args = docker_args + gemini_args

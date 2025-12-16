@@ -1,5 +1,6 @@
 pytest-xdist
 pytest-asyncio
+pytest-profiling
 google-adk==1.20.0
 google-cloud-build
 google-cloud-run

@@ -148,6 +148,7 @@ from benchmarks.answer_generators import (
     GeminiAnswerGenerator,
     AdkAnswerGenerator,
     GeminiCliDockerAnswerGenerator,
+    GeminiCliLocalAnswerGenerator,
 )
 
 async def main():

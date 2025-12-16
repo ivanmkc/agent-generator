@@ -27,3 +27,7 @@ verify_adk_docs_context_local.py
 
 # Env files
 env/
+
+.env
+plan.md
+postmortem.md

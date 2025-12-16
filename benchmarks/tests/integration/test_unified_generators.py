@@ -14,13 +14,32 @@
 
 """
 Primary unified integration test suite for all Answer Generator implementations.
+Also acts as the orchestration script for sequential generator execution.
 """
 
 import pytest
 import json
+import re
+import asyncio
+import os
+import sys
 from pathlib import Path
-# Import for type hinting; pytest automatically finds fixtures in conftes
+
+# Ensure project root is in sys.path for direct execution
+if __name__ == "__main__":
+    sys.path.append(os.getcwd())
+
+# Import for type hinting; pytest automatically finds fixtures in conftest
 from benchmarks.tests.integration.conftest import GeneratorTestCase
+
+# Imports for Orchestrator Logic
+try:
+    from benchmarks.answer_generators.gemini_cli_docker.gemini_cli_podman_answer_generator import GeminiCliPodmanAnswerGenerator
+    from benchmarks.answer_generators.gemini_cli_docker.gemini_cli_cloud_run_answer_generator import GeminiCliCloudRunAnswerGenerator
+except ImportError:
+    # Allow running purely as a test file without these imports if needed (e.g. unit testing setup)
+    pass
+
 
 @pytest.mark.asyncio
 async def test_generator_capabilities(test_case: GeneratorTestCase) -> None:
@@ -108,3 +127,190 @@ async def test_generator_execution(test_case: GeneratorTestCase, tmp_path: Path)
 
     except Exception as e:
         pytest.fail(f"[{test_case.id}] Generation failed: {e}")
+
+
+@pytest.mark.asyncio
+async def test_generator_memory_context(test_case: GeneratorTestCase) -> None:
+    """
+    Verifies that the generator loads the expected context files by inspecting debug logs.
+    """
+    generator = test_case.generator
+
+    # Check if this test case expects any context files
+    if not test_case.expected_context_files:
+         pytest.skip(f"No expected context files defined for {test_case.id}")
+
+    # Ensure generator is set up (e.g., container running)
+    await generator.setup()
+    
+    # We need a CLI generator to run commands and get debug logs
+    if not hasattr(generator, "run_cli_command"):
+        pytest.skip(f"Generator {test_case.id} does not support run_cli_command.")
+
+    print(f"[{test_case.id}] Running gemini --debug to inspect memory context...")
+    
+    # Run a simple command with --debug to trigger context loading logs
+    # Using a trivial command like 'hello' as the prompt to minimize side effects
+    command_parts = [generator.cli_path, "--debug", "hello"]
+    try:
+        response_dict, logs = await generator.run_cli_command(command_parts)
+    except Exception as e:
+        pytest.fail(f"[{test_case.id}] Failed to run debug command: {e}")
+
+    # Combine all log content for easier searching
+    full_logs_content = "\n".join([event.content for event in logs if event.content])
+    # print(f"[{test_case.id}] Full debug logs (snippet):\n{full_logs_content[:1000]}...")
+
+    # Regex to find the specific debug line for loaded context paths
+    # Example: [DEBUG] [MemoryDiscovery] Final ordered INSTRUCTIONS.md paths to read: ["/path/to/INSTRUCTIONS.md"]
+    match = re.search(
+        r"\[DEBUG\] \[MemoryDiscovery\] Final ordered INSTRUCTIONS.md paths to read: (.*)",
+        full_logs_content,
+    )
+    if not match:
+        # If the debug line is not found, check if it's an LLM refusal
+        if "I cannot" in full_logs_content or "I am unable" in full_logs_content or "I am a specialized agent" in full_logs_content:
+            pytest.skip(f"[{test_case.id}] CLI returned LLM explanation instead of debug memory logs: {full_logs_content.strip()[:100]}...")
+        else:
+            pytest.fail(f"[{test_case.id}] 'Final ordered INSTRUCTIONS.md paths' debug line not found in logs, and no LLM refusal detected.")
+
+    # Extract the paths string and parse as JSON array
+    paths_str = match.group(1).replace("'", '"') # Replace single quotes with double for valid JSON
+    
+    # Handle empty list case (e.g. if paths_str is empty)
+    if not paths_str.strip():
+        loaded_paths = []
+    else:
+        try:
+            # The regex now captures the entire JSON array string directly
+            loaded_paths = json.loads(paths_str)
+        except json.JSONDecodeError as e:
+            pytest.fail(f"[{test_case.id}] Failed to parse loaded paths JSON from debug logs: {e}\nRaw paths string: {paths_str}")
+
+
+    print(f"[{test_case.id}] Discovered loaded context paths: {loaded_paths}")
+
+    # Assert that all expected files are present in the loaded paths
+    for expected_file in test_case.expected_context_files:
+        assert expected_file in loaded_paths, f"Expected context file '{expected_file}' not found in loaded memory paths. Available: {loaded_paths}"
+
+
+# --- Orchestrator Logic ---
+
+async def run_orchestrator():
+    """
+    Main orchestration loop to run tests sequentially by generator.
+    """
+    # Configuration for generators that need sequential execution
+    generators = [
+        {
+            "id": "podman_base_test_case",
+            "type": "podman",
+            "dockerfile_dir": "benchmarks/answer_generators/gemini_cli_docker/adk-python",
+            "image_name": "gemini-cli:adk-python"
+        },
+        {
+            "id": "podman_adk_docs_test_case",
+            "type": "podman",
+            "dockerfile_dir": "benchmarks/answer_generators/gemini_cli_docker/adk-docs-ext",
+            "image_name": "gemini-cli:adk-docs-ext"
+        },
+        {
+            "id": "podman_context7_test_case",
+            "type": "podman",
+            "dockerfile_dir": "benchmarks/answer_generators/gemini_cli_docker/gemini-cli-mcp-context7",
+            "image_name": "gemini-cli:mcp-context7"
+        },
+        {
+            "id": "cloud_run_test_case",
+            "type": "cloud_run",
+            "dockerfile_dir": "benchmarks/answer_generators/gemini_cli_docker/base",
+            "service_name": "gemini-cli-test-service",
+            "region": "us-central1"
+        }
+    ]
+
+    print("=== Starting Sequential Integration Test Suite ===")
+
+    for config in generators:
+        gen_id = config["id"]
+        gen_type = config["type"]
+        print(f"\n>>> Preparing Generator: {gen_id} ({gen_type})")
+        
+        generator = None
+        # Instantiate
+        if gen_type == "podman":
+            generator = GeminiCliPodmanAnswerGenerator(
+                dockerfile_dir=Path(config["dockerfile_dir"]),
+                image_name=config["image_name"],
+                auto_deploy=True,
+                model_name="gemini-2.5-flash"
+            )
+        elif gen_type == "cloud_run":
+            # Check for Project ID
+            if not os.environ.get("GOOGLE_CLOUD_PROJECT"):
+                print(f"!!! Skipping {gen_id}: GOOGLE_CLOUD_PROJECT not set.")
+                continue
+                
+            generator = GeminiCliCloudRunAnswerGenerator(
+                dockerfile_dir=Path(config["dockerfile_dir"]),
+                service_name=config["service_name"],
+                region=config.get("region", "us-central1"),
+                auto_deploy=True,
+                model_name="gemini-2.5-flash"
+            )
+        else:
+            print(f"!!! Unknown generator type: {gen_type}")
+            continue
+        
+        try:
+            print(f"[{gen_id}] Setting up...")
+            await generator.setup()
+            
+            # Get URL (standardize access)
+            service_url = getattr(generator, "_base_url", None) or getattr(generator, "service_url", None)
+            
+            if not service_url:
+                raise RuntimeError(f"Generator {gen_id} failed to return a service URL after setup.")
+            
+            print(f"[{gen_id}] Service active at {service_url}")
+            
+            # Prepare Environment for Pytest
+            env = os.environ.copy()
+            env["TEST_GENERATOR_ID"] = gen_id
+            env["TEST_GENERATOR_URL"] = service_url
+            
+            # Run Pytest for this specific case
+            print(f"[{gen_id}] Launching pytest with -n auto...")
+            
+            # Point to THIS file
+            test_file = __file__
+            
+            cmd = [
+                "env/bin/python", "-m", "pytest", "-n", "auto", "-v",
+                "--import-mode=importlib",
+                # Filter strictly for this test case parameter
+                "-k", gen_id, 
+                test_file
+            ]
+            
+            proc = await asyncio.create_subprocess_exec(*cmd, env=env)
+            await proc.wait()
+            
+            if proc.returncode != 0:
+                print(f"!!! [{gen_id}] Tests FAILED with code {proc.returncode}")
+            else:
+                print(f"[{gen_id}] Tests PASSED")
+
+        except Exception as e:
+            print(f"!!! [{gen_id}] Error during execution: {e}")
+            
+        finally:
+            print(f"[{gen_id}] Tearing down...")
+            if generator:
+                await generator.teardown()
+
+    print("\n=== Suite Complete ===")
+
+if __name__ == "__main__":
+    asyncio.run(run_orchestrator())

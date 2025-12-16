@@ -55,6 +55,39 @@
                 "panel": "new"
             },
             "problemMatcher": []
+        },
+        {
+            "label": "Run Podman Tests",
+            "type": "shell",
+            "command": "env/bin/python -m pytest -n auto -v --import-mode=importlib -k \"podman\" benchmarks/tests/unit/test_gemini_cli_podman_answer_generator.py benchmarks/tests/integration/test_unified_generators.py",
+            "group": "test",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Run Integration Orchestrator",
+            "type": "shell",
+            "command": "env/bin/python benchmarks/tests/integration/test_unified_generators.py",
+            "group": "test",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Profile Integration Tests",
+            "type": "shell",
+            "command": "env/bin/python -m pytest --profile --import-mode=importlib benchmarks/tests/integration/",
+            "group": "test",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": []
         }
     ]
 }

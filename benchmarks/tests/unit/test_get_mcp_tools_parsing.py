@@ -14,8 +14,8 @@ class MockGeminiCliAnswerGenerator(GeminiCliAnswerGenerator):
         self.mcp_list_output = mcp_list_output_content
         self.extensions_list_output = extensions_list_output_content
 
-    async def _run_cli_command(self, cli_args: list[str], direct_command_parts: Optional[list[str]] = None) -> tuple[dict[str, Any], list[TraceLogEvent]]:
-        cmd = direct_command_parts or cli_args
+    async def run_cli_command(self, command_parts: list[str]) -> tuple[dict[str, Any], list[TraceLogEvent]]:
+        cmd = command_parts
         stdout = ""
         # Check what command is being run
         if "mcp" in cmd and "list" in cmd:

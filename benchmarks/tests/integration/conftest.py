@@ -27,6 +27,7 @@ from typing import List, Optional, Any
 from benchmarks.answer_generators.base import AnswerGenerator
 from benchmarks.answer_generators.gemini_answer_generator import GeminiAnswerGenerator
 from benchmarks.answer_generators.gemini_cli_answer_generator import GeminiCliAnswerGenerator
+from benchmarks.answer_generators.gemini_cli_local_answer_generator import GeminiCliLocalAnswerGenerator
 from benchmarks.answer_generators.adk_answer_generator import AdkAnswerGenerator
 from benchmarks.answer_generators.gemini_cli_docker.gemini_cli_podman_answer_generator import GeminiCliPodmanAnswerGenerator
 
@@ -75,7 +76,7 @@ class GeneratorTestCase:
 
 # --- Shared Configuration Fixtures ---
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def model_name() -> str:
     """
     Returns the default model name to use for integration tests.
@@ -86,7 +87,7 @@ def model_name() -> str:
 
 # --- Individual Fixtures returning TestCase objects ---
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def api_test_case(model_name: str) -> GeneratorTestCase:
     """Fixture for Direct Gemini API."""
     if not has_env("GEMINI_API_KEY"):
@@ -100,13 +101,13 @@ def api_test_case(model_name: str) -> GeneratorTestCase:
     )
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def cli_local_test_case(model_name: str) -> GeneratorTestCase:
     """Fixture for Local CLI."""
     if not has_env("GEMINI_API_KEY"):
         pytest.skip("GEMINI_API_KEY not set")
     
-    gen = GeminiCliAnswerGenerator(model_name=model_name)
+    gen = GeminiCliLocalAnswerGenerator(model_name=model_name)
     
     return GeneratorTestCase(
         id="cli-local",
@@ -115,7 +116,7 @@ def cli_local_test_case(model_name: str) -> GeneratorTestCase:
     )
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def adk_agent_test_case(model_name: str) -> GeneratorTestCase:
     """Fixture for ADK Agents."""
     if not has_env("GEMINI_API_KEY"):
@@ -130,21 +131,31 @@ def adk_agent_test_case(model_name: str) -> GeneratorTestCase:
     )
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 async def podman_base_test_case(model_name: str) -> GeneratorTestCase:
     """Fixture for Podman Base Image."""
-    if not has_cmd("podman"):
-        pytest.skip("Podman not installed")
-
-    gen = GeminiCliPodmanAnswerGenerator(
-        dockerfile_dir=Path("benchmarks/answer_generators/gemini_cli_docker/adk-python"),
-        image_name="gemini-cli:adk-python",
-        auto_deploy=True,
-        model_name=model_name
-    )
     
-    print(f"--- [Setup] Initializing {gen.image_name} ---")
-    await gen.setup()
+    # Check for Proxy Mode
+    if os.environ.get("TEST_GENERATOR_ID") == "podman_base_test_case" and os.environ.get("TEST_GENERATOR_URL"):
+        print(f"[Fixture] Using Proxy Generator for podman_base_test_case at {os.environ['TEST_GENERATOR_URL']}")
+        gen = GeminiCliPodmanAnswerGenerator(
+            dockerfile_dir=Path("benchmarks/answer_generators/gemini_cli_docker/adk-python"),
+            image_name="gemini-cli:adk-python",
+            model_name=model_name,
+            service_url=os.environ["TEST_GENERATOR_URL"]
+        )
+    else:
+        if not has_cmd("podman"):
+            pytest.skip("Podman not installed")
+
+        gen = GeminiCliPodmanAnswerGenerator(
+            dockerfile_dir=Path("benchmarks/answer_generators/gemini_cli_docker/adk-python"),
+            image_name="gemini-cli:adk-python",
+            auto_deploy=True,
+            model_name=model_name
+        )
+        print(f"--- [Setup] Initializing {gen.image_name} ---")
+        await gen.setup()
     
     return GeneratorTestCase(
         id="podman-base",
@@ -154,22 +165,31 @@ async def podman_base_test_case(model_name: str) -> GeneratorTestCase:
     )
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 async def podman_adk_docs_test_case(model_name: str) -> GeneratorTestCase:
     """Fixture for Podman ADK Docs Extension (MCP)."""
 
-    if not has_cmd("podman"):
-        pytest.skip("Podman not installed")
+    # Check for Proxy Mode
+    if os.environ.get("TEST_GENERATOR_ID") == "podman_adk_docs_test_case" and os.environ.get("TEST_GENERATOR_URL"):
+        print(f"[Fixture] Using Proxy Generator for podman_adk_docs_test_case at {os.environ['TEST_GENERATOR_URL']}")
+        gen = GeminiCliPodmanAnswerGenerator(
+            dockerfile_dir=Path("benchmarks/answer_generators/gemini_cli_docker/adk-docs-ext"),
+            image_name="gemini-cli:adk-docs-ext",
+            model_name=model_name,
+            service_url=os.environ["TEST_GENERATOR_URL"]
+        )
+    else:
+        if not has_cmd("podman"):
+            pytest.skip("Podman not installed")
 
-    gen = GeminiCliPodmanAnswerGenerator(
-        dockerfile_dir=Path("benchmarks/answer_generators/gemini_cli_docker/adk-docs-ext"),
-        image_name="gemini-cli:adk-docs-ext",
-        auto_deploy=True,
-        model_name=model_name
-    )
-
-    print(f"--- [Setup] Initializing {gen.image_name} ---")
-    await gen.setup()
+        gen = GeminiCliPodmanAnswerGenerator(
+            dockerfile_dir=Path("benchmarks/answer_generators/gemini_cli_docker/adk-docs-ext"),
+            image_name="gemini-cli:adk-docs-ext",
+            auto_deploy=True,
+            model_name=model_name
+        )
+        print(f"--- [Setup] Initializing {gen.image_name} ---")
+        await gen.setup()
     
     # Specific case for this tool
     case = ADK_BASE_AGENT_QUESTION_CASE_INTERMEDIATE
@@ -187,22 +207,31 @@ async def podman_adk_docs_test_case(model_name: str) -> GeneratorTestCase:
     )
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 async def podman_context7_test_case(model_name: str) -> GeneratorTestCase:
     """Fixture for Podman ADK Docs Extension (MCP)."""
 
-    if not has_cmd("podman"):
-        pytest.skip("Podman not installed")
+    # Check for Proxy Mode
+    if os.environ.get("TEST_GENERATOR_ID") == "podman_context7_test_case" and os.environ.get("TEST_GENERATOR_URL"):
+        print(f"[Fixture] Using Proxy Generator for podman_context7_test_case at {os.environ['TEST_GENERATOR_URL']}")
+        gen = GeminiCliPodmanAnswerGenerator(
+            dockerfile_dir=Path("benchmarks/answer_generators/gemini_cli_docker/gemini-cli-mcp-context7"),
+            image_name="gemini-cli:mcp-context7",
+            model_name=model_name,
+            service_url=os.environ["TEST_GENERATOR_URL"]
+        )
+    else:
+        if not has_cmd("podman"):
+            pytest.skip("Podman not installed")
 
-    gen = GeminiCliPodmanAnswerGenerator(
-        dockerfile_dir=Path("benchmarks/answer_generators/gemini_cli_docker/gemini-cli-mcp-context7"),
-        image_name="gemini-cli:mcp-context7",
-        auto_deploy=True,
-        model_name=model_name
-    )
-
-    print(f"--- [Setup] Initializing {gen.image_name} ---")
-    await gen.setup()
+        gen = GeminiCliPodmanAnswerGenerator(
+            dockerfile_dir=Path("benchmarks/answer_generators/gemini_cli_docker/gemini-cli-mcp-context7"),
+            image_name="gemini-cli:mcp-context7",
+            auto_deploy=True,
+            model_name=model_name
+        )
+        print(f"--- [Setup] Initializing {gen.image_name} ---")
+        await gen.setup()
     
     # Specific case for this tool
     case = ADK_BASE_AGENT_QUESTION_CASE_INTERMEDIATE
@@ -219,7 +248,7 @@ async def podman_context7_test_case(model_name: str) -> GeneratorTestCase:
         trace_indicators=traces
     )
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 async def cloud_run_test_case(model_name: str) -> GeneratorTestCase:
     """Fixture for Cloud Run deployed Gemini CLI."""
     if not has_env("GOOGLE_CLOUD_PROJECT"):
@@ -228,18 +257,30 @@ async def cloud_run_test_case(model_name: str) -> GeneratorTestCase:
     # Import here to avoid circular dependencies and only if needed
     from benchmarks.answer_generators.gemini_cli_docker.gemini_cli_cloud_run_answer_generator import GeminiCliCloudRunAnswerGenerator
 
-    # Use a generic base image for the CLI server
-    gen = GeminiCliCloudRunAnswerGenerator(
-        dockerfile_dir=Path("benchmarks/answer_generators/gemini_cli_docker/base"),
-        service_name="gemini-cli-test-service", # Unique service name for testing
-        auto_deploy=True,
-        model_name=model_name,
-        # It's good practice to set a specific region for Cloud Run deployments in tests
-        region="us-central1" 
-    )
+    # Check for Proxy Mode
+    if os.environ.get("TEST_GENERATOR_ID") == "cloud_run_test_case" and os.environ.get("TEST_GENERATOR_URL"):
+        print(f"[Fixture] Using Proxy Generator for cloud_run_test_case at {os.environ['TEST_GENERATOR_URL']}")
+        gen = GeminiCliCloudRunAnswerGenerator(
+            dockerfile_dir=Path("benchmarks/answer_generators/gemini_cli_docker/base"),
+            service_name="gemini-cli-test-service",
+            model_name=model_name,
+            service_url=os.environ["TEST_GENERATOR_URL"]
+        )
+        # In proxy mode, we still call setup() to resolve auth if needed, but it skips deployment
+        await gen.setup()
+    else:
+        # Use a generic base image for the CLI server
+        gen = GeminiCliCloudRunAnswerGenerator(
+            dockerfile_dir=Path("benchmarks/answer_generators/gemini_cli_docker/base"),
+            service_name="gemini-cli-test-service", # Unique service name for testing
+            auto_deploy=True,
+            model_name=model_name,
+            # It's good practice to set a specific region for Cloud Run deployments in tests
+            region="us-central1" 
+        )
 
-    print(f"--- [Setup] Initializing {gen.service_name} (Cloud Run) ---")
-    await gen.setup()
+        print(f"--- [Setup] Initializing {gen.service_name} (Cloud Run) ---")
+        await gen.setup()
 
     return GeneratorTestCase(
         id="cloud-run-base",
@@ -249,13 +290,13 @@ async def cloud_run_test_case(model_name: str) -> GeneratorTestCase:
     )
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def cli_fix_error_test_case(model_name: str, tmp_path_factory: pytest.TempPathFactory) -> GeneratorTestCase:
     """Fixture for Local CLI running a Fix Error case."""
     if not has_env("GEMINI_API_KEY"):
         pytest.skip("GEMINI_API_KEY not set")
     
-    gen = GeminiCliAnswerGenerator(model_name=model_name)
+    gen = GeminiCliLocalAnswerGenerator(model_name=model_name)
     
     # Create a temporary directory for this specific test case setup
     case_tmp_path = tmp_path_factory.mktemp("fix_error_case")
@@ -307,7 +348,7 @@ TEST_CASE_FIXTURES = [
     "cli_fix_error_test_case", # Add the new Fix Error test case
 ]
 
-@pytest.fixture(params=TEST_CASE_FIXTURES)
+@pytest.fixture(params=TEST_CASE_FIXTURES, scope="module")
 def test_case(request: pytest.FixtureRequest) -> GeneratorTestCase:
     """
     Meta-fixture that iterates over all registered TestCase fixtures.

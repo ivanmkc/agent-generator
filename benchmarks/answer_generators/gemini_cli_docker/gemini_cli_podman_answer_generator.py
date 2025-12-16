@@ -53,6 +53,7 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
       force_deploy: bool = False,
       # Injected dependencies
       image_definitions: dict[str, ImageDefinition] = IMAGE_DEFINITIONS,
+      service_url: str | None = None,
   ):
     """Initializes the GeminiCliPodmanAnswerGenerator.
 
@@ -74,7 +75,14 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
     # Server state
     self._container_name = f"gemini-cli-server-{uuid.uuid4().hex[:8]}"
     self._port: int | None = None
-    self._base_url: str | None = None
+    
+    if service_url:
+        self._base_url = service_url
+        self._setup_completed = True # Assume ready if URL provided
+        self._is_proxy = True
+    else:
+        self._base_url = None
+        self._is_proxy = False
 
   @property
   def name(self) -> str:
@@ -86,6 +94,10 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
 
   async def setup(self) -> None:
     """Ensures the Podman image is built and starts the API server container."""
+    if self._is_proxy:
+        print(f"[Podman Setup] Running in Proxy Mode against {self._base_url}")
+        return
+
     if self._setup_lock is None:
         self._setup_lock = asyncio.Lock()
         
@@ -102,6 +114,12 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
         await self._start_server_container()
         self._setup_completed = True
         print(f"[Podman Setup] Setup for {self.name} completed. Listening on {self._base_url}")
+
+  async def teardown(self) -> None:
+      """Stops the persistent container."""
+      if self._is_proxy:
+          return
+      self._cleanup_server_container()
 
   async def _ensure_image_ready(self):
     """Checks if the requested image exists and builds it if necessary."""
@@ -305,25 +323,27 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
       except Exception:
           pass
 
-  async def _run_cli_command(
+  async def run_cli_command(
       self,
-      cli_args: list[str],
-      direct_command_parts: Optional[list[str]] = None
+      command_parts: list[str],
   ) -> tuple[dict[str, Any], list[TraceLogEvent]]:
     """Executes the gemini CLI command via the local API server."""
     if not self._setup_completed:
       await self.setup()
 
-    # Construct args list for server
-    # Server expects ["gemini", "arg1", ...]
-    # cli_args are ["--flag", ...]
-    # direct_command_parts are ["subcmd", ...]
+    # The server expects ["gemini", "arg1", ...]
+    # command_parts already contains [self.cli_path, flags..., prompt]
+    # self.cli_path is usually "gemini"
     
-    full_args = [self.cli_path] # "gemini"
-    if direct_command_parts:
-        full_args.extend(direct_command_parts)
-    else:
-        full_args.extend(cli_args)
+    full_args = list(command_parts)
+    
+    # Handle context instruction if needed (Podman supports it via context_instruction attr)
+    # Similar to Docker generator logic
+    is_generation = "--model" in full_args
+    if is_generation and self.context_instruction:
+        prompt = full_args[-1]
+        full_prompt = self.context_instruction + prompt
+        full_args[-1] = full_prompt
 
     payload = {
         "args": full_args,
@@ -359,7 +379,7 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
     response_dict = {"stdout": stdout_str, "stderr": stderr_str, "exit_code": returncode, "response": ""}
     
     # Parse stdout
-    if "--output-format" in cli_args and "stream-json" in cli_args:
+    if "--output-format" in full_args and "stream-json" in full_args:
         parsed_response_dict, parsed_logs = parse_cli_stream_json_output(stdout_str)
         response_dict.update(parsed_response_dict)
         logs.extend(parsed_logs)

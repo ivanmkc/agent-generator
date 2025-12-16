@@ -30,8 +30,8 @@ import subprocess
 from benchmarks.answer_generators.adk_agents import create_default_adk_agent
 from benchmarks.answer_generators.adk_answer_generator import AdkAnswerGenerator
 from benchmarks.answer_generators.gemini_answer_generator import GeminiAnswerGenerator
-from benchmarks.answer_generators.gemini_cli_answer_generator import (
-    GeminiCliAnswerGenerator,
+from benchmarks.answer_generators.gemini_cli_local_answer_generator import (
+    GeminiCliLocalAnswerGenerator,
 )
 from benchmarks.answer_generators.gemini_cli_docker import (
     GeminiCliDockerAnswerGenerator,
@@ -133,7 +133,7 @@ CANDIDATE_GENERATORS = [
     #     context=[None, Path("llms-relevant.txt")]
     # ),
     # # Gemini CLI generators
-    # GeminiCliAnswerGenerator(model_name=ModelName.GEMINI_2_5_FLASH),
+    # GeminiCliLocalAnswerGenerator(model_name=ModelName.GEMINI_2_5_FLASH),
     # Control generators
     GroundTruthAnswerGenerator(),
     TrivialAnswerGenerator(),

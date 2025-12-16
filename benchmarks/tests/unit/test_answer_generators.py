@@ -33,7 +33,7 @@ from google.genai import types
 
 from benchmarks.answer_generators import AdkAnswerGenerator
 from benchmarks.answer_generators import GeminiAnswerGenerator
-from benchmarks.answer_generators import GeminiCliAnswerGenerator
+from benchmarks.answer_generators.gemini_cli_local_answer_generator import GeminiCliLocalAnswerGenerator
 from benchmarks.answer_generators import GroundTruthAnswerGenerator
 from benchmarks.answer_generators import TrivialAnswerGenerator
 from benchmarks.data_models import AnswerTemplate
@@ -127,7 +127,7 @@ async def test_gemini_answer_generator(
 async def test_gemini_cli_answer_generator(
     mock_api_case: ApiUnderstandingBenchmarkCase,
 ):
-  """Tests the GeminiCliAnswerGenerator with mocked subprocess execution."""
+  """Tests the GeminiCliLocalAnswerGenerator with mocked subprocess execution."""
   # Mock the NDJSON output expected by parse_cli_stream_json_output
   mock_content = (
       '```json\n{"code": "cli class", "fully_qualified_class_name":'
@@ -152,7 +152,7 @@ async def test_gemini_cli_answer_generator(
     mock_proc.returncode = 0
     mock_exec.return_value = mock_proc
 
-    generator = GeminiCliAnswerGenerator()
+    generator = GeminiCliLocalAnswerGenerator()
     generated_answer = await generator.generate_answer(mock_api_case)
 
     # Verify parsed output
@@ -169,7 +169,9 @@ async def test_gemini_cli_answer_generator(
     call_args = mock_exec.call_args[0]
     assert call_args[0] == "gemini"  # Default cli_path
     # Ensure prompt is positional (not using --prompt)
-    assert call_args[1] is not None  # Prompt string
+    assert call_args[1] is not None  # Prompt string # Wait, indices might shift due to list unfolding *cmd_args
+    # command_parts = [cli_path, flags..., prompt]
+    # Since we use *command_parts in subprocess_exec, call_args[0] is cli_path, call_args[1] is flag...
     assert "--prompt" not in call_args
     assert "--output-format" in call_args
     assert "stream-json" in call_args

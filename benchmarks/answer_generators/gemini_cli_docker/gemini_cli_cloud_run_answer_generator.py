@@ -80,6 +80,7 @@ class GeminiCliCloudRunAnswerGenerator(GeminiCliAnswerGenerator):
       auto_deploy: bool = False,
       image_name: str | None = None,
       force_deploy: bool = False,
+      service_url: str | None = None,
   ):
     """
     Args:
@@ -93,11 +94,11 @@ class GeminiCliCloudRunAnswerGenerator(GeminiCliAnswerGenerator):
         image_name: Optional override for the image name (excluding registry/project).
                     Defaults to service_name (with exception for adk-python).
         force_deploy: If True, forces a deployment in setup() even if versions match.
+        service_url: If provided, runs in Proxy Mode using this URL without deploying.
     """
     super().__init__(model_name=model_name, cli_path="gemini")
     self.dockerfile_dir = Path(dockerfile_dir)
     self.service_name = service_name
-    self.service_url = None  # Resolved in setup()
     self.project_id = project_id
     self.region = region
     self.context_instruction = context_instruction
@@ -107,6 +108,13 @@ class GeminiCliCloudRunAnswerGenerator(GeminiCliAnswerGenerator):
     self._id_token = None
     self._id_token_time = 0
     self._remote_version = None
+
+    if service_url:
+        self.service_url = service_url
+        self._is_proxy = True
+    else:
+        self.service_url = None
+        self._is_proxy = False
 
     if image_name:
       self.image_name = image_name
@@ -124,11 +132,13 @@ class GeminiCliCloudRunAnswerGenerator(GeminiCliAnswerGenerator):
       if found_image_key:
           self.image_name = found_image_key
       else:
-          raise ValueError(
-              f"Could not determine a valid image name for dockerfile_dir: {self.dockerfile_dir}. "
-              "The directory name must match a `source_dir` in `IMAGE_DEFINITIONS` or "
-              "`image_name` must be provided explicitly."
-          )
+          if not self._is_proxy: # Allow missing image def if just proxying
+              raise ValueError(
+                  f"Could not determine a valid image name for dockerfile_dir: {self.dockerfile_dir}. "
+                  "The directory name must match a `source_dir` in `IMAGE_DEFINITIONS` or "
+                  "`image_name` must be provided explicitly."
+              )
+          self.image_name = "unknown-proxy"
 
   @property
   def name(self) -> str:
@@ -223,6 +233,14 @@ class GeminiCliCloudRunAnswerGenerator(GeminiCliAnswerGenerator):
 
   async def setup(self) -> None:
     """Checks service health or deploys from source if needed."""
+    
+    if self._is_proxy:
+        print(f"[CloudRun Setup] Running in Proxy Mode against {self.service_url}")
+        # Resolve Project ID if not set (needed for ID token generation)
+        if not self.project_id:
+            _, project_id = google.auth.default()
+            self.project_id = project_id
+        return
 
     # 1. Calculate local hash if we have source
     local_hash = None
@@ -330,6 +348,13 @@ class GeminiCliCloudRunAnswerGenerator(GeminiCliAnswerGenerator):
     # 5. Final verification
     if self.service_url:
       print(f"  - Target Service: {self.service_url}")
+
+  async def teardown(self) -> None:
+      """Perform cleanup. No-op for persistent Cloud Run services."""
+      if self._is_proxy:
+          return
+      # We typically don't delete Cloud Run services automatically after tests
+      pass
 
   async def _check_secret_exists(self, secret_id: str) -> bool:
     """Checks if a secret exists in Secret Manager via gcloud."""
@@ -578,25 +603,24 @@ class GeminiCliCloudRunAnswerGenerator(GeminiCliAnswerGenerator):
 
     return token
 
-  async def _run_cli_command(
-      self, prompt: str
+  async def run_cli_command(
+      self, command_parts: list[str]
   ) -> tuple[dict[str, Any], list[TraceLogEvent]]:
     """Sends the command to the Cloud Run service."""
 
-    full_prompt = prompt
-    if self.context_instruction:
-      full_prompt = self.context_instruction + prompt
+    # Heuristic extraction of prompt, similar to other generators
+    is_generation = "--model" in command_parts
+    
+    final_command_parts = list(command_parts)
+    
+    if is_generation and self.context_instruction:
+        prompt = final_command_parts[-1]
+        full_prompt = self.context_instruction + prompt
+        final_command_parts[-1] = full_prompt
 
     # Args for the CLI
-    gemini_args = [
-        self.cli_path,  # "gemini"
-        full_prompt,
-        "--output-format",
-        "stream-json",
-        "--model",
-        self.model_name,
-        "--yolo",
-    ]
+    # Use the final_command_parts as is. Cloud Run service expects [gemini, flags..., prompt]
+    gemini_args = final_command_parts
 
     payload = {
         "args": gemini_args,

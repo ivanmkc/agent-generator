@@ -106,7 +106,7 @@ class GeminiCliAnswerGenerator(GeminiAnswerGenerator):
     ]
 
     # Run the CLI command
-    cli_response_dict, logs = await self._run_cli_command(command_parts)
+    cli_response_dict, logs = await self.run_cli_command(command_parts)
 
     # Extract the 'response' field which contains the model's text output
     model_text = cli_response_dict.get("response", "")
@@ -140,56 +140,30 @@ class GeminiCliAnswerGenerator(GeminiAnswerGenerator):
         output=output, trace_logs=logs, usage_metadata=usage_metadata
     )
 
-  async def _run_cli_command(
+  async def run_cli_command(
       self,
       command_parts: list[str],
   ) -> tuple[dict[str, Any], list[TraceLogEvent]]:
-    """Executes the gemini CLI command and returns the parsed JSON output and raw logs."""
+    """Executes the gemini CLI command and returns the parsed JSON output and raw logs.
+    
+    This method must be implemented by subclasses.
+    """
+    raise NotImplementedError("Subclasses must implement run_cli_command")
 
-    # Create subprocess
-    proc = await asyncio.create_subprocess_exec(
-        *command_parts,
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE,
-    )
+  async def setup(self) -> None:
+    """Performs any necessary setup (e.g., starting containers)."""
+    pass
 
-    stdout, stderr = await proc.communicate()
-
-    stdout_str = stdout.decode()
-    stderr_str = stderr.decode()
-
-    # Initialize logs with stderr content first
-    logs: list[TraceLogEvent] = []
-    for line in stderr_str.splitlines():
-        if line.strip():
-            logs.append(TraceLogEvent(type="CLI_STDERR", source=self.name, content=line.strip()))
-
-    # Parse stdout. If stream-json, parse events. Otherwise, treat as raw message.
-    response_dict = {"stdout": stdout_str, "stderr": stderr_str, "exit_code": proc.returncode, "response": ""}
-    if "--output-format" in command_parts and "stream-json" in command_parts:
-        parsed_response_dict, parsed_logs = parse_cli_stream_json_output(stdout_str)
-        response_dict.update(parsed_response_dict)
-        logs.extend(parsed_logs)
-    else:
-        # If not stream-json, treat stdout as a single response message for logging purposes
-        if stdout_str.strip():
-            logs.append(TraceLogEvent(type="CLI_STDOUT_RAW", source=self.name, content=stdout_str.strip()))
-        response_dict["response"] = stdout_str.strip()  # Direct text response
-
-    if proc.returncode != 0:
-      error_msg = stderr_str.strip() or stdout_str.strip()
-      raise RuntimeError(
-          f"Gemini CLI failed with code {proc.returncode}: {error_msg}"
-      )
-
-    return response_dict, logs
+  async def teardown(self) -> None:
+    """Performs cleanup (e.g., stopping containers)."""
+    pass
 
   async def get_mcp_tools(self) -> list[str]:
     """Returns a list of available MCP tools (servers)."""
     tools = []
 
     try:
-        mcp_res, _ = await self._run_cli_command([self.cli_path, "mcp", "list"])
+        mcp_res, _ = await self.run_cli_command([self.cli_path, "mcp", "list"])
         for line in mcp_res.get("stdout", "").splitlines():
             # 1. Clean the line of ANSI codes immediately
             clean_line = self._strip_ansi(line).strip()
@@ -227,7 +201,7 @@ class GeminiCliAnswerGenerator(GeminiAnswerGenerator):
     # TODO: Explain why there are two output formats in extreme detail.
     # Output format: "✓ adk-docs-ext (v...)" or just "adk-docs-ext"
     try:
-        ext_res, _ = await self._run_cli_command([self.cli_path, "extensions", "list"])
+        ext_res, _ = await self.run_cli_command([self.cli_path, "extensions", "list"])
         for line in ext_res.get("stdout", "").splitlines():
              # 1. Strip ANSI first so we can reliably check indentation
              clean_line = self._strip_ansi(line)
