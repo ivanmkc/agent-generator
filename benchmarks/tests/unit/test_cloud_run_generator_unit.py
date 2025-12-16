@@ -45,6 +45,7 @@ async def test_cloud_run_generator_generate_answer():
       dockerfile_dir=".",
       service_name="test-service",
       model_name="gemini-2.5-flash",
+      image_name="test-image",
   )
   # Manually set service_url as it's resolved in setup() usually
   generator.service_url = "https://mock-service.run.app"
@@ -140,7 +141,8 @@ async def test_cloud_run_generator_setup_resolves_url():
   generator = GeminiCliCloudRunAnswerGenerator(
       dockerfile_dir=".",
       service_name="test-service",
-      project_id="test-project"
+      project_id="test-project",
+      image_name="test-image"
   )
 
   # Mock google.auth.default
@@ -185,7 +187,8 @@ async def test_cloud_run_generator_deploy_on_mismatch():
       dockerfile_dir=Path("/tmp/fake-dir"),
       service_name="test-service",
       auto_deploy=True,
-      project_id="test-project"
+      project_id="test-project",
+      image_name="test-service"
   )
   
   # Mock hashing
@@ -288,7 +291,8 @@ async def test_deploy_from_source_secret_env_var():
       dockerfile_dir=Path("/tmp/fake-dir"),
       service_name="test-service",
       project_id="test-project",
-      region="us-central1"
+      region="us-central1",
+      image_name="test-service"
   )
   
   with patch.object(generator, "project_id", "test-project"):
@@ -344,7 +348,8 @@ async def test_deploy_from_source_no_secret():
       dockerfile_dir=Path("/tmp/fake-dir"),
       service_name="test-service",
       project_id="test-project",
-      region="us-central1"
+      region="us-central1",
+      image_name="test-service"
   )
   
   with patch.object(generator, "project_id", "test-project"):
@@ -385,7 +390,8 @@ def test_calculate_source_hash_logic(tmp_path):
   
   generator = GeminiCliCloudRunAnswerGenerator(
       dockerfile_dir=tmp_path,
-      service_name="test-service"
+      service_name="test-service",
+      image_name="test-image"
   )
   
   # 1. Create initial state

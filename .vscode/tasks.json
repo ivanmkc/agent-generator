@@ -4,7 +4,7 @@
         {
             "label": "Run All Tests and Cases",
             "type": "shell",
-            "command": "env/bin/python -m pytest -n auto benchmarks/ --import-mode=importlib",
+            "command": "env/bin/python -m pytest -n auto -v benchmarks/ --import-mode=importlib",
             "group": "test",
             "presentation": {
                 "reveal": "always",
@@ -13,9 +13,9 @@
             "problemMatcher": []
         },
         {
-            "label": "Run All Unit/Integration/Verification Tests",
+            "label": "Run All Unit/Integration Tests",
             "type": "shell",
-            "command": "env/bin/python -m pytest -n auto --import-mode=importlib benchmarks/tests/",
+            "command": "env/bin/python -m pytest -n auto -v --import-mode=importlib benchmarks/tests/unit/ benchmarks/tests/integration/",
             "group": "test",
             "presentation": {
                 "reveal": "always",

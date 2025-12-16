@@ -1,4 +1,4 @@
-ARG BASE_IMAGE=gemini-cli-base
+ARG BASE_IMAGE
 FROM ${BASE_IMAGE}
 
 # Set working directory

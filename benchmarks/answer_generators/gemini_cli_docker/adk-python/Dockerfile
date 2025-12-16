@@ -1,5 +1,5 @@
 # Allow overriding the base image (e.g. for Cloud Build)
-ARG BASE_IMAGE=adk-gemini-sandbox:base
+ARG BASE_IMAGE
 FROM ${BASE_IMAGE}
 
 # Create repos directory
@@ -13,7 +13,7 @@ RUN git clone https://github.com/google/adk-python.git /repos/adk-python
 
 # Create the GEMINI_CONFIG_DIR and copy settings.json
 RUN mkdir -p /tmp/.gemini/
-COPY --chown=node:node adk-python/settings.json /workdir/.gemini/settings.json
+COPY --chown=node:node settings.json /workdir/.gemini/settings.json
 
 # Copy the INSTRUCTIONS.md for context
 COPY --chown=node:node INSTRUCTIONS.md /workdir/INSTRUCTIONS.md

@@ -138,7 +138,7 @@ async def podman_base_test_case(model_name: str) -> GeneratorTestCase:
 
     gen = GeminiCliPodmanAnswerGenerator(
         dockerfile_dir=Path("benchmarks/answer_generators/gemini_cli_docker/adk-python"),
-        image_name="adk-gemini-sandbox:adk-python",
+        image_name="gemini-cli:adk-python",
         auto_deploy=True,
         model_name=model_name
     )
@@ -157,17 +157,13 @@ async def podman_base_test_case(model_name: str) -> GeneratorTestCase:
 @pytest.fixture
 async def podman_adk_docs_test_case(model_name: str) -> GeneratorTestCase:
     """Fixture for Podman ADK Docs Extension (MCP)."""
-    pytest.skip(
-        "Skipping podman_adk_docs_test_case: The gemini CLI in the container "
-        "returns LLM-generated explanations instead of structured output for "
-        "'mcp list' and 'extensions list', making programmatic parsing impossible."
-    )
+
     if not has_cmd("podman"):
         pytest.skip("Podman not installed")
 
     gen = GeminiCliPodmanAnswerGenerator(
         dockerfile_dir=Path("benchmarks/answer_generators/gemini_cli_docker/adk-docs-ext"),
-        image_name="adk-docs-ext",
+        image_name="gemini-cli:adk-docs-ext",
         auto_deploy=True,
         model_name=model_name
     )
@@ -194,17 +190,13 @@ async def podman_adk_docs_test_case(model_name: str) -> GeneratorTestCase:
 @pytest.fixture
 async def podman_context7_test_case(model_name: str) -> GeneratorTestCase:
     """Fixture for Podman ADK Docs Extension (MCP)."""
-    pytest.skip(
-        "Skipping podman_context7_test_case: The gemini CLI in the container "
-        "returns LLM-generated explanations instead of structured output for "
-        "'mcp list' and 'extensions list', making programmatic parsing impossible."
-    )
+
     if not has_cmd("podman"):
         pytest.skip("Podman not installed")
 
     gen = GeminiCliPodmanAnswerGenerator(
         dockerfile_dir=Path("benchmarks/answer_generators/gemini_cli_docker/gemini-cli-mcp-context7"),
-        image_name="mcp-context7",
+        image_name="gemini-cli:mcp-context7",
         auto_deploy=True,
         model_name=model_name
     )

@@ -60,6 +60,10 @@ SERVICE_BASE_PATH = "cloudbuild.googleapis.com"
 
 from benchmarks.data_models import TraceLogEvent
 from benchmarks.utils import parse_cli_stream_json_output
+from benchmarks.answer_generators.gemini_cli_docker.image_definitions import (
+    IMAGE_DEFINITIONS,
+    IMAGE_PREFIX,
+)
 
 
 class GeminiCliCloudRunAnswerGenerator(GeminiCliAnswerGenerator):
@@ -104,13 +108,27 @@ class GeminiCliCloudRunAnswerGenerator(GeminiCliAnswerGenerator):
     self._id_token_time = 0
     self._remote_version = None
 
-    # TODO: Remove hardcoded image naming logic
     if image_name:
       self.image_name = image_name
-    elif service_name == "adk-python":
-      self.image_name = "adk-gemini-sandbox"
     else:
-      self.image_name = service_name
+      # Determine the base directory name from dockerfile_dir, e.g., 'adk-python' from '.../gemini_cli_docker/adk-python'
+      docker_base_dir_name = self.dockerfile_dir.name
+      
+      # Find the full image name in IMAGE_DEFINITIONS that corresponds to this source directory
+      found_image_key = None
+      for key, definition in IMAGE_DEFINITIONS.items():
+          if definition.source_dir == docker_base_dir_name:
+              found_image_key = key
+              break
+      
+      if found_image_key:
+          self.image_name = found_image_key
+      else:
+          raise ValueError(
+              f"Could not determine a valid image name for dockerfile_dir: {self.dockerfile_dir}. "
+              "The directory name must match a `source_dir` in `IMAGE_DEFINITIONS` or "
+              "`image_name` must be provided explicitly."
+          )
 
   @property
   def name(self) -> str:
@@ -382,9 +400,12 @@ class GeminiCliCloudRunAnswerGenerator(GeminiCliAnswerGenerator):
       # Extract image name from build result
       image_name = None
       
-      expected_image_full_name = (
-          f"gcr.io/{self.project_id}/{self.image_name}:latest"
-      )
+      if ":" in self.image_name:
+          expected_image_full_name = f"gcr.io/{self.project_id}/{self.image_name}"
+      else:
+          expected_image_full_name = (
+              f"gcr.io/{self.project_id}/{self.image_name}:latest"
+          )
 
       print(f"    [debug] Build Result Images: {build_result.images}")
 

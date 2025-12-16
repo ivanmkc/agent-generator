@@ -160,7 +160,7 @@ async def main():
         TrivialAnswerGenerator(),
         GeminiAnswerGenerator(model_name="gemini-2.5-pro"),
         AdkAnswerGenerator(model_name="gemini-2.5-flash"),
-        GeminiCliDockerAnswerGenerator(model_name="gemini-2.5-flash", image_name="adk-gemini-sandbox:latest"),
+        GeminiCliDockerAnswerGenerator(model_name="gemini-2.5-flash", image_name="gemini-cli:adk-python"),
     ]
 
     print("Executing benchmark evaluation...")

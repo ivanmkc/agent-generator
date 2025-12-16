@@ -41,19 +41,20 @@ We utilize a **Horizontal Scaling** strategy to handle high concurrency. Instead
 
 ## Directory Structure
 
+*   `image_definitions.py`: Defines image configurations (e.g., base image dependencies, build arguments) primarily used by local Podman builds. Cloud Build uses `cloudbuild.yaml` for its build definitions.
 *   `base/`: The foundation image.
     *   **Dockerfile:** Installs Python 3.11, Node.js 22.x, git, curl, `uv`, `@google/gemini-cli`, **FastAPI**, and **Uvicorn**.
     *   **Server:** `cli_server.py` (FastAPI app).
-    *   **Tag:** `gemini-cli-base`
+    *   **Tag:** `gemini-cli:base`
 
 *   `adk-python/`: The standard variant for the Python ADK.
     *   **Dockerfile:** Inherits from `gemini-cli-base`. Clones the `adk-python` repo into `/repos/adk-python`.
-    *   **Tag:** `adk-gemini-sandbox:adk-python`
+    *   **Tag:** `gemini-cli:adk-python`
     *   **Purpose:** Standard environment for testing agents against the codebase.
 
 *   `gemini-cli-mcp-context7/`: A variant configured with an MCP server.
     *   **Dockerfile:** Inherits from `gemini-cli-base`. Installs `mcp` Python package and configures `settings.json`.
-    *   **Tag:** `gemini-cli-mcp-context7`
+    *   **Tag:** `gemini-cli:mcp-context7`
     *   **Purpose:** Tests the Gemini CLI's ability to use the `context7` MCP server (remote HTTP) to access repository context.
 
 ## Local Development (Podman/Docker)
@@ -66,20 +67,44 @@ For local testing and development, you can use the `GeminiCliPodmanAnswerGenerat
 ```python
 from benchmarks.answer_generators.gemini_cli_docker import GeminiCliPodmanAnswerGenerator
 
-# Uses local image 'adk-gemini-sandbox:adk-python'
+# Uses local image 'gemini-cli:adk-python'
 # Automatically builds if missing
 generator = GeminiCliPodmanAnswerGenerator(
-    image_name="adk-python", 
+    image_name="gemini-cli:adk-python", 
     dockerfile_dir="benchmarks/answer_generators/gemini_cli_docker/adk-python",
     model_name="gemini-2.5-flash"
 )
 ```
 
-## Troubleshooting
+### Testing Dockerfiles (Launching a Shell)
+
+You can launch an interactive shell within any of the built Docker images to test them or explore their environment. Replace `<image-name>` with the appropriate image tag.
+
+**1. Base Image**
+```bash
+podman run -it --rm --entrypoint /bin/bash gemini-cli:base
+```
+
+**2. ADK Python Image**
+```bash
+podman run -it --rm --entrypoint /bin/bash gemini-cli:adk-python
+```
+
+**3. ADK Docs Extension Image**
+```bash
+podman run -it --rm --entrypoint /bin/bash gemini-cli:adk-docs-ext
+```
+
+**4. MCP Context 7 Image**
+```bash
+podman run -it --rm --entrypoint /bin/bash gemini-cli:mcp-context7
+```
+
+### Troubleshooting
 
 ### Podman Base Image Not Found / Docker Hub Pull Attempt
 
-**Problem:** When running local Podman benchmarks, you might encounter errors like `RuntimeError: Failed to build custom image ...: Error: creating build container: unable to copy from source docker://adk-gemini-sandbox:base: ... requested access to the resource is denied`. This indicates that Podman is attempting to pull the `adk-gemini-sandbox:base` image from `docker.io` instead of building it locally, or resolving it from your local image store. This often happens because:
+**Problem:** When running local Podman benchmarks, you might encounter errors like `RuntimeError: Failed to build custom image ...: Error: creating build container: unable to copy from source docker://gemini-cli:base: ... requested access to the resource is denied`. This indicates that Podman is attempting to pull the `gemini-cli:base` image from `docker.io` instead of building it locally, or resolving it from your local image store. This often happens because:
 1.  The `base` image has not been built yet.
 2.  Your Podman environment (especially on macOS where Podman runs in a VM) is misconfigured to prioritize remote registries or fails to correctly resolve local image names.
 
@@ -87,14 +112,16 @@ generator = GeminiCliPodmanAnswerGenerator(
 You can manually build the `base` image once to populate your local Podman image store. After this, subsequent builds for dependent images (like `adk-python`) should succeed without attempting a remote pull.
 
 ```bash
-podman build -t adk-gemini-sandbox:base -f benchmarks/answer_generators/gemini_cli_docker/base/Dockerfile benchmarks/answer_generators/gemini_cli_docker/base
+podman build -t gemini-cli:base -f benchmarks/answer_generators/gemini_cli_docker/base/Dockerfile benchmarks/answer_generators/gemini_cli_docker/base
 ```
 
 **Permanent Fix (Podman Configuration):**
 For a permanent solution, investigate your Podman configuration files *inside your Podman Machine VM* (if on macOS/Windows) or on your Linux host. Specifically, check:
 
-*   **`/etc/containers/registries.conf`** or **`~/.config/containers/registries.conf`**: Ensure that `adk-gemini-sandbox` is not implicitly being mapped to a remote registry, or explicitly add `localhost/adk-gemini-sandbox` to your `[registries.insecure]` or `[registries.search]` lists if you intend to manage it locally.
+*   **`/etc/containers/registries.conf`** or **`~/.config/containers/registries.conf`**: Ensure that `gemini-cli` is not implicitly being mapped to a remote registry, or explicitly add `localhost/gemini-cli` to your `[registries.insecure]` or `[registries.search]` lists if you intend to manage it locally.
 *   **`/etc/containers/policy.json`** or **`~/.config/containers/policy.json`**: Review policies that might restrict local image resolution or impose signing requirements that block un-pushed local images.
+
+## Cloud Run Deployment
 
 ## Cloud Run Deployment
 
@@ -120,7 +147,7 @@ export COMPUTE_ENGINE_SERVICE_ACCOUNT="serviceAccount:$PROJECT_NUMBER-compute@de
 2.  **Grant Cloud Run Invoker Role (to your user)**: Your Google Cloud user account needs permission to invoke the deployed Cloud Run service for testing and interaction.
     *   Run in your terminal:
         ```bash        
-        gcloud run services add-iam-policy-binding adk-gemini-sandbox \
+        gcloud run services add-iam-policy-binding gemini-cli-sandbox \
             --member="user:$YOUR_GCP_EMAIL_ADDRESS" \
             --role="roles/run.invoker" \
             --region="$YOUR_GCP_REGION"
@@ -193,7 +220,7 @@ gcloud projects add-iam-policy-binding $YOUR_GCP_PROJECT_ID \
 from benchmarks.answer_generators.gemini_cli_docker import GeminiCliCloudRunAnswerGenerator
 
 generator_cloud = GeminiCliCloudRunAnswerGenerator(
-    service_name="adk-gemini-sandbox",
+    service_name="gemini-cli-sandbox",
     dockerfile_dir="benchmarks/answer_generators/gemini_cli_docker/adk-python",
     model_name="gemini-2.5-flash",
     auto_deploy=True  # Auto-deploys if version mismatch

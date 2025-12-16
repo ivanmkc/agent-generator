@@ -37,13 +37,13 @@ from benchmarks.config import CLOUD_RUN_CONFIG
 from benchmarks.data_models import FixErrorBenchmarkCase, BenchmarkType
 
 # This test requires authentication and a deployed Cloud Run service.
-# It uses the adk-gemini-sandbox service by default.
+# It uses the gemini-cli-sandbox service by default.
 # Note: The service requires 'gemini-api-key' secret in Secret Manager for API Key auth.
 
 @pytest.mark.asyncio
 async def test_cloud_run_stability():
     # Configuration
-    SERVICE_NAME = "adk-gemini-sandbox"
+    SERVICE_NAME = "gemini-cli-sandbox"
     DOCKERFILE_DIR = "benchmarks/answer_generators/gemini_cli_docker/adk-python" 
     MODEL = "gemini-2.5-flash"
     CONCURRENCY = CLOUD_RUN_CONFIG.MAX_GLOBAL_CONCURRENCY  # Should be 400 now (Horizontal Scaling Test)

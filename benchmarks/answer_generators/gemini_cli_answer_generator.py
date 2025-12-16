@@ -18,9 +18,9 @@ import asyncio
 import json
 from pathlib import Path
 import re
-from typing import Any, Optional
+from typing import Any
 
-from benchmarks.answer_generators.gemini_answer_generator import GeminiAnswerGenerator
+
 from benchmarks.answer_generators.llm_base import LlmAnswerGenerator
 from benchmarks.data_models import ApiUnderstandingAnswerOutput
 from benchmarks.data_models import ApiUnderstandingBenchmarkCase
@@ -34,6 +34,8 @@ from benchmarks.data_models import TraceLogEvent
 from benchmarks.data_models import UsageMetadata
 from benchmarks.utils import parse_cli_stream_json_output
 from pydantic import BaseModel
+from benchmarks.answer_generators.gemini_answer_generator import GeminiAnswerGenerator
+
 
 
 class GeminiCliAnswerGenerator(GeminiAnswerGenerator):
@@ -188,9 +190,6 @@ class GeminiCliAnswerGenerator(GeminiAnswerGenerator):
 
     try:
         mcp_res, _ = await self._run_cli_command([self.cli_path, "mcp", "list"])
-        # TODO: The gemini CLI often returns LLM-generated explanations instead of raw tool lists.
-        # This requires a more robust parsing strategy or a way to force raw CLI output.
-        # The current parsing relies on specific plain-text formatting which is unreliable.
         for line in mcp_res.get("stdout", "").splitlines():
             # 1. Clean the line of ANSI codes immediately
             clean_line = self._strip_ansi(line).strip()

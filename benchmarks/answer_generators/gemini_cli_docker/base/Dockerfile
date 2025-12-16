@@ -34,7 +34,7 @@ RUN pip install --no-cache-dir fastapi uvicorn
 RUN npm install -g @google/gemini-cli
 
 # Copy the CLI server wrapper
-COPY base/cli_server.py /usr/local/bin/cli_server.py
+COPY cli_server.py /usr/local/bin/cli_server.py
 RUN chmod +x /usr/local/bin/cli_server.py
 
 # Create node user for compatibility (variants can switch to this user)

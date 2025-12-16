@@ -32,7 +32,7 @@ in tuning the `CLOUD_RUN_CONFIG.MAX_INSTANCE_CONCURRENCY` configuration.
 
 # Stress test to find optimal concurrency limits for the server image.
 
-IMAGE_NAME = "adk-gemini-sandbox:base"
+IMAGE_NAME = "gemini-cli:base"
 CONTAINER_NAME = "stress-test-server"
 PORT = 8086 # Unique port
 
@@ -55,6 +55,18 @@ def local_server():
         pytest.skip("Podman not available")
 
     # We assume IMAGE_NAME is already built with the server implementation we want to test
+    # Check if image exists
+    try:
+        subprocess.run(["podman", "image", "exists", IMAGE_NAME], check=True, stdout=subprocess.DEVNULL)
+    except subprocess.CalledProcessError:
+        print(f"Image {IMAGE_NAME} not found. Building...")
+        build_cmd = [
+            "podman", "build", "-t", IMAGE_NAME,
+            "-f", "benchmarks/answer_generators/gemini_cli_docker/base/Dockerfile",
+            "benchmarks/answer_generators/gemini_cli_docker/base"
+        ]
+        subprocess.check_call(build_cmd)
+
     print(f"Starting container {CONTAINER_NAME}...")
     
     # Cleanup previous instances if they exist

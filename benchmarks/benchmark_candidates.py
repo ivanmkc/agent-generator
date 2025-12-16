@@ -79,7 +79,7 @@ CANDIDATE_GENERATORS = [
         dockerfile_dir=Path(
             "benchmarks/answer_generators/gemini_cli_docker/base"
         ),
-        image_name="gemini_cli_docker_base",
+        image_name="gemini-cli:base",
         auto_deploy=True,
     ),
     GeminiCliPodmanAnswerGenerator(
@@ -87,7 +87,7 @@ CANDIDATE_GENERATORS = [
         dockerfile_dir=Path(
             "benchmarks/answer_generators/gemini_cli_docker/adk-python"
         ),
-        image_name="gemini_cli_docker_adk_python",
+        image_name="gemini-cli:adk-python",
         auto_deploy=True,
     ),
     # # Gemini CLI Cloud Run Generator (ADK Docs Extension)
@@ -118,7 +118,7 @@ CANDIDATE_GENERATORS = [
     # ),
     # GeminiCliDockerAnswerGenerator(
     #     model_name=ModelName.GEMINI_2_5_FLASH,
-    #     image_name=f"gcr.io/{project_id}/adk-gemini-sandbox:latest",
+    #     image_name=f"gcr.io/{project_id}/gemini-cli:adk-python",
     #     context_instruction=ADK_REPO_INSTRUCTION,
     # ),
     # # Gemini CLI Docker Generator (MCP Context7)

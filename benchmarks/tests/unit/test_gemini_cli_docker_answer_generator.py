@@ -34,7 +34,7 @@ async def test_docker_command_construction_api_key():
   with patch.dict(os.environ, {"GEMINI_API_KEY": "test-key"}, clear=True):
     generator = GeminiCliDockerAnswerGenerator(
         model_name="gemini-2.5-flash",
-        image_name="adk-gemini-sandbox:adk-python",
+        image_name="gemini-cli:adk-python",
     )
 
     # The CLI with --output-format stream-json returns NDJSON
@@ -106,7 +106,7 @@ async def test_docker_command_construction_api_key():
       assert "--rm" in cmd
       assert "-e" in cmd
       assert "GEMINI_API_KEY" in cmd
-      assert "adk-gemini-sandbox:adk-python" in cmd
+      assert "gemini-cli:adk-python" in cmd
 
       # Check for Gemini CLI parts
       assert "gemini" in cmd
@@ -123,7 +123,7 @@ async def test_docker_command_construction_api_key():
   with patch.dict(os.environ, {"GEMINI_API_KEY": "test-key"}, clear=True):
     generator = GeminiCliDockerAnswerGenerator(
         model_name="gemini-2.5-flash",
-        image_name="adk-gemini-sandbox:adk-python",
+        image_name="gemini-cli:adk-python",
     )
 
     # The CLI with --output-format stream-json returns NDJSON
@@ -195,7 +195,7 @@ async def test_docker_command_construction_api_key():
       assert "--rm" in cmd
       assert "-e" in cmd
       assert "GEMINI_API_KEY" in cmd
-      assert "adk-gemini-sandbox:adk-python" in cmd
+      assert "gemini-cli:adk-python" in cmd
 
       # Check for Gemini CLI parts
       assert "gemini" in cmd
@@ -234,7 +234,7 @@ async def test_docker_command_construction_vertex_adc():
 
   with patch.dict(os.environ, env_vars, clear=True):
     generator = GeminiCliDockerAnswerGenerator(
-        image_name="adk-gemini-sandbox:adk-python"
+        image_name="gemini-cli:adk-python"
     )
 
     inner_model_json = {

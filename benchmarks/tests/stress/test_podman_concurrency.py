@@ -18,7 +18,7 @@ async def test_podman_shared_instance_concurrency(model_name):
     # We use a dummy image name to ensure we are testing the setup logic
     generator = GeminiCliPodmanAnswerGenerator(
         dockerfile_dir=Path("benchmarks/answer_generators/gemini_cli_docker/base"),
-        image_name="concurrency-test-image",
+        image_name="gemini-cli:base",
         auto_deploy=True,
         model_name=model_name
     )

@@ -37,7 +37,7 @@ from benchmarks.utils import parse_cli_stream_json_output
 from benchmarks.answer_generators.gemini_cli_docker.image_definitions import (
     ImageDefinition,
     IMAGE_DEFINITIONS,
-    DEFAULT_IMAGE_PREFIX,
+    IMAGE_PREFIX,
 )
 
 class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
@@ -53,7 +53,6 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
       force_deploy: bool = False,
       # Injected dependencies
       image_definitions: dict[str, ImageDefinition] = IMAGE_DEFINITIONS,
-      default_image_prefix: str = DEFAULT_IMAGE_PREFIX,
   ):
     """Initializes the GeminiCliPodmanAnswerGenerator.
 
@@ -61,16 +60,8 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
     """
     super().__init__(model_name=model_name, cli_path="gemini")
     
-    # Determine the effective image key
-    effective_image_key = image_name.split(":")[-1] if ":" in image_name else image_name
-
-    # Always store the fully qualified local image name
-    if effective_image_key in image_definitions or image_name.startswith(f"{default_image_prefix}:"):
-        self.image_name = image_name if image_name.startswith(f"{default_image_prefix}:") else f"{default_image_prefix}:{effective_image_key}"
-    else:
-        self.image_name = image_name
+    self.image_name = image_name
     self._image_definitions = image_definitions
-    self._default_image_prefix = default_image_prefix
 
     self.dockerfile_dir = Path(dockerfile_dir)
     self.context_instruction = context_instruction
@@ -105,8 +96,8 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
         print(f"[Podman Setup] Starting setup for {self.name}")
         await self._ensure_image_ready()
         
-        # Ensure any previous container is cleaned up before starting a new one
-        self._cleanup_server_container()
+        # # Ensure any previous container is cleaned up before starting a new one
+        # self._cleanup_server_container()
         
         await self._start_server_container()
         self._setup_completed = True
@@ -121,51 +112,44 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
     # Always ensure the 'base' image is available if we are in auto-deploy mode.
     # This prevents build failures for custom images that depend on it (like adk-python)
     # when the local environment tries to pull 'base' from docker.io instead of building it.
-    if (self.auto_deploy or self.force_deploy) and "base" in self._image_definitions:
-        await self._build_image_chain("base", force=self.force_deploy)
+    base_image = f"{IMAGE_PREFIX}:base"
+    if (self.auto_deploy or self.force_deploy) and base_image in self._image_definitions:
+        await self._build_image_chain(base_image, force=self.force_deploy)
       
-    image_tag = self.image_name
-    image_key = image_tag.split(":")[-1] if ":" in image_tag else image_tag
-
     # 1. Check if it's a known managed image
-    if image_key in self._image_definitions:
+    if self.image_name in self._image_definitions:
       if self.auto_deploy or self.force_deploy:
-         await self._build_image_chain(image_key, force=self.force_deploy)
+         await self._build_image_chain(self.image_name, force=self.force_deploy)
       self._image_checked = True
       self.force_deploy = False 
       return
-      
-    # 2. If not managed, check if we have a dockerfile_dir to build from
-    if (self.auto_deploy or self.force_deploy) and self.dockerfile_dir and self.dockerfile_dir.exists():
-        await self._build_custom_image(force=self.force_deploy)
-        self._image_checked = True
-        self.force_deploy = False
-        return
-
-    # 3. Otherwise, just check existence (assume pre-built)
-    self._image_checked = True
     
-  async def _build_custom_image(self, force: bool = False):
-    """Builds an image from self.dockerfile_dir."""
-    full_image_name = self.image_name
-    
-    if not force:
-        proc = await asyncio.create_subprocess_exec(
-            "podman", "image", "exists", full_image_name,
-            stdout=asyncio.subprocess.DEVNULL,
-            stderr=asyncio.subprocess.DEVNULL
-        )
-        await proc.wait()
-        if proc.returncode == 0:
-            return
+    # If we get here, the image is not a known managed image.
+    raise RuntimeError(
+        f"Image '{self.image_name}' is not a known managed image and no "
+        "dockerfile_dir was provided for a custom build."
+    )
 
-    print(f"Building Custom Podman image: {full_image_name} from {self.dockerfile_dir.parent} (Dockerfile: {self.dockerfile_dir.name}/Dockerfile)...")
+  async def _execute_podman_build(
+      self,
+      image_name: str,
+      dockerfile_path: Path,
+      context_path: Path,
+      build_args: Optional[dict[str, str]] = None
+  ):
+    """Executes the podman build command."""
+    print(f"Building Podman image: {image_name} from {context_path} (Dockerfile: {dockerfile_path.name})...")
     
     build_cmd = [
-        "podman", "build", "-t", full_image_name,
-        "-f", str(self.dockerfile_dir / "Dockerfile"),
-        str(self.dockerfile_dir.parent)
+        "podman", "build", "-t", image_name,
+        "-f", str(dockerfile_path),
     ]
+    
+    if build_args:
+        for arg_name, arg_val in build_args.items():
+            build_cmd.extend(["--build-arg", f"{arg_name}={arg_val}"])
+            
+    build_cmd.append(str(context_path))
 
     build_proc = await asyncio.create_subprocess_exec(
         *build_cmd,
@@ -176,17 +160,17 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
     
     if build_proc.returncode != 0:
         error_msg = stderr.decode().strip() or stdout.decode().strip()
-        raise RuntimeError(f"Failed to build custom image {full_image_name}: {error_msg}")
+        raise RuntimeError(f"Failed to build image {image_name}: {error_msg}")
         
-    print(f"Successfully built {full_image_name}")
-
+    print(f"Successfully built {image_name}")
+    
   async def _build_image_chain(self, image_key: str, force: bool = False):
     """Recursively builds dependencies and then the target image."""
     definition = self._image_definitions[image_key]
     for dep_key in definition.dependencies:
       await self._build_image_chain(dep_key, force=force)
 
-    full_image_name = f"{self._default_image_prefix}:{image_key}"
+    full_image_name = image_key
     
     if not force:
         proc = await asyncio.create_subprocess_exec(
@@ -198,30 +182,16 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
         if proc.returncode == 0:
           return
 
-    print(f"Building Podman image: {full_image_name}...")
-    
     base_path = Path(__file__).parent
     source_path = base_path / definition.source_dir
     dockerfile_path = base_path / definition.dockerfile
     
-    build_cmd = [
-        "podman", "build", "-t", full_image_name, "-f", str(dockerfile_path),
-    ]
-    for arg_name, arg_val in definition.build_args.items():
-        build_cmd.extend(["--build-arg", f"{arg_name}={arg_val}"])
-        
-    build_cmd.append(str(source_path))
-
-    build_proc = await asyncio.create_subprocess_exec(
-        *build_cmd,
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE
+    await self._execute_podman_build(
+        image_name=full_image_name,
+        dockerfile_path=dockerfile_path,
+        context_path=source_path,
+        build_args=definition.build_args
     )
-    stdout, stderr = await build_proc.communicate()
-    
-    if build_proc.returncode != 0:
-        error_msg = stderr.decode().strip() or stdout.decode().strip()
-        raise RuntimeError(f"Failed to build image {full_image_name}: {error_msg}")
 
   async def _start_server_container(self):
       """Starts the container in daemon mode exposing the API server."""
@@ -234,7 +204,7 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
       self._base_url = f"http://localhost:{self._port}"
       
       # 2. Register cleanup
-      atexit.register(self._cleanup_server_container)
+      # atexit.register(self._cleanup_server_container)
       
       print(f"[Podman Setup] Starting server container: {self._container_name} on port {self._port}")
       
@@ -318,7 +288,7 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
       except Exception:
           logs = "Could not retrieve logs."
           
-      self._cleanup_server_container()
+    #   self._cleanup_server_container()
       raise RuntimeError(f"Server container failed to start healthy. Logs:\n{logs}")
 
   def _cleanup_server_container(self):
