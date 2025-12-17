@@ -143,9 +143,11 @@ async def podman_base_test_case(model_name: str) -> GeneratorTestCase:
         gen = GeminiCliPodmanAnswerGenerator(
             dockerfile_dir=Path("benchmarks/answer_generators/gemini_cli_docker/adk-python"),
             image_name="gemini-cli:adk-python",
+            image_definitions=IMAGE_DEFINITIONS,
             model_name=model_name,
             service_url=os.environ["TEST_GENERATOR_URL"]
         )
+        await gen.setup()
     else:
         # Check for parallel execution without orchestrator
         if os.environ.get("PYTEST_XDIST_WORKER") and not os.environ.get("TEST_GENERATOR_URL"):
@@ -181,9 +183,11 @@ async def podman_adk_docs_test_case(model_name: str) -> GeneratorTestCase:
         gen = GeminiCliPodmanAnswerGenerator(
             dockerfile_dir=Path("benchmarks/answer_generators/gemini_cli_docker/adk-docs-ext"),
             image_name="gemini-cli:adk-docs-ext",
+            image_definitions=IMAGE_DEFINITIONS,
             model_name=model_name,
             service_url=os.environ["TEST_GENERATOR_URL"]
         )
+        await gen.setup()
     else:
         # Check for parallel execution without orchestrator
         if os.environ.get("PYTEST_XDIST_WORKER") and not os.environ.get("TEST_GENERATOR_URL"):
@@ -227,9 +231,11 @@ async def podman_context7_test_case(model_name: str) -> GeneratorTestCase:
         gen = GeminiCliPodmanAnswerGenerator(
             dockerfile_dir=Path("benchmarks/answer_generators/gemini_cli_docker/gemini-cli-mcp-context7"),
             image_name="gemini-cli:mcp-context7",
+            image_definitions=IMAGE_DEFINITIONS,
             model_name=model_name,
             service_url=os.environ["TEST_GENERATOR_URL"]
         )
+        await gen.setup()
     else:
         # Check for parallel execution without orchestrator
         if os.environ.get("PYTEST_XDIST_WORKER") and not os.environ.get("TEST_GENERATOR_URL"):

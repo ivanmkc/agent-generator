@@ -3,14 +3,16 @@ import pytest
 import asyncio
 from pathlib import Path
 from benchmarks.answer_generators.gemini_cli_docker.gemini_cli_podman_answer_generator import GeminiCliPodmanAnswerGenerator
+from benchmarks.answer_generators.gemini_cli_docker.image_definitions import IMAGE_DEFINITIONS
 from benchmarks.tests.integration.conftest import has_cmd
 
 @pytest.mark.asyncio
-async def test_podman_shared_instance_concurrency(model_name):
+async def test_podman_shared_instance_concurrency():
     """
     Verifies that a single shared GeminiCliPodmanAnswerGenerator instance
     can handle concurrent setup requests without race conditions.
     """
+    model_name = "gemini-2.5-flash"
     if not has_cmd("podman"):
         pytest.skip("Podman not installed")
 
@@ -19,7 +21,7 @@ async def test_podman_shared_instance_concurrency(model_name):
     generator = GeminiCliPodmanAnswerGenerator(
         dockerfile_dir=Path("benchmarks/answer_generators/gemini_cli_docker/base"),
         image_name="gemini-cli:base",
-        auto_deploy=True,
+        image_definitions=IMAGE_DEFINITIONS,
         model_name=model_name
     )
     # 2. Define a worker that tries to use the generator
@@ -29,8 +31,8 @@ async def test_podman_shared_instance_concurrency(model_name):
         try:
             # We access private method to bypass strict prompt formatting of generate_answer
             # effectively simulating _run_cli_command usage
-            response, logs = await generator._run_cli_command(
-                cli_args=["--version"]
+            response, logs = await generator.run_cli_command(
+                command_parts=[generator.cli_path, "--version"]
             )
             return True
         except Exception as e:

@@ -2,3 +2,4 @@
 testpaths = ["benchmarks/tests"]
 asyncio_default_fixture_loop_scope = "module"
 asyncio_mode = "auto"
+addopts = "-rs -v -s"

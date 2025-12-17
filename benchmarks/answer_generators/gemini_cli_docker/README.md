@@ -66,12 +66,14 @@ For local testing and development, you can use the `GeminiCliPodmanAnswerGenerat
 
 ```python
 from benchmarks.answer_generators.gemini_cli_docker import GeminiCliPodmanAnswerGenerator
+from benchmarks.answer_generators.gemini_cli_docker.image_definitions import IMAGE_DEFINITIONS
 
 # Uses local image 'gemini-cli:adk-python'
 # Automatically builds if missing
 generator = GeminiCliPodmanAnswerGenerator(
     image_name="gemini-cli:adk-python", 
     dockerfile_dir="benchmarks/answer_generators/gemini_cli_docker/adk-python",
+    image_definitions=IMAGE_DEFINITIONS,
     model_name="gemini-2.5-flash"
 )
 ```
