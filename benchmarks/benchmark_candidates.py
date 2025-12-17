@@ -80,7 +80,6 @@ CANDIDATE_GENERATORS = [
             "benchmarks/answer_generators/gemini_cli_docker/base"
         ),
         image_name="gemini-cli:base",
-        auto_deploy=True,
     ),
     GeminiCliPodmanAnswerGenerator(
         model_name=ModelName.GEMINI_2_5_FLASH,
@@ -88,7 +87,6 @@ CANDIDATE_GENERATORS = [
             "benchmarks/answer_generators/gemini_cli_docker/adk-python"
         ),
         image_name="gemini-cli:adk-python",
-        auto_deploy=True,
     ),
     # # Gemini CLI Cloud Run Generator (ADK Docs Extension)
     # GeminiCliCloudRunAnswerGenerator(

@@ -78,9 +78,7 @@ class GeminiCliCloudRunAnswerGenerator(GeminiCliAnswerGenerator):
       project_id: str | None = None,
       region: str = "us-central1",
       context_instruction: str | None = None,
-      auto_deploy: bool = False,
       image_name: str | None = None,
-      force_deploy: bool = False,
       service_url: str | None = None,
   ):
     # Store all arguments specific to this class first
@@ -89,8 +87,6 @@ class GeminiCliCloudRunAnswerGenerator(GeminiCliAnswerGenerator):
     self.project_id = project_id
     self.region = region
     self.context_instruction = context_instruction # Store locally
-    self.auto_deploy = auto_deploy
-    self.force_deploy = force_deploy
     
     # Then call the parent constructor with only the arguments it expects
     super().__init__(model_name=model_name, cli_path="gemini", context=self.context_instruction)
@@ -140,7 +136,7 @@ class GeminiCliCloudRunAnswerGenerator(GeminiCliAnswerGenerator):
         f" variant={variant})"
     )
 
-  async def setup(self) -> None:
+  async def setup(self, force_deploy: bool = False) -> None:
     """Checks service health or deploys from source if needed."""
     
     if self._is_proxy:
@@ -149,6 +145,7 @@ class GeminiCliCloudRunAnswerGenerator(GeminiCliAnswerGenerator):
         if not self.project_id:
             _, project_id = google.auth.default()
             self.project_id = project_id
+        self._setup_completed = True
         return
 
     # 1. Calculate local hash if we have source
@@ -191,35 +188,9 @@ class GeminiCliCloudRunAnswerGenerator(GeminiCliAnswerGenerator):
             f" API: {e}"
         )
 
-    if not self.service_url and not self.auto_deploy:
-      print(
-          "  ! Warning: No Service URL found and auto_deploy=False. Generator"
-          " may fail."
-      )
-      return
-
-    # Helper for HTTP checks
-    async def check_health(endpoint: str = "/") -> tuple[int, str] | None:
-      if not self.service_url:
-        return None
-
-      token = await self._get_id_token()
-
-      url = f"{self.service_url}{endpoint}"
-      headers = {}
-      if token:
-        headers["Authorization"] = f"Bearer {token}"
-
-      try:
-        async with aiohttp.ClientSession() as session:
-          async with session.get(url, headers=headers, timeout=10) as response:
-            return response.status, await response.text()
-      except Exception:
-        return None
-
     # 3. Check Remote Version
     remote_version = None
-    if self.service_url and not self.force_deploy:
+    if self.service_url and not force_deploy:
       health_result = await check_health(endpoint="/version")
       if health_result and health_result[0] == 200:
         remote_version = health_result[1].strip()
@@ -232,31 +203,38 @@ class GeminiCliCloudRunAnswerGenerator(GeminiCliAnswerGenerator):
 
     # 4. Decide Action
     should_deploy = False
-    if self.auto_deploy and self.dockerfile_dir:
-        if self.force_deploy:
-            print("    -> Force deploy requested. Deploying...")
-            should_deploy = True
-        elif local_hash == remote_version:
-            print("    -> Versions match. Skipping deployment.")
-        else:
-            print(
-                f"    -> Version mismatch (Local: {local_hash[:8]}, Remote:"
-                f" {remote_version[:8] if remote_version else 'None'})."
-                " Deploying..."
-            )
-            should_deploy = True
+    
+    if force_deploy:
+        print("    -> Force deploy requested. Deploying...")
+        should_deploy = True
+    elif local_hash == remote_version:
+        print("    -> Versions match. Skipping deployment.")
+    elif not self.service_url:
+        print("    -> No service URL. Deploying...")
+        should_deploy = True
+    else:
+        print(
+            f"    -> Version mismatch (Local: {local_hash[:8]}, Remote:"
+            f" {remote_version[:8] if remote_version else 'None'})."
+            " Deploying..."
+        )
+        should_deploy = True
     
     if should_deploy:
-        self.service_url = await self._deploy_from_source(
-            version_id=local_hash
-        )
-        self._remote_version = local_hash
-    elif not self.service_url:
-      print("  ! Error: No service URL and deployment skipped.")
+        if not self.dockerfile_dir:
+             print("  ! Error: No Dockerfile directory provided for deployment.")
+        else:
+            self.service_url = await self._deploy_from_source(
+                version_id=local_hash
+            )
+            self._remote_version = local_hash
 
     # 5. Final verification
     if self.service_url:
       print(f"  - Target Service: {self.service_url}")
+      self._setup_completed = True
+    else:
+        print("  ! Error: Setup failed to resolve a service URL.")
 
   async def teardown(self) -> None:
       """Perform cleanup. No-op for persistent Cloud Run services."""

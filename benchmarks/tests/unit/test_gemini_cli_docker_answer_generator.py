@@ -36,6 +36,7 @@ async def test_docker_command_construction_api_key():
         model_name="gemini-2.5-flash",
         image_name="gemini-cli:adk-python",
     )
+    generator._setup_completed = True
 
     # The CLI with --output-format stream-json returns NDJSON
     # We mock the NDJSON output
@@ -147,6 +148,7 @@ async def test_docker_command_construction_vertex_adc():
     generator = GeminiCliDockerAnswerGenerator(
         image_name="gemini-cli:adk-python"
     )
+    generator._setup_completed = True
 
     inner_model_json = {
         "code": "class Vertex:",

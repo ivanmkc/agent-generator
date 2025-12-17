@@ -153,8 +153,8 @@ async def podman_base_test_case(model_name: str) -> GeneratorTestCase:
             pytest.skip("Podman not installed")
 
         gen = GeminiCliPodmanAnswerGenerator(
+            dockerfile_dir=Path("benchmarks/answer_generators/gemini_cli_docker/adk-python"),
             image_name="gemini-cli:adk-python",
-            auto_deploy=True,
             model_name=model_name
         )
         print(f"--- [Setup] Initializing {gen.image_name} ---")
@@ -192,7 +192,6 @@ async def podman_adk_docs_test_case(model_name: str) -> GeneratorTestCase:
         gen = GeminiCliPodmanAnswerGenerator(
             dockerfile_dir=Path("benchmarks/answer_generators/gemini_cli_docker/adk-docs-ext"),
             image_name="gemini-cli:adk-docs-ext",
-            auto_deploy=True,
             model_name=model_name
         )
         print(f"--- [Setup] Initializing {gen.image_name} ---")
@@ -238,7 +237,6 @@ async def podman_context7_test_case(model_name: str) -> GeneratorTestCase:
         gen = GeminiCliPodmanAnswerGenerator(
             dockerfile_dir=Path("benchmarks/answer_generators/gemini_cli_docker/gemini-cli-mcp-context7"),
             image_name="gemini-cli:mcp-context7",
-            auto_deploy=True,
             model_name=model_name
         )
         print(f"--- [Setup] Initializing {gen.image_name} ---")
@@ -284,7 +282,6 @@ async def cloud_run_test_case(model_name: str) -> GeneratorTestCase:
         gen = GeminiCliCloudRunAnswerGenerator(
             dockerfile_dir=Path("benchmarks/answer_generators/gemini_cli_docker/base"),
             service_name="gemini-cli-test-service", # Unique service name for testing
-            auto_deploy=True,
             model_name=model_name,
             # It's good practice to set a specific region for Cloud Run deployments in tests
             region="us-central1" 

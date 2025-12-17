@@ -33,6 +33,7 @@ async def test_podman_generator_setup(mock_subprocess):
         dockerfile_dir=".",
         image_name="test-image",
         model_name="gemini-2.5-flash",
+        image_definitions={},
     )
 
     # Mock socket to return fixed port
@@ -75,7 +76,8 @@ async def test_podman_generator_env_vars_setup(mock_subprocess):
     """Test that env vars are passed to the container at startup."""
     generator = GeminiCliPodmanAnswerGenerator(
         dockerfile_dir=".",
-        image_name="test-image"
+        image_name="test-image",
+        image_definitions={},
     )
     generator._ensure_image_ready = AsyncMock()
 
@@ -115,6 +117,7 @@ async def test_podman_generator_run_cli_command():
     generator = GeminiCliPodmanAnswerGenerator(
         dockerfile_dir=".",
         image_name="test-image",
+        image_definitions={},
     )
     
     # Manually set up generator state to bypass setup()
@@ -134,7 +137,7 @@ async def test_podman_generator_run_cli_command():
         mock_resp.json = AsyncMock(return_value=mock_response_data)
         mock_post.return_value.__aenter__.return_value = mock_resp
         
-        response, logs = await generator.run_cli_command(["--output-format", "stream-json", "Test Prompt"])
+        response, logs = await generator.run_cli_command(["gemini", "--output-format", "stream-json", "Test Prompt"])
         
         # Verify call arguments
         mock_post.assert_called_once()
@@ -157,7 +160,8 @@ async def test_podman_generator_generate_answer():
     """Test full generate_answer flow."""
     generator = GeminiCliPodmanAnswerGenerator(
         dockerfile_dir=".",
-        image_name="test-image"
+        image_name="test-image",
+        image_definitions={},
     )
     generator._setup_completed = True
     generator._base_url = "http://localhost:12345"

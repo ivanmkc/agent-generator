@@ -43,19 +43,14 @@ from benchmarks.answer_generators.hash_utils import calculate_source_hash
 
 class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
   """An AnswerGenerator that uses the gemini CLI hosted in a local Podman container (API Server mode)."""
-class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
-  """An AnswerGenerator that uses the gemini CLI hosted in a local Podman container (API Server mode)."""
 
   def __init__(
       self,
       dockerfile_dir: str | Path,
       image_name: str,
+      image_definitions: dict[str, ImageDefinition],
       model_name: str = "gemini-2.5-pro",
       context_instruction: str | None = None,
-      auto_deploy: bool = False,
-      force_deploy: bool = False,
-      # Injected dependencies
-      image_definitions: dict[str, ImageDefinition] = IMAGE_DEFINITIONS,
       service_url: str | None = None,
   ):
     # Store all arguments specific to this class
@@ -63,15 +58,11 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
     self._image_definitions = image_definitions
     self.dockerfile_dir = Path(dockerfile_dir)
     self.context_instruction = context_instruction
-    self.auto_deploy = auto_deploy
-    self.force_deploy = force_deploy
 
     # Call the parent constructor with only the arguments it expects
     super().__init__(model_name=model_name, cli_path="gemini", context=self.context_instruction)
     
     self._image_checked = False
-    self._setup_completed = False
-    self._setup_lock: asyncio.Lock | None = None
     
     # Server state
     self._container_name = f"gemini-cli-server-{uuid.uuid4().hex[:8]}"
@@ -79,14 +70,72 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
     
     if service_url:
         self._base_url = service_url
-        self._setup_completed = True # Assume ready if URL provided
         self._is_proxy = True
+        self._setup_completed = True # Assume ready if URL provided, but setup() verifies
     else:
         self._base_url = None
         self._is_proxy = False
+        
+    self._setup_lock: asyncio.Lock | None = None
 
+  @property
+  def name(self) -> str:
+    """Returns a unique name for this generator instance."""
+    return (
+        f"GeminiCliPodmanAnswerGenerator({self.model_name},"
+        f" image={self.image_name})"
+    )
 
-# ... (inside class) ...
+  async def setup(self, force_deploy: bool = False) -> None:
+    """Ensures the Podman image is built and starts the API server container."""
+    if self._setup_lock is None:
+        self._setup_lock = asyncio.Lock()
+        
+    async with self._setup_lock:
+        if self._setup_completed and not self._is_proxy:
+            return
+
+        if self._is_proxy:
+            print(f"[Podman Setup] Verifying Proxy at {self._base_url}")
+            # Verify connectivity? For now just mark complete.
+            self._setup_completed = True
+            return
+
+        print(f"[Podman Setup] Starting setup for {self.name}")
+        await self._ensure_image_ready(force=force_deploy)
+        
+        await self._start_server_container()
+        self._setup_completed = True
+        print(f"[Podman Setup] Setup for {self.name} completed. Listening on {self._base_url}")
+
+  async def teardown(self) -> None:
+      """Stops the persistent container."""
+      if self._is_proxy:
+          return
+      self._cleanup_server_container()
+
+  async def _ensure_image_ready(self, force: bool = False):
+    """Checks if the requested image exists and builds it if necessary."""
+    print(f"[Podman Ensure Image] Checking image readiness for {self.image_name}")
+    if self._image_checked and not force:
+      return
+
+    # Always ensure the 'base' image is available.
+    base_image = f"{IMAGE_PREFIX}:base"
+    if base_image in self._image_definitions:
+        await self._build_image_chain(base_image, force=force)
+      
+    # 1. Check if it's a known managed image
+    if self.image_name in self._image_definitions:
+         await self._build_image_chain(self.image_name, force=force)
+         self._image_checked = True
+         return
+    
+    # If we get here, the image is not a known managed image.
+    raise RuntimeError(
+        f"Image '{self.image_name}' is not a known managed image and no "
+        "dockerfile_dir was provided for a custom build."
+    )
 
   async def _get_image_label(self, image_name: str, label_key: str) -> str | None:
       """Retrieves a label value from a Podman image."""
@@ -135,7 +184,6 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE
     )
-# ... (rest of method) ...
     stdout, stderr = await build_proc.communicate()
     
     if build_proc.returncode != 0:

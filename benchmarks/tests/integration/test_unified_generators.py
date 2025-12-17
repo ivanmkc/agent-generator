@@ -243,7 +243,6 @@ async def run_orchestrator():
             generator = GeminiCliPodmanAnswerGenerator(
                 dockerfile_dir=Path(config["dockerfile_dir"]),
                 image_name=config["image_name"],
-                auto_deploy=True,
                 model_name="gemini-2.5-flash"
             )
         elif gen_type == "cloud_run":
@@ -256,7 +255,6 @@ async def run_orchestrator():
                 dockerfile_dir=Path(config["dockerfile_dir"]),
                 service_name=config["service_name"],
                 region=config.get("region", "us-central1"),
-                auto_deploy=True,
                 model_name="gemini-2.5-flash"
             )
         else:
