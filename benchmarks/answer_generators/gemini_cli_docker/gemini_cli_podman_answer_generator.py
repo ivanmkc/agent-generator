@@ -65,16 +65,19 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
     self._image_checked = False
     
     # Server state
-    self._container_name = f"gemini-cli-server-{uuid.uuid4().hex[:8]}"
     self._port: int | None = None
     
     if service_url:
         self._base_url = service_url
         self._is_proxy = True
-        self._setup_completed = True # Assume ready if URL provided, but setup() verifies
+        self._container_name = None
+        # We enforce calling setup() to verify the proxy
+        self._setup_completed = False 
     else:
         self._base_url = None
         self._is_proxy = False
+        self._container_name = f"gemini-cli-server-{uuid.uuid4().hex[:8]}"
+        self._setup_completed = False
         
     self._setup_lock: asyncio.Lock | None = None
 

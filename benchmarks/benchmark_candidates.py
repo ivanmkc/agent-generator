@@ -36,7 +36,8 @@ from benchmarks.answer_generators.gemini_cli_local_answer_generator import (
 from benchmarks.answer_generators.gemini_cli_docker import (
     GeminiCliDockerAnswerGenerator,
     GeminiCliCloudRunAnswerGenerator,
-    GeminiCliPodmanAnswerGenerator
+    GeminiCliPodmanAnswerGenerator,
+    IMAGE_DEFINITIONS
 )
 from benchmarks.answer_generators.ground_truth_answer_generator import (
     GroundTruthAnswerGenerator,
@@ -80,6 +81,7 @@ CANDIDATE_GENERATORS = [
             "benchmarks/answer_generators/gemini_cli_docker/base"
         ),
         image_name="gemini-cli:base",
+        image_definitions=IMAGE_DEFINITIONS,
     ),
     GeminiCliPodmanAnswerGenerator(
         model_name=ModelName.GEMINI_2_5_FLASH,
@@ -87,6 +89,7 @@ CANDIDATE_GENERATORS = [
             "benchmarks/answer_generators/gemini_cli_docker/adk-python"
         ),
         image_name="gemini-cli:adk-python",
+        image_definitions=IMAGE_DEFINITIONS,
     ),
     # # Gemini CLI Cloud Run Generator (ADK Docs Extension)
     # GeminiCliCloudRunAnswerGenerator(
