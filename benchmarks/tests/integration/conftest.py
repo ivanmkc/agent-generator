@@ -30,6 +30,7 @@ from benchmarks.answer_generators.gemini_cli_answer_generator import GeminiCliAn
 from benchmarks.answer_generators.gemini_cli_local_answer_generator import GeminiCliLocalAnswerGenerator
 from benchmarks.answer_generators.adk_answer_generator import AdkAnswerGenerator
 from benchmarks.answer_generators.gemini_cli_docker.gemini_cli_podman_answer_generator import GeminiCliPodmanAnswerGenerator
+from benchmarks.answer_generators.gemini_cli_docker.image_definitions import IMAGE_DEFINITIONS
 
 # --- Helper Imports ---
 from benchmarks.answer_generators.adk_agents import create_default_adk_agent
@@ -102,12 +103,13 @@ def api_test_case(model_name: str) -> GeneratorTestCase:
 
 
 @pytest.fixture(scope="module")
-def cli_local_test_case(model_name: str) -> GeneratorTestCase:
+async def cli_local_test_case(model_name: str) -> GeneratorTestCase:
     """Fixture for Local CLI."""
     if not has_env("GEMINI_API_KEY"):
         pytest.skip("GEMINI_API_KEY not set")
     
     gen = GeminiCliLocalAnswerGenerator(model_name=model_name)
+    await gen.setup()
     
     return GeneratorTestCase(
         id="cli-local",
@@ -155,6 +157,7 @@ async def podman_base_test_case(model_name: str) -> GeneratorTestCase:
         gen = GeminiCliPodmanAnswerGenerator(
             dockerfile_dir=Path("benchmarks/answer_generators/gemini_cli_docker/adk-python"),
             image_name="gemini-cli:adk-python",
+            image_definitions=IMAGE_DEFINITIONS,
             model_name=model_name
         )
         print(f"--- [Setup] Initializing {gen.image_name} ---")
@@ -192,6 +195,7 @@ async def podman_adk_docs_test_case(model_name: str) -> GeneratorTestCase:
         gen = GeminiCliPodmanAnswerGenerator(
             dockerfile_dir=Path("benchmarks/answer_generators/gemini_cli_docker/adk-docs-ext"),
             image_name="gemini-cli:adk-docs-ext",
+            image_definitions=IMAGE_DEFINITIONS,
             model_name=model_name
         )
         print(f"--- [Setup] Initializing {gen.image_name} ---")
@@ -237,6 +241,7 @@ async def podman_context7_test_case(model_name: str) -> GeneratorTestCase:
         gen = GeminiCliPodmanAnswerGenerator(
             dockerfile_dir=Path("benchmarks/answer_generators/gemini_cli_docker/gemini-cli-mcp-context7"),
             image_name="gemini-cli:mcp-context7",
+            image_definitions=IMAGE_DEFINITIONS,
             model_name=model_name
         )
         print(f"--- [Setup] Initializing {gen.image_name} ---")
@@ -299,12 +304,13 @@ async def cloud_run_test_case(model_name: str) -> GeneratorTestCase:
 
 
 @pytest.fixture(scope="module")
-def cli_fix_error_test_case(model_name: str, tmp_path_factory: pytest.TempPathFactory) -> GeneratorTestCase:
+async def cli_fix_error_test_case(model_name: str, tmp_path_factory: pytest.TempPathFactory) -> GeneratorTestCase:
     """Fixture for Local CLI running a Fix Error case."""
     if not has_env("GEMINI_API_KEY"):
         pytest.skip("GEMINI_API_KEY not set")
     
     gen = GeminiCliLocalAnswerGenerator(model_name=model_name)
+    await gen.setup()
     
     # Create a temporary directory for this specific test case setup
     case_tmp_path = tmp_path_factory.mktemp("fix_error_case")

@@ -8,6 +8,9 @@ RUN mkdir -p /repos
 # Create working directory
 RUN mkdir -p /workdir
 
+# Initialize git to ensure project root detection
+RUN cd /workdir && git init
+
 # Clone the adk-python repository into /repos/adk-python
 RUN git clone https://github.com/google/adk-python.git /repos/adk-python
 
