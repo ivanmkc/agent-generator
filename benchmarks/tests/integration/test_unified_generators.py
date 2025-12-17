@@ -36,6 +36,7 @@ from benchmarks.tests.integration.conftest import GeneratorTestCase
 try:
     from benchmarks.answer_generators.gemini_cli_docker.gemini_cli_podman_answer_generator import GeminiCliPodmanAnswerGenerator
     from benchmarks.answer_generators.gemini_cli_docker.gemini_cli_cloud_run_answer_generator import GeminiCliCloudRunAnswerGenerator
+    from benchmarks.answer_generators.gemini_cli_docker.image_definitions import IMAGE_DEFINITIONS
 except ImportError:
     # Allow running purely as a test file without these imports if needed (e.g. unit testing setup)
     pass
@@ -243,6 +244,7 @@ async def run_orchestrator():
             generator = GeminiCliPodmanAnswerGenerator(
                 dockerfile_dir=Path(config["dockerfile_dir"]),
                 image_name=config["image_name"],
+                image_definitions=IMAGE_DEFINITIONS,
                 model_name="gemini-2.5-flash"
             )
         elif gen_type == "cloud_run":
