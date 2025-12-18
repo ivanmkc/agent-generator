@@ -143,16 +143,23 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
   async def _get_image_label(self, image_name: str, label_key: str) -> str | None:
       """Retrieves a label value from a Podman image."""
       try:
+          print(f"[Podman Build] Inspecting label {label_key} for {image_name}...")
+          inspect_cmd = ["podman", "inspect", "--format", f"{{{{.Config.Labels.{label_key}}}}}", image_name]
+          print(f"[Podman Build] Running command: {" ".join(inspect_cmd)}")
           proc = await asyncio.create_subprocess_exec(
-              "podman", "inspect", "--format", f"{{{{.Config.Labels.{label_key}}}}}", image_name,
+              *inspect_cmd,
               stdout=asyncio.subprocess.PIPE,
-              stderr=asyncio.subprocess.DEVNULL
+              stderr=asyncio.subprocess.PIPE
           )
-          stdout, _ = await proc.communicate()
+          stdout, stderr = await proc.communicate()
           if proc.returncode == 0:
               val = stdout.decode().strip()
+              print(f"[Podman Build] Inspect label {label_key} result: {val}")
               return val if val != "<no value>" else None
-      except Exception:
+          else:
+             print(f"[Podman Build] Inspect failed: {stderr.decode().strip()}")
+      except Exception as e:
+          print(f"[Podman Build] Inspect exception: {e}")
           pass
       return None
 
@@ -182,18 +189,46 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
 
     build_cmd.append(str(context_path))
 
+    print(f"[Podman Build] Running command: {" ".join(build_cmd)}")
+    # Use a subprocess directly connected to stdout/stderr to stream output
+    import sys
+    import time
+
+    start_time = time.monotonic()
+    
     build_proc = await asyncio.create_subprocess_exec(
         *build_cmd,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE
     )
-    stdout, stderr = await build_proc.communicate()
-    
-    if build_proc.returncode != 0:
-        error_msg = stderr.decode().strip() or stdout.decode().strip()
-        raise RuntimeError(f"Failed to build image {image_name}: {error_msg}")
+
+    async def read_stream(stream, callback):
+        while True:
+            line = await stream.readline()
+            if not line:
+                break
+            callback(line.decode().rstrip())
+
+    async def log_stdout(line):
+        print(f"[{image_name}] {line}")
         
-    print(f"Successfully built {image_name}")
+    async def log_stderr(line):
+        print(f"[{image_name}] {line}", file=sys.stderr)
+
+    # Run readers concurrently
+    await asyncio.gather(
+        read_stream(build_proc.stdout, log_stdout),
+        read_stream(build_proc.stderr, log_stderr)
+    )
+    
+    returncode = await build_proc.wait()
+    end_time = time.monotonic()
+    duration = end_time - start_time
+    
+    if returncode != 0:
+        raise RuntimeError(f"Failed to build image {image_name}. Exit code: {returncode} (took {duration:.2f}s)")
+        
+    print(f"Successfully built {image_name} in {duration:.2f}s")
     
   async def _build_image_chain(self, image_key: str, force: bool = False):
     """Recursively builds dependencies and then the target image."""
@@ -208,21 +243,27 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
     dockerfile_path = base_path / definition.dockerfile
 
     # Calculate local source hash
+    print(f"[Podman Build] Calculating source hash for {full_image_name}...")
     current_hash = calculate_source_hash(source_path)
     
     should_build = force
     
     if not should_build:
+        print(f"[Podman Build] Checking if image {full_image_name} exists...")
         # Check if image exists
+        exists_cmd = ["podman", "image", "exists", full_image_name]
+        print(f"[Podman Build] Running command: {" ".join(exists_cmd)}")
         proc = await asyncio.create_subprocess_exec(
-            "podman", "image", "exists", full_image_name,
+            *exists_cmd,
             stdout=asyncio.subprocess.DEVNULL,
-            stderr=asyncio.subprocess.DEVNULL
+            stderr=asyncio.subprocess.PIPE
         )
-        await proc.wait()
+        _, stderr = await proc.communicate()
         if proc.returncode != 0:
+            print(f"[Podman Build] Image {full_image_name} not found (rc={proc.returncode}). Build required. Stderr: {stderr.decode().strip()}")
             should_build = True
         else:
+            print(f"[Podman Build] Image {full_image_name} found. Checking source hash...")
             # Check hash label
             existing_hash = await self._get_image_label(full_image_name, "source_hash")
             if existing_hash != current_hash:
@@ -279,13 +320,14 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
         )
       
       # Config Dir
-      podman_args.extend(["-e", "GEMINI_CONFIG_DIR=/tmp/.gemini/"])
+      # podman_args.extend(["-e", "GEMINI_CONFIG_DIR=/tmp/.gemini/"])
 
       podman_args.append(self.image_name)
       # Explicitly run the server, which works for both CMD-only images (overrides CMD)
       # and ENTRYPOINT images (passed as args to entrypoint script)
       podman_args.extend(["python3", "/usr/local/bin/cli_server.py"])
       
+      print(f"[Podman Setup] Running command: {" ".join(podman_args)}")
       proc = await asyncio.create_subprocess_exec(
           *podman_args,
           stdout=asyncio.subprocess.PIPE,
@@ -363,7 +405,9 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
     # The server expects ["gemini", "arg1", ...]
     # command_parts already contains [self.cli_path, flags..., prompt]
     # self.cli_path is usually "gemini"
-    
+    if not self._setup_completed:
+      await self.setup()
+
     full_args = list(command_parts)
     
     # Handle context instruction if needed (Podman supports it via context_instruction attr)

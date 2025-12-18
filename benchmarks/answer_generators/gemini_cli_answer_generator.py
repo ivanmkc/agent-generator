@@ -66,11 +66,6 @@ class GeminiCliAnswerGenerator(GeminiAnswerGenerator):
       benchmark_case: BaseBenchmarkCase
   ) -> GeneratedAnswer:
     """Generates an answer using the gemini CLI."""
-    if not self._setup_completed:
-      raise RuntimeError(
-          f"Generator {self.name} has not been set up. Please call setup() first."
-      )
-
     prompt: str
     response_schema: BaseModel | None = None
 
@@ -157,10 +152,6 @@ class GeminiCliAnswerGenerator(GeminiAnswerGenerator):
   async def setup(self, force_deploy: bool = False) -> None:
     """Performs any necessary setup (e.g., starting containers)."""
     self._setup_completed = True
-
-  async def teardown(self) -> None:
-    """Performs cleanup (e.g., stopping containers)."""
-    pass
 
   async def get_mcp_tools(self) -> list[str]:
     """Returns a list of available MCP tools (servers)."""

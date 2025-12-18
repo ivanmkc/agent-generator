@@ -164,8 +164,9 @@ async def test_generator_memory_context(test_case: GeneratorTestCase) -> None:
 
     # Regex to find the specific debug line for loaded context paths
     # Example: [DEBUG] [MemoryDiscovery] Final ordered INSTRUCTIONS.md paths to read: ["/path/to/INSTRUCTIONS.md"]
+    expected_context_file = Path(test_case.expected_context_files[0]).name
     match = re.search(
-        r"\[DEBUG\] \[MemoryDiscovery\] Final ordered INSTRUCTIONS.md paths to read: (.*)",
+        rf"\[DEBUG\] \[MemoryDiscovery\] Final ordered {re.escape(expected_context_file)} paths to read: (.*)",
         full_logs_content,
     )
     if not match:
@@ -202,33 +203,13 @@ async def run_orchestrator():
     """
     Main orchestration loop to run tests sequentially by generator.
     """
+    from benchmarks.tests.integration.test_config import GENERATOR_METADATA
+
     # Configuration for generators that need sequential execution
+    # We filter specifically for Podman and Cloud Run types which require orchestration
     generators = [
-        {
-            "id": "podman_base_test_case",
-            "type": "podman",
-            "dockerfile_dir": "benchmarks/answer_generators/gemini_cli_docker/adk-python",
-            "image_name": "gemini-cli:adk-python"
-        },
-        {
-            "id": "podman_adk_docs_test_case",
-            "type": "podman",
-            "dockerfile_dir": "benchmarks/answer_generators/gemini_cli_docker/adk-docs-ext",
-            "image_name": "gemini-cli:adk-docs-ext"
-        },
-        {
-            "id": "podman_context7_test_case",
-            "type": "podman",
-            "dockerfile_dir": "benchmarks/answer_generators/gemini_cli_docker/gemini-cli-mcp-context7",
-            "image_name": "gemini-cli:mcp-context7"
-        },
-        {
-            "id": "cloud_run_test_case",
-            "type": "cloud_run",
-            "dockerfile_dir": "benchmarks/answer_generators/gemini_cli_docker/base",
-            "service_name": "gemini-cli-test-service",
-            "region": "us-central1"
-        }
+        config for config in GENERATOR_METADATA.values() 
+        if config["type"] in ["podman", "cloud_run"]
     ]
 
     print("=== Starting Sequential Integration Test Suite ===")
@@ -287,7 +268,7 @@ async def run_orchestrator():
             test_file = __file__
             
             cmd = [
-                "env/bin/python", "-m", "pytest", "-n", "auto", "-v", "--profile",
+                "env/bin/python", "-m", "pytest", "-n", "auto", "-rs", "-s", "-v", "--profile",
                 "--import-mode=importlib",
                 # Filter strictly for this test case parameter
                 "-k", gen_id, 

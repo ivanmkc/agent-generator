@@ -53,3 +53,7 @@ class AnswerGenerator(abc.ABC):
     and should simply ensure the generator is in a ready state.
     """
     pass
+
+  async def teardown(self) -> None:
+    """Performs cleanup (e.g., stopping containers)."""
+    pass

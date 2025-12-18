@@ -35,6 +35,34 @@ cd benchmarks
 ../env/bin/python convert_py_to_ipynb.py
 ```
 
+## Manual Podman Image Builds
+
+The benchmark suite utilizes several Podman (or Docker-compatible) images for different Gemini CLI configurations. These images are typically built automatically during the benchmark setup phase. However, if you need to build them manually (e.g., for debugging build issues or pre-populating your local image registry), follow these steps from the project root directory:
+
+**1. `gemini-cli:base`**
+This is the foundational image for the Gemini CLI server.
+```bash
+podman build -t gemini-cli:base -f benchmarks/answer_generators/gemini_cli_docker/base/Dockerfile benchmarks/answer_generators/gemini_cli_docker/base
+```
+
+**2. `gemini-cli:adk-python`**
+This image extends the base image and includes the ADK Python extension.
+```bash
+podman build -t gemini-cli:adk-python -f benchmarks/answer_generators/gemini_cli_docker/adk-python/Dockerfile --build-arg BASE_IMAGE=gemini-cli:base benchmarks/answer_generators/gemini_cli_docker/adk-python
+```
+
+**3. `gemini-cli:mcp-context7`**
+This image extends the base image and includes the MCP Context7 extension.
+```bash
+podman build -t gemini-cli:mcp-context7 -f benchmarks/answer_generators/gemini_cli_docker/gemini-cli-mcp-context7/Dockerfile --build-arg BASE_IMAGE=gemini-cli:base benchmarks/answer_generators/gemini_cli_docker/gemini-cli-mcp-context7
+```
+
+**4. `gemini-cli:adk-docs-ext`**
+This image extends the base image and includes the ADK Docs extension.
+```bash
+podman build -t gemini-cli:adk-docs-ext -f benchmarks/answer_generators/gemini_cli_docker/adk-docs-ext/Dockerfile --build-arg BASE_IMAGE=gemini-cli:base benchmarks/answer_generators/gemini_cli_docker/adk-docs-ext
+```
+
 ## Workflow
 
 To run benchmarks via `papermill`:
