@@ -199,7 +199,7 @@ benchmarks:
           - google.adk.agents.llm_agent.LlmAgent
     file: src/google/adk/agents/llm_agent.py
   - category: Hooks and Lifecycle Methods
-    question: What is the foundational class for implementing global functionality across all agents?
+    question: Which abstract base class allows for implementing global functionality across all agents by hooking into the runner's lifecycle via callbacks?
     rationale: The `BasePlugin` class serves as the abstract base for creating plugins that hook into the runner's lifecycle. Plugins provide a structured way to intercept and modify agent, tool, and LLM behaviors at critical execution points in a callback manner, applying globally to all agents in the runner.
     benchmark_type: api_understanding
     template: identifier
@@ -419,7 +419,7 @@ benchmarks:
           - google.adk.events.event.Event
     file: src/google/adk/events/event.py
   - category: Core Class Signatures & Initialization
-    question: What is the easiest way to run an agent for local development and testing?
+    question: Which `Runner` subclass comes pre-configured with in-memory implementations for session, artifact, and memory services, making it the standard choice for local development and testing?
     rationale: Use the `InMemoryRunner`. It's a convenient subclass of `Runner` that comes pre-configured with in-memory implementations for all the required services (session, artifact, and memory).
     benchmark_type: api_understanding
     template: identifier
