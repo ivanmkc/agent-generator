@@ -1,10 +1,9 @@
 #!/bin/bash
 
-# Script to run the benchmark notebook via Papermill and save results to a unified directory.
+# Script to run the benchmark via a pure Python script and save results to a unified directory.
 
 # 1. Generate a shared timestamp/directory
 TIMESTAMP=$(date +"%Y-%m-%d_%H-%M-%S")
-# Ensure the path is relative to the project root or absolute
 OUTPUT_DIR="benchmark_runs/$TIMESTAMP"
 mkdir -p "$OUTPUT_DIR"
 LOG_FILE="$OUTPUT_DIR/benchmark_run.log"
@@ -16,18 +15,20 @@ log() {
 log "Starting Benchmark Run..."
 log "Output Directory: $OUTPUT_DIR"
 
-# 2. Convert Python script to Notebook
-# We need to run the conversion script which is inside benchmarks/
-# and expects benchmark_run.py in its CWD.
-log "Converting benchmark_run.template.py to notebook..."
-env/bin/python notebooks/convert_py_to_ipynb.py notebooks/benchmark_run.template.py 2>&1 | tee -a "$LOG_FILE"
+# 2. Export the output directory so the Python script can read it
+export BENCHMARK_OUTPUT_DIR="$OUTPUT_DIR"
 
-# 3. Run papermill
-# - Input: notebooks/benchmark_run.ipynb (generated above)
-env/bin/papermill notebooks/benchmark_run.template.ipynb "$OUTPUT_DIR/output.ipynb" \
+# 3. Run the Python benchmark script directly
+log "Running Python benchmark script..."
+env/bin/python -u notebooks/run_benchmarks.py 2>&1 | tee -a "$LOG_FILE"
+
+# 4. Generate Visualization Report via Papermill
+log "Generating visualization report..."
+env/bin/papermill notebooks/visualization.ipynb "$OUTPUT_DIR/Visualization.ipynb" \
+  -p RUN_DIR "$OUTPUT_DIR" \
   --cwd . \
   -k python3 \
-  -p run_output_dir_str "$OUTPUT_DIR" 2>&1 | tee -a "$LOG_FILE"
+  2>&1 | tee -a "$LOG_FILE"
 
 log "Benchmark execution complete."
-log "Results (Notebook, Traces, Reports) saved to: $OUTPUT_DIR"
+log "Results (JSON, Traces, Reports, Notebook) saved to: $OUTPUT_DIR"

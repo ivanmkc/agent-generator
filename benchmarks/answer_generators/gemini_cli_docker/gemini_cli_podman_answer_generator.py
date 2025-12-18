@@ -79,7 +79,7 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
         self._container_name = f"gemini-cli-server-{uuid.uuid4().hex[:8]}"
         self._setup_completed = False
         
-    self._setup_lock: asyncio.Lock | None = None
+    self._setup_lock = asyncio.Lock()
 
   @property
   def name(self) -> str:
@@ -91,21 +91,19 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
 
   async def setup(self, force_deploy: bool = False) -> None:
     """Ensures the Podman image is built and starts the API server container."""
-    if self._setup_lock is None:
-        self._setup_lock = asyncio.Lock()
-        
     async with self._setup_lock:
         if self._setup_completed and not self._is_proxy:
             return
 
         if self._is_proxy:
-            print(f"[Podman Setup] Verifying Proxy at {self._base_url}")
-            # Verify connectivity? For now just mark complete.
             self._setup_completed = True
             return
 
         print(f"[Podman Setup] Starting setup for {self.name}")
         await self._ensure_image_ready(force=force_deploy)
+        
+        # Ensure any stale container with the same name is removed before starting
+        self._cleanup_server_container()
         
         await self._start_server_container()
         self._setup_completed = True
@@ -123,11 +121,6 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
     if self._image_checked and not force:
       return
 
-    # Always ensure the 'base' image is available.
-    base_image = f"{IMAGE_PREFIX}:base"
-    if base_image in self._image_definitions:
-        await self._build_image_chain(base_image, force=force)
-      
     # 1. Check if it's a known managed image
     if self.image_name in self._image_definitions:
          await self._build_image_chain(self.image_name, force=force)
@@ -207,7 +200,7 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
             line = await stream.readline()
             if not line:
                 break
-            callback(line.decode().rstrip())
+            await callback(line.decode().rstrip())
 
     async def log_stdout(line):
         print(f"[{image_name}] {line}")
@@ -436,8 +429,6 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
                 
                 result = await response.json()
     except Exception as e:
-        # Mark setup as incomplete so next retry attempts to restart the container
-        self._setup_completed = False
         raise RuntimeError(f"Failed to communicate with Podman API server: {e}")
 
     stdout_str = result.get("stdout", "")

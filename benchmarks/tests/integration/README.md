@@ -5,6 +5,7 @@ This directory contains integration tests for the Answer Generators within the `
 ## Primary Test Suite
 
 - [`test_unified_generators.py`](./test_unified_generators.py): This is the main, parameterized integration test suite that runs a comprehensive set of capabilities and execution tests across all configured `AnswerGenerator` types defined in [`conftest.py`](./conftest.py).
+  - **Debugging Note:** This suite runs tests sequentially (or with low concurrency). If the high-concurrency benchmark orchestrator is failing due to infrastructure limits (e.g., Podman crashing), use this test to verify that the *logic* of the generators is correct in isolation.
 
 ## Specific Integration Tests
 

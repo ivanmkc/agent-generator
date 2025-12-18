@@ -12,17 +12,24 @@ The sandbox server (`base/cli_server.py`) is built using **FastAPI** and **Uvico
 
 ## Tuning Concurrency
 
-The concurrency settings for the benchmark run are derived from stress testing the container image.
+The concurrency settings for the benchmark run must be tuned based on the execution environment.
 
-### Validated Configuration (Horizontal Scaling)
+### 1. Local Podman (VM-Based)
 
-We utilize a **Horizontal Scaling** strategy to handle high concurrency. Instead of one large instance, we use multiple smaller instances.
+Running benchmarks locally on macOS/Windows uses a Podman VM, which has strict resource and networking limits (specifically the `gvproxy` networking stack).
 
-*   **Instance Spec:** 4GB RAM / 4 vCPU.
+*   **Global Limit (`MAX_GLOBAL_CONCURRENCY`):** **10** (Recommended safe maximum).
+    *   *Reason:* While the VM might have enough RAM, the `gvproxy` networking stack often becomes unstable with higher concurrent connection counts (e.g., >25), leading to "Connection Refused" errors.
+*   **Memory Requirement:** The Podman VM **must** be provisioned with at least **8GB RAM** (`podman machine set --memory 8192`).
+
+### 2. Cloud Run (Horizontal Scaling)
+
+Cloud Run allows for much higher concurrency via horizontal scaling.
+
 *   **Per-Instance Limit (`MAX_INSTANCE_CONCURRENCY`):** **10**.
-    *   *Reason:* Node.js processes (gemini CLI) consume ~100-200MB memory each. 10 concurrent requests fit safely within 4GB RAM. Exceeding this risks OOM crashes (503 errors).
-*   **Global Limit (`MAX_BENCHMARK_CONCURRENCY`):** **40**.
-    *   *Reason:* This allows running 40 benchmarks in parallel. Cloud Run automatically scales out to ~4-10 instances to handle this load with zero infrastructure errors.
+    *   *Reason:* Node.js processes consume ~100-200MB memory each. 10 concurrent requests fit safely within a 4GB instance.
+*   **Global Limit (`MAX_GLOBAL_CONCURRENCY`):** **40+**.
+    *   *Reason:* Cloud Run automatically scales out to ~4-10 instances to handle this load with zero infrastructure errors.
 
 ### How to Recalculate Limits
 

@@ -38,8 +38,9 @@ class CloudRunConfig:
 class PodmanConfig:
     """Configuration settings for local Podman environment."""
     # Global Concurrency: Constrained by local machine resources (CPU/RAM).
-    # 20-40 is a safe range for a typical dev machine (e.g. M1/M2/M3 Max).
-    MAX_GLOBAL_CONCURRENCY: int = 40
+    # 10 was tested for a machine with the following specs: Apple M4 Pro, 48GB RAM
+    # The podman machine was provisioned with the following resources: 7 CPUs, 8GB RAM
+    MAX_GLOBAL_CONCURRENCY: int = 10
 
 # Instantiate for usage
 CLOUD_RUN_CONFIG = CloudRunConfig()

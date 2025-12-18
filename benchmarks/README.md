@@ -209,6 +209,36 @@ The framework distinguishes between different types of results to provide deeper
 *   **`FAIL_VALIDATION`**: The generated code ran successfully but failed the assertions (e.g., produced the wrong answer). This indicates a logic error in the generated solution.
 *   **`FAIL_CRASH`**: The generated code could not be executed or crashed during execution (e.g., `SyntaxError`, `ImportError`, `NameError`). This indicates that the generated code is syntactically invalid or references non-existent symbols.
 
+## Troubleshooting Podman
+
+If you encounter issues with Podman (e.g., containers stop responding or fail to start), restarting the Podman machine often resolves the problem.
+
+**Requirements:**
+*   **Memory:** Ensure your Podman machine is provisioned with at least **8GB of RAM**. The default 2GB is insufficient for running the benchmark suite locally.
+    ```bash
+    # Stop the machine first
+    podman machine stop
+    # Set memory (e.g., 8192 MB)
+    podman machine set --memory 8192
+    podman machine start
+    ```
+*   **CPU:** At least 4 vCPUs are recommended.
+
+**To restart Podman:**
+```bash
+podman machine stop
+podman machine start
+```
+
+**If "Connection Refused" persists (gvproxy issues):**
+If you see persistent `connection refused` errors or the VM becomes unresponsive even after a restart, you may need to perform a full reset to clear the networking stack state.
+```bash
+# WARNING: This deletes all your local images and containers
+podman machine reset
+podman machine init
+podman machine start
+```
+
 ## Extending the Framework
 
 The framework is designed to be extensible.

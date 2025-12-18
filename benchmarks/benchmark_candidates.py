@@ -38,6 +38,7 @@ from benchmarks.answer_generators.gemini_cli_docker import (
     GeminiCliCloudRunAnswerGenerator,
     GeminiCliPodmanAnswerGenerator,
 )
+from benchmarks.answer_generators.base import AnswerGenerator
 from benchmarks.answer_generators.gemini_cli_docker.image_definitions import IMAGE_DEFINITIONS
 from benchmarks.answer_generators.ground_truth_answer_generator import (
     GroundTruthAnswerGenerator,
@@ -74,7 +75,7 @@ agent_flash = create_default_adk_agent(model_name=ModelName.GEMINI_2_5_FLASH)
 agent_pro = create_default_adk_agent(model_name=ModelName.GEMINI_2_5_PRO)
 
 # List of standard candidate generators
-CANDIDATE_GENERATORS = [
+CANDIDATE_GENERATORS: list[AnswerGenerator] = [
       GeminiCliPodmanAnswerGenerator(
         model_name=ModelName.GEMINI_2_5_FLASH,
         dockerfile_dir=Path(
@@ -83,24 +84,23 @@ CANDIDATE_GENERATORS = [
         image_name="gemini-cli:base",
         image_definitions=IMAGE_DEFINITIONS,
     ),
-    # GeminiCliPodmanAnswerGenerator(
-    #     model_name=ModelName.GEMINI_2_5_FLASH,
-    #     dockerfile_dir=Path(
-    #         "benchmarks/answer_generators/gemini_cli_docker/adk-python"
-    #     ),
-    #     image_name="gemini-cli:adk-python",
-    #     image_definitions=IMAGE_DEFINITIONS,
-    # ),
-    # # Gemini CLI Cloud Run Generator (ADK Docs Extension)
-    # GeminiCliCloudRunAnswerGenerator(
-    #     model_name=ModelName.GEMINI_2_5_FLASH,
-    #     dockerfile_dir=Path(
-    #         "benchmarks/answer_generators/gemini_cli_docker/adk-docs-ext"
-    #     ),
-    #     service_name="adk-docs-ext",
-    #     project_id=project_id,
-    #     auto_deploy=True,
-    # ),
+    GeminiCliPodmanAnswerGenerator(
+        model_name=ModelName.GEMINI_2_5_FLASH,
+        dockerfile_dir=Path(
+            "benchmarks/answer_generators/gemini_cli_docker/adk-python"
+        ),
+        image_name="gemini-cli:adk-python",
+        image_definitions=IMAGE_DEFINITIONS,
+    ),
+    # Gemini CLI Cloud Run Generator (ADK Docs Extension)
+    GeminiCliPodmanAnswerGenerator(
+        model_name=ModelName.GEMINI_2_5_FLASH,
+        dockerfile_dir=Path(
+            "benchmarks/answer_generators/gemini_cli_docker/adk-docs-ext"
+        ),
+        image_name="gemini-cli:adk-docs-ext",
+        image_definitions=IMAGE_DEFINITIONS,
+    ),
     # # Gemini CLI Cloud Run Generator (Standalone Base - for baseline comparison)
     # GeminiCliCloudRunAnswerGenerator(
     #     model_name=ModelName.GEMINI_2_5_FLASH,
