@@ -77,6 +77,8 @@ class GeneratorTestCase:
 
 # --- Shared Configuration Fixtures ---
 
+from benchmarks.tests.integration.test_config import GENERATOR_METADATA
+
 @pytest.fixture(scope="module")
 def model_name() -> str:
     """
@@ -134,163 +136,87 @@ def adk_agent_test_case(model_name: str) -> GeneratorTestCase:
 
 
 @pytest.fixture(scope="module")
-async def podman_base_test_case(model_name: str) -> GeneratorTestCase:
-    """Fixture for Podman Base Image."""
+async def managed_generator_test_case(request: pytest.FixtureRequest, model_name: str) -> GeneratorTestCase:
+    """
+    Generic fixture for all managed generators (Podman/Cloud Run).
+    It expects the request.param to be the configuration ID string.
+    """
+    # The param is passed from the meta-fixture 'test_case' which iterates over TEST_CASE_FIXTURES.
+    # However, 'managed_generator_test_case' itself is not parameterized by pytest directly here
+    # because it is called via `request.getfixturevalue` in `test_case`.
+    # BUT, `test_case` passes the fixture NAME string (e.g. "managed_generator_test_case[podman_base]").
+    # Wait, the meta-fixture logic in `test_case` expects the param to be a fixture NAME.
+    # To support dynamic orchestration, we need `test_case` to handle this.
+    
+    # Actually, simpler: We make `managed_generator_test_case` parameterized itself 
+    # over the keys of GENERATOR_METADATA.
+    pass
+
+# We need to restructure slightly.
+# OLD: test_case iterates over ["api_test_case", "podman_base_test_case", ...]
+# NEW: test_case iterates over ["api_test_case", ..., "managed_generator_test_case"]
+# AND managed_generator_test_case is parameterized by the config keys.
+
+@pytest.fixture(params=list(GENERATOR_METADATA.keys()), scope="module")
+async def managed_generator_test_case(request: pytest.FixtureRequest, model_name: str) -> GeneratorTestCase:
+    """
+    Generic fixture for all managed generators defined in GENERATOR_METADATA.
+    """
+    config_id = request.param
+    config = GENERATOR_METADATA[config_id]
+    
+    gen_type = config["type"]
     
     service_url = None
-    # Check for Proxy Mode
-    if os.environ.get("TEST_GENERATOR_ID") == "podman_base_test_case" and os.environ.get("TEST_GENERATOR_URL"):
-        print(f"[Fixture] Using Proxy Generator for podman_base_test_case at {os.environ['TEST_GENERATOR_URL']}")
-        service_url=os.environ["TEST_GENERATOR_URL"]
-    else:
-        # Check for parallel execution without orchestrator
-        if os.environ.get("PYTEST_XDIST_WORKER") and not os.environ.get("TEST_GENERATOR_URL"):
-            pytest.skip("Skipping resource-heavy Podman test in parallel mode without orchestrator. Use 'python benchmarks/tests/integration/test_unified_generators.py' for optimized execution.")
-
-        if not has_cmd("podman"):
-            pytest.skip("Podman not installed")
-
-    gen = GeminiCliPodmanAnswerGenerator(
-        dockerfile_dir=Path("benchmarks/answer_generators/gemini_cli_docker/adk-python"),
-        image_name="gemini-cli:adk-python",
-        image_definitions=IMAGE_DEFINITIONS,
-        model_name=model_name,
-        service_url=service_url
-    )
-    print(f"--- [Setup] Initializing {gen.image_name} ---")
-    await gen.setup()
-    
-    return GeneratorTestCase(
-        id="podman-base",
-        generator=gen,
-        expected_gemini_cli_extensions=[],
-        expected_context_files=["/workdir/INSTRUCTIONS.md"]
-    )
-
-
-@pytest.fixture(scope="module")
-async def podman_adk_docs_test_case(model_name: str) -> GeneratorTestCase:
-    """Fixture for Podman ADK Docs Extension (MCP)."""
-
-    service_url = None
-
-    # Check for Proxy Mode
-    if os.environ.get("TEST_GENERATOR_ID") == "podman_adk_docs_test_case" and os.environ.get("TEST_GENERATOR_URL"):
-        print(f"[Fixture] Using Proxy Generator for podman_adk_docs_test_case at {os.environ['TEST_GENERATOR_URL']}")
-        service_url=os.environ["TEST_GENERATOR_URL"]
-    else:
-        # Check for parallel execution without orchestrator
-        if os.environ.get("PYTEST_XDIST_WORKER") and not os.environ.get("TEST_GENERATOR_URL"):
-            pytest.skip("Skipping resource-heavy Podman test in parallel mode without orchestrator. Use 'python benchmarks/tests/integration/test_unified_generators.py' for optimized execution.")
-
-        if not has_cmd("podman"):
-            pytest.skip("Podman not installed")
-
-    gen = GeminiCliPodmanAnswerGenerator(
-        dockerfile_dir=Path("benchmarks/answer_generators/gemini_cli_docker/adk-docs-ext"),
-        image_name="gemini-cli:adk-docs-ext",
-        image_definitions=IMAGE_DEFINITIONS,
-        model_name=model_name,
-        service_url=service_url
-    )
-    
-    print(f"--- [Setup] Initializing {gen.image_name} ---")
-    await gen.setup()
-
-    # Specific case for this tool
-    case = ADK_BASE_AGENT_QUESTION_CASE_INTERMEDIATE
-    
-    # Traces relevant to this specific case and tool combination
-    traces = ["extension", "context", "loading"]
-
-    return GeneratorTestCase(
-        id="podman-adk-docs",
-        generator=gen,
-        expected_gemini_cli_extensions=["adk-docs-ext"],
-        expected_mcp_tools=["adk-docs-mcp"],
-        custom_case=case,
-        trace_indicators=traces
-    )
-
-
-@pytest.fixture(scope="module")
-async def podman_context7_test_case(model_name: str) -> GeneratorTestCase:
-    """Fixture for Podman ADK Docs Extension (MCP)."""
-
-    # Check for Proxy Mode
-    service_url = None
-    if os.environ.get("TEST_GENERATOR_ID") == "podman_context7_test_case" and os.environ.get("TEST_GENERATOR_URL"):
-        print(f"[Fixture] Using Proxy Generator for podman_context7_test_case at {os.environ['TEST_GENERATOR_URL']}")
+    # Check for Proxy Mode: The orchestrator sets TEST_GENERATOR_ID to the specific config ID
+    if os.environ.get("TEST_GENERATOR_ID") == config_id and os.environ.get("TEST_GENERATOR_URL"):
+        print(f"[Fixture] Using Proxy Generator for {config_id} at {os.environ['TEST_GENERATOR_URL']}")
         service_url = os.environ["TEST_GENERATOR_URL"]
     else:
         # Check for parallel execution without orchestrator
         if os.environ.get("PYTEST_XDIST_WORKER") and not os.environ.get("TEST_GENERATOR_URL"):
-            pytest.skip("Skipping resource-heavy Podman test in parallel mode without orchestrator. Use 'python benchmarks/tests/integration/test_unified_generators.py' for optimized execution.")
-
-        if not has_cmd("podman"):
+            pytest.skip(f"Skipping resource-heavy {gen_type} test {config_id} in parallel mode without orchestrator.")
+        
+        if gen_type == "podman" and not has_cmd("podman"):
             pytest.skip("Podman not installed")
+        if gen_type == "cloud_run" and not has_env("GOOGLE_CLOUD_PROJECT"):
+            pytest.skip("GOOGLE_CLOUD_PROJECT not set")
 
-    gen = GeminiCliPodmanAnswerGenerator(
-        dockerfile_dir=Path("benchmarks/answer_generators/gemini_cli_docker/gemini-cli-mcp-context7"),
-        image_name="gemini-cli:mcp-context7",
-        image_definitions=IMAGE_DEFINITIONS,
-        model_name=model_name,
-        service_url=service_url,
-    )
+    # Instantiate the correct generator class
+    gen = None
+    if gen_type == "podman":
+        gen = GeminiCliPodmanAnswerGenerator(
+            dockerfile_dir=Path(config["dockerfile_dir"]),
+            image_name=config["image_name"],
+            image_definitions=IMAGE_DEFINITIONS,
+            model_name=model_name,
+            service_url=service_url
+        )
+    elif gen_type == "cloud_run":
+        from benchmarks.answer_generators.gemini_cli_docker.gemini_cli_cloud_run_answer_generator import GeminiCliCloudRunAnswerGenerator
+        gen = GeminiCliCloudRunAnswerGenerator(
+            dockerfile_dir=Path(config["dockerfile_dir"]),
+            service_name=config["service_name"],
+            model_name=model_name,
+            service_url=service_url,
+            region=config.get("region", "us-central1")
+        )
+    else:
+        pytest.fail(f"Unknown generator type: {gen_type}")
 
-    print(f"--- [Setup] Initializing {gen.image_name} ---")
+    print(f"--- [Setup] Initializing {gen.name} ---")
     await gen.setup()
     
-    # Specific case for this tool
-    case = ADK_BASE_AGENT_QUESTION_CASE_INTERMEDIATE
-    
-    # Traces relevant to this specific case and tool combination
-    traces = ["extension", "context", "loading"]
-
     return GeneratorTestCase(
-        id="podman-mcp-context7",
+        id=config["id"],
         generator=gen,
-        expected_gemini_cli_extensions=[],
-        expected_mcp_tools=["context7"],
-        custom_case=case,
-        trace_indicators=traces
+        expected_gemini_cli_extensions=config.get("expected_extensions", []),
+        expected_mcp_tools=config.get("expected_mcp_tools", []),
+        expected_context_files=config.get("expected_context_files", []),
+        custom_case=config.get("custom_case"),
+        trace_indicators=config.get("trace_indicators", [])
     )
 
-@pytest.fixture(scope="module")
-async def cloud_run_test_case(model_name: str) -> GeneratorTestCase:
-    """Fixture for Cloud Run deployed Gemini CLI."""
-    if not has_env("GOOGLE_CLOUD_PROJECT"):
-        pytest.skip("GOOGLE_CLOUD_PROJECT not set for Cloud Run tests")
-    
-    # Import here to avoid circular dependencies and only if needed
-    from benchmarks.answer_generators.gemini_cli_docker.gemini_cli_cloud_run_answer_generator import GeminiCliCloudRunAnswerGenerator
-
-    service_url = None
-
-    # Check for Proxy Mode
-    if os.environ.get("TEST_GENERATOR_ID") == "cloud_run_test_case" and os.environ.get("TEST_GENERATOR_URL"):
-        print(f"[Fixture] Using Proxy Generator for cloud_run_test_case at {os.environ['TEST_GENERATOR_URL']}")
-        service_url = os.environ["TEST_GENERATOR_URL"]
-
-    # Use a generic base image for the CLI server
-    gen = GeminiCliCloudRunAnswerGenerator(
-        dockerfile_dir=Path("benchmarks/answer_generators/gemini_cli_docker/base"),
-        service_name="gemini-cli-test-service", # Unique service name for testing
-        model_name=model_name,
-        service_url=service_url,
-        # It's good practice to set a specific region for Cloud Run deployments in tests
-        region="us-central1" 
-    )
-
-    print(f"--- [Setup] Initializing {gen.service_name} (Cloud Run) ---")
-    await gen.setup()
-
-    return GeneratorTestCase(
-        id="cloud-run-base",
-        generator=gen,
-        expected_gemini_cli_extensions=[], # No specific extensions for the base image
-        expected_mcp_tools=[] # No MCP tools for the base image
-    )
 
 
 @pytest.fixture(scope="module")
@@ -344,8 +270,74 @@ async def cli_fix_error_test_case(model_name: str, tmp_path_factory: pytest.Temp
 from benchmarks.tests.integration.test_config import TEST_CASE_FIXTURES
 
 @pytest.fixture(params=TEST_CASE_FIXTURES, scope="module")
-def test_case(request: pytest.FixtureRequest) -> GeneratorTestCase:
+async def test_case(request: pytest.FixtureRequest, model_name: str) -> GeneratorTestCase:
     """
-    Meta-fixture that iterates over all registered TestCase fixtures.
+    Meta-fixture that provides the GeneratorTestCase for the current test iteration.
+    It handles both:
+    1. Managed generators (defined in test_config.py): Instantiates them dynamically.
+    2. Local fixtures (defined in conftest.py): Resolves them via getfixturevalue.
     """
-    return request.getfixturevalue(request.param)
+    case_id = request.param
+
+    # 1. Check if it's a managed generator
+    if case_id in GENERATOR_METADATA:
+        config = GENERATOR_METADATA[case_id]
+        gen_type = config["type"]
+        
+        service_url = None
+        # Check for Proxy Mode
+        if os.environ.get("TEST_GENERATOR_ID") == case_id and os.environ.get("TEST_GENERATOR_URL"):
+            print(f"[Fixture] Using Proxy Generator for {case_id} at {os.environ['TEST_GENERATOR_URL']}")
+            service_url = os.environ["TEST_GENERATOR_URL"]
+        else:
+            # Check for parallel execution without orchestrator
+            if os.environ.get("PYTEST_XDIST_WORKER") and not os.environ.get("TEST_GENERATOR_URL"):
+                pytest.skip(f"Skipping resource-heavy {gen_type} test {case_id} in parallel mode without orchestrator.")
+            
+            if gen_type == "podman" and not has_cmd("podman"):
+                pytest.skip("Podman not installed")
+            if gen_type == "cloud_run" and not has_env("GOOGLE_CLOUD_PROJECT"):
+                pytest.skip("GOOGLE_CLOUD_PROJECT not set")
+
+        # Instantiate generator
+        gen = None
+        if gen_type == "podman":
+            gen = GeminiCliPodmanAnswerGenerator(
+                dockerfile_dir=Path(config["dockerfile_dir"]),
+                image_name=config["image_name"],
+                image_definitions=IMAGE_DEFINITIONS,
+                model_name=model_name,
+                service_url=service_url
+            )
+        elif gen_type == "cloud_run":
+            from benchmarks.answer_generators.gemini_cli_docker.gemini_cli_cloud_run_answer_generator import GeminiCliCloudRunAnswerGenerator
+            gen = GeminiCliCloudRunAnswerGenerator(
+                dockerfile_dir=Path(config["dockerfile_dir"]),
+                service_name=config["service_name"],
+                model_name=model_name,
+                service_url=service_url,
+                region=config.get("region", "us-central1")
+            )
+        else:
+            pytest.fail(f"Unknown generator type: {gen_type}")
+
+        print(f"--- [Setup] Initializing {gen.name} ---")
+        await gen.setup()
+        
+        return GeneratorTestCase(
+            id=config["id"],
+            generator=gen,
+            expected_gemini_cli_extensions=config.get("expected_extensions", []),
+            expected_mcp_tools=config.get("expected_mcp_tools", []),
+            expected_context_files=config.get("expected_context_files", []),
+            custom_case=config.get("custom_case"),
+            trace_indicators=config.get("trace_indicators", [])
+        )
+    
+    # 2. Fallback to Local Fixtures
+    else:
+        # For async fixtures, getfixturevalue returns the result directly (awaited by pytest)
+        # But wait, request.getfixturevalue() is synchronous-ish in how it resolves?
+        # If the target fixture is async, getfixturevalue returns the value (not coroutine)
+        # because Pytest handles the loop.
+        return request.getfixturevalue(case_id)
