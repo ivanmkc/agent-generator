@@ -34,6 +34,7 @@ from benchmarks.data_models import TraceLogEvent
 from benchmarks.data_models import UsageMetadata
 from benchmarks.utils import parse_cli_stream_json_output
 from pydantic import BaseModel
+from benchmarks.api_key_manager import ApiKeyManager
 from benchmarks.answer_generators.gemini_answer_generator import GeminiAnswerGenerator
 
 
@@ -46,9 +47,10 @@ class GeminiCliAnswerGenerator(GeminiAnswerGenerator):
       model_name: str = "gemini-2.5-pro",
       context: str | Path | None = None,
       cli_path: str = "gemini",
+      api_key_manager: ApiKeyManager | None = None,
   ):
     # Call the direct parent (GeminiAnswerGenerator) and pass relevant arguments.
-    super().__init__(model_name=model_name, context=context)
+    super().__init__(model_name=model_name, context=context, api_key_manager=api_key_manager)
     
     # cli_path is specific to this class and not passed up the chain.
     self.cli_path = cli_path

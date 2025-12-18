@@ -28,14 +28,7 @@ from pathlib import Path
 import subprocess
 
 from benchmarks.answer_generators.adk_agents import create_default_adk_agent
-from benchmarks.answer_generators.adk_answer_generator import AdkAnswerGenerator
-from benchmarks.answer_generators.gemini_answer_generator import GeminiAnswerGenerator
-from benchmarks.answer_generators.gemini_cli_local_answer_generator import (
-    GeminiCliLocalAnswerGenerator,
-)
 from benchmarks.answer_generators.gemini_cli_docker import (
-    GeminiCliDockerAnswerGenerator,
-    GeminiCliCloudRunAnswerGenerator,
     GeminiCliPodmanAnswerGenerator,
 )
 from benchmarks.answer_generators.base import AnswerGenerator
@@ -45,6 +38,7 @@ from benchmarks.answer_generators.ground_truth_answer_generator import (
 )
 from benchmarks.answer_generators.trivial_answer_generator import TrivialAnswerGenerator
 from benchmarks.utils import permute
+from benchmarks.api_key_manager import ApiKeyManager
 
 # Define model constants as enum
 class ModelName(StrEnum):
@@ -68,6 +62,7 @@ def get_gcloud_project():
 
 
 project_id = get_gcloud_project()
+api_key_manager = ApiKeyManager()
 
 
 # Create pre-configured agent instances for AdkAnswerGenerator
@@ -83,6 +78,7 @@ CANDIDATE_GENERATORS: list[AnswerGenerator] = [
         ),
         image_name="gemini-cli:base",
         image_definitions=IMAGE_DEFINITIONS,
+        api_key_manager=api_key_manager,
     ),
     GeminiCliPodmanAnswerGenerator(
         model_name=ModelName.GEMINI_2_5_FLASH,
@@ -91,6 +87,7 @@ CANDIDATE_GENERATORS: list[AnswerGenerator] = [
         ),
         image_name="gemini-cli:adk-python",
         image_definitions=IMAGE_DEFINITIONS,
+        api_key_manager=api_key_manager,
     ),
     # Gemini CLI Cloud Run Generator (ADK Docs Extension)
     GeminiCliPodmanAnswerGenerator(
@@ -100,6 +97,7 @@ CANDIDATE_GENERATORS: list[AnswerGenerator] = [
         ),
         image_name="gemini-cli:adk-docs-ext",
         image_definitions=IMAGE_DEFINITIONS,
+        api_key_manager=api_key_manager,
     ),
     # # Gemini CLI Cloud Run Generator (Standalone Base - for baseline comparison)
     # GeminiCliCloudRunAnswerGenerator(

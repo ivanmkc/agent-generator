@@ -28,6 +28,7 @@ from benchmarks.data_models import MultipleChoiceAnswerOutput
 from benchmarks.data_models import MultipleChoiceBenchmarkCase
 from benchmarks.data_models import TraceLogEvent
 from benchmarks.data_models import UsageMetadata
+from benchmarks.api_key_manager import API_KEY_MANAGER, ApiKeyManager, KeyType
 from google import genai
 
 
@@ -38,10 +39,12 @@ class GeminiAnswerGenerator(LlmAnswerGenerator):
       self,
       model_name: str = "gemini-3-pro-preview",
       context: str | Path | None = None,
+      api_key_manager: ApiKeyManager | None = None,
   ):
     super().__init__(context=context)
     self.model_name = model_name
     self.client = genai.Client().aio
+    self.api_key_manager = api_key_manager or API_KEY_MANAGER
 
   @property
   def name(self) -> str:
@@ -93,7 +96,14 @@ class GeminiAnswerGenerator(LlmAnswerGenerator):
     ):
       json_schema["required"].remove("benchmark_type")
 
-    response = await self.client.models.generate_content(
+    # Rotate API Key if available
+    api_key = self.api_key_manager.get_next_key(KeyType.GEMINI_API)
+    if api_key:
+        client = genai.Client(api_key=api_key).aio
+    else:
+        client = self.client
+
+    response = await client.models.generate_content(
         model=self.model_name,
         contents=prompt,
         config={

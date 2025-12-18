@@ -30,6 +30,7 @@ from typing import Any, Optional
 
 import aiohttp
 
+from benchmarks.api_key_manager import API_KEY_MANAGER, ApiKeyManager, KeyType
 from benchmarks.answer_generators.gemini_cli_answer_generator import \
     GeminiCliAnswerGenerator
 from benchmarks.data_models import TraceLogEvent
@@ -52,6 +53,7 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
       model_name: str = "gemini-2.5-pro",
       context_instruction: str | None = None,
       service_url: str | None = None,
+      api_key_manager: ApiKeyManager | None = None,
   ):
     # Store all arguments specific to this class
     self.image_name = image_name
@@ -60,7 +62,7 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
     self.context_instruction = context_instruction
 
     # Call the parent constructor with only the arguments it expects
-    super().__init__(model_name=model_name, cli_path="gemini", context=self.context_instruction)
+    super().__init__(model_name=model_name, cli_path="gemini", context=self.context_instruction, api_key_manager=api_key_manager)
     
     self._image_checked = False
     
@@ -417,6 +419,11 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
             # Pass extra envs if needed per request, but we mostly did it at startup
         }
     }
+
+    # Inject rotated API key if available
+    api_key = self.api_key_manager.get_next_key(KeyType.GEMINI_API)
+    if api_key:
+        payload["env"]["GEMINI_API_KEY"] = api_key
 
     logs: list[TraceLogEvent] = []
     
