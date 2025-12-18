@@ -55,7 +55,7 @@ Cloud Run allows for much higher concurrency via horizontal scaling.
     *   **Tag:** `gemini-cli:base`
 
 *   `adk-python/`: The standard variant for the Python ADK.
-    *   **Dockerfile:** Inherits from `gemini-cli-base`. Clones the `adk-python` repo into `/repos/adk-python`.
+    *   **Dockerfile:** Inherits from `gemini-cli-base`. Clones the `adk-python` repo into `/workdir/repos/adk-python`.
     *   **Tag:** `gemini-cli:adk-python`
     *   **Purpose:** Standard environment for testing agents against the codebase.
 

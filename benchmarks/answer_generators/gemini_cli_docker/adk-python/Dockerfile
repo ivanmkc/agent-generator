@@ -12,7 +12,7 @@ RUN mkdir -p /workdir
 RUN cd /workdir && git init
 
 # Clone the adk-python repository into /repos/adk-python
-RUN git clone https://github.com/google/adk-python.git /repos/adk-python
+RUN git clone https://github.com/google/adk-python.git /workdir/repos/adk-python
 
 # Create the GEMINI_CONFIG_DIR and copy settings.json
 RUN mkdir -p /tmp/.gemini/

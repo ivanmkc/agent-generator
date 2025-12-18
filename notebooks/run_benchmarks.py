@@ -106,7 +106,7 @@ async def run_comparison(logger: JsonTraceLogger) -> List[BenchmarkRunResult]:
               benchmark_suites=benchmark_suites,
               answer_generators=[target_generator], 
               max_concurrency=PODMAN_CONFIG.MAX_GLOBAL_CONCURRENCY,
-              max_retries=0,
+              max_retries=2,
               logger=logger,
           )
           all_results.extend(results)
@@ -115,9 +115,8 @@ async def run_comparison(logger: JsonTraceLogger) -> List[BenchmarkRunResult]:
           print(f"[{generator.name}] Error during execution: {e}")
       
       finally:
-          if hasattr(generator, "teardown"):
-              print(f"[{generator.name}] Tearing down...")
-              await generator.teardown()
+          print(f"[{generator.name}] Tearing down...")
+          await generator.teardown()
 
   return all_results
 
@@ -146,15 +145,6 @@ async def main():
   with open(results_json_path, "w", encoding="utf-8") as f:
       f.write(TypeAdapter.dump_json(benchmark_run_results, indent=2).decode("utf-8"))
   print(f"Raw benchmark results saved to: {results_json_path}")
-
-  # Process and print results using the analysis module
-  raw_results_df = analysis.process_results(benchmark_run_results)
-
-  analysis.print_summary(raw_results_df)
-  analysis.print_metrics(raw_results_df)
-  analysis.print_time_profiling(raw_results_df)
-  analysis.print_detailed_breakdown(raw_results_df)
-  analysis.generate_detailed_reports(raw_results_df, output_dir=run_output_dir)
 
   logger.finalize_run()
 

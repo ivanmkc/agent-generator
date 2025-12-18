@@ -2,7 +2,18 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "Run All Tests and Cases",
+            "label": "Run Benchmarks (Timestamped)",
+            "type": "shell",
+            "command": "./notebooks/run_benchmarks.sh",
+            "group": "test",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Run All Tests (Benchmarking)",
             "type": "shell",
             "command": "env/bin/python -m pytest -n auto -v benchmarks/ --import-mode=importlib",
             "group": "test",
@@ -13,7 +24,7 @@
             "problemMatcher": []
         },
         {
-            "label": "Run All Unit/Integration Tests",
+            "label": "Run Integration/Unit Tests",
             "type": "shell",
             "command": "env/bin/python -m pytest -n auto -v --import-mode=importlib benchmarks/tests/unit/ benchmarks/tests/integration/",
             "group": "test",
@@ -24,40 +35,7 @@
             "problemMatcher": []
         },
         {
-            "label": "Run Benchmark Notebook (Timestamped)",
-            "type": "shell",
-            "command": "./notebooks/run_benchmark_notebook.sh",
-            "group": "test",
-            "presentation": {
-                "reveal": "always",
-                "panel": "new"
-            },
-            "problemMatcher": []
-        },
-        {
-            "label": "Convert Benchmark Script",
-            "type": "shell",
-            "command": "cd benchmarks && ../env/bin/python convert_py_to_ipynb.py benchmark_run.py",
-            "group": "build",
-            "presentation": {
-                "reveal": "always",
-                "panel": "new"
-            },
-            "problemMatcher": []
-        },
-        {
-            "label": "Build and Push Docker Images",
-            "type": "shell",
-            "command": "./benchmarks/answer_generators/gemini_cli_docker/build_and_push_images.sh",
-            "group": "build",
-            "presentation": {
-                "reveal": "always",
-                "panel": "new"
-            },
-            "problemMatcher": []
-        },
-        {
-            "label": "Run Integration Orchestrator",
+            "label": "Run Integration Orchestrator (Unified)",
             "type": "shell",
             "command": "env/bin/python benchmarks/tests/integration/test_unified_generators.py",
             "group": "test",
@@ -72,6 +50,17 @@
             "type": "shell",
             "command": "env/bin/python -m pytest --profile --import-mode=importlib benchmarks/tests/integration/",
             "group": "test",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Build and Push Docker Images",
+            "type": "shell",
+            "command": "./benchmarks/answer_generators/gemini_cli_docker/build_and_push_images.sh",
+            "group": "build",
             "presentation": {
                 "reveal": "always",
                 "panel": "new"

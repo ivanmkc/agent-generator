@@ -24,7 +24,7 @@ env/bin/python -u notebooks/run_benchmarks.py 2>&1 | tee -a "$LOG_FILE"
 
 # 4. Generate Visualization Report via Papermill
 log "Generating visualization report..."
-env/bin/papermill notebooks/visualization.ipynb "$OUTPUT_DIR/Visualization.ipynb" \
+env/bin/papermill notebooks/visualization.ipynb "$OUTPUT_DIR/visualization.ipynb" \
   -p RUN_DIR "$OUTPUT_DIR" \
   --cwd . \
   -k python3 \

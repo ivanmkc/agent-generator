@@ -48,6 +48,10 @@ class GeminiCliLocalAnswerGenerator(GeminiCliAnswerGenerator):
             if line.strip():
                 logs.append(TraceLogEvent(type="CLI_STDERR", source=self.name, content=line.strip()))
 
+        # Always log full stdout for debugging/archival
+        if stdout_str:
+            logs.append(TraceLogEvent(type="CLI_STDOUT_FULL", source=self.name, content=stdout_str))
+
         # Parse stdout. If stream-json, parse events. Otherwise, treat as raw message.
         response_dict = {"stdout": stdout_str, "stderr": stderr_str, "exit_code": proc.returncode, "response": ""}
         if "--output-format" in command_parts and "stream-json" in command_parts:

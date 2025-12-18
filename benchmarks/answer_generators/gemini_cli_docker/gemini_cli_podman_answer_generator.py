@@ -447,6 +447,10 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
         if line.strip():
             logs.append(TraceLogEvent(type="CLI_STDERR", source="podman_server", content=line.strip()))
 
+    # Always log full stdout for debugging/archival
+    if stdout_str:
+        logs.append(TraceLogEvent(type="CLI_STDOUT_FULL", source="podman_server", content=stdout_str))
+
     response_dict = {"stdout": stdout_str, "stderr": stderr_str, "exit_code": returncode, "response": ""}
     
     # Parse stdout
