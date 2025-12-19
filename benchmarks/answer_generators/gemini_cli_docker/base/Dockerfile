@@ -25,7 +25,8 @@ RUN mkdir -p /etc/apt/keyrings \
 
 # Install uv (https://astral.sh/uv/install.sh)
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh \
-    && mv /root/.local/bin/uv /usr/local/bin/uv
+    && mv /root/.local/bin/uv /usr/local/bin/uv \
+    && mv /root/.local/bin/uvx /usr/local/bin/uvx
 
 # Install Python dependencies for the server (FastAPI/Uvicorn)
 RUN pip install --no-cache-dir fastapi uvicorn
@@ -43,6 +44,9 @@ RUN chmod +x /usr/local/bin/cli_server.py
 
 # Create node user for compatibility (variants can switch to this user)
 RUN useradd -m -u 1000 node
+
+# Set working directory to /app
+WORKDIR /app
 
 # Default entrypoint for the server
 CMD ["python3", "/usr/local/bin/cli_server.py"]

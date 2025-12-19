@@ -4,6 +4,7 @@ import json
 import os
 from pathlib import Path
 import difflib
+import re
 
 # --- Constants ---
 BENCHMARK_RUNS_DIR = Path("benchmark_runs")
