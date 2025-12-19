@@ -296,7 +296,7 @@ class PytestBenchmarkRunner(BenchmarkRunner[FixErrorBenchmarkCase]):
       result = BenchmarkResultType.FAIL_CRASH
       error_type = BenchmarkErrorType.SYSTEM_EXIT
 
-    return result, logs, str(tmp_path), error_type
+    return result, logs if result != BenchmarkResultType.PASS else None, str(tmp_path), error_type
 
 
 class ApiUnderstandingRunner(BenchmarkRunner[ApiUnderstandingBenchmarkCase]):
@@ -336,7 +336,7 @@ class ApiUnderstandingRunner(BenchmarkRunner[ApiUnderstandingBenchmarkCase]):
             fully_qualified_class_name=generated_answer.output.fully_qualified_class_name,
             expected_paths=ground_truth.fully_qualified_class_name,
         )
-        return BenchmarkResultType.PASS, "Validation successful.", None, None
+        return BenchmarkResultType.PASS, None, None, None
 
       except validation_utils.ValidationError as e:
         all_errors.append(

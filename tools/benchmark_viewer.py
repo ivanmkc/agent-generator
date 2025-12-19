@@ -128,10 +128,8 @@ def render_logs(logs):
     # Determine available categories in this trace
     available_categories = sorted(list(set(get_category(e) for e in grouped_events)))
     
-    # Default selection: The most relevant narrative elements
-    default_categories = [c for c in available_categories if c in ["Tool Interactions", "Model Responses", "Errors"]]
-    if not default_categories:
-        default_categories = available_categories
+    # Default selection: All available categories
+    default_categories = available_categories
 
     selected_categories = st.multiselect(
         "Filter Event Types",
@@ -182,7 +180,7 @@ def render_logs(logs):
                 st.code(event.get("content", ""), language="text")
         
         elif e_type == "CLI_STDERR":
-            with st.expander("⚠️ CLI Stderr", expanded=True):
+            with st.expander("⚠️ CLI Stderr (Logs)", expanded=True):
                 st.code(event.get("content", ""), language="text")
 
         # 4. Critical Errors
@@ -204,6 +202,46 @@ def render_logs(logs):
         else:
             with st.expander(f"System Event: {e_type}", expanded=True):
                 st.json(event)
+
+# --- Main App ---
+
+def _get_concise_error_message(row, case_trace_logs) -> str:
+    """Extracts a concise error message for display in the header."""
+    # Default message
+    display_error = "Validation Failed (See 'Validation Error' tab for details)"
+    
+    # 1. First, try to extract from the validation_error string itself
+    validation_err_str = row.get("validation_error", "")
+    captured_report_match = re.search(r"\[Captured Error Report\]\n(.*?)(?=\n\n|\[|$)", validation_err_str, re.DOTALL)
+    
+    if captured_report_match:
+        json_content = captured_report_match.group(1).strip()
+        try:
+            error_json = json.loads(json_content)
+            if "error" in error_json and "message" in error_json["error"]:
+                return f"❌ Error: {error_json['error']['message']}"
+        except json.JSONDecodeError:
+            pass # Fall through to other checks if this JSON is malformed
+
+    # 2. If not found in validation_error, check trace_logs for GEMINI_CLIENT_ERROR
+    for log_event in case_trace_logs:
+        if log_event.get("type") == "GEMINI_CLIENT_ERROR":
+            content = log_event.get("content", {})
+            error_json = {}
+            
+            if isinstance(content, dict):
+                error_json = content
+            elif isinstance(content, str):
+                try:
+                    error_json = json.loads(content)
+                except json.JSONDecodeError:
+                    pass
+            
+            if "error" in error_json and "message" in error_json["error"]:
+                return f"❌ Error: {error_json['error']['message']}"
+    
+    # If no specific error message found after all checks, return the generic message
+    return display_error
 
 # --- Main App ---
 
@@ -300,10 +338,13 @@ def main():
             if not case_options:
                 st.info("No cases found.")
             else:
+                # Add explicit Overview option
+                case_options.insert(0, "Overview")
+                
                 selected_case_id = st.radio(
                     "Select Case",
                     options=case_options,
-                    format_func=format_case_label,
+                    format_func=lambda x: "📊 Overview" if x == "Overview" else format_case_label(x),
                     key="case_radio",
                     label_visibility="collapsed"
                 )
@@ -312,10 +353,15 @@ def main():
 
 
     # 7. Main Area - Dashboard & Details
-    # Dashboard Summary
-    with st.expander("📊 Global Run Metrics", expanded=False):
+    
+    if selected_case_id == "Overview":
+        # Dashboard Summary (Overview Mode)
+        st.header("📊 Global Run Metrics")
         st.markdown("This section provides an overview of the benchmark run's performance, including total cases, filtered cases based on sidebar selections, and the overall pass rate. Metrics are derived from the `results.json` file generated during the benchmark execution.")
-        col1, col2, col3 = st.columns(3)
+        
+        crashes_count = len(filtered_df[filtered_df["status"] == "fail_crash"])
+        
+        col1, col2, col3, col4 = st.columns(4)
         total_runs = len(df)
         filtered_runs = len(filtered_df)
         pass_count = len(filtered_df[filtered_df["result"] == 1])
@@ -323,52 +369,163 @@ def main():
         
         col1.metric("Total Cases", total_runs)
         col2.metric("Filtered Cases", filtered_runs)
-        col3.metric("Pass Rate (Filtered)", f"{pass_rate:.1f}%")
+        col3.metric("Accuracy (Crashes = Fail)", f"{pass_rate:.1f}%", help="Passed / Total. Treats crashes as failures.")
+        col4.metric("Crashes", crashes_count)
 
-    st.divider()
+        st.divider()
+        st.subheader("Detailed Breakdown")
+        st.markdown("Metrics are calculated as follows:\n- **Accuracy (Crashes = Fail):** `Passed / Total`. This metric treats any crash as a failure, reflecting the overall system's reliability and correctness.\n- **Accuracy:** `Passed / (Total - Crashes)`. This metric excludes crashes from the total, focusing on the model's performance on valid, non-crashing attempts.")
 
-    # Detail View
-    st.markdown("### 📝 Details")
-    st.markdown("Dive deeper into individual benchmark cases. Select a case from the sidebar to view its generated answer, comparison with ground truth, detailed trace logs, and execution metadata.")
-    
+        # 1. Granular Stats (Generator + Suite)
+        granular = filtered_df.groupby(["answer_generator", "suite"]).agg(
+            total=("result", "count"),
+            passed=("result", "sum"),
+            crashes=("status", lambda x: (x == "fail_crash").sum())
+        ).reset_index()
+
+        # 2. Aggregate Stats (Generator only)
+        aggregate = filtered_df.groupby("answer_generator").agg(
+            total=("result", "count"),
+            passed=("result", "sum"),
+            crashes=("status", lambda x: (x == "fail_crash").sum())
+        ).reset_index()
+        aggregate["suite"] = " (All Suites)"
+
+        # 3. Combine & Calculate Metrics
+        unified = pd.concat([aggregate, granular], ignore_index=True)
+        
+        unified["valid_attempts"] = unified["total"] - unified["crashes"]
+        unified["Accuracy (Crashes = Fail)"] = (unified["passed"] / unified["total"] * 100)
+        unified["Accuracy"] = unified.apply(
+            lambda r: (r["passed"] / r["valid_attempts"] * 100) if r["valid_attempts"] > 0 else 0.0, axis=1
+        )
+        
+        # 4. Format
+        unified["Accuracy (Crashes = Fail)"] = unified["Accuracy (Crashes = Fail)"].map("{:.1f}%".format)
+        unified["Accuracy"] = unified["Accuracy"].map("{:.1f}%".format)
+        
+        # 5. Sort (Generator, then Suite with (All Suites) first)
+        unified = unified.sort_values(by=["answer_generator", "suite"])
+        
+        st.dataframe(
+            unified[["answer_generator", "suite", "passed", "crashes", "total", "Accuracy (Crashes = Fail)", "Accuracy"]],
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "answer_generator": "Generator",
+                "suite": "Suite",
+                "passed": "Passed",
+                "crashes": "Crashes",
+                "total": "Total",
+                "Accuracy (Crashes = Fail)": st.column_config.TextColumn(
+                    "Accuracy (Crashes = Fail)",
+                    help="Passed / Total. Treats crashes as failures."
+                ),
+                "Accuracy": st.column_config.TextColumn(
+                    "Accuracy",
+                    help="Passed / (Total - Crashes). Ignores crashes to measure model intelligence on valid attempts."
+                ),
+            }
+        )
+
     if selected_case_id is not None:
         row = filtered_df.loc[selected_case_id]
+        case_trace_logs = row.get("trace_logs", []) or []
+
+        # --- Extract Attempts from Trace Logs ---
+        attempts = []
+        # Add the final answer as the default/last "attempt" if valid
+        # (We will insert it at the end or handle it as "Final")
         
+        # Scan logs for write_file tool usage
+        for i, event in enumerate(case_trace_logs):
+            if event.get("type") == "tool_use" and event.get("tool_name") == "write_file":
+                content = event.get("tool_input", {}).get("content")
+                if content:
+                    attempts.append({
+                        "step": i + 1,  # approximate step number in logs
+                        "code": content,
+                        "label": f"Attempt (Log Step {i + 1})"
+                    })
+
+        num_retries = max(0, len(attempts) - 1)
+
         # Header Info
-        h1, h2 = st.columns([3, 1])
+        h1, h2, h3 = st.columns([3, 1, 1])
         h1.markdown(f"#### {row['benchmark_name']}")
         h2.caption(f"Latency: {row['latency']:.4f}s")
+        h3.caption(f"Retries: {num_retries}")
         
         if row['validation_error']:
-            st.error(f"**Error:** {row['validation_error']}")
+            if row['result'] == 1:
+                st.warning(f"**Validation Warning:** {row['validation_error']}")
+            else:
+                st.error(_get_concise_error_message(row, case_trace_logs))
         elif row['result'] == 1:
             st.success("**Passed**")
 
         # Tabs for deep dive
-        tab_answer, tab_logs, tab_meta = st.tabs(["Diff & Code", "Trace Logs", "Metadata"])
+        tab_answer, tab_logs, tab_error, tab_meta = st.tabs(["Diff & Code", "Trace Logs", "Validation Error", "Metadata"])
         
         with tab_answer:
             st.markdown("This section compares the `Generated Answer` from the agent against the `Ground Truth` (expected answer) defined in the benchmark. You can toggle between a side-by-side view of the full code/text and a colored unified diff that highlights changes.")
+            
+            # Attempt Selection
+            selected_code = str(row["answer"])
+            diff_label = "Final Answer"
+            
+            if attempts:
+                # Options: Final Answer + extracted attempts
+                # We want to map selection to code.
+                # If the final answer exactly matches the last attempt, maybe deduplicate? 
+                # For now, keep it simple: [Final Result] + [Attempt 1, Attempt 2...]
+                
+                options = ["Final Result"] + [a["label"] for a in attempts]
+                selection = st.selectbox("Select State", options)
+                
+                if selection != "Final Result":
+                    # Find the code
+                    for a in attempts:
+                        if a["label"] == selection:
+                            selected_code = a["code"]
+                            diff_label = selection
+                            break
+            
             view_mode = st.radio("Diff View", ["Side-by-Side", "Unified Diff"], horizontal=True)
 
             if view_mode == "Side-by-Side":
                 c1, c2 = st.columns(2)
                 with c1:
-                    st.caption("Generated Answer")
-                    st.code(row["answer"], language="python")
+                    st.caption(f"Generated ({diff_label})")
+                    st.code(selected_code, language="python")
                 with c2:
                     st.caption("Ground Truth")
                     st.code(row.get("ground_truth", ""), language="python")
             else:
-                st.caption("Unified Diff")
-                render_diff(str(row["answer"]), str(row.get("ground_truth", "")))
+                st.caption(f"Unified Diff ({diff_label} vs Ground Truth)")
+                render_diff(selected_code, str(row.get("ground_truth", "")))
 
         with tab_logs:
             st.markdown("This tab displays a chronological trace of events that occurred during the agent's execution for this benchmark case. It includes tool calls, their results, raw CLI outputs, and any captured errors, providing a detailed understanding of the agent's decision-making process.")
-            logs = row.get("trace_logs")
-            if not logs:
+            if not case_trace_logs:
                 st.warning("Trace logs not found in results.json.")
-            render_logs(logs)
+            render_logs(case_trace_logs)
+
+        with tab_error:
+            if row['validation_error']:
+                st.markdown("### Validation Error Details")
+                st.text(row['validation_error'])
+            else:
+                st.info("No validation errors recorded.")
+            
+            # Debug: Show any GEMINI_CLIENT_ERROR found in logs
+            client_errors = [e for e in case_trace_logs if e.get("type") == "GEMINI_CLIENT_ERROR"]
+            if client_errors:
+                st.divider()
+                st.markdown("### 🐞 Debug: Client Errors in Logs")
+                for i, err in enumerate(client_errors):
+                    st.markdown(f"**Error Event {i+1} Raw Content:**")
+                    st.json(err)
 
         with tab_meta:
             st.markdown("This section provides additional metadata about the benchmark case execution, including API usage, model details, latency, and raw result data from `results.json`.")

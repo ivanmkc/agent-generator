@@ -44,7 +44,7 @@ GENERATOR_METADATA: Dict[str, Dict[str, Any]] = {
         "expected_extensions": ["adk-docs-ext"],
         "expected_mcp_tools": ["adk-docs-mcp"],
         "custom_case": ADK_BASE_AGENT_QUESTION_CASE_INTERMEDIATE,
-        "trace_indicators": ["extension", "context", "loading"]
+        "trace_indicators": ["list_doc_sources", "fetch_docs",]
     },
     "podman_context7_test_case": {
         "id": "podman_context7_test_case",
