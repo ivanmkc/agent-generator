@@ -73,46 +73,136 @@ def render_diff(generated, expected):
     )
     diff_text = "".join(diff)
     if diff_text:
-        st.text(diff_text)
+        st.code(diff_text, language="diff")
     else:
         st.success("Answers match perfectly (text-wise).")
 
 def render_logs(logs):
-    """Renders trace logs with special handling for stdout."""
+    """Renders trace logs with grouped interactions and filtering."""
     if not logs:
         st.info("No trace logs available.")
         return
 
-    for event in logs:
+    # Work on a copy to avoid mutating cached data
+    logs = list(logs)
+
+    # --- Grouping Logic ---
+    grouped_events = []
+    i = 0
+    while i < len(logs):
+        event = logs[i]
         e_type = event.get("type", "unknown")
         
-        if e_type == "CLI_STDOUT_FULL":
-            with st.expander("📄 Full CLI Stdout (Raw)", expanded=False):
+        # Try to pair tool_use with tool_result
+        if e_type == "tool_use":
+            # Look ahead for the corresponding result
+            result_event = None
+            j = i + 1
+            while j < len(logs):
+                if logs[j].get("type") == "tool_result":
+                    result_event = logs[j]
+                    logs.pop(j) # Consume it from our local copy
+                    break
+                j += 1
+            
+            grouped_events.append({
+                "type": "tool_interaction",
+                "tool_use": event,
+                "tool_result": result_event
+            })
+        else:
+            grouped_events.append(event)
+        
+        i += 1
+
+    # --- Filtering ---
+    def get_category(event):
+        t = event.get("type")
+        if t == "tool_interaction": return "Tool Interactions"
+        if t == "model_response": return "Model Responses"
+        if t in ["CLI_STDOUT_FULL", "CLI_STDOUT_RAW", "CLI_STDERR"]: return "CLI Output"
+        if t == "GEMINI_CLIENT_ERROR": return "Errors"
+        if t == "GEMINI_API_RESPONSE": return "API Details"
+        return "System Events"
+
+    # Determine available categories in this trace
+    available_categories = sorted(list(set(get_category(e) for e in grouped_events)))
+    
+    # Default selection: The most relevant narrative elements
+    default_categories = [c for c in available_categories if c in ["Tool Interactions", "Model Responses", "Errors"]]
+    if not default_categories:
+        default_categories = available_categories
+
+    selected_categories = st.multiselect(
+        "Filter Event Types",
+        options=available_categories,
+        default=default_categories
+    )
+
+    # --- Rendering ---
+    step_count = 1
+    
+    for event in grouped_events:
+        cat = get_category(event)
+        if cat not in selected_categories:
+            continue
+            
+        e_type = event.get("type", "unknown")
+
+        # 1. Tool Interaction (Grouped)
+        if e_type == "tool_interaction":
+            use = event["tool_use"]
+            res = event["tool_result"]
+            tool_name = use.get("tool_name", "Unknown Tool")
+            
+            with st.container(border=True):
+                st.markdown(f"**Step {step_count}: Tool Call - `{tool_name}`**")
+                
+                c_in, c_out = st.columns(2)
+                with c_in:
+                    with st.expander("Input", expanded=True):
+                        st.json(use.get("tool_input"))
+                
+                with c_out:
+                    if res:
+                        with st.expander("Output", expanded=True):
+                            st.code(res.get("tool_output"), language="text")
+                    else:
+                        st.warning("No result recorded.")
+            step_count += 1
+
+        # 2. Model Response
+        elif e_type == "model_response":
+            with st.chat_message("ai"):
+                st.write(event.get("content"))
+        
+        # 3. CLI Stdout/Stderr
+        elif e_type in ["CLI_STDOUT_FULL", "CLI_STDOUT_RAW"]:
+            with st.expander(f"📄 CLI Output ({e_type})", expanded=True):
                 st.code(event.get("content", ""), language="text")
         
         elif e_type == "CLI_STDERR":
-            st.error(f"Stderr: {event.get('content', '')}")
-            
-        elif e_type == "tool_use":
-            with st.chat_message("ai", avatar="🛠️"):
-                st.write(f"**Tool Call:** `{event.get('tool_name')}`")
-                st.json(event.get('tool_input'))
-        
-        elif e_type == "tool_result":
-            with st.chat_message("human", avatar="📦"):
-                st.write("**Tool Result:**")
-                st.code(event.get('tool_output'))
-        
-        elif e_type == "model_response":
-             with st.chat_message("ai"):
-                 st.write(event.get("content"))
-        
+            with st.expander("⚠️ CLI Stderr", expanded=True):
+                st.code(event.get("content", ""), language="text")
+
+        # 4. Critical Errors
+        elif e_type == "GEMINI_CLIENT_ERROR":
+            with st.expander("🚨 Gemini Client Error Report", expanded=True):
+                st.error("The Gemini CLI reported an internal error.")
+                try:
+                    content = event.get("content", "")
+                    st.json(json.loads(content))
+                except json.JSONDecodeError:
+                    st.code(content, language="text")
+
+        # 5. API Response Details
         elif e_type == "GEMINI_API_RESPONSE":
-             with st.expander("Gemini API Response Details"):
-                 st.json(event.get("details"))
-        
+            with st.expander("Gemini API Response Details", expanded=True):
+                st.json(event.get("details"))
+
+        # 6. Fallback
         else:
-            with st.expander(f"Event: {e_type}"):
+            with st.expander(f"System Event: {e_type}", expanded=True):
                 st.json(event)
 
 # --- Main App ---
@@ -224,6 +314,7 @@ def main():
     # 7. Main Area - Dashboard & Details
     # Dashboard Summary
     with st.expander("📊 Global Run Metrics", expanded=False):
+        st.markdown("This section provides an overview of the benchmark run's performance, including total cases, filtered cases based on sidebar selections, and the overall pass rate. Metrics are derived from the `results.json` file generated during the benchmark execution.")
         col1, col2, col3 = st.columns(3)
         total_runs = len(df)
         filtered_runs = len(filtered_df)
@@ -238,6 +329,7 @@ def main():
 
     # Detail View
     st.markdown("### 📝 Details")
+    st.markdown("Dive deeper into individual benchmark cases. Select a case from the sidebar to view its generated answer, comparison with ground truth, detailed trace logs, and execution metadata.")
     
     if selected_case_id is not None:
         row = filtered_df.loc[selected_case_id]
@@ -256,24 +348,30 @@ def main():
         tab_answer, tab_logs, tab_meta = st.tabs(["Diff & Code", "Trace Logs", "Metadata"])
         
         with tab_answer:
-            c1, c2 = st.columns(2)
-            with c1:
-                st.caption("Generated Answer")
-                st.code(row["answer"], language="python")
-            with c2:
-                st.caption("Ground Truth")
-                st.code(row.get("ground_truth", ""), language="python")
-            
-            st.caption("Unified Diff")
-            render_diff(str(row["answer"]), str(row.get("ground_truth", "")))
+            st.markdown("This section compares the `Generated Answer` from the agent against the `Ground Truth` (expected answer) defined in the benchmark. You can toggle between a side-by-side view of the full code/text and a colored unified diff that highlights changes.")
+            view_mode = st.radio("Diff View", ["Side-by-Side", "Unified Diff"], horizontal=True)
+
+            if view_mode == "Side-by-Side":
+                c1, c2 = st.columns(2)
+                with c1:
+                    st.caption("Generated Answer")
+                    st.code(row["answer"], language="python")
+                with c2:
+                    st.caption("Ground Truth")
+                    st.code(row.get("ground_truth", ""), language="python")
+            else:
+                st.caption("Unified Diff")
+                render_diff(str(row["answer"]), str(row.get("ground_truth", "")))
 
         with tab_logs:
+            st.markdown("This tab displays a chronological trace of events that occurred during the agent's execution for this benchmark case. It includes tool calls, their results, raw CLI outputs, and any captured errors, providing a detailed understanding of the agent's decision-making process.")
             logs = row.get("trace_logs")
             if not logs:
                 st.warning("Trace logs not found in results.json.")
             render_logs(logs)
 
         with tab_meta:
+            st.markdown("This section provides additional metadata about the benchmark case execution, including API usage, model details, latency, and raw result data from `results.json`.")
             st.json(row.get("usage_metadata"))
             with st.expander("Raw Result Data"):
                 st.json(row.to_dict())

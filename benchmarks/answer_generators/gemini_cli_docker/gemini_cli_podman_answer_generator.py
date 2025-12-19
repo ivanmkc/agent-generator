@@ -221,15 +221,35 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
     duration = end_time - start_time
     
     if returncode != 0:
+        error_msg = stderr_str.strip() or stdout_str.strip()
         raise RuntimeError(f"Failed to build image {image_name}. Exit code: {returncode} (took {duration:.2f}s)")
         
     print(f"Successfully built {image_name} in {duration:.2f}s")
-    
-  async def _build_image_chain(self, image_key: str, force: bool = False):
-    """Recursively builds dependencies and then the target image."""
+
+  async def _read_file_from_server(self, path: str) -> str | None:
+      """Reads a file from the container via the API server."""
+      try:
+          read_payload = {"path": path}
+          async with aiohttp.ClientSession() as session:
+              async with session.post(f"{self._base_url}/read_file", json=read_payload) as resp:
+                  if resp.status == 200:
+                      data = await resp.json()
+                      return data.get("content", "")
+                  else:
+                      err_text = await resp.text()
+                      print(f"[Podman Debug] Failed to read file {path} via API: {resp.status} - {err_text}")
+                      return None
+      except Exception as e:
+          print(f"[Podman Debug] Exception reading file {path}: {e}")
+          return None
+
+  async def _build_image_chain(self, image_key: str, force: bool = False) -> bool:
+    """Recursively builds dependencies and then the target image. Returns True if rebuilt."""
     definition = self._image_definitions[image_key]
+    dependency_rebuilt = False
     for dep_key in definition.dependencies:
-      await self._build_image_chain(dep_key, force=force)
+      if await self._build_image_chain(dep_key, force=force):
+          dependency_rebuilt = True
 
     full_image_name = image_key
     
@@ -241,7 +261,7 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
     print(f"[Podman Build] Calculating source hash for {full_image_name}...")
     current_hash = calculate_source_hash(source_path)
     
-    should_build = force
+    should_build = force or dependency_rebuilt
     
     if not should_build:
         print(f"[Podman Build] Checking if image {full_image_name} exists...")
@@ -275,6 +295,9 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
             build_args=definition.build_args,
             labels={"source_hash": current_hash}
         )
+        return True
+    
+    return False
 
   async def _start_server_container(self):
       """Starts the container in daemon mode exposing the API server."""
@@ -447,6 +470,24 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
         if line.strip():
             logs.append(TraceLogEvent(type="CLI_STDERR", source="podman_server", content=line.strip()))
 
+    captured_error_report = None
+
+    # Check for Gemini Client Error Report in stderr
+    # Example: Error when talking to Gemini API Full report available at: /tmp/gemini-client-error-Turn.run-sendMessageStream-2025-12-18T13-44-01-135Z.json
+    error_report_match = re.search(r"Error when talking to Gemini API Full report available at: (\S+)", stderr_str)
+    if error_report_match:
+        report_path = error_report_match.group(1)
+        print(f"[Podman Debug] Found error report at {report_path}. Fetching content...")
+        
+        error_content = await self._read_file_from_server(report_path)
+        if error_content:
+            captured_error_report = error_content
+            logs.append(TraceLogEvent(
+                type="GEMINI_CLIENT_ERROR", 
+                source="podman_server", 
+                content=error_content
+            ))
+
     # Always log full stdout for debugging/archival
     if stdout_str:
         logs.append(TraceLogEvent(type="CLI_STDOUT_FULL", source="podman_server", content=stdout_str))
@@ -465,6 +506,8 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
 
     if returncode != 0:
         error_msg = stderr_str.strip() or stdout_str.strip()
+        if captured_error_report:
+            error_msg += f"\n\n[Captured Error Report]\n{captured_error_report}"
         raise RuntimeError(f"Gemini CLI failed with code {returncode}: {error_msg}")
 
     return response_dict, logs

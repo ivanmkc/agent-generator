@@ -71,15 +71,15 @@ agent_pro = create_default_adk_agent(model_name=ModelName.GEMINI_2_5_PRO)
 
 # List of standard candidate generators
 CANDIDATE_GENERATORS: list[AnswerGenerator] = [
-      GeminiCliPodmanAnswerGenerator(
-        model_name=ModelName.GEMINI_2_5_FLASH,
-        dockerfile_dir=Path(
-            "benchmarks/answer_generators/gemini_cli_docker/base"
-        ),
-        image_name="gemini-cli:base",
-        image_definitions=IMAGE_DEFINITIONS,
-        api_key_manager=api_key_manager,
-    ),
+    #   GeminiCliPodmanAnswerGenerator(
+    #     model_name=ModelName.GEMINI_2_5_FLASH,
+    #     dockerfile_dir=Path(
+    #         "benchmarks/answer_generators/gemini_cli_docker/base"
+    #     ),
+    #     image_name="gemini-cli:base",
+    #     image_definitions=IMAGE_DEFINITIONS,
+    #     api_key_manager=api_key_manager,
+    # ),
     GeminiCliPodmanAnswerGenerator(
         model_name=ModelName.GEMINI_2_5_FLASH,
         dockerfile_dir=Path(
@@ -89,16 +89,16 @@ CANDIDATE_GENERATORS: list[AnswerGenerator] = [
         image_definitions=IMAGE_DEFINITIONS,
         api_key_manager=api_key_manager,
     ),
-    # Gemini CLI Cloud Run Generator (ADK Docs Extension)
-    GeminiCliPodmanAnswerGenerator(
-        model_name=ModelName.GEMINI_2_5_FLASH,
-        dockerfile_dir=Path(
-            "benchmarks/answer_generators/gemini_cli_docker/adk-docs-ext"
-        ),
-        image_name="gemini-cli:adk-docs-ext",
-        image_definitions=IMAGE_DEFINITIONS,
-        api_key_manager=api_key_manager,
-    ),
+    # # Gemini CLI Cloud Run Generator (ADK Docs Extension)
+    # GeminiCliPodmanAnswerGenerator(
+    #     model_name=ModelName.GEMINI_2_5_FLASH,
+    #     dockerfile_dir=Path(
+    #         "benchmarks/answer_generators/gemini_cli_docker/adk-docs-ext"
+    #     ),
+    #     image_name="gemini-cli:adk-docs-ext",
+    #     image_definitions=IMAGE_DEFINITIONS,
+    #     api_key_manager=api_key_manager,
+    # ),
     # # Gemini CLI Cloud Run Generator (Standalone Base - for baseline comparison)
     # GeminiCliCloudRunAnswerGenerator(
     #     model_name=ModelName.GEMINI_2_5_FLASH,

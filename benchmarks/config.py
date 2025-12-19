@@ -40,7 +40,7 @@ class PodmanConfig:
     # Global Concurrency: Constrained by local machine resources (CPU/RAM).
     # 20 was tested for a machine with the following specs: Apple M4 Pro, 48GB RAM
     # The podman machine was provisioned with the following resources: 7 CPUs, 16GB RAM
-    MAX_GLOBAL_CONCURRENCY: int = 40
+    MAX_GLOBAL_CONCURRENCY: int = 10
 
 # Instantiate for usage
 CLOUD_RUN_CONFIG = CloudRunConfig()

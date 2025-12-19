@@ -66,6 +66,17 @@
                 "panel": "new"
             },
             "problemMatcher": []
+        },
+        {
+            "label": "Rebuild All Gemini CLI Images",
+            "type": "shell",
+            "command": "env/bin/python tools/rebuild_images.py",
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": []
         }
     ]
 }

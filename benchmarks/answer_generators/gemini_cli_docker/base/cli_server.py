@@ -55,6 +55,30 @@ async def run_command(request: Request):
         print(f"Error: {e}")
         return PlainTextResponse(str(e), status_code=500)
 
+@app.post("/read_file")
+async def read_file(request: Request):
+    try:
+        data = await request.json()
+        path = data.get('path')
+        if not path:
+             raise HTTPException(status_code=400, detail="Missing path")
+             
+        if not os.path.exists(path):
+            raise HTTPException(status_code=404, detail=f"File not found: {path}")
+
+        # Basic security: ensure we don't escape too far if needed? 
+        # For this dev tool, we assume trusted access.
+        
+        with open(path, "r", encoding="utf-8", errors="replace") as f:
+            content = f.read()
+            
+        return JSONResponse(content={"content": content})
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error reading file: {e}")
+        return PlainTextResponse(str(e), status_code=500)
+
 @app.get("/version")
 async def get_version():
     try:

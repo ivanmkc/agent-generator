@@ -150,9 +150,10 @@ async def test_podman_generator_run_cli_command():
         assert payload["args"] == ["gemini", "--output-format", "stream-json", "Test Prompt"]
         
         # Verify response parsing
-        assert len(logs) == 1
-        assert logs[0].type == "message"
-        assert logs[0].content == "Hello"
+        assert len(logs) == 2
+        assert logs[0].type == "CLI_STDOUT_FULL"
+        assert logs[1].type == "message"
+        assert logs[1].content == "Hello"
 
 
 @pytest.mark.asyncio
@@ -209,3 +210,64 @@ async def test_podman_generator_generate_answer():
         
         assert result.output.code == "print('hello')"
         assert result.output.rationale == "reason"
+
+@pytest.mark.asyncio
+async def test_run_cli_command_error_report_capture(mock_subprocess):
+    """
+    Tests that a Gemini client error report file mentioned in stderr is captured
+    and added to trace logs using the /read_file API endpoint.
+    """
+    generator = GeminiCliPodmanAnswerGenerator(
+        dockerfile_dir=".",
+        image_name="test-image",
+        image_definitions={},
+    )
+    generator._setup_completed = True
+    generator._base_url = "http://localhost:12345"
+    generator._container_name = "test-container"
+
+    error_file_path = "/tmp/gemini-client-error-123.json"
+    error_file_content = "{\"error\": \"Rate limited\", \"code\": 429}"
+
+    # We need to simulate TWO sequential POST requests:
+    # 1. The CLI execution request (which fails and prints stderr)
+    # 2. The /read_file request (which succeeds and returns content)
+
+    mock_cli_resp = MagicMock()
+    mock_cli_resp.status = 200 
+    mock_cli_resp.json = AsyncMock(return_value={
+        "stdout": "",
+        "stderr": f"Error when talking to Gemini API Full report available at: {error_file_path}",
+        "returncode": 1 
+    })
+    mock_cli_resp.__aenter__.return_value = mock_cli_resp
+
+    mock_read_resp = MagicMock()
+    mock_read_resp.status = 200
+    mock_read_resp.json = AsyncMock(return_value={
+        "content": error_file_content
+    })
+    mock_read_resp.__aenter__.return_value = mock_read_resp
+
+    # Use side_effect to return different responses for sequential calls
+    with patch("aiohttp.ClientSession.post", side_effect=[mock_cli_resp, mock_read_resp]) as mock_post:
+        
+        # Expected to raise RuntimeError because returncode is 1
+        with pytest.raises(RuntimeError) as excinfo:
+            await generator.run_cli_command(["gemini", "--model", "gemini-flash", "Test prompt"])
+        
+        error_msg = str(excinfo.value)
+        assert "Gemini CLI failed with code 1" in error_msg
+        assert error_file_content in error_msg
+        
+        # Verify calls
+        assert mock_post.call_count == 2
+        
+        # Check first call (CLI execution)
+        call1_args, call1_kwargs = mock_post.call_args_list[0]
+        assert call1_args[0] == "http://localhost:12345"
+        
+        # Check second call (Read file)
+        call2_args, call2_kwargs = mock_post.call_args_list[1]
+        assert call2_args[0] == "http://localhost:12345/read_file"
+        assert call2_kwargs["json"] == {"path": error_file_path}
