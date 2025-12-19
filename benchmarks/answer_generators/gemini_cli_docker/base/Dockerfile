@@ -33,6 +33,10 @@ RUN pip install --no-cache-dir fastapi uvicorn
 # Install Gemini CLI
 RUN npm install -g @google/gemini-cli
 
+# Create Gemini config directory and copy settings.json
+RUN mkdir -p /root/.gemini
+COPY settings.json /root/.gemini/settings.json
+
 # Copy the CLI server wrapper
 COPY cli_server.py /usr/local/bin/cli_server.py
 RUN chmod +x /usr/local/bin/cli_server.py

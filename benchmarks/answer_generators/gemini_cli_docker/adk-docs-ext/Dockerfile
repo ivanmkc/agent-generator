@@ -3,11 +3,11 @@ FROM ${BASE_IMAGE}
 
 USER root
 
-# Install gettext-base for envsubst
-RUN apt-get update && apt-get install -y --no-install-recommends gettext-base && rm -rf /var/lib/apt/lists/*
-
 # Set config dir environment variable so extension installs to the right place
 ENV GEMINI_CONFIG_DIR=/root/.gemini/
+
+# Copy settings.json
+COPY settings.json /root/.gemini/settings.json
 
 # Install the extension
 RUN echo "Y" | gemini extensions install https://github.com/derailed-dash/adk-docs-ext

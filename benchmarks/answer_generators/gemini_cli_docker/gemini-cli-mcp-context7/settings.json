@@ -1,5 +1,8 @@
 
 {
+  "tools": {
+    "exclude": ["google_web_search"]
+  },
   "mcpServers": {
     "context7": {
       "httpUrl": "https://mcp.context7.com/mcp",
