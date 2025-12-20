@@ -137,8 +137,13 @@ class GeminiCliAnswerGenerator(GeminiAnswerGenerator):
           completion_tokens=stats.get("candidates_token_count"),
       )
 
+    api_key_id = cli_response_dict.get("api_key_id")
+
     return GeneratedAnswer(
-        output=output, trace_logs=logs, usage_metadata=usage_metadata
+        output=output, 
+        trace_logs=logs, 
+        usage_metadata=usage_metadata,
+        api_key_id=api_key_id
     )
 
   async def run_cli_command(

@@ -97,7 +97,7 @@ class GeminiAnswerGenerator(LlmAnswerGenerator):
       json_schema["required"].remove("benchmark_type")
 
     # Rotate API Key if available
-    api_key = self.api_key_manager.get_next_key(KeyType.GEMINI_API)
+    api_key, key_id = self.api_key_manager.get_next_key_with_id(KeyType.GEMINI_API)
     if api_key:
         client = genai.Client(api_key=api_key).aio
     else:
@@ -132,5 +132,8 @@ class GeminiAnswerGenerator(LlmAnswerGenerator):
       )
 
     return GeneratedAnswer(
-        output=output, trace_logs=trace_logs, usage_metadata=usage_metadata
+        output=output,
+        trace_logs=trace_logs,
+        usage_metadata=usage_metadata,
+        api_key_id=key_id,
     )

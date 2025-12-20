@@ -2,7 +2,7 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "Run Benchmarks (Timestamped)",
+            "label": "Run Full Benchmark Suite",
             "type": "shell",
             "command": "./notebooks/run_benchmarks.sh",
             "group": "test",
@@ -10,10 +10,11 @@
                 "reveal": "always",
                 "panel": "new"
             },
-            "problemMatcher": []
+            "problemMatcher": [],
+            "detail": "Executes the full set of benchmarks and saves results to a timestamped directory."
         },
         {
-            "label": "Run All Tests (Benchmarking)",
+            "label": "Run All Tests (Unit & Integration)",
             "type": "shell",
             "command": "env/bin/python -m pytest -n auto -v benchmarks/ --import-mode=importlib",
             "group": "test",
@@ -21,10 +22,11 @@
                 "reveal": "always",
                 "panel": "new"
             },
-            "problemMatcher": []
+            "problemMatcher": [],
+            "detail": "Runs all pytest tests located in the benchmarks directory."
         },
         {
-            "label": "Run Integration/Unit Tests",
+            "label": "Run Core Tests Only",
             "type": "shell",
             "command": "env/bin/python -m pytest -n auto -v --import-mode=importlib benchmarks/tests/unit/ benchmarks/tests/integration/",
             "group": "test",
@@ -32,10 +34,11 @@
                 "reveal": "always",
                 "panel": "new"
             },
-            "problemMatcher": []
+            "problemMatcher": [],
+            "detail": "Runs only the unit and integration tests, excluding other test files."
         },
         {
-            "label": "Run Integration Orchestrator (Unified)",
+            "label": "Run Integration Test: Unified Generators",
             "type": "shell",
             "command": "env/bin/python benchmarks/tests/integration/test_unified_generators.py",
             "group": "test",
@@ -43,7 +46,8 @@
                 "reveal": "always",
                 "panel": "new"
             },
-            "problemMatcher": []
+            "problemMatcher": [],
+            "detail": "Runs the specific integration test for unified generators."
         },
         {
             "label": "Profile Integration Tests",
@@ -54,10 +58,11 @@
                 "reveal": "always",
                 "panel": "new"
             },
-            "problemMatcher": []
+            "problemMatcher": [],
+            "detail": "Runs integration tests with profiling enabled."
         },
         {
-            "label": "Build and Push Docker Images",
+            "label": "Build & Push Docker Images",
             "type": "shell",
             "command": "./benchmarks/answer_generators/gemini_cli_docker/build_and_push_images.sh",
             "group": "build",
@@ -65,10 +70,11 @@
                 "reveal": "always",
                 "panel": "new"
             },
-            "problemMatcher": []
+            "problemMatcher": [],
+            "detail": "Builds and pushes Docker images to the registry."
         },
         {
-            "label": "Rebuild All Gemini CLI Images",
+            "label": "Rebuild Docker Images (Local)",
             "type": "shell",
             "command": "env/bin/python tools/rebuild_images.py",
             "group": "build",
@@ -76,7 +82,22 @@
                 "reveal": "always",
                 "panel": "new"
             },
-            "problemMatcher": []
+            "problemMatcher": [],
+            "detail": "Rebuilds all local Gemini CLI Docker images."
+        },
+        {
+            "label": "Launch Benchmark Result Viewer",
+            "type": "shell",
+            "command": "env/bin/python -m streamlit run tools/benchmark_viewer.py",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            },
+            "problemMatcher": [],
+            "detail": "Starts the Streamlit app to view benchmark results and history."
         }
     ]
 }

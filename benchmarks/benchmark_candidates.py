@@ -69,71 +69,35 @@ api_key_manager = ApiKeyManager()
 agent_flash = create_default_adk_agent(model_name=ModelName.GEMINI_2_5_FLASH)
 agent_pro = create_default_adk_agent(model_name=ModelName.GEMINI_2_5_PRO)
 
-# List of standard candidate generators
-CANDIDATE_GENERATORS: list[AnswerGenerator] = [
+_podman_image_configs = [
+    {
+        "image_name": "gemini-cli:base", 
+        "dockerfile_dir": Path("benchmarks/answer_generators/gemini_cli_docker/base")
+    },
+    {
+        "image_name": "gemini-cli:adk-python", 
+        "dockerfile_dir": Path("benchmarks/answer_generators/gemini_cli_docker/adk-python")
+    },
+    {
+        "image_name": "gemini-cli:adk-docs-ext", 
+        "dockerfile_dir": Path("benchmarks/answer_generators/gemini_cli_docker/adk-docs-ext")
+    },
+]
+
+CANDIDATE_GENERATORS = [
     GeminiCliPodmanAnswerGenerator(
-        model_name=ModelName.GEMINI_2_5_FLASH,
-        dockerfile_dir=Path(
-            "benchmarks/answer_generators/gemini_cli_docker/base"
-        ),
-        image_name="gemini-cli:base",
+        model_name=model_name,
+        dockerfile_dir=config["dockerfile_dir"],
+        image_name=config["image_name"],
         image_definitions=IMAGE_DEFINITIONS,
         api_key_manager=api_key_manager,
-    ),
-    GeminiCliPodmanAnswerGenerator(
-        model_name=ModelName.GEMINI_2_5_FLASH,
-        dockerfile_dir=Path(
-            "benchmarks/answer_generators/gemini_cli_docker/adk-python"
-        ),
-        image_name="gemini-cli:adk-python",
-        image_definitions=IMAGE_DEFINITIONS,
-        api_key_manager=api_key_manager,
-    ),
-    # Gemini CLI Cloud Run Generator (ADK Docs Extension)
-    GeminiCliPodmanAnswerGenerator(
-        model_name=ModelName.GEMINI_2_5_FLASH,
-        dockerfile_dir=Path(
-            "benchmarks/answer_generators/gemini_cli_docker/adk-docs-ext"
-        ),
-        image_name="gemini-cli:adk-docs-ext",
-        image_definitions=IMAGE_DEFINITIONS,
-        api_key_manager=api_key_manager,
-    ),
-    # # Gemini CLI Cloud Run Generator (Standalone Base - for baseline comparison)
-    # GeminiCliCloudRunAnswerGenerator(
-    #     model_name=ModelName.GEMINI_2_5_FLASH,
-    #     dockerfile_dir=Path(
-    #         "benchmarks/answer_generators/gemini_cli_docker/base"
-    #     ),
-    #     service_name="gemini-cli-base",
-    #     project_id=project_id,
-    #     auto_deploy=True, # Auto-deploy the base image
-    # ),
-    # Gemini CLI Docker Generator (Standard)
-    # GeminiCliDockerAnswerGenerator(
-    #     model_name=ModelName.GEMINI_2_5_FLASH,
-    #     image_name=f"gcr.io/{project_id}/gemini-cli-base:latest",
-    #     context_instruction=ADK_REPO_INSTRUCTION,
-    # ),
-    # GeminiCliDockerAnswerGenerator(
-    #     model_name=ModelName.GEMINI_2_5_FLASH,
-    #     image_name=f"gcr.io/{project_id}/gemini-cli:adk-python",
-    #     context_instruction=ADK_REPO_INSTRUCTION,
-    # ),
-    # # Gemini CLI Docker Generator (MCP Context7)
-    # GeminiCliDockerAnswerGenerator(
-    #     model_name=ModelName.GEMINI_2_5_FLASH,
-    #     image_name="gemini-cli-mcp-context7",
-    # ),
-    # Direct Gemini SDK generators (Baselines)
-    # *permute(
-    #     GeminiAnswerGenerator,
-    #     model_name=[ModelName.GEMINI_2_5_FLASH],
-    #     context=[None, Path("llms-relevant.txt")]
-    # ),
-    # # Gemini CLI generators
-    # GeminiCliLocalAnswerGenerator(model_name=ModelName.GEMINI_2_5_FLASH),
+    )
+    for model_name in [ModelName.GEMINI_2_5_FLASH, ModelName.GEMINI_2_5_PRO]
+    for config in _podman_image_configs
+]
+
+CANDIDATE_GENERATORS.extend([
     # Control generators
     GroundTruthAnswerGenerator(),
     TrivialAnswerGenerator(),
-]
+])

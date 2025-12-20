@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 import difflib
 import re
+from benchmarks.data_models import BenchmarkResultType
 
 # --- Constants ---
 BENCHMARK_RUNS_DIR = Path("benchmark_runs")
@@ -360,7 +361,7 @@ def main():
         st.header("📊 Global Run Metrics")
         st.markdown("This section provides an overview of the benchmark run's performance, including total cases, filtered cases based on sidebar selections, and the overall pass rate. Metrics are derived from the `results.json` file generated during the benchmark execution.")
         
-        crashes_count = len(filtered_df[filtered_df["status"] == "fail_crash"])
+        crashes_count = len(filtered_df[filtered_df["status"].isin([BenchmarkResultType.FAIL_SETUP.value, BenchmarkResultType.FAIL_GENERATION.value])])
         
         col1, col2, col3, col4 = st.columns(4)
         total_runs = len(df)
@@ -370,93 +371,137 @@ def main():
         
         col1.metric("Total Cases", total_runs)
         col2.metric("Filtered Cases", filtered_runs)
-        col3.metric("Accuracy (Crashes = Fail)", f"{pass_rate:.1f}%", help="Passed / Total. Treats crashes as failures.")
-        col4.metric("Crashes", crashes_count)
+        col3.metric("Accuracy (System Failures = Fail)", f"{pass_rate:.1f}%", help="Passed / Total. Treats system failures (FAIL_SETUP, FAIL_GENERATION) as failures.")
+        col4.metric("System Failures", crashes_count)
 
         st.divider()
         st.subheader("Detailed Breakdown")
-        st.markdown("Metrics are calculated as follows:\n- **Accuracy (Crashes = Fail):** `Passed / Total`. This metric treats any crash as a failure, reflecting the overall system's reliability and correctness.\n- **Accuracy:** `Passed / (Total - Crashes)`. This metric excludes crashes from the total, focusing on the model's performance on valid, non-crashing attempts.")
+        st.markdown("Metrics are calculated as follows:\n- **Accuracy (System Failures = Fail):** `Passed / Total`. This metric treats any system failure (`FAIL_SETUP`, `FAIL_GENERATION`) as a failure, reflecting the overall system's reliability and correctness.\n- **Accuracy:** `Passed / (Total - System Failures)`. This metric excludes system failures from the total, focusing on the model's performance on valid attempts (i.e., those not encountering setup or generation issues).")
 
         # 1. Granular Stats (Generator + Suite)
         granular = filtered_df.groupby(["answer_generator", "suite"]).agg(
             total=("result", "count"),
             passed=("result", "sum"),
-            crashes=("status", lambda x: (x == "fail_crash").sum())
+            system_failures=("status", lambda x: (x.isin([BenchmarkResultType.FAIL_SETUP.value, BenchmarkResultType.FAIL_GENERATION.value])).sum())
         ).reset_index()
 
         # 2. Aggregate Stats (Generator only)
         aggregate = filtered_df.groupby("answer_generator").agg(
             total=("result", "count"),
             passed=("result", "sum"),
-            crashes=("status", lambda x: (x == "fail_crash").sum())
+            system_failures=("status", lambda x: (x.isin([BenchmarkResultType.FAIL_SETUP.value, BenchmarkResultType.FAIL_GENERATION.value])).sum())
         ).reset_index()
         aggregate["suite"] = " (All Suites)"
 
         # 3. Combine & Calculate Metrics
         unified = pd.concat([aggregate, granular], ignore_index=True)
         
-        unified["valid_attempts"] = unified["total"] - unified["crashes"]
-        unified["Accuracy (Crashes = Fail)"] = (unified["passed"] / unified["total"] * 100)
+        unified["valid_attempts"] = unified["total"] - unified["system_failures"]
+        unified["Accuracy (System Failures = Fail)"] = (unified["passed"] / unified["total"] * 100)
         unified["Accuracy"] = unified.apply(
             lambda r: (r["passed"] / r["valid_attempts"] * 100) if r["valid_attempts"] > 0 else 0.0, axis=1
         )
         
         # 4. Format
-        unified["Accuracy (Crashes = Fail)"] = unified["Accuracy (Crashes = Fail)"].map("{:.1f}%".format)
+        unified["Accuracy (System Failures = Fail)"] = unified["Accuracy (System Failures = Fail)"].map("{:.1f}%".format)
         unified["Accuracy"] = unified["Accuracy"].map("{:.1f}%".format)
         
         # 5. Sort (Generator, then Suite with (All Suites) first)
         unified = unified.sort_values(by=["answer_generator", "suite"])
         
         st.dataframe(
-            unified[["answer_generator", "suite", "passed", "crashes", "total", "Accuracy (Crashes = Fail)", "Accuracy"]],
+            unified[["answer_generator", "suite", "passed", "system_failures", "total", "Accuracy (System Failures = Fail)", "Accuracy"]],
             use_container_width=True,
             hide_index=True,
             column_config={
                 "answer_generator": "Generator",
                 "suite": "Suite",
                 "passed": "Passed",
-                "crashes": "Crashes",
+                "system_failures": "System Failures",
                 "total": "Total",
-                "Accuracy (Crashes = Fail)": st.column_config.TextColumn(
-                    "Accuracy (Crashes = Fail)",
-                    help="Passed / Total. Treats crashes as failures."
+                "Accuracy (System Failures = Fail)": st.column_config.TextColumn(
+                    "Accuracy (System Failures = Fail)",
+                    help="Passed / Total. Treats system failures (FAIL_SETUP, FAIL_GENERATION) as failures."
                 ),
                 "Accuracy": st.column_config.TextColumn(
                     "Accuracy",
-                    help="Passed / (Total - Crashes). Ignores crashes to measure model intelligence on valid attempts."
+                    help="Passed / (Total - System Failures). Ignores system failures to measure model intelligence on valid attempts."
                 ),
             }
         )
 
-    if selected_case_id is not None:
+        # 6. API Key Analysis
+        st.divider()
+        st.subheader("🔑 API Key Error Analysis")
+        st.markdown("Breakdown of errors and pass rates by API Key ID.")
+        
+        # Expand all attempts into a flat list for analysis
+        attempts_data = []
+        for _, row in filtered_df.iterrows():
+            attempts = row.get("generation_attempts")
+            if not isinstance(attempts, list):
+                # If no attempts recorded (legacy), try to infer from single result if we had key info there?
+                # Currently we don't have api_key_id in top level BenchmarkRunResult, only in GeneratedAnswer (which isn't preserved directly except via answer/logs)
+                # But wait, we added generation_attempts to BenchmarkRunResult, so it should be there.
+                continue
+                
+            for att in attempts:
+                if isinstance(att, dict):
+                    attempts_data.append({
+                        "key_id": att.get("api_key_id", "Unknown"),
+                        "status": att.get("status", "unknown"),
+                        "error": att.get("error_message") or "",
+                        "suite": row["suite"],
+                        "generator": row["answer_generator"]
+                    })
+        
+        if attempts_data:
+            df_attempts = pd.DataFrame(attempts_data)
+            
+            # Aggregate by Key ID
+            key_stats = df_attempts.groupby("key_id").agg(
+                total_attempts=("status", "count"),
+                successes=("status", lambda x: (x == "success").sum()),
+                failures=("status", lambda x: (x == "failure").sum())
+            ).reset_index()
+            
+            key_stats["Failure Rate"] = (key_stats["failures"] / key_stats["total_attempts"] * 100).map("{:.1f}%".format)
+            
+            st.dataframe(
+                key_stats, 
+                use_container_width=True,
+                column_config={
+                    "key_id": "API Key ID",
+                    "total_attempts": "Attempts",
+                    "successes": "Successes",
+                    "failures": "Failures"
+                }
+            )
+            
+            with st.expander("View Error Details by Key"):
+                failed_attempts = df_attempts[df_attempts["status"] == "failure"]
+                if not failed_attempts.empty:
+                    st.dataframe(failed_attempts[["key_id", "suite", "generator", "error"]], use_container_width=True)
+                else:
+                    st.success("No failed attempts found in the selected filter range.")
+        else:
+            st.info("No generation attempt history found in this dataset.")
+
+    if selected_case_id is not None and selected_case_id != "Overview":
         row = filtered_df.loc[selected_case_id]
         case_trace_logs = row.get("trace_logs", []) or []
-
-        # --- Extract Attempts from Trace Logs ---
-        attempts = []
-        # Add the final answer as the default/last "attempt" if valid
-        # (We will insert it at the end or handle it as "Final")
-        
-        # Scan logs for write_file tool usage
-        for i, event in enumerate(case_trace_logs):
-            if event.get("type") == "tool_use" and event.get("tool_name") == "write_file":
-                content = event.get("tool_input", {}).get("content")
-                if content:
-                    attempts.append({
-                        "step": i + 1,  # approximate step number in logs
-                        "code": content,
-                        "label": f"Attempt (Log Step {i + 1})"
-                    })
-
-        num_retries = max(0, len(attempts) - 1)
+        generation_attempts = row.get("generation_attempts", []) or []
 
         # Header Info
         h1, h2, h3 = st.columns([3, 1, 1])
         h1.markdown(f"#### {row['benchmark_name']}")
         h2.caption(f"Latency: {row['latency']:.4f}s")
-        h3.caption(f"Retries: {num_retries}")
+        h3.caption(f"Attempts: {len(generation_attempts) if generation_attempts else 'N/A'}")
         
+        # Display explicit status
+        status_color = "green" if row['result'] == 1 else "red"
+        st.markdown(f"Status: :{status_color}[**{row['status'].upper()}**]")
+
         if row['validation_error']:
             if row['result'] == 1:
                 st.warning(f"**Validation Warning:** {row['validation_error']}")
@@ -466,8 +511,24 @@ def main():
             st.success("**Passed**")
 
         # Tabs for deep dive
-        tab_answer, tab_logs, tab_error, tab_meta = st.tabs(["Diff & Code", "Trace Logs", "Validation Error", "Metadata"])
+        tab_history, tab_answer, tab_logs, tab_error, tab_meta = st.tabs(["Retry History", "Diff & Code", "Trace Logs", "Validation Error", "Metadata"])
         
+        with tab_history:
+            st.markdown("### Generation Attempts History")
+            if generation_attempts:
+                for att in generation_attempts:
+                    # att is a dict if loaded from JSON
+                    is_success = att.get("status") == "success"
+                    icon = "✅" if is_success else "❌"
+                    with st.expander(f"{icon} Attempt {att.get('attempt_number')} (Key: {att.get('api_key_id', 'Unknown')})", expanded=not is_success):
+                        c1, c2 = st.columns(2)
+                        c1.metric("Duration", f"{att.get('duration', 0):.2f}s")
+                        c2.metric("Status", att.get("status"))
+                        if not is_success:
+                            st.error(f"Error: {att.get('error_message')}")
+            else:
+                st.info("No detailed attempt history available for this run.")
+
         with tab_answer:
             st.markdown("This section compares the `Generated Answer` from the agent against the `Ground Truth` (expected answer) defined in the benchmark. You can toggle between a side-by-side view of the full code/text and a colored unified diff that highlights changes.")
             
@@ -475,18 +536,24 @@ def main():
             selected_code = str(row["answer"])
             diff_label = "Final Answer"
             
-            if attempts:
-                # Options: Final Answer + extracted attempts
-                # We want to map selection to code.
-                # If the final answer exactly matches the last attempt, maybe deduplicate? 
-                # For now, keep it simple: [Final Result] + [Attempt 1, Attempt 2...]
-                
-                options = ["Final Result"] + [a["label"] for a in attempts]
-                selection = st.selectbox("Select State", options)
+            # Check for legacy extracted attempts from logs (fallback)
+            legacy_attempts = []
+            for i, event in enumerate(case_trace_logs):
+                if event.get("type") == "tool_use" and event.get("tool_name") == "write_file":
+                    content = event.get("tool_input", {}).get("content")
+                    if content:
+                        legacy_attempts.append({
+                            "step": i + 1,
+                            "code": content,
+                            "label": f"Log Step {i + 1}"
+                        })
+
+            if legacy_attempts:
+                options = ["Final Result"] + [a["label"] for a in legacy_attempts]
+                selection = st.selectbox("Select Code Version", options)
                 
                 if selection != "Final Result":
-                    # Find the code
-                    for a in attempts:
+                    for a in legacy_attempts:
                         if a["label"] == selection:
                             selected_code = a["code"]
                             diff_label = selection
@@ -533,7 +600,7 @@ def main():
             st.json(row.get("usage_metadata"))
             with st.expander("Raw Result Data"):
                 st.json(row.to_dict())
-    else:
+    elif selected_case_id is None:
         st.info("Select a case from the sidebar to view details.")
 
 if __name__ == "__main__":

@@ -141,47 +141,57 @@ class PytestBenchmarkRunner(BenchmarkRunner[FixErrorBenchmarkCase]):
     code_to_test = generated_answer.output.code
     project_root = Path(__file__).parent.parent
 
-    # Create a temp directory for execution
-    tmpdir = tempfile.mkdtemp(prefix="benchmark_")
-    tmp_path = Path(tmpdir)
+    try:
+        # Create a temp directory for execution
+        tmpdir = tempfile.mkdtemp(prefix="benchmark_")
+        tmp_path = Path(tmpdir)
 
-    # Helper to read file content
-    def read_file(path: Path) -> str:
-      if not path.exists():
-        raise FileNotFoundError(f"Could not find file: {path}")
-      with open(path, "r", encoding="utf-8") as f:
-        return f.read()
+        # Helper to read file content
+        def read_file(path: Path) -> str:
+          if not path.exists():
+            raise FileNotFoundError(f"Could not find file: {path}")
+          with open(path, "r", encoding="utf-8") as f:
+            return f.read()
 
-    target_test_file = tmp_path / "test_temp.py"
+        target_test_file = tmp_path / "test_temp.py"
 
-    if benchmark_case.unfixed_file and benchmark_case.fixed_file:
-      test_file_path = project_root / benchmark_case.test_file
+        if benchmark_case.unfixed_file and benchmark_case.fixed_file:
+          test_file_path = project_root / benchmark_case.test_file
 
-      # Verify signature before proceeding.
-      sig_error = self._verify_signature(code_to_test)
-      if sig_error:
+          # Verify signature before proceeding.
+          sig_error = self._verify_signature(code_to_test)
+          if sig_error:
+            from benchmarks.data_models import BenchmarkErrorType
+
+            return (
+                BenchmarkResultType.FAIL_VALIDATION,
+                f"Signature Verification Failed:\n{sig_error}",
+                None,
+                BenchmarkErrorType.MODEL_ANSWER_DID_NOT_MATCH_TEMPLATE,
+            )
+
+          # 2. Write the generated code to 'fixed.py' in the temp dir (as candidate)
+          (tmp_path / "fixed.py").write_text(code_to_test, encoding="utf-8")
+
+          # 2b. Write the unfixed code to 'unfixed.py' in the temp dir
+          unfixed_content = read_file(project_root / benchmark_case.unfixed_file)
+          (tmp_path / "unfixed.py").write_text(unfixed_content, encoding="utf-8")
+
+          # 3. Read and write the test file to the temp dir
+          test_content = read_file(test_file_path)
+          target_test_file.write_text(test_content, encoding="utf-8")
+
+          # 4. Create __init__.py to make it a package (helps with relative imports)
+          (tmp_path / "__init__.py").touch()
+
+    except Exception as e:
         from benchmarks.data_models import BenchmarkErrorType
-
         return (
-            BenchmarkResultType.FAIL_VALIDATION,
-            f"Signature Verification Failed:\n{sig_error}",
+            BenchmarkResultType.FAIL_SETUP,
+            f"Benchmark Setup Failed: {e}",
             None,
-            BenchmarkErrorType.MODEL_ANSWER_DID_NOT_MATCH_TEMPLATE,
+            BenchmarkErrorType.TEST_FAILURE,
         )
-
-      # 2. Write the generated code to 'fixed.py' in the temp dir (as candidate)
-      (tmp_path / "fixed.py").write_text(code_to_test, encoding="utf-8")
-
-      # 2b. Write the unfixed code to 'unfixed.py' in the temp dir
-      unfixed_content = read_file(project_root / benchmark_case.unfixed_file)
-      (tmp_path / "unfixed.py").write_text(unfixed_content, encoding="utf-8")
-
-      # 3. Read and write the test file to the temp dir
-      test_content = read_file(test_file_path)
-      target_test_file.write_text(test_content, encoding="utf-8")
-
-      # 4. Create __init__.py to make it a package (helps with relative imports)
-      (tmp_path / "__init__.py").touch()
 
     # Prepare environment with PYTHONPATH including the temp directory and project root
     env = os.environ.copy()
@@ -214,7 +224,7 @@ class PytestBenchmarkRunner(BenchmarkRunner[FixErrorBenchmarkCase]):
     )
 
     error_type = None
-    result = BenchmarkResultType.FAIL_CRASH  # Default to crash if non-zero exit
+    result = BenchmarkResultType.FAIL_VALIDATION  # Default to validation fail if non-zero exit
 
     if proc.returncode == 0:
       result = BenchmarkResultType.PASS
@@ -284,7 +294,7 @@ class PytestBenchmarkRunner(BenchmarkRunner[FixErrorBenchmarkCase]):
       }
 
       if error_type in crash_types:
-        result = BenchmarkResultType.FAIL_CRASH
+        result = BenchmarkResultType.FAIL_VALIDATION
       else:
         # Assertion failures and generic test failures are validation issues
         result = BenchmarkResultType.FAIL_VALIDATION
@@ -293,7 +303,7 @@ class PytestBenchmarkRunner(BenchmarkRunner[FixErrorBenchmarkCase]):
       # Return codes > 1 usually indicate usage errors or internal errors
       from benchmarks.data_models import BenchmarkErrorType
 
-      result = BenchmarkResultType.FAIL_CRASH
+      result = BenchmarkResultType.FAIL_SETUP
       error_type = BenchmarkErrorType.SYSTEM_EXIT
 
     return result, logs if result != BenchmarkResultType.PASS else None, str(tmp_path), error_type

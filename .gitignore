@@ -10,21 +10,12 @@ __pycache__/
 # Jupyter Notebook stuff
 .ipynb_checkpoints/
 benchmark_runs/
-# Also ignore benchmark_run.ipynb if it's generated
-benchmarks/benchmark_run.ipynb
-notebooks/*.ipynb
 
 # Temporary files for Docker builds
 benchmarks/answer_generators/gemini_cli_docker/source_archive_*.tar.gz
 
 # IDE specific files
 .idea/
-
-# Other temporary or generated files
-reproduce_fix_error.py
-traces_verification/
-verify_adk_docs_context_cloud_run.py
-verify_adk_docs_context_local.py
 
 # Env files
 env/

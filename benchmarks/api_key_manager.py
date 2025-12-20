@@ -86,7 +86,26 @@ class ApiKeyManager:
         
         self._key_counts[key_type] = len(keys)
         if keys:
-            self._pools[key_type] = itertools.cycle(keys)
+            # Store keys as (key_string, id_string) tuples
+            # ID is just the index "0", "1", etc.
+            keyed_entries = [(k, str(i)) for i, k in enumerate(keys)]
+            self._pools[key_type] = itertools.cycle(keyed_entries)
+
+    def get_next_key_with_id(self, key_type: KeyType = KeyType.GEMINI_API) -> tuple[Optional[str], Optional[str]]:
+        """
+        Returns the next API key and its unique ID for the specified `key_type`.
+
+        Args:
+            key_type: The type of API key to retrieve. Defaults to `KeyType.GEMINI_API`.
+
+        Returns:
+            A tuple (key, key_id). Both are None if no keys are configured.
+        """
+        with self._lock:
+            iterator = self._pools.get(key_type)
+            if not iterator:
+                return None, None
+            return next(iterator)
 
     def get_next_key(self, key_type: KeyType = KeyType.GEMINI_API) -> Optional[str]:
         """
@@ -111,11 +130,8 @@ class ApiKeyManager:
             1. Set environment variable: `export GEMINI_API_KEY="my_single_gemini_key"`
             2. In code: `api_key = API_KEY_MANAGER.get_next_key(KeyType.GEMINI_API)`
         """
-        with self._lock:
-            iterator = self._pools.get(key_type)
-            if not iterator:
-                return None
-            return next(iterator)
+        key, _ = self.get_next_key_with_id(key_type)
+        return key
 
     def get_key_count(self, key_type: KeyType) -> int:
         """

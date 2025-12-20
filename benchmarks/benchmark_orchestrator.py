@@ -17,6 +17,7 @@
 import asyncio
 from pathlib import Path
 import time
+import random
 from typing import List
 from typing import Optional
 
@@ -29,6 +30,7 @@ from benchmarks.data_models import BaseBenchmarkCase
 from benchmarks.data_models import BenchmarkFile
 from benchmarks.data_models import BenchmarkResultType
 from benchmarks.data_models import BenchmarkRunResult
+from benchmarks.data_models import GenerationAttempt
 from benchmarks.logger import BenchmarkLogger
 
 
@@ -50,54 +52,79 @@ async def _run_single_benchmark(
     ground_truth = case.get_ground_truth()
 
     start_time = time.time()
-    try:
-      retryer = tenacity.AsyncRetrying(
-          stop=tenacity.stop_after_attempt(max_retries),
-          wait=tenacity.wait_exponential(
-              multiplier=1, min=min_wait, max=max_wait
-          ),
-          retry=tenacity.retry_if_exception_type(Exception),
-          reraise=True,
-      )
+    generated_answer = None
+    ground_truth = case.get_ground_truth()
+    attempts_history: List[GenerationAttempt] = []
 
-      async for attempt in retryer:
-        with attempt:
-          generated_answer = await generator.generate_answer(case)
+    start_time = time.time()
+    
+    # Manual Retry Loop
+    for attempt_idx in range(max_retries + 1):
+        attempt_start = time.time()
+        try:
+            generated_answer = await generator.generate_answer(case)
+            
+            # Record Success
+            attempts_history.append(GenerationAttempt(
+                attempt_number=attempt_idx + 1,
+                status="success",
+                duration=time.time() - attempt_start,
+                api_key_id=generated_answer.api_key_id
+            ))
+            break # Exit loop on success
+            
+        except Exception as e:
+             # Record Failure
+             attempts_history.append(GenerationAttempt(
+                attempt_number=attempt_idx + 1,
+                status="failure",
+                error_message=str(e),
+                duration=time.time() - attempt_start,
+                api_key_id=None # We don't easily know which key failed here without more plumbing
+            ))
+             
+             # Check if we should retry
+             if attempt_idx < max_retries:
+                 # Exponential Backoff: min_wait * 2^attempt
+                 delay = min(max_wait, min_wait * (2 ** attempt_idx))
+                 # Add jitter (0.5 to 1.5 multiplier)
+                 delay *= (0.5 + random.random())
+                 await asyncio.sleep(delay)
+             else:
+                 # Final Failure after all retries
+                 error_message = f"Generation failed after {max_retries + 1} attempts. Last error: {e}"
+                 if logger:
+                    logger.log_generation_failure(
+                        benchmark_name=case.get_identifier(),
+                        error_message=error_message,
+                        prompt="",
+                    )
 
-    except Exception as e:
-      error_message = f"Generation failed after {max_retries} retries: {e}"
-      if logger:
-        logger.log_generation_failure(
-            benchmark_name=case.get_identifier(),
-            error_message=error_message,
-            prompt="",
-        )
+                 from benchmarks.data_models import BenchmarkErrorType
 
-      from benchmarks.data_models import BenchmarkErrorType
+                 # Try to map common generation errors
+                 gen_error_type = BenchmarkErrorType.OTHER_ERROR
+                 exc_name = type(e).__name__
+                 for member in BenchmarkErrorType:
+                    if member.value == exc_name:
+                        gen_error_type = member
+                        break
 
-      # Try to map common generation errors
-      gen_error_type = BenchmarkErrorType.OTHER_ERROR
-      exc_name = type(e).__name__
-      # Simple mapping attempt
-      for member in BenchmarkErrorType:
-        if member.value == exc_name:
-          gen_error_type = member
-          break
-
-      return BenchmarkRunResult(
-          suite=str(Path(suite_file).absolute()),
-          benchmark_name=case.get_identifier(),
-          benchmark_type=case.benchmark_type,
-          answer_generator=generator.name,
-          status=BenchmarkResultType.FAIL_CRASH,
-          result=0,
-          answer="",
-          validation_error=error_message,
-          error_type=gen_error_type,
-          temp_test_file=None,
-          latency=time.time() - start_time,
-          ground_truth=ground_truth,
-      )
+                 return BenchmarkRunResult(
+                      suite=str(Path(suite_file).absolute()),
+                      benchmark_name=case.get_identifier(),
+                      benchmark_type=case.benchmark_type,
+                      answer_generator=generator.name,
+                      status=BenchmarkResultType.FAIL_GENERATION,
+                      result=0,
+                      answer="",
+                      validation_error=error_message,
+                      error_type=gen_error_type,
+                      temp_test_file=None,
+                      latency=time.time() - start_time,
+                      ground_truth=ground_truth,
+                      generation_attempts=attempts_history
+                  )
 
     latency = time.time() - start_time
 
@@ -149,6 +176,7 @@ async def _run_single_benchmark(
       if generated_answer
       else None,
       ground_truth=ground_truth,
+      generation_attempts=attempts_history
   )
 
 
@@ -243,6 +271,12 @@ async def run_benchmarks(
             last_log_time = current_time
       
       print(f"  - Completed all tasks for {generator.name}.")
+      
+      print(f"  - Tearing down answer generator: {generator.name}...")
+      try:
+          await generator.teardown()
+      except Exception as e:
+          print(f"  - Warning: Teardown failed for {generator.name}: {e}")
 
   # Final progress reporting
   print("\n--- Summary of Progress per Answer Generator ---")

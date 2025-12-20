@@ -46,7 +46,8 @@ class BenchmarkResultType(str, enum.Enum):
 
   PASS = "pass"
   FAIL_VALIDATION = "fail_validation"
-  FAIL_CRASH = "fail_crash"
+  FAIL_SETUP = "fail_setup"
+  FAIL_GENERATION = "fail_generation"
 
 
 class CodeSnippetRef(pydantic.BaseModel):
@@ -450,6 +451,20 @@ class GeneratedAnswer(pydantic.BaseModel):
       ),
   )
 
+  api_key_id: Optional[str] = Field(
+      None, description="The unique ID of the API key used for generation."
+  )
+
+
+class GenerationAttempt(pydantic.BaseModel):
+  """Captures details of a single attempt to generate an answer."""
+  
+  attempt_number: int = Field(..., description="The sequence number of this attempt (1-based).")
+  status: str = Field(..., description="The outcome of this attempt ('success' or 'failure').")
+  error_message: Optional[str] = Field(None, description="Error message if the attempt failed.")
+  duration: float = Field(0.0, description="Time taken for this attempt in seconds.")
+  api_key_id: Optional[str] = Field(None, description="ID of the API key used, if known.")
+
 
 class BenchmarkRunResult(pydantic.BaseModel):
   """Represents the structured result of a single benchmark run."""
@@ -529,4 +544,7 @@ class BenchmarkRunResult(pydantic.BaseModel):
       description=(
           "The expected correct answer or code (e.g. content of fixed.py)."
       ),
+  )
+  generation_attempts: Optional[list[GenerationAttempt]] = Field(
+      None, description="History of all answer generation attempts."
   )

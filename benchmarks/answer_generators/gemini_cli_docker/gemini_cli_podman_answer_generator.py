@@ -444,7 +444,7 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
     }
 
     # Inject rotated API key if available
-    api_key = self.api_key_manager.get_next_key(KeyType.GEMINI_API)
+    api_key, key_id = self.api_key_manager.get_next_key_with_id(KeyType.GEMINI_API)
     if api_key:
         payload["env"]["GEMINI_API_KEY"] = api_key
 
@@ -492,7 +492,13 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
     if stdout_str:
         logs.append(TraceLogEvent(type="CLI_STDOUT_FULL", source="podman_server", content=stdout_str))
 
-    response_dict = {"stdout": stdout_str, "stderr": stderr_str, "exit_code": returncode, "response": ""}
+    response_dict = {
+        "stdout": stdout_str, 
+        "stderr": stderr_str, 
+        "exit_code": returncode, 
+        "response": "",
+        "api_key_id": key_id
+    }
     
     # Parse stdout
     if "--output-format" in full_args and "stream-json" in full_args:
