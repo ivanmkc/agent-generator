@@ -19,7 +19,7 @@ RUN uv pip install --system /workdir/repos/adk-python \
     && uv clean
 
 # Copy the MCP server source code
-COPY src/ /app/mcp-server/
+COPY src/ /usr/local/bin/mcp-server/
 
 # Configure the Gemini CLI to use this MCP server
 # We overwrite (or merge) the existing settings.json
@@ -29,7 +29,7 @@ COPY settings.json /root/.gemini/settings.json
 COPY INSTRUCTIONS_MCP_RUNNER.md /workdir/INSTRUCTIONS.md
 
 # Ensure the server script is executable
-RUN chmod +x /app/mcp-server/adk_runner_server.py
+RUN chmod +x /usr/local/bin/mcp-server/adk_runner_server.py
 
 # Verify ADK installation (checking for google.adk namespace)
 RUN python3 -c "import sys; print(sys.path); import google.adk.agents.base_agent; print('ADK (google.adk) successfully imported')"

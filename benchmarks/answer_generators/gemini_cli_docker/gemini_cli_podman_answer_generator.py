@@ -343,7 +343,7 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
       podman_args.append(self.image_name)
       # Explicitly run the server, which works for both CMD-only images (overrides CMD)
       # and ENTRYPOINT images (passed as args to entrypoint script)
-      podman_args.extend(["python3", "/usr/local/bin/cli_server.py"])
+      podman_args.extend(["python3", "/usr/local/bin/mcp-server/adk_runner_server.py"])
       
       print(f"[Podman Setup] Running command: {" ".join(podman_args)}")
       proc = await asyncio.create_subprocess_exec(
