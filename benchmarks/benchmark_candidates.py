@@ -70,17 +70,25 @@ agent_flash = create_default_adk_agent(model_name=ModelName.GEMINI_2_5_FLASH)
 agent_pro = create_default_adk_agent(model_name=ModelName.GEMINI_2_5_PRO)
 
 _podman_image_configs = [
+    # {
+    #     "image_name": "gemini-cli:base", 
+    #     "dockerfile_dir": Path("benchmarks/answer_generators/gemini_cli_docker/base")
+    # },
+    # {
+    #     "image_name": "gemini-cli:adk-python", 
+    #     "dockerfile_dir": Path("benchmarks/answer_generators/gemini_cli_docker/adk-python")
+    # },
+    # {
+    #     "image_name": "gemini-cli:adk-docs-ext", 
+    #     "dockerfile_dir": Path("benchmarks/answer_generators/gemini_cli_docker/adk-docs-ext")
+    # },
+    # {
+    #     "image_name": "gemini-cli:mcp-context7", 
+    #     "dockerfile_dir": Path("benchmarks/answer_generators/gemini_cli_docker/gemini-cli-mcp-context7")
+    # },
     {
-        "image_name": "gemini-cli:base", 
-        "dockerfile_dir": Path("benchmarks/answer_generators/gemini_cli_docker/base")
-    },
-    {
-        "image_name": "gemini-cli:adk-python", 
-        "dockerfile_dir": Path("benchmarks/answer_generators/gemini_cli_docker/adk-python")
-    },
-    {
-        "image_name": "gemini-cli:adk-docs-ext", 
-        "dockerfile_dir": Path("benchmarks/answer_generators/gemini_cli_docker/adk-docs-ext")
+        "image_name": "gemini-cli:mcp-adk-agent-runner", 
+        "dockerfile_dir": Path("benchmarks/answer_generators/gemini_cli_docker/mcp-adk-agent-runner")
     },
 ]
 
@@ -92,7 +100,7 @@ CANDIDATE_GENERATORS = [
         image_definitions=IMAGE_DEFINITIONS,
         api_key_manager=api_key_manager,
     )
-    for model_name in [ModelName.GEMINI_2_5_FLASH, ModelName.GEMINI_2_5_PRO]
+    for model_name in [ModelName.GEMINI_2_5_FLASH]#, ModelName.GEMINI_2_5_PRO]
     for config in _podman_image_configs
 ]
 

@@ -8,3 +8,4 @@ litellm
 papermill
 streamlit
 pandas
+plotly

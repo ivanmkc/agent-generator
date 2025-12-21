@@ -19,6 +19,7 @@ from pathlib import Path
 from benchmarks.data_models import AnswerTemplate
 from benchmarks.data_models import ApiUnderstandingBenchmarkCase
 from benchmarks.data_models import BenchmarkType
+from benchmarks.data_models import FixErrorBenchmarkCase
 from benchmarks.data_models import MultipleChoiceBenchmarkCase
 from benchmarks.data_models import StringMatchAnswer
 
@@ -101,6 +102,7 @@ ADK_QUESTION_DOCKER_CASE = MultipleChoiceBenchmarkCase(
 )
 
 # Content for Fix Error Minimal Agent test case
+# TODO: Use FixErrorBenchmarkCase constructor
 FIX_ERROR_MINIMAL_AGENT_CONTENT = {
     "name": "Test Fix Error",
     "description": "Fix a bug by creating a valid agent.",
@@ -153,3 +155,20 @@ ADK_BASE_AGENT_QUESTION_CASE_INTERMEDIATE = ApiUnderstandingBenchmarkCase(
     file=Path("src/google/adk/agents/llm_agent.py"),
 )
 
+# A case for testing the dynamic ADK agent runner MCP tool
+MCP_ADK_RUNNER_CASE = FixErrorBenchmarkCase(
+    name="MCP ADK Runner Test",
+    description=(
+        "You must complete this task in two steps:\n"
+        "1. FIRST, use the `run_adk_agent` tool to execute the agent code and verify it returns 'Hello World'. "
+        "Do not skip this step.\n"
+        "2. SECOND, after receiving the tool output, generate the final JSON object containing the code and rationale."
+    ),
+    test_file=Path("tests/test_agent.py"),  # Dummy path
+    requirements=[
+        "The agent must be implemented in a valid Python file.",
+        "The agent must return 'Hello World' for input 'Hi'.",
+        "The `run_adk_agent` tool must be used to verify the agent.",
+        "You MUST import BaseAgent from `google.adk.agents.base_agent` (NOT `adk.agent`)."
+    ],
+)

@@ -2,7 +2,7 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "Run Full Benchmark Suite",
+            "label": "Run Benchmarks",
             "type": "shell",
             "command": "./notebooks/run_benchmarks.sh",
             "group": "test",
@@ -14,7 +14,7 @@
             "detail": "Executes the full set of benchmarks and saves results to a timestamped directory."
         },
         {
-            "label": "Run All Tests (Unit & Integration)",
+            "label": "Run All Tests",
             "type": "shell",
             "command": "env/bin/python -m pytest -n auto -v benchmarks/ --import-mode=importlib",
             "group": "test",
@@ -26,7 +26,7 @@
             "detail": "Runs all pytest tests located in the benchmarks directory."
         },
         {
-            "label": "Run Core Tests Only",
+            "label": "Unit/Integration Tests",
             "type": "shell",
             "command": "env/bin/python -m pytest -n auto -v --import-mode=importlib benchmarks/tests/unit/ benchmarks/tests/integration/",
             "group": "test",
@@ -38,7 +38,7 @@
             "detail": "Runs only the unit and integration tests, excluding other test files."
         },
         {
-            "label": "Run Integration Test: Unified Generators",
+            "label": "Integration Test: Unified Generators",
             "type": "shell",
             "command": "env/bin/python benchmarks/tests/integration/test_unified_generators.py",
             "group": "test",
@@ -47,7 +47,7 @@
                 "panel": "new"
             },
             "problemMatcher": [],
-            "detail": "Runs the specific integration test for unified generators."
+            "detail": "Runs the specific integration test for unified generators.",
         },
         {
             "label": "Profile Integration Tests",
@@ -86,7 +86,7 @@
             "detail": "Rebuilds all local Gemini CLI Docker images."
         },
         {
-            "label": "Launch Benchmark Result Viewer",
+            "label": "Viewer",
             "type": "shell",
             "command": "env/bin/python -m streamlit run tools/benchmark_viewer.py",
             "options": {

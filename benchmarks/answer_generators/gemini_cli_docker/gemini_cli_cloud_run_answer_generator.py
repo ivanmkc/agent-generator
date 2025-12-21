@@ -561,6 +561,8 @@ class GeminiCliCloudRunAnswerGenerator(GeminiCliAnswerGenerator):
 
     # Parse stdout using the new utility function
     response_dict, logs = parse_cli_stream_json_output(stdout_str)
+    # Add placeholder ID for cloud-managed keys
+    response_dict["api_key_id"] = "cloud-secret"
 
     if stderr_str:
       logs.append(

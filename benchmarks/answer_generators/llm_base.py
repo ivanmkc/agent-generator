@@ -65,13 +65,13 @@ class LlmAnswerGenerator(AnswerGenerator):
         requirements_str += f"- {req}\n"
       requirements_str += "\n"
 
-    if not case.unfixed_file:
-      raise ValueError("unfixed_file not specified in benchmark case.")
-
-    if not case.unfixed_file.exists():
-      raise FileNotFoundError(f"Unfixed file not found: {case.unfixed_file}")
-
-    full_unfixed_content = case.unfixed_file.read_text(encoding="utf-8")
+    full_unfixed_content = ""
+    if case.unfixed_file:
+      if not case.unfixed_file.exists():
+        raise FileNotFoundError(f"Unfixed file not found: {case.unfixed_file}")
+      full_unfixed_content = case.unfixed_file.read_text(encoding="utf-8")
+    else:
+      full_unfixed_content = "# No existing content. Create from scratch based on description."
 
     error_output_section = ""
     if case.error_output:

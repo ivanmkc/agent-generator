@@ -52,7 +52,23 @@ def has_cmd(cmd: str) -> bool:
 
 @dataclass
 class GeneratorTestCase:
-    """Encapsulates a generator instance and its specific test configuration."""
+    """
+    Encapsulates a generator instance and its specific test configuration.
+
+    Attributes:
+        id: A unique identifier for this test case instance.
+        generator: An instance of `AnswerGenerator` to be tested.
+        expected_gemini_cli_extensions: A list of expected Gemini CLI extension IDs
+                                        that the generator should discover.
+        expected_mcp_tools: A list of expected MCP tool names that the generator
+                            should discover.
+        expected_context_files: A list of expected context file paths that the generator
+                                should load (for memory context tests).
+        custom_case: An optional `BaseBenchmarkCase` instance to be used instead
+                     of the default `SIMPLE_API_UNDERSTANDING_CASE`.
+        expected_tool_uses: A list of tool names or log indicators expected to be found
+                          within the trace logs of a successful generation.
+    """
     id: str
     generator: AnswerGenerator
     
@@ -63,7 +79,7 @@ class GeneratorTestCase:
     
     custom_case: BaseBenchmarkCase = field(default=None)
 
-    trace_indicators: List[str] = field(default_factory=list)
+    expected_tool_uses: List[str] = field(default_factory=list)
 
     def __post_init__(self):
         if self.custom_case is None:
@@ -321,6 +337,9 @@ async def test_case(request: pytest.FixtureRequest, model_name: str) -> Generato
         else:
             pytest.fail(f"Unknown generator type: {gen_type}")
 
+        custom_case_data = config.get("custom_case")
+        custom_case_instance = custom_case_data # It's already an instance or None
+
         print(f"--- [Setup] Initializing {gen.name} ---")
         await gen.setup()
         
@@ -330,8 +349,8 @@ async def test_case(request: pytest.FixtureRequest, model_name: str) -> Generato
             expected_gemini_cli_extensions=config.get("expected_extensions", []),
             expected_mcp_tools=config.get("expected_mcp_tools", []),
             expected_context_files=config.get("expected_context_files", []),
-            custom_case=config.get("custom_case"),
-            trace_indicators=config.get("trace_indicators", [])
+            custom_case=custom_case_instance,
+            expected_tool_uses=config.get("expected_tool_uses", [])
         )
     
     # 2. Fallback to Local Fixtures

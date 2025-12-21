@@ -17,17 +17,21 @@ Primary unified integration test suite for all Answer Generator implementations.
 Also acts as the orchestration script for sequential generator execution.
 """
 
+import sys
+import os
+from pathlib import Path
+# Ensure project root is in sys.path for direct execution
+project_root = Path(os.getcwd()).resolve()
+if str(project_root) not in sys.path:
+    sys.path.append(str(project_root))
+
 import pytest
 import json
 import re
 import asyncio
-import os
-import sys
-from pathlib import Path
-
-# Ensure project root is in sys.path for direct execution
-if __name__ == "__main__":
-    sys.path.append(os.getcwd())
+from benchmarks.answer_generators.gemini_cli_answer_generator import (
+    GeminiCliAnswerGenerator,
+)
 
 # Import for type hinting; pytest automatically finds fixtures in conftest
 from benchmarks.tests.integration.conftest import GeneratorTestCase
@@ -53,7 +57,7 @@ async def test_generator_capabilities(test_case: GeneratorTestCase) -> None:
     checks_performed = False
 
     # 1. Gemini CLI Extensions Check
-    if hasattr(generator, "get_gemini_cli_extensions"):
+    if isinstance(generator, GeminiCliAnswerGenerator):
         checks_performed = True
         print(f"[{test_case.id}] Fetching Gemini CLI extensions...")
         actual_exts = await generator.get_gemini_cli_extensions()
@@ -67,7 +71,7 @@ async def test_generator_capabilities(test_case: GeneratorTestCase) -> None:
 
 
     # 2. MCP Tools Check
-    if hasattr(generator, "get_mcp_tools"):
+    if isinstance(generator, GeminiCliAnswerGenerator):    
         checks_performed = True
         print(f"[{test_case.id}] Fetching MCP tools...")
         actual_mcp = await generator.get_mcp_tools()
@@ -91,6 +95,7 @@ async def test_generator_execution(test_case: GeneratorTestCase, tmp_path: Path)
     """
     generator = test_case.generator
     case = test_case.custom_case
+    print(f"[DEBUG] Type of case: {type(case)}")
     
     print(f"[{test_case.id}] Generating answer for case: '{case.get_identifier()}'")
 
@@ -108,23 +113,29 @@ async def test_generator_execution(test_case: GeneratorTestCase, tmp_path: Path)
             pytest.fail(f"Answer validation failed: {e}")
 
         # Trace Log Checks
-        if answer.trace_logs and test_case.trace_indicators:
-            logs_str = json.dumps([t.model_dump() for t in answer.trace_logs], default=str).lower()
-            
-            # Check for indicators
-            found = any(ind.lower() in logs_str for ind in test_case.trace_indicators)
-            
-            if not found:
-                # Dump logs to file for debugging
-                log_file = tmp_path / f"{test_case.id}_debug_trace.json"
-                with open(log_file, "w") as f:
-                    f.write(logs_str)
-                print(f"[{test_case.id}] Debug traces saved to {log_file}")
+        if answer.trace_logs:
+            logs_str = json.dumps([t.model_dump() for t in answer.trace_logs], default=str)
+            log_file = tmp_path / f"{test_case.id}_debug_trace.json"
+            with open(log_file, "w") as f:
+                f.write(logs_str)
+            print(f"[{test_case.id}] Debug traces saved to {log_file}")
+
+            if test_case.expected_tool_uses:
+                # Check for all indicators
+                all_tools_used = set([log.tool_name for log in answer.trace_logs if log.type == "tool_use"])
+
+                print(f"Tools used: {all_tools_used}")
                 
-                pytest.fail(f"[{test_case.id}] Trace logs missing expected indicators: {test_case.trace_indicators}")
-        
-        elif not answer.trace_logs:
-             print(f"[{test_case.id}] Warning: No trace logs returned.")
+                # Check if all expected tool uses are in tool_use names
+                found = all(
+                    indicator in all_tools_used
+                    for indicator in test_case.expected_tool_uses
+                )
+
+                if not found:
+                    pytest.fail(f"[{test_case.id}] Trace logs missing expected tool uses: {test_case.expected_tool_uses}")
+        else:
+                print(f"[{test_case.id}] Warning: No trace logs returned.")
 
     except Exception as e:
         pytest.fail(f"[{test_case.id}] Generation failed: {e}")
@@ -139,13 +150,17 @@ async def test_generator_memory_context(test_case: GeneratorTestCase) -> None:
 
     # Check if this test case expects any context files
     if not test_case.expected_context_files:
-         pytest.skip(f"No expected context files defined for {test_case.id}")
+         # Skip memory context test for MCP generators that don't explicitly define expected files
+         if "mcp" in test_case.id:
+             pytest.skip(f"Generator {test_case.id} is an MCP generator and does not rely on file-based memory context.")
+         else:
+             pytest.skip(f"No expected context files defined for {test_case.id}")
 
     # Ensure generator is set up (e.g., container running)
     await generator.setup()
     
     # We need a CLI generator to run commands and get debug logs
-    if not hasattr(generator, "run_cli_command"):
+    if not isinstance(generator, GeminiCliAnswerGenerator):
         pytest.skip(f"Generator {test_case.id} does not support run_cli_command.")
 
     print(f"[{test_case.id}] Running gemini --debug to inspect memory context...")

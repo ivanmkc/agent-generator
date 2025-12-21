@@ -1,0 +1,5 @@
+{
+  "tools": {
+    "exclude": ["google_web_search"]
+  }
+}

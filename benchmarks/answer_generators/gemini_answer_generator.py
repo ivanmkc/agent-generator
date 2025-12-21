@@ -103,14 +103,22 @@ class GeminiAnswerGenerator(LlmAnswerGenerator):
     else:
         client = self.client
 
-    response = await client.models.generate_content(
-        model=self.model_name,
-        contents=prompt,
-        config={
-            "response_mime_type": "application/json",
-            "response_json_schema": json_schema,
-        },
-    )
+    try:
+        response = await client.models.generate_content(
+            model=self.model_name,
+            contents=prompt,
+            config={
+                "response_mime_type": "application/json",
+                "response_json_schema": json_schema,
+            },
+        )
+        if key_id:
+            self.api_key_manager.report_result(KeyType.GEMINI_API, key_id, success=True)
+            
+    except Exception as e:
+        if key_id:
+            self.api_key_manager.report_result(KeyType.GEMINI_API, key_id, success=False, error_message=str(e))
+        raise e
 
     output = response_schema.model_validate_json(response.text)
 

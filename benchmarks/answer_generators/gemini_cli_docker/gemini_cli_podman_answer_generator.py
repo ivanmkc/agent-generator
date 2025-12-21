@@ -221,8 +221,8 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
     duration = end_time - start_time
     
     if returncode != 0:
-        error_msg = stderr_str.strip() or stdout_str.strip()
-        raise RuntimeError(f"Failed to build image {image_name}. Exit code: {returncode} (took {duration:.2f}s)")
+        error_msg = f"Build failed with exit code {returncode}. Check logs above for details."
+        raise RuntimeError(f"Failed to build image {image_name}. {error_msg} (took {duration:.2f}s)")
         
     print(f"Successfully built {image_name} in {duration:.2f}s")
 
@@ -514,6 +514,13 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
         error_msg = stderr_str.strip() or stdout_str.strip()
         if captured_error_report:
             error_msg += f"\n\n[Captured Error Report]\n{captured_error_report}"
+        
+        if key_id:
+            self.api_key_manager.report_result(KeyType.GEMINI_API, key_id, success=False, error_message=error_msg)
+
         raise RuntimeError(f"Gemini CLI failed with code {returncode}: {error_msg}")
+
+    if key_id:
+        self.api_key_manager.report_result(KeyType.GEMINI_API, key_id, success=True)
 
     return response_dict, logs
