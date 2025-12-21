@@ -571,7 +571,7 @@ def main():
                     st.code(row.get("ground_truth", ""), language="python")
             else:
                 st.caption(f"Unified Diff ({diff_label} vs Ground Truth)")
-                render_diff(selected_code, str(row.get("ground_truth", "")))
+                render_diff(selected_code, str(row.get("ground_truth") or ""))
 
         with tab_logs:
             st.markdown("This tab displays a chronological trace of events that occurred during the agent's execution for this benchmark case. It includes tool calls, their results, raw CLI outputs, and any captured errors, providing a detailed understanding of the agent's decision-making process.")

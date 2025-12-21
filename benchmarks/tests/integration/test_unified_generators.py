@@ -20,6 +20,7 @@ Also acts as the orchestration script for sequential generator execution.
 import sys
 import os
 from pathlib import Path
+import datetime
 # Ensure project root is in sys.path for direct execution
 project_root = Path(os.getcwd()).resolve()
 if str(project_root) not in sys.path:
@@ -115,7 +116,10 @@ async def test_generator_execution(test_case: GeneratorTestCase, tmp_path: Path)
         # Trace Log Checks
         if answer.trace_logs:
             logs_str = json.dumps([t.model_dump() for t in answer.trace_logs], default=str)
-            log_file = tmp_path / f"{test_case.id}_debug_trace.json"
+            project_tmp_dir = Path("tmp/test_traces")
+            timestamp_str = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            log_file = project_tmp_dir / f"{test_case.id}_{timestamp_str}_debug_trace.json"
+            log_file.parent.mkdir(parents=True, exist_ok=True) # Ensure directory exists
             with open(log_file, "w") as f:
                 f.write(logs_str)
             print(f"[{test_case.id}] Debug traces saved to {log_file}")

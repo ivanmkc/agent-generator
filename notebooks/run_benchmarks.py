@@ -18,9 +18,10 @@ import asyncio
 import json
 import os
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 from datetime import datetime
 import sys
+import argparse
 
 # Add root to sys.path if not there
 if str(Path.cwd()) not in sys.path:
@@ -46,17 +47,25 @@ pd.set_option("display.max_colwidth", None)
 pd.set_option("display.max_rows", None)
 
 
-async def run_comparison(logger: JsonTraceLogger) -> List[BenchmarkRunResult]:
+async def run_comparison(logger: JsonTraceLogger, selected_suite: Optional[str] = None) -> List[BenchmarkRunResult]:
   """Sets up and runs the benchmark comparison sequentially per generator."""
   print("Configuring benchmark run...")
 
-  benchmark_suites = [
+  all_benchmark_suites = [
       "benchmarks/benchmark_definitions/api_understanding/benchmark.yaml",
       "benchmarks/benchmark_definitions/fix_errors/benchmark.yaml",
       "benchmarks/benchmark_definitions/diagnose_setup_errors_mc/benchmark.yaml",
       "benchmarks/benchmark_definitions/configure_adk_features_mc/benchmark.yaml",
       "benchmarks/benchmark_definitions/predict_runtime_behavior_mc/benchmark.yaml",
+      "benchmarks/benchmark_definitions/debug_suite/benchmark.yaml", # Add the new debug suite
   ]
+
+  if selected_suite:
+      benchmark_suites = [s for s in all_benchmark_suites if selected_suite in s]
+      if not benchmark_suites:
+          raise ValueError(f"Specified suite '{selected_suite}' not found.")
+  else:
+      benchmark_suites = all_benchmark_suites
 
   answer_generators: list[AnswerGenerator] = CANDIDATE_GENERATORS
 
@@ -123,6 +132,10 @@ async def run_comparison(logger: JsonTraceLogger) -> List[BenchmarkRunResult]:
 
 async def main():
   """Main function to run benchmarks and analyze results."""
+  parser = argparse.ArgumentParser(description="Run benchmarks against various answer generators.")
+  parser.add_argument("--suite", type=str, help="Run only benchmarks from a specific suite (e.g., 'fix_errors').")
+  args = parser.parse_args()
+
   # Setup unified output directory
   run_output_dir_str = os.environ.get("BENCHMARK_OUTPUT_DIR")
   if run_output_dir_str:
@@ -137,7 +150,7 @@ async def main():
   logger = JsonTraceLogger(output_dir=str(run_output_dir), filename="trace.jsonl")
 
   # Execute the benchmarks
-  benchmark_run_results = await run_comparison(logger=logger)
+  benchmark_run_results = await run_comparison(logger=logger, selected_suite=args.suite)
 
   # Save raw results to JSON for later visualization
   results_json_path = run_output_dir / "results.json"
