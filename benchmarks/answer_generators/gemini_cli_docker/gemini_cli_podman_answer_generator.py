@@ -394,9 +394,9 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
       except Exception:
           logs = "Could not retrieve logs."
           
-    #   self._cleanup_server_container()
       print(f"Server container failed to start healthy. Logs:\n{logs}")
-      await asyncio.sleep(60) # Add a sleep to allow manual inspection
+# self._cleanup_server_container()
+      self._cleanup_server_container()
       raise RuntimeError(f"Server container failed to start healthy. Logs:\n{logs}")
 
   def _cleanup_server_container(self):
