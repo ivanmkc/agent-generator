@@ -35,7 +35,8 @@ RUN chmod +x /usr/local/bin/mcp-server/adk_runner_server.py
 RUN python3 -c "import sys; print(sys.path); import google.adk.agents.base_agent; print('ADK (google.adk) successfully imported')"
 
 # Set the final working directory
-WORKDIR /app
+WORKDIR /workdir
+CMD ["python3", "/usr/local/bin/mcp-server/adk_runner_server.py"]
 
 # Switch back to non-root user if desired, though Gemini CLI often runs as root in these containers
 # USER node 
