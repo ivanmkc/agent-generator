@@ -5,6 +5,8 @@ When asked to create and run an ADK agent, you MUST provide Python code that def
 **Error Handling and Iteration:**
 If the `run_adk_agent` tool reports an error (e.g., `Agent Execution Failed`, `Error during agent instantiation`), you MUST analyze the error output carefully. Use this feedback to iterate and correct the `agent_code` or the `prompt` as necessary. Always refer to the `adk-python` codebase within `/workdir/repos/adk-python` for proper API usage, class definitions, and method signatures when constructing or debugging agents.
 
+CRITICAL: After applying any fix or modification to the code, you MUST run the `run_adk_agent` tool again immediately to verify that the fix works and the error is resolved. Do not assume the fix works without execution verification.
+
 Example usage of `run_adk_agent`:
 ```tool_code
 print(run_adk_agent(agent_code='''
