@@ -372,7 +372,7 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
                           # Support both keys just in case, but server sends 'returncode'
                           exit_code = data.get("returncode", data.get("exit_code"))
                           if exit_code == 0:
-                              print("[Podman Setup] Server ready (Functional Check Passed).")
+                              print("\033[92m[Podman Setup] Server ready (Functional Check Passed).\033[0m")
                               return
                           else:
                               print(f"[Podman Setup] Health check failed: {data}")
@@ -394,8 +394,8 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
       except Exception:
           logs = "Could not retrieve logs."
           
-      print(f"Server container failed to start healthy. Logs:\n{logs}")
-# self._cleanup_server_container()
+      print(f"\033[91mServer container failed to start healthy. Logs:\n{logs}\033[0m")
+
       self._cleanup_server_container()
       raise RuntimeError(f"Server container failed to start healthy. Logs:\n{logs}")
 
