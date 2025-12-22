@@ -225,16 +225,16 @@ class ApiKeyManager:
                 
                 # Analyze error to determine penalty
                 is_quota = error_message and ("429" in error_message or "Quota" in error_message or "quota" in error_message)
-                is_auth = error_message and ("403" in error_message or "401" in error_message or "API key" in error_message)
+                is_auth = error_message and ("403" in error_message or "401" in error_message in error_message)
                 
                 if is_auth:
                     key_stat.status = KeyStatus.DEAD
                     print(f"{Fore.RED}[ApiKeyManager] Key {key_id} marked DEAD (Auth error).{Style.RESET_ALL}")
                 elif is_quota:
-                    # Exponential backoff: 60s, 120s, 240s...
-                    # Default to 60s for first quota hit
-                    penalty = 60 * (2 ** max(0, key_stat.consecutive_failures - 1))
-                    penalty = min(penalty, 3600) # Max 1 hour
+                    # Exponential backoff: 5s, 10s, 20s...
+                    # Default to 5s for first quota hit
+                    penalty = 5 * (2 ** max(0, key_stat.consecutive_failures - 1))
+                    penalty = min(penalty, 300) # Max 5 minutes
                     key_stat.status = KeyStatus.COOLDOWN
                     key_stat.cooldown_until = now + penalty
                     print(f"{Fore.YELLOW}[ApiKeyManager] Key {key_id} cooldown for {penalty}s (Quota).{Style.RESET_ALL}")

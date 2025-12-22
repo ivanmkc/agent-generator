@@ -119,12 +119,12 @@ benchmarks:
     unfixed_file: benchmarks/benchmark_definitions/fix_errors/cases/21_invalid_agent_name/unfixed.py
     fixed_file: benchmarks/benchmark_definitions/fix_errors/cases/21_invalid_agent_name/fixed.py
     description: Fix the ValueError caused by initializing an agent with a name containing spaces.
-  - name: '22: A minimal LlmAgent with a logic error.'
+  - name: '22: Implement a custom LogicAgent from scratch.'
     benchmark_type: fix_error
     test_file: benchmarks/benchmark_definitions/fix_errors/cases/22_logic_error/test_agent.py
     unfixed_file: benchmarks/benchmark_definitions/fix_errors/cases/22_logic_error/unfixed.py
     fixed_file: benchmarks/benchmark_definitions/fix_errors/cases/22_logic_error/fixed.py
-    description: Fix the logic error to create a minimal LlmAgent that responds with 'Hello World!'.
+    description: Implement a custom `LogicAgent` that uses deterministic logic to respond.
   - name: '23: A minimal LlmAgent with a missing import.'
     benchmark_type: fix_error
     test_file: benchmarks/benchmark_definitions/fix_errors/cases/23_missing_import/test_agent.py

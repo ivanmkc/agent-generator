@@ -30,9 +30,13 @@ import pytest
 import json
 import re
 import asyncio
+from colorama import init, Fore, Style
 from benchmarks.answer_generators.gemini_cli_answer_generator import (
     GeminiCliAnswerGenerator,
 )
+
+# Initialize colorama
+init()
 
 # Import for type hinting; pytest automatically finds fixtures in conftest
 from benchmarks.tests.integration.conftest import GeneratorTestCase
@@ -122,7 +126,7 @@ async def test_generator_execution(test_case: GeneratorTestCase, tmp_path: Path)
             log_file.parent.mkdir(parents=True, exist_ok=True) # Ensure directory exists
             with open(log_file, "w") as f:
                 f.write(logs_str)
-            print(f"[{test_case.id}] Debug traces saved to {log_file}")
+            print(f"{Fore.GREEN}[{test_case.id}] Debug traces saved to {log_file}{Style.RESET_ALL}")
 
             if test_case.expected_tool_uses:
                 # Check for all indicators

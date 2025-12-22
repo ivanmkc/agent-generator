@@ -44,3 +44,5 @@ async def test_create_agent_passes():
   assert (
       "openai" in root_agent.model.model
   ), "Model name should contain 'openai'."
+
+  # TODO: Add more detailed checks on LiteLlm configuration

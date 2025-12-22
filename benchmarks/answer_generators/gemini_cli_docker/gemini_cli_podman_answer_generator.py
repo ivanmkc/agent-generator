@@ -28,10 +28,12 @@ import time
 from pathlib import Path
 from typing import Any, Optional
 from colorama import init, Fore, Style
+import aiohttp
 
 # Initialize colorama
 init()
 
+from benchmarks.api_key_manager import API_KEY_MANAGER, ApiKeyManager, KeyType
 from benchmarks.answer_generators.gemini_cli_answer_generator import (
     GeminiCliAnswerGenerator,
 )
@@ -374,7 +376,7 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
                           # Support both keys just in case, but server sends 'returncode'
                           exit_code = data.get("returncode", data.get("exit_code"))
                           if exit_code == 0:
-                            print(f"{Fore.GREEN}[Podman Setup] Server ready (Functional Check Passed).{Style.RESET_ALL}")
+                              print(f"{Fore.GREEN}[Podman Setup] Server ready (Functional Check Passed).{Style.RESET_ALL}")
                               return
                           else:
                               print(f"[Podman Setup] Health check failed: {data}")
