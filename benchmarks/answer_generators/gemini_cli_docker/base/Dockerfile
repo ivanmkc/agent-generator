@@ -45,8 +45,8 @@ RUN chmod +x /usr/local/bin/cli_server.py
 # Create node user for compatibility (variants can switch to this user)
 RUN useradd -m -u 1000 node
 
-# Set working directory to /app
-WORKDIR /app
+# Set working directory to /workdir
+WORKDIR /workdir
 
 # Default entrypoint for the server
 CMD ["python3", "/usr/local/bin/cli_server.py"]

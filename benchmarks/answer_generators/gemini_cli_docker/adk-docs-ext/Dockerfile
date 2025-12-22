@@ -16,4 +16,4 @@ RUN echo "Y" | gemini extensions install https://github.com/derailed-dash/adk-do
 RUN ln -s /usr/local/bin/uv /root/.local/bin/uv
 
 # Set working directory to /app
-WORKDIR /app
+WORKDIR /workdir

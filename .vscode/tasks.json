@@ -74,7 +74,7 @@
             "detail": "Builds and pushes Docker images to the registry."
         },
         {
-            "label": "Rebuild Docker Images (Local)",
+            "label": "Rebuild Docker Images using Podman (Local)",
             "type": "shell",
             "command": "env/bin/python tools/rebuild_images.py",
             "group": "build",
@@ -83,7 +83,7 @@
                 "panel": "new"
             },
             "problemMatcher": [],
-            "detail": "Rebuilds all local Gemini CLI Docker images."
+            "detail": "Rebuilds all local Gemini CLI Docker images using Podman."
         },
         {
             "label": "Viewer",

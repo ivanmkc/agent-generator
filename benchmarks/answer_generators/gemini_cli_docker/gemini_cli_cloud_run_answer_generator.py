@@ -385,9 +385,7 @@ class GeminiCliCloudRunAnswerGenerator(GeminiCliAnswerGenerator):
             containers=[
                 Container(
                     image=image_name,
-                    # Remove command override to respect ENTRYPOINT (e.g. entrypoint.sh)
-                    # command=["python3"], 
-                    args=["python3", "/usr/local/bin/cli_server.py"],
+                    # args=["python3", "/usr/local/bin/cli_server.py"],
                     resources=ResourceRequirements(
                         limits={
                             "cpu": CLOUD_RUN_CONFIG.CPU_LIMIT,

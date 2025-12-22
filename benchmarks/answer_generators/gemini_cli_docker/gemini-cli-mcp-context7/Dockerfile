@@ -2,7 +2,7 @@ ARG BASE_IMAGE
 FROM ${BASE_IMAGE}
 
 # Set working directory
-WORKDIR /app
+WORKDIR /workdir
 
 # Install gettext-base for envsubst
 RUN apt-get update && apt-get install -y --no-install-recommends gettext-base && rm -rf /var/lib/apt/lists/*

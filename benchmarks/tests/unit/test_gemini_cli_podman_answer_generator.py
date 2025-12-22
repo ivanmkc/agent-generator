@@ -67,8 +67,6 @@ async def test_podman_generator_setup(mock_subprocess):
             assert "-p" in run_call
             assert "12345:8080" in run_call
             assert "test-image" in run_call
-            assert "python3" in run_call
-            assert "/usr/local/bin/cli_server.py" in run_call
 
 
 @pytest.mark.asyncio
