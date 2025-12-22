@@ -9,3 +9,4 @@ papermill
 streamlit
 pandas
 plotly
+colorama

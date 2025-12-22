@@ -57,7 +57,6 @@ async def run_comparison(logger: JsonTraceLogger, selected_suite: Optional[str] 
       "benchmarks/benchmark_definitions/diagnose_setup_errors_mc/benchmark.yaml",
       "benchmarks/benchmark_definitions/configure_adk_features_mc/benchmark.yaml",
       "benchmarks/benchmark_definitions/predict_runtime_behavior_mc/benchmark.yaml",
-      "benchmarks/benchmark_definitions/debug_suite/benchmark.yaml", # Add the new debug suite
   ]
 
   if selected_suite:

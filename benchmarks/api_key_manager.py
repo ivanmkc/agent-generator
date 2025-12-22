@@ -16,6 +16,10 @@ from pathlib import Path
 from enum import Enum
 from typing import Optional, Dict, List, Any
 from dataclasses import dataclass, field, asdict
+from colorama import init, Fore, Style
+
+# Initialize colorama
+init()
 
 class KeyType(Enum):
     """
@@ -120,7 +124,7 @@ class ApiKeyManager:
                             current_stat.cooldown_until = k_data.get("cooldown_until", 0.0)
                             current_stat.consecutive_failures = k_data.get("consecutive_failures", 0)
         except Exception as e:
-            print(f"[ApiKeyManager] Failed to load stats: {e}")
+            print(f"{Fore.RED}[ApiKeyManager] Failed to load stats: {e}{Style.RESET_ALL}")
 
     def _save_stats(self):
         """Persists current stats to JSON file."""
@@ -134,7 +138,7 @@ class ApiKeyManager:
             with open(self._stats_file, "w") as f:
                 json.dump(data, f, indent=2)
         except Exception as e:
-            print(f"[ApiKeyManager] Failed to save stats: {e}")
+            print(f"{Fore.RED}[ApiKeyManager] Failed to save stats: {e}{Style.RESET_ALL}")
 
     def get_next_key_with_id(self, key_type: KeyType = KeyType.GEMINI_API) -> tuple[Optional[str], Optional[str]]:
         """
@@ -153,7 +157,7 @@ class ApiKeyManager:
             viable = [k for k in candidates if k.status != KeyStatus.DEAD]
             if not viable and candidates:
                 # All dead? Reset them all to ACTIVE to try again (emergency reset)
-                print(f"[ApiKeyManager] All keys for {key_type.value} are DEAD. Resetting all to ACTIVE.")
+                print(f"{Fore.RED}[ApiKeyManager] All keys for {key_type.value} are DEAD. Resetting all to ACTIVE.{Style.RESET_ALL}")
                 for k in candidates:
                     k.status = KeyStatus.ACTIVE
                     k.consecutive_failures = 0
@@ -190,7 +194,7 @@ class ApiKeyManager:
             if cooldowns:
                 best_key = min(cooldowns, key=lambda k: k.cooldown_until)
                 wait_time = max(0, best_key.cooldown_until - now)
-                print(f"[ApiKeyManager] All keys on cooldown. Using key {best_key.id} (wait {wait_time:.1f}s recommended).")
+                print(f"{Fore.YELLOW}[ApiKeyManager] All keys on cooldown. Using key {best_key.id} (wait {wait_time:.1f}s recommended).{Style.RESET_ALL}")
                 best_key.last_used = now
                 self._save_stats()
                 return best_key.key, best_key.id
@@ -225,7 +229,7 @@ class ApiKeyManager:
                 
                 if is_auth:
                     key_stat.status = KeyStatus.DEAD
-                    print(f"[ApiKeyManager] Key {key_id} marked DEAD (Auth error).")
+                    print(f"{Fore.RED}[ApiKeyManager] Key {key_id} marked DEAD (Auth error).{Style.RESET_ALL}")
                 elif is_quota:
                     # Exponential backoff: 60s, 120s, 240s...
                     # Default to 60s for first quota hit
@@ -233,13 +237,13 @@ class ApiKeyManager:
                     penalty = min(penalty, 3600) # Max 1 hour
                     key_stat.status = KeyStatus.COOLDOWN
                     key_stat.cooldown_until = now + penalty
-                    print(f"[ApiKeyManager] Key {key_id} cooldown for {penalty}s (Quota).")
+                    print(f"{Fore.YELLOW}[ApiKeyManager] Key {key_id} cooldown for {penalty}s (Quota).{Style.RESET_ALL}")
                 else:
                     # Generic error (timeout, 500)
                     # Short cooldown
                     key_stat.status = KeyStatus.COOLDOWN
                     key_stat.cooldown_until = now + 5 # 5s pause
-                    print(f"[ApiKeyManager] Key {key_id} short cooldown (Generic Error).")
+                    print(f"{Fore.YELLOW}[ApiKeyManager] Key {key_id} short cooldown (Generic Error).{Style.RESET_ALL}")
             
             self._save_stats()
 

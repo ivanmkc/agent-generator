@@ -27,12 +27,14 @@ import socket
 import time
 from pathlib import Path
 from typing import Any, Optional
+from colorama import init, Fore, Style
 
-import aiohttp
+# Initialize colorama
+init()
 
-from benchmarks.api_key_manager import API_KEY_MANAGER, ApiKeyManager, KeyType
-from benchmarks.answer_generators.gemini_cli_answer_generator import \
-    GeminiCliAnswerGenerator
+from benchmarks.answer_generators.gemini_cli_answer_generator import (
+    GeminiCliAnswerGenerator,
+)
 from benchmarks.data_models import TraceLogEvent
 from benchmarks.utils import parse_cli_stream_json_output
 from benchmarks.answer_generators.gemini_cli_docker.image_definitions import (
@@ -372,7 +374,7 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
                           # Support both keys just in case, but server sends 'returncode'
                           exit_code = data.get("returncode", data.get("exit_code"))
                           if exit_code == 0:
-                              print("\033[92m[Podman Setup] Server ready (Functional Check Passed).\033[0m")
+                            print(f"{Fore.GREEN}[Podman Setup] Server ready (Functional Check Passed).{Style.RESET_ALL}")
                               return
                           else:
                               print(f"[Podman Setup] Health check failed: {data}")
@@ -394,7 +396,7 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
       except Exception:
           logs = "Could not retrieve logs."
           
-      print(f"\033[91mServer container failed to start healthy. Logs:\n{logs}\033[0m")
+      print(f"{Fore.RED}Server container failed to start healthy. Logs:\n{logs}{Style.RESET_ALL}")
 
       self._cleanup_server_container()
       raise RuntimeError(f"Server container failed to start healthy. Logs:\n{logs}")
