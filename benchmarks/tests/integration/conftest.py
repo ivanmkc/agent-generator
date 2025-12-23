@@ -201,26 +201,8 @@ async def managed_generator_test_case(request: pytest.FixtureRequest, model_name
             pytest.skip("GOOGLE_CLOUD_PROJECT not set")
 
     # Instantiate the correct generator class
-    gen = None
-    if isinstance(config, PodmanGeneratorConfig):
-        gen = GeminiCliPodmanAnswerGenerator(
-            dockerfile_dir=config.dockerfile_dir,
-            image_name=config.image_name,
-            image_definitions=IMAGE_DEFINITIONS,
-            model_name=model_name,
-            service_url=service_url
-        )
-    elif isinstance(config, CloudRunGeneratorConfig):
-        from benchmarks.answer_generators.gemini_cli_docker.gemini_cli_cloud_run_answer_generator import GeminiCliCloudRunAnswerGenerator
-        gen = GeminiCliCloudRunAnswerGenerator(
-            dockerfile_dir=config.dockerfile_dir,
-            service_name=config.service_name,
-            model_name=model_name,
-            service_url=service_url,
-            region=config.region
-        )
-    else:
-        pytest.fail(f"Unknown generator type: {type(config)}")
+    project_id = os.environ.get("GOOGLE_CLOUD_PROJECT", None)
+    gen = config.create_generator(model_name=model_name, project_id=project_id)
 
     print(f"--- [Setup] Initializing {gen.name} ---")
     await gen.setup()
