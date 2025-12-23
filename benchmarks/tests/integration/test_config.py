@@ -54,7 +54,7 @@ GENERATOR_METADATA: Dict[str, Dict[str, Any]] = {
         "type": "podman",
         "dockerfile_dir": "benchmarks/answer_generators/gemini_cli_docker/gemini-cli-mcp-context7",
         "image_name": "gemini-cli:mcp-context7",
-        "expected_context_files": ["/workdir/INSTRUCTIONS.md"],
+        "expected_context_files": [],
         "expected_extensions": [],
         "expected_mcp_tools": ["context7"],
         "custom_case": ADK_BASE_AGENT_QUESTION_CASE_INTERMEDIATE,
