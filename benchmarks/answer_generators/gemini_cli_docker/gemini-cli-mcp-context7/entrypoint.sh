@@ -20,5 +20,10 @@ fi
 echo "[Entrypoint] Substituting variables in settings.json..."
 envsubst < /root/.gemini/settings.json.template > /root/.gemini/settings.json
 
+if [ $# -eq 0 ]; then
+    echo "[Entrypoint] No command provided. Defaulting to cli_server."
+    set -- python3 /usr/local/bin/cli_server.py
+fi
+
 echo "[Entrypoint] Configuration complete. Executing: $@"
 exec "$@"
