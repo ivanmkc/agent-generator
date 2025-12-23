@@ -24,7 +24,7 @@ import sys
 # Ensure src is in path
 project_root = Path(__file__).resolve().parents[2]
 if str(project_root) not in sys.path:
-  sys.path.append(str(project_root))
+    sys.path.append(str(project_root))
 
 from pathlib import Path
 from unittest.mock import AsyncMock
@@ -45,50 +45,48 @@ GROUND_TRUTH_FILES = list(GROUND_TRUTH_DIR.glob("test_*.py"))
 )
 @pytest.mark.asyncio
 async def test_ground_truth_file(ground_truth_file: Path, mocker):
-  """Tests a single ground truth file."""
-  mock_generate_content = mocker.patch(
-      "google.adk.models.google_llm.Gemini.generate_content_async"
-  )
+    """Tests a single ground truth file."""
+    mock_generate_content = mocker.patch(
+        "google.adk.models.google_llm.Gemini.generate_content_async"
+    )
 
-  async def async_response_gen():
-    response = types.GenerateContentResponse()
-    response.candidates = [
-        types.Candidate(
-            finish_reason="STOP",
-            content=types.Content(
-                parts=[types.Part(text="This is a mocked response.")],
-                role="model",
-            ),
-        )
+    async def async_response_gen():
+        response = types.GenerateContentResponse()
+        response.candidates = [
+            types.Candidate(
+                finish_reason="STOP",
+                content=types.Content(
+                    parts=[types.Part(text="This is a mocked response.")],
+                    role="model",
+                ),
+            )
+        ]
+        # Create LlmResponse from GenerateContentResponse as real code does
+        yield LlmResponse.create(response)
+
+    mock_generate_content.side_effect = lambda *args, **kwargs: async_response_gen()
+
+    module_name = ".".join(ground_truth_file.with_suffix("").parts)
+    module = importlib.import_module(module_name)
+
+    test_functions = [
+        obj
+        for name, obj in inspect.getmembers(module)
+        if inspect.iscoroutinefunction(obj) and name.startswith("test_")
     ]
-    # Create LlmResponse from GenerateContentResponse as real code does
-    yield LlmResponse.create(response)
 
-  mock_generate_content.side_effect = (
-      lambda *args, **kwargs: async_response_gen()
-  )
-
-  module_name = ".".join(ground_truth_file.with_suffix("").parts)
-  module = importlib.import_module(module_name)
-
-  test_functions = [
-      obj
-      for name, obj in inspect.getmembers(module)
-      if inspect.iscoroutinefunction(obj) and name.startswith("test_")
-  ]
-
-  for test_func in test_functions:
-    try:
-      await test_func()
-    except AssertionError:
-      # Expected failure because the mocked LLM response is generic
-      pass
-    except Exception as e:
-      # Some tests might fail due to missing API keys (e.g. OpenAI) or other environment issues
-      # We log them but don't fail the test suite for these specific known issues if possible,
-      # or re-raise if critical.
-      # For now, we'll allow AuthenticationError (LiteLLM) to pass as "skipped" implicitly.
-      if "AuthenticationError" in type(e).__name__:
-        pass
-      else:
-        raise e
+    for test_func in test_functions:
+        try:
+            await test_func()
+        except AssertionError:
+            # Expected failure because the mocked LLM response is generic
+            pass
+        except Exception as e:
+            # Some tests might fail due to missing API keys (e.g. OpenAI) or other environment issues
+            # We log them but don't fail the test suite for these specific known issues if possible,
+            # or re-raise if critical.
+            # For now, we'll allow AuthenticationError (LiteLLM) to pass as "skipped" implicitly.
+            if "AuthenticationError" in type(e).__name__:
+                pass
+            else:
+                raise e

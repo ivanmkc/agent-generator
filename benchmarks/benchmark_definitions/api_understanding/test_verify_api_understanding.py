@@ -51,176 +51,176 @@ import pytest
 
 
 def test_base_agent():
-  # Q: Foundational class? A: BaseAgent
-  assert BaseAgent
-  # Q: Mandatory param? A: name
-  assert "name" in BaseAgent.model_fields
-  # Q: run_async?
-  assert hasattr(BaseAgent, "run_async")
-  # Q: callbacks?
-  assert "before_agent_callback" in BaseAgent.model_fields
-  assert "after_agent_callback" in BaseAgent.model_fields
-  # Q: find_agent?
-  assert hasattr(BaseAgent, "find_agent")
+    # Q: Foundational class? A: BaseAgent
+    assert BaseAgent
+    # Q: Mandatory param? A: name
+    assert "name" in BaseAgent.model_fields
+    # Q: run_async?
+    assert hasattr(BaseAgent, "run_async")
+    # Q: callbacks?
+    assert "before_agent_callback" in BaseAgent.model_fields
+    assert "after_agent_callback" in BaseAgent.model_fields
+    # Q: find_agent?
+    assert hasattr(BaseAgent, "find_agent")
 
 
 def test_sequential_agent():
-  # Q: Sequence of agents? A: SequentialAgent
-  assert SequentialAgent
+    # Q: Sequence of agents? A: SequentialAgent
+    assert SequentialAgent
 
 
 def test_runner():
-  # Q: Entry point? A: Runner
-  assert Runner
+    # Q: Entry point? A: Runner
+    assert Runner
 
 
 def test_base_llm():
-  # Q: Core interface for LLM? A: BaseLlm
-  assert BaseLlm
+    # Q: Core interface for LLM? A: BaseLlm
+    assert BaseLlm
 
 
 def test_agent_evaluator():
-  # Q: evaluate method?
-  assert hasattr(AgentEvaluator, "evaluate")
+    # Q: evaluate method?
+    assert hasattr(AgentEvaluator, "evaluate")
 
 
 def test_loop_agent():
-  # Q: max_iterations?
-  assert "max_iterations" in LoopAgent.model_fields
+    # Q: max_iterations?
+    assert "max_iterations" in LoopAgent.model_fields
 
 
 def test_llm_agent():
-  # Q: model param?
-  assert "model" in LlmAgent.model_fields
-  # Q: generate_content_config?
-  assert "generate_content_config" in LlmAgent.model_fields
-  # Q: tools param?
-  assert "tools" in LlmAgent.model_fields
-  # Q: before_model_callback?
-  assert "before_model_callback" in LlmAgent.model_fields
-  # Q: output_key?
-  assert "output_key" in LlmAgent.model_fields
-  # Q: output_schema?
-  assert "output_schema" in LlmAgent.model_fields
-  # Q: static_instruction?
-  assert "static_instruction" in LlmAgent.model_fields
+    # Q: model param?
+    assert "model" in LlmAgent.model_fields
+    # Q: generate_content_config?
+    assert "generate_content_config" in LlmAgent.model_fields
+    # Q: tools param?
+    assert "tools" in LlmAgent.model_fields
+    # Q: before_model_callback?
+    assert "before_model_callback" in LlmAgent.model_fields
+    # Q: output_key?
+    assert "output_key" in LlmAgent.model_fields
+    # Q: output_schema?
+    assert "output_schema" in LlmAgent.model_fields
+    # Q: static_instruction?
+    assert "static_instruction" in LlmAgent.model_fields
 
 
 def test_llm_registry():
-  # Q: register method?
-  assert hasattr(LLMRegistry, "register")
+    # Q: register method?
+    assert hasattr(LLMRegistry, "register")
 
 
 def test_base_plugin():
-  # Q: Foundational class? A: BasePlugin
-  assert BasePlugin
-  # Q: before_agent_callback returns value?
-  # (Hard to verify logic without running, but existence is checked)
-  assert hasattr(BasePlugin, "before_agent_callback")
+    # Q: Foundational class? A: BasePlugin
+    assert BasePlugin
+    # Q: before_agent_callback returns value?
+    # (Hard to verify logic without running, but existence is checked)
+    assert hasattr(BasePlugin, "before_agent_callback")
 
 
 def test_plugin_manager():
-  # Q: Invoking callbacks? A: PluginManager
-  assert PluginManager
+    # Q: Invoking callbacks? A: PluginManager
+    assert PluginManager
 
 
 def test_logging_plugin():
-  # Q: Observational plugin? A: LoggingPlugin
-  assert LoggingPlugin
+    # Q: Observational plugin? A: LoggingPlugin
+    assert LoggingPlugin
 
 
 def test_global_instruction_plugin():
-  # Q: System-wide instruction? A: GlobalInstructionPlugin
-  assert GlobalInstructionPlugin
+    # Q: System-wide instruction? A: GlobalInstructionPlugin
+    assert GlobalInstructionPlugin
 
 
 def test_invocation_context():
-  # Q: set_agent_state?
-  assert hasattr(InvocationContext, "set_agent_state")
-  # Q: What is InvocationContext? (Concept check)
-  assert InvocationContext
+    # Q: set_agent_state?
+    assert hasattr(InvocationContext, "set_agent_state")
+    # Q: What is InvocationContext? (Concept check)
+    assert InvocationContext
 
 
 def test_base_session_service():
-  # Q: Abstract base class? A: BaseSessionService
-  assert BaseSessionService
-  # Q: append_event?
-  assert hasattr(BaseSessionService, "append_event")
+    # Q: Abstract base class? A: BaseSessionService
+    assert BaseSessionService
+    # Q: append_event?
+    assert hasattr(BaseSessionService, "append_event")
 
 
 def test_callback_context():
-  # Q: What is CallbackContext?
-  assert CallbackContext
+    # Q: What is CallbackContext?
+    assert CallbackContext
 
 
 def test_session():
-  # Q: Session data model?
-  assert Session
+    # Q: Session data model?
+    assert Session
 
 
 def test_tool_context():
-  # Q: Access services? A: ToolContext
-  assert ToolContext
+    # Q: Access services? A: ToolContext
+    assert ToolContext
 
 
 def test_function_tool():
-  # Q: Create tool from function? A: FunctionTool
-  assert FunctionTool
+    # Q: Create tool from function? A: FunctionTool
+    assert FunctionTool
 
 
 def test_tool_config():
-  # Q: Configure tools in YAML? A: ToolConfig
-  assert ToolConfig
+    # Q: Configure tools in YAML? A: ToolConfig
+    assert ToolConfig
 
 
 def test_base_toolset():
-  # Q: Manage collection of tools? A: BaseToolset
-  assert BaseToolset
+    # Q: Manage collection of tools? A: BaseToolset
+    assert BaseToolset
 
 
 def test_google_search_tool():
-  # Q: Native search? A: GoogleSearchTool
-  assert GoogleSearchTool
-  # Verify it inherits from BaseTool
-  assert issubclass(GoogleSearchTool, BaseTool)
+    # Q: Native search? A: GoogleSearchTool
+    assert GoogleSearchTool
+    # Verify it inherits from BaseTool
+    assert issubclass(GoogleSearchTool, BaseTool)
 
 
 def test_parallel_agent():
-  # Q: Run concurrent? A: ParallelAgent
-  assert ParallelAgent
+    # Q: Run concurrent? A: ParallelAgent
+    assert ParallelAgent
 
 
 def test_app():
-  # Q: Add plugins? A: App
-  assert App
+    # Q: Add plugins? A: App
+    assert App
 
 
 def test_event():
-  # Q: Conversation history structure? A: Event
-  assert Event
+    # Q: Conversation history structure? A: Event
+    assert Event
 
 
 def test_in_memory_runner():
-  # Q: Local dev runner? A: InMemoryRunner
-  assert InMemoryRunner
+    # Q: Local dev runner? A: InMemoryRunner
+    assert InMemoryRunner
 
 
 def test_base_tool():
-  # Q: Base class for tools? A: BaseTool
-  assert BaseTool
+    # Q: Base class for tools? A: BaseTool
+    assert BaseTool
 
 
 if __name__ == "__main__":
-  # Manually run tests if executed directly
-  current_module = sys.modules[__name__]
-  for name, func in inspect.getmembers(current_module, inspect.isfunction):
-    if name.startswith("test_"):
-      try:
-        func()
-      except Exception as e:
-        print(f"F {name} failed: {e}")
-        import traceback
+    # Manually run tests if executed directly
+    current_module = sys.modules[__name__]
+    for name, func in inspect.getmembers(current_module, inspect.isfunction):
+        if name.startswith("test_"):
+            try:
+                func()
+            except Exception as e:
+                print(f"F {name} failed: {e}")
+                import traceback
 
-        traceback.print_exc()
-        sys.exit(1)
-  print("All verification tests passed!")
+                traceback.print_exc()
+                sys.exit(1)
+    print("All verification tests passed!")

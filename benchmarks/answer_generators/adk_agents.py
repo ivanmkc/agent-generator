@@ -18,14 +18,14 @@ from google.adk.agents import LlmAgent
 
 
 def create_default_adk_agent(model_name: str = "gemini-2.5-pro") -> LlmAgent:
-  """Creates the default LlmAgent used for ADK benchmarking."""
-  return LlmAgent(
-      name="adk_test_agent",
-      model=model_name,
-      instruction=(
-          "You are a senior engineer specializing in the ADK Python framework."
-          " Your task is to answer questions or fix code with expert precision."
-          " Always respond with a JSON object conforming to the specified"
-          " schema, enclosed in a markdown code block (```json...```)."
-      ),
-  )
+    """Creates the default LlmAgent used for ADK benchmarking."""
+    return LlmAgent(
+        name="adk_test_agent",
+        model=model_name,
+        instruction=(
+            "You are a senior engineer specializing in the ADK Python framework."
+            " Your task is to answer questions or fix code with expert precision."
+            " Always respond with a JSON object conforming to the specified"
+            " schema, enclosed in a markdown code block (```json...```)."
+        ),
+    )

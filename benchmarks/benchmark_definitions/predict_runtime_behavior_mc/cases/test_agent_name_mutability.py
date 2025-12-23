@@ -17,20 +17,20 @@ from google.adk.agents import LlmAgent
 
 # --8<-- [start:agent_name_mutability]
 def code_under_test():
-  agent = LlmAgent(name="a", model="gemini-2.5-flash")
-  return agent
+    agent = LlmAgent(name="a", model="gemini-2.5-flash")
+    return agent
 
 
 # --8<-- [end:agent_name_mutability]
 
 
 def test_agent_name_mutability(capsys):
-  """
-  Validates agent name mutability.
-  """
-  # Expected behavior: The agent's name is mutable and can be changed after
-  # initialization.
-  agent = code_under_test()
-  assert agent.name == "a"
-  agent.name = "b"
-  assert agent.name == "b"
+    """
+    Validates agent name mutability.
+    """
+    # Expected behavior: The agent's name is mutable and can be changed after
+    # initialization.
+    agent = code_under_test()
+    assert agent.name == "a"
+    agent.name = "b"
+    assert agent.name == "b"

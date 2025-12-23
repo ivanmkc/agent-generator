@@ -26,20 +26,24 @@ from benchmarks.tests.integration.predefined_cases import (
 from benchmarks.tests.integration.config_models import (
     AnyGeneratorConfig,
     PodmanGeneratorConfig,
-    CloudRunGeneratorConfig
+    CloudRunGeneratorConfig,
 )
 
 # Map fixture names to their configuration metadata
 GENERATOR_METADATA: Dict[str, AnyGeneratorConfig] = {
     "podman_base_test_case": PodmanGeneratorConfig(
         id="podman_base_test_case",
-        dockerfile_dir=Path("benchmarks/answer_generators/gemini_cli_docker/adk-python"),
+        dockerfile_dir=Path(
+            "benchmarks/answer_generators/gemini_cli_docker/adk-python"
+        ),
         image_name="gemini-cli:adk-python",
         expected_context_files=["/workdir/INSTRUCTIONS.md"],
     ),
     "podman_adk_docs_test_case": PodmanGeneratorConfig(
         id="podman_adk_docs_test_case",
-        dockerfile_dir=Path("benchmarks/answer_generators/gemini_cli_docker/adk-docs-ext"),
+        dockerfile_dir=Path(
+            "benchmarks/answer_generators/gemini_cli_docker/adk-docs-ext"
+        ),
         image_name="gemini-cli:adk-docs-ext",
         expected_extensions=["adk-docs-ext"],
         expected_mcp_tools=["adk-docs-mcp"],
@@ -48,14 +52,18 @@ GENERATOR_METADATA: Dict[str, AnyGeneratorConfig] = {
     ),
     "podman_context7_test_case": PodmanGeneratorConfig(
         id="podman_context7_test_case",
-        dockerfile_dir=Path("benchmarks/answer_generators/gemini_cli_docker/gemini-cli-mcp-context7"),
+        dockerfile_dir=Path(
+            "benchmarks/answer_generators/gemini_cli_docker/gemini-cli-mcp-context7"
+        ),
         image_name="gemini-cli:mcp-context7",
         expected_mcp_tools=["context7"],
         custom_case=ADK_BASE_AGENT_QUESTION_CASE_INTERMEDIATE,
     ),
     "podman_mcp_adk_runner_test_case": PodmanGeneratorConfig(
         id="podman_mcp_adk_runner_test_case",
-        dockerfile_dir=Path("benchmarks/answer_generators/gemini_cli_docker/mcp_adk_agent_runner"),
+        dockerfile_dir=Path(
+            "benchmarks/answer_generators/gemini_cli_docker/mcp_adk_agent_runner"
+        ),
         image_name="gemini-cli:mcp_adk_agent_runner",
         expected_mcp_tools=["adk-agent-runner"],
         custom_case=MCP_ADK_RUNNER_CASE,
@@ -74,7 +82,7 @@ LOCAL_FIXTURES = [
     "api_test_case",
     "cli_local_test_case",
     "adk_agent_test_case",
-    "cli_fix_error_test_case", 
+    "cli_fix_error_test_case",
 ]
 
 # The complete list of test cases is now the local ones + the keys of the managed ones

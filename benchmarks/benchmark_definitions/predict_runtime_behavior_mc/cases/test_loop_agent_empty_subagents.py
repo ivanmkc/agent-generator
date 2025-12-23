@@ -17,18 +17,18 @@ from google.adk.agents import LoopAgent
 
 # --8<-- [start:loop_agent_empty_subagents]
 def code_under_test():
-  agent = LoopAgent(name="looper", sub_agents=[])
-  return agent
+    agent = LoopAgent(name="looper", sub_agents=[])
+    return agent
 
 
 # --8<-- [end:loop_agent_empty_subagents]
 
 
 def test_loop_agent_empty_subagents():
-  """
-  Validates LoopAgent with empty sub_agents.
-  """
-  # Expected behavior: The LoopAgent is created successfully with an empty
-  # `sub_agents` list.
-  agent = code_under_test()
-  assert len(agent.sub_agents) == 0
+    """
+    Validates LoopAgent with empty sub_agents.
+    """
+    # Expected behavior: The LoopAgent is created successfully with an empty
+    # `sub_agents` list.
+    agent = code_under_test()
+    assert len(agent.sub_agents) == 0

@@ -19,37 +19,35 @@ from benchmarks.test_helpers import run_agent_test
 
 
 def test_create_agent_unfixed_fails():
-  import unfixed
+    import unfixed
 
-  with pytest.raises(
-      NotImplementedError, match="Agent implementation incomplete."
-  ):
-    unfixed.create_agent(MODEL_NAME)
+    with pytest.raises(NotImplementedError, match="Agent implementation incomplete."):
+        unfixed.create_agent(MODEL_NAME)
 
 
 @pytest.mark.asyncio
 async def test_create_agent_passes():
-  import fixed
+    import fixed
 
-  root_agent = fixed.create_agent(MODEL_NAME)
+    root_agent = fixed.create_agent(MODEL_NAME)
 
-  # Test Condition A
-  response_a = await run_agent_test(
-      root_agent,
-      "Run",
-      initial_state={"run_agent_a": True},
-      mock_llm_response="Agent A",
-  )
-  assert "Agent A" in response_a
+    # Test Condition A
+    response_a = await run_agent_test(
+        root_agent,
+        "Run",
+        initial_state={"run_agent_a": True},
+        mock_llm_response="Agent A",
+    )
+    assert "Agent A" in response_a
 
-  # Test Condition B
-  response_b = await run_agent_test(
-      root_agent,
-      "Run",
-      initial_state={"run_agent_a": False},
-      mock_llm_response="Agent B",
-  )
-  assert "Agent B" in response_b
+    # Test Condition B
+    response_b = await run_agent_test(
+        root_agent,
+        "Run",
+        initial_state={"run_agent_a": False},
+        mock_llm_response="Agent B",
+    )
+    assert "Agent B" in response_b
 
-  assert root_agent.agent_a.name == "agent_a", "Sub-agent A name mismatch."
-  assert root_agent.agent_b.name == "agent_b", "Sub-agent B name mismatch."
+    assert root_agent.agent_a.name == "agent_a", "Sub-agent A name mismatch."
+    assert root_agent.agent_b.name == "agent_b", "Sub-agent B name mismatch."

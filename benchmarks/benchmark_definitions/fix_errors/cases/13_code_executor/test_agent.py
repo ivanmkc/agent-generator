@@ -19,27 +19,25 @@ from benchmarks.test_helpers import run_agent_test
 
 
 def test_create_agent_unfixed_fails():
-  import unfixed
+    import unfixed
 
-  with pytest.raises(
-      NotImplementedError, match="Agent implementation incomplete."
-  ):
-    unfixed.create_agent(MODEL_NAME)
+    with pytest.raises(NotImplementedError, match="Agent implementation incomplete."):
+        unfixed.create_agent(MODEL_NAME)
 
 
 @pytest.mark.asyncio
 async def test_create_agent_passes():
-  import fixed
+    import fixed
 
-  root_agent = fixed.create_agent(MODEL_NAME)
-  response = await run_agent_test(
-      root_agent, "Calculate 2 + 2.", mock_llm_response="4"
-  )
-  assert "4" in response
+    root_agent = fixed.create_agent(MODEL_NAME)
+    response = await run_agent_test(
+        root_agent, "Calculate 2 + 2.", mock_llm_response="4"
+    )
+    assert "4" in response
 
-  from google.adk.code_executors.built_in_code_executor import BuiltInCodeExecutor
+    from google.adk.code_executors.built_in_code_executor import BuiltInCodeExecutor
 
-  assert isinstance(
-      root_agent.code_executor, BuiltInCodeExecutor
-  ), "Agent should have a BuiltInCodeExecutor."
-  assert root_agent.name == "code_exec_agent", "Agent name mismatch."
+    assert isinstance(
+        root_agent.code_executor, BuiltInCodeExecutor
+    ), "Agent should have a BuiltInCodeExecutor."
+    assert root_agent.name == "code_exec_agent", "Agent name mismatch."

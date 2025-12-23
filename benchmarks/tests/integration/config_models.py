@@ -13,6 +13,7 @@ from pydantic import BaseModel, Field
 from benchmarks.data_models import BaseBenchmarkCase
 from benchmarks.answer_generators.base import AnswerGenerator
 
+
 class GeneratorConfig(BaseModel, abc.ABC):
     """
     Base configuration for any generator used in integration tests.
@@ -25,6 +26,7 @@ class GeneratorConfig(BaseModel, abc.ABC):
         custom_case: Optional specific benchmark case to run instead of the default.
         expected_tool_uses: List of tool names expected to be used during execution.
     """
+
     id: str
     expected_context_files: List[str] = Field(default_factory=list)
     expected_extensions: List[str] = Field(default_factory=list)
@@ -40,6 +42,7 @@ class GeneratorConfig(BaseModel, abc.ABC):
         """
         pass
 
+
 class PodmanGeneratorConfig(GeneratorConfig):
     """
     Configuration specific to Podman-based generators.
@@ -50,6 +53,7 @@ class PodmanGeneratorConfig(GeneratorConfig):
         image_name: Name (tag) of the Docker/Podman image.
         service_url: Optional URL if using an existing service (proxy mode).
     """
+
     type: Literal["podman"] = "podman"
     dockerfile_dir: Path
     image_name: str
@@ -59,8 +63,12 @@ class PodmanGeneratorConfig(GeneratorConfig):
         """
         Creates a Podman-based AnswerGenerator instance based on this configuration.
         """
-        from benchmarks.answer_generators.gemini_cli_docker import GeminiCliPodmanAnswerGenerator
-        from benchmarks.answer_generators.gemini_cli_docker.image_definitions import IMAGE_DEFINITIONS
+        from benchmarks.answer_generators.gemini_cli_docker import (
+            GeminiCliPodmanAnswerGenerator,
+        )
+        from benchmarks.answer_generators.gemini_cli_docker.image_definitions import (
+            IMAGE_DEFINITIONS,
+        )
         from benchmarks.api_key_manager import ApiKeyManager
 
         api_key_manager = ApiKeyManager()
@@ -71,8 +79,9 @@ class PodmanGeneratorConfig(GeneratorConfig):
             image_name=self.image_name,
             image_definitions=IMAGE_DEFINITIONS,
             api_key_manager=api_key_manager,
-            service_url=self.service_url
+            service_url=self.service_url,
         )
+
 
 class CloudRunGeneratorConfig(GeneratorConfig):
     """
@@ -85,6 +94,7 @@ class CloudRunGeneratorConfig(GeneratorConfig):
         region: Google Cloud region (default: us-central1).
         service_url: Optional URL if using an existing service (proxy mode).
     """
+
     type: Literal["cloud_run"] = "cloud_run"
     dockerfile_dir: Path
     service_name: str
@@ -95,7 +105,9 @@ class CloudRunGeneratorConfig(GeneratorConfig):
         """
         Creates a Cloud Run-based AnswerGenerator instance based on this configuration.
         """
-        from benchmarks.answer_generators.gemini_cli_docker import GeminiCliCloudRunAnswerGenerator
+        from benchmarks.answer_generators.gemini_cli_docker import (
+            GeminiCliCloudRunAnswerGenerator,
+        )
         from benchmarks.api_key_manager import ApiKeyManager
 
         api_key_manager = ApiKeyManager()
@@ -107,8 +119,9 @@ class CloudRunGeneratorConfig(GeneratorConfig):
             project_id=project_id,
             region=self.region,
             api_key_manager=api_key_manager,
-            service_url=self.service_url
+            service_url=self.service_url,
         )
+
 
 # Union type for the configuration dictionary values
 AnyGeneratorConfig = Union[PodmanGeneratorConfig, CloudRunGeneratorConfig]

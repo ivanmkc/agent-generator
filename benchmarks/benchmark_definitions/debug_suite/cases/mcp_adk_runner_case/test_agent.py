@@ -9,6 +9,7 @@ if current_dir not in sys.path:
 
 import fixed
 
+
 def test_fixed_agent_returns_hello_world():
     agent = fixed.create_agent("dummy-model")
     assert agent.name == "hello_world_agent"

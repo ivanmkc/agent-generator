@@ -18,29 +18,27 @@ from benchmarks.test_helpers import run_agent_test
 
 
 def test_create_agent_unfixed_fails():
-  import unfixed
+    import unfixed
 
-  with pytest.raises(
-      NotImplementedError, match="Agent implementation incomplete."
-  ):
-    unfixed.create_agent(MODEL_NAME)
+    with pytest.raises(NotImplementedError, match="Agent implementation incomplete."):
+        unfixed.create_agent(MODEL_NAME)
 
 
 @pytest.mark.asyncio
 async def test_create_agent_passes():
-  import fixed
+    import fixed
 
-  root_agent = fixed.create_agent(MODEL_NAME)
-  # Mock response doesn't need the modification; the callback will add it.
-  response = await run_agent_test(
-      root_agent, "Hello", mock_llm_response="Hello world"
-  )
+    root_agent = fixed.create_agent(MODEL_NAME)
+    # Mock response doesn't need the modification; the callback will add it.
+    response = await run_agent_test(
+        root_agent, "Hello", mock_llm_response="Hello world"
+    )
 
-  assert "Hello" in response or "Hi" in response
-  assert (
-      "(modified by callback)" in response
-  ), "The response was not modified by the callback."
-  assert (
-      root_agent.after_model_callback is not None
-  ), "Agent should have an after_model_callback."
-  assert root_agent.name == "callback_agent", "Agent name mismatch."
+    assert "Hello" in response or "Hi" in response
+    assert (
+        "(modified by callback)" in response
+    ), "The response was not modified by the callback."
+    assert (
+        root_agent.after_model_callback is not None
+    ), "Agent should have an after_model_callback."
+    assert root_agent.name == "callback_agent", "Agent name mismatch."

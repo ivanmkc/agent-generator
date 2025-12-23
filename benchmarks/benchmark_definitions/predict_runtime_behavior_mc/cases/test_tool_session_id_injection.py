@@ -15,20 +15,20 @@
 
 # --8<-- [start:tool_session_id_injection]
 def code_under_test():
-  def my_tool(query: str, session_id: str):
-    ...
+    def my_tool(query: str, session_id: str):
+        ...
 
-  return my_tool
+    return my_tool
 
 
 # --8<-- [end:tool_session_id_injection]
 
 
 def test_tool_session_id_injection():
-  """
-  Validates tool signature.
-  """
-  # Expected behavior: The function signature is inspected, and it is
-  # confirmed that `session_id` is a parameter.
-  my_tool = code_under_test()
-  assert "session_id" in my_tool.__annotations__
+    """
+    Validates tool signature.
+    """
+    # Expected behavior: The function signature is inspected, and it is
+    # confirmed that `session_id` is a parameter.
+    my_tool = code_under_test()
+    assert "session_id" in my_tool.__annotations__

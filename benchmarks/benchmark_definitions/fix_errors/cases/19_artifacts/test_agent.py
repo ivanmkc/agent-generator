@@ -18,29 +18,27 @@ from benchmarks.test_helpers import run_agent_test
 
 
 def test_create_agent_unfixed_fails():
-  import unfixed
+    import unfixed
 
-  with pytest.raises(
-      NotImplementedError, match="Agent implementation incomplete."
-  ):
-    unfixed.create_agent(MODEL_NAME)
+    with pytest.raises(NotImplementedError, match="Agent implementation incomplete."):
+        unfixed.create_agent(MODEL_NAME)
 
 
 @pytest.mark.asyncio
 async def test_create_agent_passes():
-  import fixed
+    import fixed
 
-  root_agent = fixed.create_agent(MODEL_NAME)
+    root_agent = fixed.create_agent(MODEL_NAME)
 
-  artifact_data = {"my_data": "important information"}
-  response = await run_agent_test(
-      root_agent,
-      "What is the data?",
-      artifact_data=artifact_data,
-      mock_llm_response="important information",
-  )
-  assert "important information" in response
-  assert (
-      "{artifact.my_data}" in root_agent.instruction
-  ), "Instruction must reference artifact."
-  assert root_agent.name == "artifact_agent", "Agent name mismatch."
+    artifact_data = {"my_data": "important information"}
+    response = await run_agent_test(
+        root_agent,
+        "What is the data?",
+        artifact_data=artifact_data,
+        mock_llm_response="important information",
+    )
+    assert "important information" in response
+    assert (
+        "{artifact.my_data}" in root_agent.instruction
+    ), "Instruction must reference artifact."
+    assert root_agent.name == "artifact_agent", "Agent name mismatch."

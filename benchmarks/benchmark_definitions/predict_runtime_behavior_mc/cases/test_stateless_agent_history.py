@@ -17,20 +17,18 @@ from google.adk.agents import LlmAgent
 
 # --8<-- [start:stateless_agent_history]
 def code_under_test():
-  agent = LlmAgent(
-      name="my_agent", model="gemini-2.5-flash", include_contents="none"
-  )
-  return agent
+    agent = LlmAgent(name="my_agent", model="gemini-2.5-flash", include_contents="none")
+    return agent
 
 
 # --8<-- [end:stateless_agent_history]
 
 
 def test_stateless_agent_history():
-  """
-  Validates stateless agent init.
-  """
-  # Expected behavior: The LlmAgent is created successfully with
-  # `include_contents` set to "none".
-  agent = code_under_test()
-  assert agent.include_contents == "none"
+    """
+    Validates stateless agent init.
+    """
+    # Expected behavior: The LlmAgent is created successfully with
+    # `include_contents` set to "none".
+    agent = code_under_test()
+    assert agent.include_contents == "none"

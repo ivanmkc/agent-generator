@@ -87,8 +87,7 @@ GEMINI_CLI_MC_CASE = MultipleChoiceBenchmarkCase(
 # A multiple choice case for Docker integration (ADK Knowledge)
 ADK_QUESTION_DOCKER_CASE = MultipleChoiceBenchmarkCase(
     question=(
-        "What class does `LlmAgent` inherit from directly in"
-        " `google.adk.agents`?"
+        "What class does `LlmAgent` inherit from directly in" " `google.adk.agents`?"
     ),
     options={
         "A": "Agent",
@@ -107,10 +106,7 @@ FIX_ERROR_MINIMAL_AGENT_CONTENT = {
     "name": "Test Fix Error",
     "description": "Fix a bug by creating a valid agent.",
     "requirements": [
-        (
-            "The solution MUST import `BaseAgent` directly from"
-            " `google.adk.agents`."
-        ),
+        ("The solution MUST import `BaseAgent` directly from" " `google.adk.agents`."),
         (
             "The `create_agent` function MUST have the return type annotation"
             " `-> BaseAgent`."
@@ -128,9 +124,13 @@ ADK_BASE_AGENT_QUESTION_CASE_EASY = ApiUnderstandingBenchmarkCase(
     rationale="All agents must inherit from `google.adk.agents.base_agent.BaseAgent`, which provides the core interface for execution and configuration.",
     template="identifier",
     answers=[
-        {"answer_template": "StringMatchAnswer", "answer": "BaseAgent", "fully_qualified_class_name": ["google.adk.agents.base_agent.BaseAgent"]}
+        {
+            "answer_template": "StringMatchAnswer",
+            "answer": "BaseAgent",
+            "fully_qualified_class_name": ["google.adk.agents.base_agent.BaseAgent"],
+        }
     ],
-    file=Path("src/google/adk/agents/base_agent.py")
+    file=Path("src/google/adk/agents/base_agent.py"),
 )
 
 # An intermediate case for checking ADK internals (requires deeper lookup)
@@ -169,6 +169,6 @@ MCP_ADK_RUNNER_CASE = FixErrorBenchmarkCase(
         "The agent must be implemented in a valid Python file.",
         "The agent must return 'Hello World' for input 'Hi'.",
         "The `run_adk_agent` tool must be used to verify the agent.",
-        "You MUST import BaseAgent from `google.adk.agents.base_agent` (NOT `adk.agent`)."
+        "You MUST import BaseAgent from `google.adk.agents.base_agent` (NOT `adk.agent`).",
     ],
 )

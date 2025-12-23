@@ -23,39 +23,37 @@ from benchmarks.test_helpers import run_agent_test
 
 
 def test_create_agent_unfixed_fails():
-  import unfixed
+    import unfixed
 
-  # Interaction error: output_key is missing
-  root_agent = unfixed.create_agent(MODEL_NAME)
-  writer = next(
-      (sub for sub in root_agent.sub_agents if sub.name == "writer_agent"), None
-  )
-  assert writer is not None
-  assert writer.output_key != "correct_key"
+    # Interaction error: output_key is missing
+    root_agent = unfixed.create_agent(MODEL_NAME)
+    writer = next(
+        (sub for sub in root_agent.sub_agents if sub.name == "writer_agent"), None
+    )
+    assert writer is not None
+    assert writer.output_key != "correct_key"
 
 
 @pytest.mark.asyncio
 async def test_create_agent_passes():
-  import fixed
+    import fixed
 
-  root_agent = fixed.create_agent(MODEL_NAME)
+    root_agent = fixed.create_agent(MODEL_NAME)
 
-  assert isinstance(
-      root_agent, BaseAgent
-  ), "root_agent should be an instance of BaseAgent"
+    assert isinstance(
+        root_agent, BaseAgent
+    ), "root_agent should be an instance of BaseAgent"
 
-  response = await run_agent_test(
-      root_agent, "Start interaction", mock_llm_response="secret_message"
-  )
-  assert (
-      "secret_message" in response
-  ), "Reader agent should output 'secret_message'"
+    response = await run_agent_test(
+        root_agent, "Start interaction", mock_llm_response="secret_message"
+    )
+    assert "secret_message" in response, "Reader agent should output 'secret_message'"
 
-  # Verify structural fix: writer should have output_key set
-  writer = next(
-      (sub for sub in root_agent.sub_agents if sub.name == "writer_agent"), None
-  )
-  assert writer is not None, "writer_agent not found."
-  assert (
-      writer.output_key == "correct_key"
-  ), "writer_agent should write to 'correct_key'."
+    # Verify structural fix: writer should have output_key set
+    writer = next(
+        (sub for sub in root_agent.sub_agents if sub.name == "writer_agent"), None
+    )
+    assert writer is not None, "writer_agent not found."
+    assert (
+        writer.output_key == "correct_key"
+    ), "writer_agent should write to 'correct_key'."

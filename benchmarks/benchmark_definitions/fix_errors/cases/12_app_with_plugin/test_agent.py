@@ -19,28 +19,24 @@ from benchmarks.test_helpers import run_agent_test
 
 
 def test_create_agent_unfixed_fails():
-  import unfixed
+    import unfixed
 
-  with pytest.raises(
-      NotImplementedError, match="Agent implementation incomplete."
-  ):
-    unfixed.create_agent(MODEL_NAME)
+    with pytest.raises(NotImplementedError, match="Agent implementation incomplete."):
+        unfixed.create_agent(MODEL_NAME)
 
 
 @pytest.mark.asyncio
 async def test_create_agent_passes():
-  import fixed
+    import fixed
 
-  app = fixed.create_agent(MODEL_NAME)
-  response = await run_agent_test(
-      app.root_agent, "Hello", mock_llm_response="Hello"
-  )
-  assert "Hello" in response
+    app = fixed.create_agent(MODEL_NAME)
+    response = await run_agent_test(app.root_agent, "Hello", mock_llm_response="Hello")
+    assert "Hello" in response
 
-  from google.adk.apps import App
+    from google.adk.apps import App
 
-  assert isinstance(app, App), "Returned object should be an App instance."
-  assert app.name == "my_app", "App name mismatch."
-  assert len(app.plugins) > 0, "App should have plugins."
-  assert app.plugins[0].name == "simple_plugin", "Plugin name mismatch."
-  assert app.root_agent.name == "app_agent", "Root agent name mismatch."
+    assert isinstance(app, App), "Returned object should be an App instance."
+    assert app.name == "my_app", "App name mismatch."
+    assert len(app.plugins) > 0, "App should have plugins."
+    assert app.plugins[0].name == "simple_plugin", "Plugin name mismatch."
+    assert app.root_agent.name == "app_agent", "Root agent name mismatch."

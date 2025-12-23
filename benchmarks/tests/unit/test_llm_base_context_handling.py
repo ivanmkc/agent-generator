@@ -21,51 +21,57 @@ from typing import List
 from benchmarks.answer_generators.llm_base import LlmAnswerGenerator
 from benchmarks.data_models import BaseBenchmarkCase, GeneratedAnswer
 
+
 # Mock concrete implementation of LlmAnswerGenerator for testing purposes
 class MockLlmAnswerGenerator(LlmAnswerGenerator):
-  def __init__(self, context: str | Path | None = None):
-    super().__init__(context=context)
 
-  @property
-  def name(self) -> str:
-    return "MockLlmAnswerGenerator"
+    def __init__(self, context: str | Path | None = None):
+        super().__init__(context=context)
 
-  async def generate_answer(self, benchmark_case: BaseBenchmarkCase) -> GeneratedAnswer:
-    # Not relevant for this test, just implement to satisfy abstract class
-    raise NotImplementedError("generate_answer not implemented for mock")
+    @property
+    def name(self) -> str:
+        return "MockLlmAnswerGenerator"
+
+    async def generate_answer(
+        self, benchmark_case: BaseBenchmarkCase
+    ) -> GeneratedAnswer:
+        # Not relevant for this test, just implement to satisfy abstract class
+        raise NotImplementedError("generate_answer not implemented for mock")
 
 
 def test_get_context_content_file_not_found():
-  """Tests that FileNotFoundError is raised for a non-existent context file."""
-  non_existent_path = Path("non_existent_context_file.txt")
-  # Ensure it truly does not exist
-  if non_existent_path.exists():
-      non_existent_path.unlink()
+    """Tests that FileNotFoundError is raised for a non-existent context file."""
+    non_existent_path = Path("non_existent_context_file.txt")
+    # Ensure it truly does not exist
+    if non_existent_path.exists():
+        non_existent_path.unlink()
 
-  generator = MockLlmAnswerGenerator(context=non_existent_path)
+    generator = MockLlmAnswerGenerator(context=non_existent_path)
 
-  with pytest.raises(FileNotFoundError, match=f"Context file not found: {non_existent_path}"):
-    generator._get_context_content()
+    with pytest.raises(
+        FileNotFoundError, match=f"Context file not found: {non_existent_path}"
+    ):
+        generator._get_context_content()
 
 
 def test_get_context_content_no_context():
-  """Tests that an empty string is returned when no context is provided."""
-  generator = MockLlmAnswerGenerator(context=None)
-  assert generator._get_context_content() == ""
+    """Tests that an empty string is returned when no context is provided."""
+    generator = MockLlmAnswerGenerator(context=None)
+    assert generator._get_context_content() == ""
 
 
 def test_get_context_content_string_context():
-  """Tests that the string content is returned when context is a string."""
-  test_string_context = "This is a test string context."
-  generator = MockLlmAnswerGenerator(context=test_string_context)
-  assert generator._get_context_content() == test_string_context
+    """Tests that the string content is returned when context is a string."""
+    test_string_context = "This is a test string context."
+    generator = MockLlmAnswerGenerator(context=test_string_context)
+    assert generator._get_context_content() == test_string_context
 
 
 def test_get_context_content_file_exists(tmp_path):
-  """Tests that content is read correctly from an existing file."""
-  temp_file = tmp_path / "existing_context_file.txt"
-  file_content = "Content of the existing file."
-  temp_file.write_text(file_content)
+    """Tests that content is read correctly from an existing file."""
+    temp_file = tmp_path / "existing_context_file.txt"
+    file_content = "Content of the existing file."
+    temp_file.write_text(file_content)
 
-  generator = MockLlmAnswerGenerator(context=temp_file)
-  assert generator._get_context_content() == file_content
+    generator = MockLlmAnswerGenerator(context=temp_file)
+    assert generator._get_context_content() == file_content

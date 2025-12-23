@@ -19,24 +19,22 @@ from benchmarks.test_helpers import run_agent_test
 
 
 def test_create_agent_unfixed_fails():
-  import unfixed
+    import unfixed
 
-  with pytest.raises(
-      NotImplementedError, match="Agent implementation incomplete."
-  ):
-    unfixed.create_agent(MODEL_NAME)
+    with pytest.raises(NotImplementedError, match="Agent implementation incomplete."):
+        unfixed.create_agent(MODEL_NAME)
 
 
 @pytest.mark.asyncio
 async def test_create_agent_passes():
-  import fixed
+    import fixed
 
-  root_agent = fixed.create_agent(MODEL_NAME)
-  response = await run_agent_test(
-      root_agent, "I need a specialist.", mock_llm_response="specialist ok"
-  )
-  assert "specialist ok" in response.lower()
+    root_agent = fixed.create_agent(MODEL_NAME)
+    response = await run_agent_test(
+        root_agent, "I need a specialist.", mock_llm_response="specialist ok"
+    )
+    assert "specialist ok" in response.lower()
 
-  assert any(
-      sub.name == "specialist_agent" for sub in root_agent.sub_agents
-  ), "Root agent should have 'specialist_agent' as a sub-agent."
+    assert any(
+        sub.name == "specialist_agent" for sub in root_agent.sub_agents
+    ), "Root agent should have 'specialist_agent' as a sub-agent."

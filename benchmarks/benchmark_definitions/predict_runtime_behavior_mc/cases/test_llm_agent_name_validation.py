@@ -19,23 +19,23 @@ import pytest
 
 # --8<-- [start:llm_agent_name_validation]
 def code_under_test():
-  try:
-    LlmAgent(name="my agent", model="gemini-2.5-flash")
-  except ValueError as e:
-    return str(e)  # Return the error message
-  except TypeError as e:
-    return str(e)
-  return "No error"
+    try:
+        LlmAgent(name="my agent", model="gemini-2.5-flash")
+    except ValueError as e:
+        return str(e)  # Return the error message
+    except TypeError as e:
+        return str(e)
+    return "No error"
 
 
 # --8<-- [end:llm_agent_name_validation]
 
 
 def test_llm_agent_name_validation():
-  """
-  Validates agent name regex constraints (Predict Output).
-  """
-  # Expected behavior: A ValidationError is raised because the agent name
-  # contains a space.
-  result = code_under_test()
-  assert "Agent name must be a valid identifier." in result
+    """
+    Validates agent name regex constraints (Predict Output).
+    """
+    # Expected behavior: A ValidationError is raised because the agent name
+    # contains a space.
+    result = code_under_test()
+    assert "Agent name must be a valid identifier." in result

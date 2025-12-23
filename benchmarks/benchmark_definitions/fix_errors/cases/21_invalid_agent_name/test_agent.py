@@ -16,25 +16,22 @@ from benchmarks.test_helpers import run_agent_test, MODEL_NAME
 
 
 def test_create_agent_unfixed_fails():
-  import unfixed
-  # The unfixed code attempts to create an agent with name "my agent",
-  # which should raise a ValueError during initialization.
-  with pytest.raises(ValueError, match="Agent name must be a valid identifier"):
-    unfixed.create_agent(MODEL_NAME)
+    import unfixed
+
+    # The unfixed code attempts to create an agent with name "my agent",
+    # which should raise a ValueError during initialization.
+    with pytest.raises(ValueError, match="Agent name must be a valid identifier"):
+        unfixed.create_agent(MODEL_NAME)
 
 
 @pytest.mark.asyncio
 async def test_create_agent_passes():
-  import fixed
+    import fixed
 
-  root_agent = fixed.create_agent(MODEL_NAME)
+    root_agent = fixed.create_agent(MODEL_NAME)
 
-  assert isinstance(
-      root_agent, Agent
-  ), "root_agent should be an instance of Agent"
-  assert root_agent.name == "my_valid_agent", "Agent name mismatch."
+    assert isinstance(root_agent, Agent), "root_agent should be an instance of Agent"
+    assert root_agent.name == "my_valid_agent", "Agent name mismatch."
 
-  response = await run_agent_test(
-      root_agent, "Hello", mock_llm_response="Hello"
-  )
-  assert "Hello" in response, "Agent should respond to 'Hello' with 'Hello'"
+    response = await run_agent_test(root_agent, "Hello", mock_llm_response="Hello")
+    assert "Hello" in response, "Agent should respond to 'Hello' with 'Hello'"

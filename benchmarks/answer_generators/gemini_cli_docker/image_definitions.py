@@ -3,12 +3,14 @@ from typing import List, Dict
 
 IMAGE_PREFIX = "gemini-cli"
 
+
 @dataclass(frozen=True)
 class ImageDefinition:
     source_dir: str
     dockerfile: str
     dependencies: List[str] = field(default_factory=list)
     build_args: Dict[str, str] = field(default_factory=dict)
+
 
 # Define known images and their build configurations for local Podman.
 # Cloud Build configurations are defined in cloudbuild.yaml

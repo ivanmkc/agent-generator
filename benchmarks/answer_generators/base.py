@@ -23,37 +23,37 @@ from benchmarks.logger import BenchmarkLogger
 
 
 class AnswerGenerator(abc.ABC):
-  """Abstract base class for answer generators."""
+    """Abstract base class for answer generators."""
 
-  def __init__(self, logger: Optional[BenchmarkLogger] = None):
-    self.logger = logger
+    def __init__(self, logger: Optional[BenchmarkLogger] = None):
+        self.logger = logger
 
-  @property
-  @abc.abstractmethod
-  def name(self) -> str:
-    """Returns a unique name for this generator instance, reflecting its configuration."""
-    pass
+    @property
+    @abc.abstractmethod
+    def name(self) -> str:
+        """Returns a unique name for this generator instance, reflecting its configuration."""
+        pass
 
-  @abc.abstractmethod
-  async def generate_answer(
-      self, benchmark_case: BaseBenchmarkCase
-  ) -> GeneratedAnswer:
-    """Generates an answer for a given benchmark case."""
-    pass
+    @abc.abstractmethod
+    async def generate_answer(
+        self, benchmark_case: BaseBenchmarkCase
+    ) -> GeneratedAnswer:
+        """Generates an answer for a given benchmark case."""
+        pass
 
-  async def get_mcp_tools(self) -> list[str]:
-    """Returns a list of available MCP tools."""
-    return []
+    async def get_mcp_tools(self) -> list[str]:
+        """Returns a list of available MCP tools."""
+        return []
 
-  async def setup(self) -> None:
-    """
-    Performs any necessary setup (e.g., deploying services) before running benchmarks.
-    
-    This method MUST be idempotent. Calling it multiple times should not cause issues
-    and should simply ensure the generator is in a ready state.
-    """
-    pass
+    async def setup(self) -> None:
+        """
+        Performs any necessary setup (e.g., deploying services) before running benchmarks.
 
-  async def teardown(self) -> None:
-    """Performs cleanup (e.g., stopping containers)."""
-    pass
+        This method MUST be idempotent. Calling it multiple times should not cause issues
+        and should simply ensure the generator is in a ready state.
+        """
+        pass
+
+    async def teardown(self) -> None:
+        """Performs cleanup (e.g., stopping containers)."""
+        pass

@@ -23,7 +23,9 @@ from benchmarks.answer_generators.gemini_cli_answer_generator import (
 from benchmarks.answer_generators.gemini_cli_local_answer_generator import (
     GeminiCliLocalAnswerGenerator,
 )
-from benchmarks.answer_generators.ground_truth_answer_generator import GroundTruthAnswerGenerator
+from benchmarks.answer_generators.ground_truth_answer_generator import (
+    GroundTruthAnswerGenerator,
+)
 from benchmarks.answer_generators.trivial_answer_generator import TrivialAnswerGenerator
 
 __all__ = [

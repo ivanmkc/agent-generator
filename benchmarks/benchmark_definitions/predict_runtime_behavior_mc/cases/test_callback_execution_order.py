@@ -18,30 +18,30 @@ import pytest
 
 # --8<-- [start:callback_execution_order]
 def code_under_test():
-  async def cb1(agent, input):
-    print("Pre")
+    async def cb1(agent, input):
+        print("Pre")
 
-  async def cb2(agent, input, response):
-    print("Post")
+    async def cb2(agent, input, response):
+        print("Post")
 
-  agent = LlmAgent(
-      name="callback_agent",
-      model="gemini-2.5-flash",
-      before_agent_callback=cb1,
-      after_agent_callback=cb2,
-  )
-  return agent, cb1, cb2
+    agent = LlmAgent(
+        name="callback_agent",
+        model="gemini-2.5-flash",
+        before_agent_callback=cb1,
+        after_agent_callback=cb2,
+    )
+    return agent, cb1, cb2
 
 
 @pytest.mark.asyncio
 async def test_callback_execution_order():
-  """
-  Validates callback execution order.
-  """
+    """
+    Validates callback execution order.
+    """
 
-  agent, pre, post = code_under_test()
+    agent, pre, post = code_under_test()
 
-  # This test only validates that the callbacks are attached correctly.
-  # The actual execution order is tested in the `fix_errors` benchmark.
-  assert agent.before_agent_callback == pre
-  assert agent.after_agent_callback == post
+    # This test only validates that the callbacks are attached correctly.
+    # The actual execution order is tested in the `fix_errors` benchmark.
+    assert agent.before_agent_callback == pre
+    assert agent.after_agent_callback == post

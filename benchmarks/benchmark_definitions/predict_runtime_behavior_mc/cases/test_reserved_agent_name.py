@@ -19,21 +19,21 @@ import pytest
 
 # --8<-- [start:reserved_agent_name]
 def code_under_test():
-  kwargs = {"name": "user"}
-  LlmAgent(
-      model="gemini-2.5-flash",
-      instruction="You are a helpful assistant.",
-      **kwargs,
-  )
+    kwargs = {"name": "user"}
+    LlmAgent(
+        model="gemini-2.5-flash",
+        instruction="You are a helpful assistant.",
+        **kwargs,
+    )
 
 
 # --8<-- [end:reserved_agent_name]
 
 
 def test_reserved_agent_name():
-  """
-  Validates that using reserved names (like 'user') raises a ValueError.
-  """
-  # Expected behavior: A ValidationError is raised because 'user' is a reserved name.
-  with pytest.raises(ValidationError, match="Agent name cannot be `user`"):
-    code_under_test()
+    """
+    Validates that using reserved names (like 'user') raises a ValueError.
+    """
+    # Expected behavior: A ValidationError is raised because 'user' is a reserved name.
+    with pytest.raises(ValidationError, match="Agent name cannot be `user`"):
+        code_under_test()

@@ -19,17 +19,17 @@ import pytest
 
 # --8<-- [start:event_repr_output]
 def code_under_test():
-  Event(type="model_response", content="Hello")
+    Event(type="model_response", content="Hello")
 
 
 # --8<-- [end:event_repr_output]
 
 
 def test_event_repr_output():
-  """
-  Validates Event object creation failure (Predict Error).
-  """
-  # Expected behavior: A ValidationError is raised because `type` is not a
-  # valid field for `Event`.
-  with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
-    code_under_test()
+    """
+    Validates Event object creation failure (Predict Error).
+    """
+    # Expected behavior: A ValidationError is raised because `type` is not a
+    # valid field for `Event`.
+    with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
+        code_under_test()

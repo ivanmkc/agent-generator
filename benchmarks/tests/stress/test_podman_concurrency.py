@@ -1,10 +1,14 @@
-
 import pytest
 import asyncio
 from pathlib import Path
-from benchmarks.answer_generators.gemini_cli_docker.gemini_cli_podman_answer_generator import GeminiCliPodmanAnswerGenerator
-from benchmarks.answer_generators.gemini_cli_docker.image_definitions import IMAGE_DEFINITIONS
+from benchmarks.answer_generators.gemini_cli_docker.gemini_cli_podman_answer_generator import (
+    GeminiCliPodmanAnswerGenerator,
+)
+from benchmarks.answer_generators.gemini_cli_docker.image_definitions import (
+    IMAGE_DEFINITIONS,
+)
 from benchmarks.tests.integration.conftest import has_cmd
+
 
 @pytest.mark.asyncio
 async def test_podman_shared_instance_concurrency():
@@ -22,8 +26,9 @@ async def test_podman_shared_instance_concurrency():
         dockerfile_dir=Path("benchmarks/answer_generators/gemini_cli_docker/base"),
         image_name="gemini-cli:base",
         image_definitions=IMAGE_DEFINITIONS,
-        model_name=model_name
+        model_name=model_name,
     )
+
     # 2. Define a worker that tries to use the generator
     async def worker(worker_id):
         # This will call setup() internally if not ready
@@ -42,7 +47,7 @@ async def test_podman_shared_instance_concurrency():
     # This forces them to race for the setup lock
     num_workers = 5
     print(f"\n--- Launching {num_workers} concurrent workers on shared instance ---")
-    
+
     tasks = [worker(i) for i in range(num_workers)]
     results = await asyncio.gather(*tasks)
 
@@ -52,11 +57,13 @@ async def test_podman_shared_instance_concurrency():
 
     print(f"Successes: {len(successes)}")
     print(f"Failures: {len(exceptions)}")
-    
+
     if exceptions:
         print(f"First exception: {exceptions[0]}")
 
-    assert len(exceptions) == 0, f"Encountered {len(exceptions)} failures during concurrent access"
+    assert (
+        len(exceptions) == 0
+    ), f"Encountered {len(exceptions)} failures during concurrent access"
     assert len(successes) == num_workers
 
     # Cleanup

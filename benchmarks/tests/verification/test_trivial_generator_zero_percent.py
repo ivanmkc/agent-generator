@@ -23,41 +23,41 @@ from benchmarks.logger import JsonTraceLogger
 
 @pytest.mark.asyncio
 async def test_trivial_generator_is_zero_percent_on_non_mc():
-  """
-  Runs TrivialAnswerGenerator against non-MC benchmark suites (fix_errors, api_understanding).
-  Asserts that NO tests pass. A trivial/empty answer should never satisfy the requirements
-  of these complex tasks.
-  """
-  logger = JsonTraceLogger(output_dir="traces_verification")
+    """
+    Runs TrivialAnswerGenerator against non-MC benchmark suites (fix_errors, api_understanding).
+    Asserts that NO tests pass. A trivial/empty answer should never satisfy the requirements
+    of these complex tasks.
+    """
+    logger = JsonTraceLogger(output_dir="traces_verification")
 
-  # Define non-MC suites
-  benchmark_suites = [
-      "benchmarks/benchmark_definitions/fix_errors/benchmark.yaml",
-      "benchmarks/benchmark_definitions/api_understanding/benchmark.yaml",
-  ]
+    # Define non-MC suites
+    benchmark_suites = [
+        "benchmarks/benchmark_definitions/fix_errors/benchmark.yaml",
+        "benchmarks/benchmark_definitions/api_understanding/benchmark.yaml",
+    ]
 
-  # Run benchmarks
-  results = await benchmark_orchestrator.run_benchmarks(
-      benchmark_suites=benchmark_suites,
-      answer_generators=[TrivialAnswerGenerator()],
-      max_concurrency=20,
-      logger=logger,
-  )
+    # Run benchmarks
+    results = await benchmark_orchestrator.run_benchmarks(
+        benchmark_suites=benchmark_suites,
+        answer_generators=[TrivialAnswerGenerator()],
+        max_concurrency=20,
+        logger=logger,
+    )
 
-  # Filter for TrivialAnswerGenerator (though it's the only one used)
-  trivial_results = [
-      r for r in results if r.answer_generator == "TrivialAnswerGenerator"
-  ]
+    # Filter for TrivialAnswerGenerator (though it's the only one used)
+    trivial_results = [
+        r for r in results if r.answer_generator == "TrivialAnswerGenerator"
+    ]
 
-  # Count passes
-  passed_count = sum(1 for r in trivial_results if r.result == 1)
-  passed_details = [
-      f"{r.benchmark_name} (Suite: {r.suite})"
-      for r in trivial_results
-      if r.result == 1
-  ]
+    # Count passes
+    passed_count = sum(1 for r in trivial_results if r.result == 1)
+    passed_details = [
+        f"{r.benchmark_name} (Suite: {r.suite})"
+        for r in trivial_results
+        if r.result == 1
+    ]
 
-  assert passed_count == 0, (
-      f"TrivialAnswerGenerator passed {passed_count} benchmarks! This indicates"
-      f" loose validation.\nPassed cases: {passed_details}"
-  )
+    assert passed_count == 0, (
+        f"TrivialAnswerGenerator passed {passed_count} benchmarks! This indicates"
+        f" loose validation.\nPassed cases: {passed_details}"
+    )

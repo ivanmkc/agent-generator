@@ -19,23 +19,21 @@ from benchmarks.test_helpers import run_agent_test
 
 
 def test_create_agent_unfixed_fails():
-  import unfixed
+    import unfixed
 
-  with pytest.raises(
-      NotImplementedError, match="Agent implementation incomplete."
-  ):
-    unfixed.create_agent(MODEL_NAME)
+    with pytest.raises(NotImplementedError, match="Agent implementation incomplete."):
+        unfixed.create_agent(MODEL_NAME)
 
 
 @pytest.mark.asyncio
 async def test_create_agent_passes():
-  import fixed
+    import fixed
 
-  root_agent = fixed.create_agent(MODEL_NAME)
-  response = await run_agent_test(
-      root_agent,
-      "Can you use your tool?",
-      mock_llm_response="I used the tool with query 'test'",
-  )
-  assert "test" in response.lower()
-  assert len(root_agent.tools) == 1, "Agent should have exactly one tool."
+    root_agent = fixed.create_agent(MODEL_NAME)
+    response = await run_agent_test(
+        root_agent,
+        "Can you use your tool?",
+        mock_llm_response="I used the tool with query 'test'",
+    )
+    assert "test" in response.lower()
+    assert len(root_agent.tools) == 1, "Agent should have exactly one tool."

@@ -18,18 +18,18 @@ import pytest
 
 # --8<-- [start:agent_clone_invalid_field]
 def code_under_test():
-  agent = LlmAgent(name="test", model="gemini-2.5-flash")
-  agent.clone(update={"unknown_field": 123})
+    agent = LlmAgent(name="test", model="gemini-2.5-flash")
+    agent.clone(update={"unknown_field": 123})
 
 
 # --8<-- [end:agent_clone_invalid_field]
 
 
 def test_agent_clone_invalid_field():
-  """
-  Validates agent cloning with extra fields.
-  """
-  # Expected behavior: A ValueError is raised because `unknown_field` is not
-  # a valid field for `LlmAgent`.
-  with pytest.raises(ValueError, match="Cannot update nonexistent fields"):
-    code_under_test()
+    """
+    Validates agent cloning with extra fields.
+    """
+    # Expected behavior: A ValueError is raised because `unknown_field` is not
+    # a valid field for `LlmAgent`.
+    with pytest.raises(ValueError, match="Cannot update nonexistent fields"):
+        code_under_test()

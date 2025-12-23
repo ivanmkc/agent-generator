@@ -19,12 +19,10 @@ from benchmarks.test_helpers import run_agent_test
 
 
 def test_create_agent_unfixed_fails():
-  import unfixed
+    import unfixed
 
-  with pytest.raises(
-      NotImplementedError, match="Agent implementation incomplete."
-  ):
-    unfixed.create_agent("gemini-2.5-flash")
+    with pytest.raises(NotImplementedError, match="Agent implementation incomplete."):
+        unfixed.create_agent("gemini-2.5-flash")
 
 
 @pytest.mark.skipif(
@@ -32,17 +30,15 @@ def test_create_agent_unfixed_fails():
 )
 @pytest.mark.asyncio
 async def test_create_agent_passes():
-  import fixed
+    import fixed
 
-  root_agent = fixed.create_agent("gemini-2.5-flash")
-  response = await run_agent_test(root_agent, "Hello")
-  assert "Hello" in response
+    root_agent = fixed.create_agent("gemini-2.5-flash")
+    response = await run_agent_test(root_agent, "Hello")
+    assert "Hello" in response
 
-  from google.adk.models.lite_llm import LiteLlm
+    from google.adk.models.lite_llm import LiteLlm
 
-  assert isinstance(root_agent.model, LiteLlm), "Agent should use LiteLlm."
-  assert (
-      "openai" in root_agent.model.model
-  ), "Model name should contain 'openai'."
+    assert isinstance(root_agent.model, LiteLlm), "Agent should use LiteLlm."
+    assert "openai" in root_agent.model.model, "Model name should contain 'openai'."
 
-  # TODO: Add more detailed checks on LiteLlm configuration
+    # TODO: Add more detailed checks on LiteLlm configuration

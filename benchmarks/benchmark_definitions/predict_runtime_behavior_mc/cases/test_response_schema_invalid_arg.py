@@ -20,21 +20,21 @@ import pytest
 
 # --8<-- [start:response_schema_invalid_arg]
 def code_under_test():
-  class MyPydanticModel:
-    pass
+    class MyPydanticModel:
+        pass
 
-  kwargs = {"response_schema": MyPydanticModel}
-  LlmAgent(name="agent", model="gemini-2.5-flash", **kwargs)
+    kwargs = {"response_schema": MyPydanticModel}
+    LlmAgent(name="agent", model="gemini-2.5-flash", **kwargs)
 
 
 # --8<-- [end:response_schema_invalid_arg]
 
 
 def test_response_schema_invalid_arg():
-  """
-  Validates that 'response_schema' is an invalid argument.
-  """
-  # Expected behavior: A ValidationError is raised because `response_schema`
-  # is not a valid argument for `LlmAgent`.
-  with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
-    code_under_test()
+    """
+    Validates that 'response_schema' is an invalid argument.
+    """
+    # Expected behavior: A ValidationError is raised because `response_schema`
+    # is not a valid argument for `LlmAgent`.
+    with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
+        code_under_test()

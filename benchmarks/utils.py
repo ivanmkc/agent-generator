@@ -20,83 +20,85 @@ from typing import Any
 
 from benchmarks.data_models import TraceLogEvent
 
+
 def permute(cls, **kwargs):
-  """Helper to generate permutations of class instances.
+    """Helper to generate permutations of class instances.
 
-  Args:
-      cls: The class to instantiate.
-      **kwargs: Dictionary where keys are argument names and values are lists of possible values.
+    Args:
+        cls: The class to instantiate.
+        **kwargs: Dictionary where keys are argument names and values are lists of possible values.
 
-  Yields:
-      Instances of cls with all combinations of arguments.
-  """
-  keys = kwargs.keys()
-  values = kwargs.values()
-  for instance_values in itertools.product(*values):
-    yield cls(**dict(zip(keys, instance_values)))
+    Yields:
+        Instances of cls with all combinations of arguments.
+    """
+    keys = kwargs.keys()
+    values = kwargs.values()
+    for instance_values in itertools.product(*values):
+        yield cls(**dict(zip(keys, instance_values)))
 
-def parse_cli_stream_json_output(stdout_str: str) -> tuple[dict[str, Any], list[TraceLogEvent]]:
-  """Parses the NDJSON output from the Gemini CLI in stream-json format.
 
-  Args:
-      stdout_str: The raw stdout string from the CLI.
+def parse_cli_stream_json_output(
+    stdout_str: str,
+) -> tuple[dict[str, Any], list[TraceLogEvent]]:
+    """Parses the NDJSON output from the Gemini CLI in stream-json format.
 
-  Returns:
-      A tuple containing:
-      - A dictionary with the parsed response (e.g., {"response": "...", "stats": "..."}).
-      - A list of TraceLogEvent objects.
-  """
-  response_dict = {"response": ""}
-  logs: list[TraceLogEvent] = []
+    Args:
+        stdout_str: The raw stdout string from the CLI.
 
-  for line in stdout_str.splitlines():
-    line = line.strip()
-    if not line:
-      continue
-    try:
-      event = json.loads(line)
-      event_type = event.get("type")
-      event_data = event.get("data", event)
+    Returns:
+        A tuple containing:
+        - A dictionary with the parsed response (e.g., {"response": "...", "stats": "..."}).
+        - A list of TraceLogEvent objects.
+    """
+    response_dict = {"response": ""}
+    logs: list[TraceLogEvent] = []
 
-      log_event = TraceLogEvent(
-          type=event_type or "unknown", source="cli_stream", details=event
-      )
+    for line in stdout_str.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            event = json.loads(line)
+            event_type = event.get("type")
+            event_data = event.get("data", event)
 
-      if event_type == "message":
-          role = event_data.get("role")
-          content = event_data.get("content")
-          log_event.role = role
-          log_event.content = content
-          
-          if role in ["model", "assistant"]:
-              if isinstance(content, list):
-                  for part in content:
-                      if isinstance(part, dict) and "text" in part:
-                          response_dict["response"] += part["text"]
-              elif isinstance(content, str):
-                  response_dict["response"] += content
-      
-      elif event_type == "tool_use":
-        log_event.tool_name = event_data.get("tool_name")
-        log_event.tool_call_id = event_data.get("tool_id")
-        log_event.tool_input = event_data.get("parameters")
+            log_event = TraceLogEvent(
+                type=event_type or "unknown", source="cli_stream", details=event
+            )
 
-      elif event_type == "tool_result":
-        log_event.tool_call_id = event_data.get("tool_id")
-        log_event.tool_output = str(event_data.get("output"))
+            if event_type == "message":
+                role = event_data.get("role")
+                content = event_data.get("content")
+                log_event.role = role
+                log_event.content = content
 
-      elif event_type == "result":
-        log_event.type = "system_result"
-        if "stats" in event_data:
-          response_dict["stats"] = event_data["stats"]
-          log_event.content = event_data["stats"]
-      
-      logs.append(log_event)
-      
-    except json.JSONDecodeError:
-      logs.append(
-          TraceLogEvent(
-              type="CLI_STDOUT_RAW", source="cli_stream", content=line
-          )
-      )
-  return response_dict, logs
+                if role in ["model", "assistant"]:
+                    if isinstance(content, list):
+                        for part in content:
+                            if isinstance(part, dict) and "text" in part:
+                                response_dict["response"] += part["text"]
+                    elif isinstance(content, str):
+                        response_dict["response"] += content
+
+            elif event_type == "tool_use":
+                log_event.tool_name = event_data.get("tool_name")
+                log_event.tool_call_id = event_data.get("tool_id")
+                log_event.tool_input = event_data.get("parameters")
+
+            elif event_type == "tool_result":
+                log_event.tool_call_id = event_data.get("tool_id")
+                log_event.tool_output = str(event_data.get("output"))
+
+            elif event_type == "result":
+                log_event.type = "system_result"
+                if "stats" in event_data:
+                    response_dict["stats"] = event_data["stats"]
+                    log_event.content = event_data["stats"]
+
+            logs.append(log_event)
+
+        except json.JSONDecodeError:
+            logs.append(
+                TraceLogEvent(type="CLI_STDOUT_RAW", source="cli_stream", content=line)
+            )
+    return response_dict, logs

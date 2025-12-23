@@ -19,22 +19,22 @@ from google.adk.plugins import ReflectAndRetryToolPlugin as MyPlugin
 
 # --8<-- [start:retry_plugin_config]
 def code_under_test():
-  my_agent = LlmAgent(name="dummy", model="gemini-2.5-flash")
-  app = App(
-      name="my_app",
-      root_agent=my_agent,
-      plugins=[MyPlugin()],
-  )
-  return app
+    my_agent = LlmAgent(name="dummy", model="gemini-2.5-flash")
+    app = App(
+        name="my_app",
+        root_agent=my_agent,
+        plugins=[MyPlugin()],
+    )
+    return app
 
 
 # --8<-- [end:retry_plugin_config]
 
 
 def test_retry_plugin_config():
-  """
-  Validates ReflectAndRetryToolPlugin initialization.
-  """
-  # Expected behavior: The App is created with the ReflectAndRetryToolPlugin.
-  app = code_under_test()
-  assert len(app.plugins) == 1
+    """
+    Validates ReflectAndRetryToolPlugin initialization.
+    """
+    # Expected behavior: The App is created with the ReflectAndRetryToolPlugin.
+    app = code_under_test()
+    assert len(app.plugins) == 1

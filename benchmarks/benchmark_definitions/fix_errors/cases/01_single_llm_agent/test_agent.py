@@ -18,32 +18,28 @@ from benchmarks.test_helpers import run_agent_test
 
 
 def test_create_agent_unfixed_fails():
-  import unfixed
+    import unfixed
 
-  if unfixed is None:
-    pytest.fail("Could not import agent module.")
-  with pytest.raises(
-      NotImplementedError, match="Agent implementation incomplete."
-  ):
-    unfixed.create_agent(MODEL_NAME)
+    if unfixed is None:
+        pytest.fail("Could not import agent module.")
+    with pytest.raises(NotImplementedError, match="Agent implementation incomplete."):
+        unfixed.create_agent(MODEL_NAME)
 
 
 @pytest.mark.asyncio
 async def test_create_agent_passes():
-  import fixed
+    import fixed
 
-  if fixed is None:
-    pytest.fail("Could not import agent module.")
+    if fixed is None:
+        pytest.fail("Could not import agent module.")
 
-  # Create the agent using the function
-  root_agent = fixed.create_agent(MODEL_NAME)
+    # Create the agent using the function
+    root_agent = fixed.create_agent(MODEL_NAME)
 
-  # Run the verification using standard helper
-  response = await run_agent_test(
-      root_agent, "Hello", mock_llm_response="Hello"
-  )
+    # Run the verification using standard helper
+    response = await run_agent_test(root_agent, "Hello", mock_llm_response="Hello")
 
-  # Assertions
-  print(f"Agent response: {response}")
-  assert "Hello" in response, "Expected a greeting containing 'Hello'."
-  assert root_agent.name == "single_agent", "Agent name mismatch."
+    # Assertions
+    print(f"Agent response: {response}")
+    assert "Hello" in response, "Expected a greeting containing 'Hello'."
+    assert root_agent.name == "single_agent", "Agent name mismatch."

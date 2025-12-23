@@ -26,41 +26,41 @@ from benchmarks.data_models import MultipleChoiceBenchmarkCase
 
 
 class TrivialAnswerGenerator(AnswerGenerator):
-  """An answer generator that returns a trivial (empty) answer."""
+    """An answer generator that returns a trivial (empty) answer."""
 
-  @property
-  def name(self) -> str:
-    """Returns the name of the generator."""
-    return "TrivialAnswerGenerator"
+    @property
+    def name(self) -> str:
+        """Returns the name of the generator."""
+        return "TrivialAnswerGenerator"
 
-  async def generate_answer(
-      self, benchmark_case: BaseBenchmarkCase
-  ) -> GeneratedAnswer:
-    """Returns an empty answer for any benchmark case."""
-    if isinstance(benchmark_case, ApiUnderstandingBenchmarkCase):
-      output = ApiUnderstandingAnswerOutput(
-          code="class Trivial:",
-          fully_qualified_class_name="trivial.module",
-          rationale="Trivial answer.",
-      )
-      return GeneratedAnswer(output=output)
-    elif isinstance(benchmark_case, FixErrorBenchmarkCase):
-      output = FixErrorAnswerOutput(code="", rationale="Trivial answer.")
-      return GeneratedAnswer(output=output)
-    elif isinstance(benchmark_case, MultipleChoiceBenchmarkCase):
-      import random  # pylint: disable=import-outside-toplevel
+    async def generate_answer(
+        self, benchmark_case: BaseBenchmarkCase
+    ) -> GeneratedAnswer:
+        """Returns an empty answer for any benchmark case."""
+        if isinstance(benchmark_case, ApiUnderstandingBenchmarkCase):
+            output = ApiUnderstandingAnswerOutput(
+                code="class Trivial:",
+                fully_qualified_class_name="trivial.module",
+                rationale="Trivial answer.",
+            )
+            return GeneratedAnswer(output=output)
+        elif isinstance(benchmark_case, FixErrorBenchmarkCase):
+            output = FixErrorAnswerOutput(code="", rationale="Trivial answer.")
+            return GeneratedAnswer(output=output)
+        elif isinstance(benchmark_case, MultipleChoiceBenchmarkCase):
+            import random  # pylint: disable=import-outside-toplevel
 
-      options = benchmark_case.options
-      if options:
-        random_answer_key = random.choice(list(options.keys()))
-        output = MultipleChoiceAnswerOutput(
-            answer=random_answer_key, rationale="Trivial answer."
-        )
-      else:
-        # Fallback if no options (shouldn't happen with validation)
-        output = MultipleChoiceAnswerOutput(
-            answer="A", rationale="Trivial answer."
-        )
-      return GeneratedAnswer(output=output)
-    else:
-      raise TypeError(f"Unknown benchmark case type: {type(benchmark_case)}")
+            options = benchmark_case.options
+            if options:
+                random_answer_key = random.choice(list(options.keys()))
+                output = MultipleChoiceAnswerOutput(
+                    answer=random_answer_key, rationale="Trivial answer."
+                )
+            else:
+                # Fallback if no options (shouldn't happen with validation)
+                output = MultipleChoiceAnswerOutput(
+                    answer="A", rationale="Trivial answer."
+                )
+            return GeneratedAnswer(output=output)
+        else:
+            raise TypeError(f"Unknown benchmark case type: {type(benchmark_case)}")

@@ -19,17 +19,17 @@ import pytest
 
 # --8<-- [start:event_extra_fields_error]
 def code_under_test():
-  Event(type="custom", random_field="123")
+    Event(type="custom", random_field="123")
 
 
 # --8<-- [end:event_extra_fields_error]
 
 
 def test_event_extra_fields_error():
-  """
-  Validates that Event forbids extra fields (Predict Output).
-  """
-  # Expected behavior: A ValidationError is raised because `type` and
-  # `random_field` are not valid fields for `Event`.
-  with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
-    code_under_test()
+    """
+    Validates that Event forbids extra fields (Predict Output).
+    """
+    # Expected behavior: A ValidationError is raised because `type` and
+    # `random_field` are not valid fields for `Event`.
+    with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
+        code_under_test()

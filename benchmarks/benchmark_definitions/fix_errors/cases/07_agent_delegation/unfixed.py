@@ -5,22 +5,22 @@ from google.adk.agents import LlmAgent
 
 
 def create_agent(model_name: str) -> BaseAgent:
-  """
-  Creates a root LlmAgent that delegates a task to a specialist sub-agent.
+    """
+    Creates a root LlmAgent that delegates a task to a specialist sub-agent.
 
-  Instructions:
-      Create a "delegator_agent" that delegates to a "specialist_agent" when needed.
-      The specialist_agent should be instructed to respond with "specialist ok".
+    Instructions:
+        Create a "delegator_agent" that delegates to a "specialist_agent" when needed.
+        The specialist_agent should be instructed to respond with "specialist ok".
 
-      Requirements:
-      - The root agent should have a sub-agent named 'specialist_agent'.
-      - When the root agent is asked for a specialist, it should delegate the task to the 'specialist_agent'.
-      - The final response should contain the phrase 'specialist ok'.
+        Requirements:
+        - The root agent should have a sub-agent named 'specialist_agent'.
+        - When the root agent is asked for a specialist, it should delegate the task to the 'specialist_agent'.
+        - The final response should contain the phrase 'specialist ok'.
 
-  Args:
-      model_name: The name of the LLM model to use.
+    Args:
+        model_name: The name of the LLM model to use.
 
-  Returns:
-      An instance of LlmAgent capable of delegation.
-  """
-  raise NotImplementedError("Agent implementation incomplete.")
+    Returns:
+        An instance of LlmAgent capable of delegation.
+    """
+    raise NotImplementedError("Agent implementation incomplete.")

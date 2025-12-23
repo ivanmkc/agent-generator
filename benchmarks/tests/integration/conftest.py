@@ -26,29 +26,40 @@ from typing import List, Optional, Any
 # --- Generator Imports ---
 from benchmarks.answer_generators.base import AnswerGenerator
 from benchmarks.answer_generators.gemini_answer_generator import GeminiAnswerGenerator
-from benchmarks.answer_generators.gemini_cli_answer_generator import GeminiCliAnswerGenerator
-from benchmarks.answer_generators.gemini_cli_local_answer_generator import GeminiCliLocalAnswerGenerator
+from benchmarks.answer_generators.gemini_cli_answer_generator import (
+    GeminiCliAnswerGenerator,
+)
+from benchmarks.answer_generators.gemini_cli_local_answer_generator import (
+    GeminiCliLocalAnswerGenerator,
+)
 from benchmarks.answer_generators.adk_answer_generator import AdkAnswerGenerator
-from benchmarks.answer_generators.gemini_cli_docker.gemini_cli_podman_answer_generator import GeminiCliPodmanAnswerGenerator
-from benchmarks.answer_generators.gemini_cli_docker.image_definitions import IMAGE_DEFINITIONS
+from benchmarks.answer_generators.gemini_cli_docker.gemini_cli_podman_answer_generator import (
+    GeminiCliPodmanAnswerGenerator,
+)
+from benchmarks.answer_generators.gemini_cli_docker.image_definitions import (
+    IMAGE_DEFINITIONS,
+)
 
 # --- Helper Imports ---
 from benchmarks.answer_generators.adk_agents import create_default_adk_agent
 from benchmarks.data_models import BaseBenchmarkCase
 from benchmarks.tests.integration.predefined_cases import (
     SIMPLE_API_UNDERSTANDING_CASE,
-    ADK_BASE_AGENT_QUESTION_CASE_INTERMEDIATE
+    ADK_BASE_AGENT_QUESTION_CASE_INTERMEDIATE,
 )
+
 
 # --- Pre-check Helpers ---
 def has_env(var: str) -> bool:
     return bool(os.environ.get(var))
+
 
 def has_cmd(cmd: str) -> bool:
     return shutil.which(cmd) is not None
 
 
 # --- Data Models ---
+
 
 @dataclass
 class GeneratorTestCase:
@@ -69,21 +80,25 @@ class GeneratorTestCase:
         expected_tool_uses: A list of tool names or log indicators expected to be found
                           within the trace logs of a successful generation.
     """
+
     id: str
     generator: AnswerGenerator
-    
+
     # Simple lists of strings for expected tools
     expected_gemini_cli_extensions: List[str] = field(default_factory=list)
     expected_mcp_tools: List[str] = field(default_factory=list)
     expected_context_files: List[str] = field(default_factory=list)
-    
+
     custom_case: BaseBenchmarkCase = field(default=None)
 
     expected_tool_uses: List[str] = field(default_factory=list)
 
     def __post_init__(self):
         if self.custom_case is None:
-            from benchmarks.tests.integration.predefined_cases import SIMPLE_API_UNDERSTANDING_CASE
+            from benchmarks.tests.integration.predefined_cases import (
+                SIMPLE_API_UNDERSTANDING_CASE,
+            )
+
             self.custom_case = SIMPLE_API_UNDERSTANDING_CASE
 
     @property
@@ -94,6 +109,7 @@ class GeneratorTestCase:
 # --- Shared Configuration Fixtures ---
 
 from benchmarks.tests.integration.test_config import GENERATOR_METADATA
+
 
 @pytest.fixture(scope="module")
 def model_name() -> str:
@@ -106,18 +122,16 @@ def model_name() -> str:
 
 # --- Individual Fixtures returning TestCase objects ---
 
+
 @pytest.fixture(scope="module")
 def api_test_case(model_name: str) -> GeneratorTestCase:
     """Fixture for Direct Gemini API."""
     if not has_env("GEMINI_API_KEY"):
         pytest.skip("GEMINI_API_KEY not set")
-    
+
     gen = GeminiAnswerGenerator(model_name=model_name)
-    
-    return GeneratorTestCase(
-        id="api-direct",
-        generator=gen
-    )
+
+    return GeneratorTestCase(id="api-direct", generator=gen)
 
 
 @pytest.fixture(scope="module")
@@ -125,14 +139,12 @@ async def cli_local_test_case(model_name: str) -> GeneratorTestCase:
     """Fixture for Local CLI."""
     if not has_env("GEMINI_API_KEY"):
         pytest.skip("GEMINI_API_KEY not set")
-    
+
     gen = GeminiCliLocalAnswerGenerator(model_name=model_name)
     await gen.setup()
-    
+
     return GeneratorTestCase(
-        id="cli-local",
-        generator=gen,
-        expected_gemini_cli_extensions=[]
+        id="cli-local", generator=gen, expected_gemini_cli_extensions=[]
     )
 
 
@@ -144,15 +156,14 @@ def adk_agent_test_case(model_name: str) -> GeneratorTestCase:
 
     agent = create_default_adk_agent(model_name=model_name)
     gen = AdkAnswerGenerator(agent=agent)
-    
-    return GeneratorTestCase(
-        id="adk-agent",
-        generator=gen
-    )
+
+    return GeneratorTestCase(id="adk-agent", generator=gen)
 
 
 @pytest.fixture(scope="module")
-async def managed_generator_test_case(request: pytest.FixtureRequest, model_name: str) -> GeneratorTestCase:
+async def managed_generator_test_case(
+    request: pytest.FixtureRequest, model_name: str
+) -> GeneratorTestCase:
     """
     Generic fixture for all managed generators (Podman/Cloud Run).
     It expects the request.param to be the configuration ID string.
@@ -163,38 +174,53 @@ async def managed_generator_test_case(request: pytest.FixtureRequest, model_name
     # BUT, `test_case` passes the fixture NAME string (e.g. "managed_generator_test_case[podman_base]").
     # Wait, the meta-fixture logic in `test_case` expects the param to be a fixture NAME.
     # To support dynamic orchestration, we need `test_case` to handle this.
-    
-    # Actually, simpler: We make `managed_generator_test_case` parameterized itself 
+
+    # Actually, simpler: We make `managed_generator_test_case` parameterized itself
     # over the keys of GENERATOR_METADATA.
     pass
+
 
 # We need to restructure slightly.
 # OLD: test_case iterates over ["api_test_case", "podman_base_test_case", ...]
 # NEW: test_case iterates over ["api_test_case", ..., "managed_generator_test_case"]
 # AND managed_generator_test_case is parameterized by the config keys.
 
-from benchmarks.tests.integration.config_models import PodmanGeneratorConfig, CloudRunGeneratorConfig
+from benchmarks.tests.integration.config_models import (
+    PodmanGeneratorConfig,
+    CloudRunGeneratorConfig,
+)
+
 
 @pytest.fixture(params=list(GENERATOR_METADATA.keys()), scope="module")
-async def managed_generator_test_case(request: pytest.FixtureRequest, model_name: str) -> GeneratorTestCase:
+async def managed_generator_test_case(
+    request: pytest.FixtureRequest, model_name: str
+) -> GeneratorTestCase:
     """
     Generic fixture for all managed generators defined in GENERATOR_METADATA.
     """
     config_id = request.param
     config = GENERATOR_METADATA[config_id]
-    
+
     gen_type = config.type
-    
+
     service_url = None
     # Check for Proxy Mode: The orchestrator sets TEST_GENERATOR_ID to the specific config ID
-    if os.environ.get("TEST_GENERATOR_ID") == config_id and os.environ.get("TEST_GENERATOR_URL"):
-        print(f"[Fixture] Using Proxy Generator for {config_id} at {os.environ['TEST_GENERATOR_URL']}")
+    if os.environ.get("TEST_GENERATOR_ID") == config_id and os.environ.get(
+        "TEST_GENERATOR_URL"
+    ):
+        print(
+            f"[Fixture] Using Proxy Generator for {config_id} at {os.environ['TEST_GENERATOR_URL']}"
+        )
         service_url = os.environ["TEST_GENERATOR_URL"]
     else:
         # Check for parallel execution without orchestrator
-        if os.environ.get("PYTEST_XDIST_WORKER") and not os.environ.get("TEST_GENERATOR_URL"):
-            pytest.skip(f"Skipping resource-heavy {gen_type} test {config_id} in parallel mode without orchestrator.")
-        
+        if os.environ.get("PYTEST_XDIST_WORKER") and not os.environ.get(
+            "TEST_GENERATOR_URL"
+        ):
+            pytest.skip(
+                f"Skipping resource-heavy {gen_type} test {config_id} in parallel mode without orchestrator."
+            )
+
         if gen_type == "podman" and not has_cmd("podman"):
             pytest.skip("Podman not installed")
         if gen_type == "cloud_run" and not has_env("GOOGLE_CLOUD_PROJECT"):
@@ -206,7 +232,7 @@ async def managed_generator_test_case(request: pytest.FixtureRequest, model_name
 
     print(f"--- [Setup] Initializing {gen.name} ---")
     await gen.setup()
-    
+
     return GeneratorTestCase(
         id=config.id,
         generator=gen,
@@ -214,23 +240,24 @@ async def managed_generator_test_case(request: pytest.FixtureRequest, model_name
         expected_mcp_tools=config.expected_mcp_tools,
         expected_context_files=config.expected_context_files,
         custom_case=config.custom_case,
-        expected_tool_uses=config.expected_tool_uses
+        expected_tool_uses=config.expected_tool_uses,
     )
 
 
-
 @pytest.fixture(scope="module")
-async def cli_fix_error_test_case(model_name: str, tmp_path_factory: pytest.TempPathFactory) -> GeneratorTestCase:
+async def cli_fix_error_test_case(
+    model_name: str, tmp_path_factory: pytest.TempPathFactory
+) -> GeneratorTestCase:
     """Fixture for Local CLI running a Fix Error case."""
     if not has_env("GEMINI_API_KEY"):
         pytest.skip("GEMINI_API_KEY not set")
-    
+
     gen = GeminiCliLocalAnswerGenerator(model_name=model_name)
     await gen.setup()
-    
+
     # Create a temporary directory for this specific test case setup
     case_tmp_path = tmp_path_factory.mktemp("fix_error_case")
-    
+
     # Setup files for the fix error case
     test_file_path = case_tmp_path / "test_agent.py"
     unfixed_file_path = case_tmp_path / "unfixed.py"
@@ -241,6 +268,7 @@ async def cli_fix_error_test_case(model_name: str, tmp_path_factory: pytest.Temp
     fixed_file_path.write_text("def fixed(): pass")
 
     from benchmarks.tests.integration.test_utils import create_fix_error_benchmark_case
+
     case = create_fix_error_benchmark_case(
         case_path=case_tmp_path,
         name="Test Fix Error",
@@ -261,7 +289,7 @@ async def cli_fix_error_test_case(model_name: str, tmp_path_factory: pytest.Temp
         id="cli-fix-error",
         generator=gen,
         expected_gemini_cli_extensions=[],
-        custom_case=case
+        custom_case=case,
     )
 
 
@@ -269,8 +297,11 @@ async def cli_fix_error_test_case(model_name: str, tmp_path_factory: pytest.Temp
 
 from benchmarks.tests.integration.test_config import TEST_CASE_FIXTURES
 
+
 @pytest.fixture(params=TEST_CASE_FIXTURES, scope="module")
-async def test_case(request: pytest.FixtureRequest, model_name: str) -> GeneratorTestCase:
+async def test_case(
+    request: pytest.FixtureRequest, model_name: str
+) -> GeneratorTestCase:
     """
     Meta-fixture that provides the GeneratorTestCase for the current test iteration.
     It handles both:
@@ -283,17 +314,25 @@ async def test_case(request: pytest.FixtureRequest, model_name: str) -> Generato
     if case_id in GENERATOR_METADATA:
         config = GENERATOR_METADATA[case_id]
         gen_type = config.type
-        
+
         service_url = None
         # Check for Proxy Mode
-        if os.environ.get("TEST_GENERATOR_ID") == case_id and os.environ.get("TEST_GENERATOR_URL"):
-            print(f"[Fixture] Using Proxy Generator for {case_id} at {os.environ['TEST_GENERATOR_URL']}")
+        if os.environ.get("TEST_GENERATOR_ID") == case_id and os.environ.get(
+            "TEST_GENERATOR_URL"
+        ):
+            print(
+                f"[Fixture] Using Proxy Generator for {case_id} at {os.environ['TEST_GENERATOR_URL']}"
+            )
             service_url = os.environ["TEST_GENERATOR_URL"]
         else:
             # Check for parallel execution without orchestrator
-            if os.environ.get("PYTEST_XDIST_WORKER") and not os.environ.get("TEST_GENERATOR_URL"):
-                pytest.skip(f"Skipping resource-heavy {gen_type} test {case_id} in parallel mode without orchestrator.")
-            
+            if os.environ.get("PYTEST_XDIST_WORKER") and not os.environ.get(
+                "TEST_GENERATOR_URL"
+            ):
+                pytest.skip(
+                    f"Skipping resource-heavy {gen_type} test {case_id} in parallel mode without orchestrator."
+                )
+
             if gen_type == "podman" and not has_cmd("podman"):
                 pytest.skip("Podman not installed")
             if gen_type == "cloud_run" and not has_env("GOOGLE_CLOUD_PROJECT"):
@@ -307,26 +346,29 @@ async def test_case(request: pytest.FixtureRequest, model_name: str) -> Generato
                 image_name=config.image_name,
                 image_definitions=IMAGE_DEFINITIONS,
                 model_name=model_name,
-                service_url=service_url
+                service_url=service_url,
             )
         elif isinstance(config, CloudRunGeneratorConfig):
-            from benchmarks.answer_generators.gemini_cli_docker.gemini_cli_cloud_run_answer_generator import GeminiCliCloudRunAnswerGenerator
+            from benchmarks.answer_generators.gemini_cli_docker.gemini_cli_cloud_run_answer_generator import (
+                GeminiCliCloudRunAnswerGenerator,
+            )
+
             gen = GeminiCliCloudRunAnswerGenerator(
                 dockerfile_dir=config.dockerfile_dir,
                 service_name=config.service_name,
                 model_name=model_name,
                 service_url=service_url,
-                region=config.region
+                region=config.region,
             )
         else:
             pytest.fail(f"Unknown generator type: {type(config)}")
 
         custom_case_data = config.custom_case
-        custom_case_instance = custom_case_data # It's already an instance or None
+        custom_case_instance = custom_case_data  # It's already an instance or None
 
         print(f"--- [Setup] Initializing {gen.name} ---")
         await gen.setup()
-        
+
         return GeneratorTestCase(
             id=config.id,
             generator=gen,
@@ -334,9 +376,9 @@ async def test_case(request: pytest.FixtureRequest, model_name: str) -> Generato
             expected_mcp_tools=config.expected_mcp_tools,
             expected_context_files=config.expected_context_files,
             custom_case=custom_case_instance,
-            expected_tool_uses=config.expected_tool_uses
+            expected_tool_uses=config.expected_tool_uses,
         )
-    
+
     # 2. Fallback to Local Fixtures
     else:
         # For async fixtures, getfixturevalue returns the result directly (awaited by pytest)

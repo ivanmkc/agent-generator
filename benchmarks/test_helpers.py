@@ -32,20 +32,20 @@ MODEL_NAME = "gemini-2.5-flash"
 
 
 def basic_tool(query: str) -> str:
-  """A simple tool that returns a fixed string."""
-  return f"The tool received the query: {query}"
+    """A simple tool that returns a fixed string."""
+    return f"The tool received the query: {query}"
 
 
 class BasicOutputSchema(BaseModel):
-  """A basic Pydantic model for testing output_schema."""
+    """A basic Pydantic model for testing output_schema."""
 
-  field_one: str = Field(description="The first field.")
-  field_two: int = Field(description="The second field.")
+    field_one: str = Field(description="The first field.")
+    field_two: int = Field(description="The second field.")
 
 
 def create_basic_llm_agent(name: str, instruction: str) -> LlmAgent:
-  """Creates a simple LlmAgent with a default model."""
-  return LlmAgent(name=name, model=MODEL_NAME, instruction=instruction)
+    """Creates a simple LlmAgent with a default model."""
+    return LlmAgent(name=name, model=MODEL_NAME, instruction=instruction)
 
 
 async def run_agent_test(
@@ -56,74 +56,74 @@ async def run_agent_test(
     mock_llm_response: str | None = "This is a mocked response.",
     expect_response: bool = True,
 ) -> str:
-  """Runs a test against a given agent and returns the final response."""
-  # Patch the Client class where it is imported in the code or globally
-  with patch("google.genai.Client") as mock_client_cls:
-    if mock_llm_response:
-      # Configure the mock client instance
-      mock_client_instance = mock_client_cls.return_value
+    """Runs a test against a given agent and returns the final response."""
+    # Patch the Client class where it is imported in the code or globally
+    with patch("google.genai.Client") as mock_client_cls:
+        if mock_llm_response:
+            # Configure the mock client instance
+            mock_client_instance = mock_client_cls.return_value
 
-      # Create a mock response object matching the expected structure
-      mock_response = types.GenerateContentResponse(
-          candidates=[
-              types.Candidate(
-                  content=types.Content(
-                      parts=[types.Part(text=mock_llm_response)], role="model"
-                  )
-              )
-          ]
-      )
+            # Create a mock response object matching the expected structure
+            mock_response = types.GenerateContentResponse(
+                candidates=[
+                    types.Candidate(
+                        content=types.Content(
+                            parts=[types.Part(text=mock_llm_response)], role="model"
+                        )
+                    )
+                ]
+            )
 
-      # Mock the async generate_content method
-      # Note: We need to mock the chain .aio.models.generate_content
-      mock_client_instance.aio.models.generate_content = AsyncMock(
-          return_value=mock_response
-      )
+            # Mock the async generate_content method
+            # Note: We need to mock the chain .aio.models.generate_content
+            mock_client_instance.aio.models.generate_content = AsyncMock(
+                return_value=mock_response
+            )
 
-    app = App(name=f"test_app_{agent.name}", root_agent=agent)
-    runner = InMemoryRunner(app=app)
+        app = App(name=f"test_app_{agent.name}", root_agent=agent)
+        runner = InMemoryRunner(app=app)
 
-    session = await runner.session_service.create_session(
-        app_name=app.name, user_id="test-user", state=initial_state or {}
-    )
-
-    if artifact_data:
-      for filename, value in artifact_data.items():
-        await runner.artifact_service.save_artifact(
-            app_name=app.name,
-            user_id="test-user",
-            session_id=session.id,
-            filename=filename,
-            artifact=types.Part(text=value),
+        session = await runner.session_service.create_session(
+            app_name=app.name, user_id="test-user", state=initial_state or {}
         )
 
-    final_response = ""
-    async for event in runner.run_async(
-        user_id=session.user_id,
-        session_id=session.id,
-        new_message=types.Content(
-            role="user", parts=[types.Part(text=input_message)]
-        ),
-    ):
-      if event.is_final_response() and event.content and event.content.parts:
-        text_parts = [
-            part.text
-            for part in event.content.parts
-            if hasattr(part, "text") and part.text is not None
-        ]
-        if text_parts:
-          final_response = "".join(text_parts)
+        if artifact_data:
+            for filename, value in artifact_data.items():
+                await runner.artifact_service.save_artifact(
+                    app_name=app.name,
+                    user_id="test-user",
+                    session_id=session.id,
+                    filename=filename,
+                    artifact=types.Part(text=value),
+                )
 
-        tool_parts = [
-            part.function_call.name
-            for part in event.content.parts
-            if hasattr(part, "function_call") and part.function_call is not None
-        ]
-        if tool_parts:
-          final_response = "".join(tool_parts)
+        final_response = ""
+        async for event in runner.run_async(
+            user_id=session.user_id,
+            session_id=session.id,
+            new_message=types.Content(
+                role="user", parts=[types.Part(text=input_message)]
+            ),
+        ):
+            if event.is_final_response() and event.content and event.content.parts:
+                text_parts = [
+                    part.text
+                    for part in event.content.parts
+                    if hasattr(part, "text") and part.text is not None
+                ]
+                if text_parts:
+                    final_response = "".join(text_parts)
 
-    if expect_response:
-      assert (
-          final_response
-      ), f"Agent {agent.name} produced an empty final response."
-    return final_response
+                tool_parts = [
+                    part.function_call.name
+                    for part in event.content.parts
+                    if hasattr(part, "function_call") and part.function_call is not None
+                ]
+                if tool_parts:
+                    final_response = "".join(tool_parts)
+
+        if expect_response:
+            assert (
+                final_response
+            ), f"Agent {agent.name} produced an empty final response."
+        return final_response

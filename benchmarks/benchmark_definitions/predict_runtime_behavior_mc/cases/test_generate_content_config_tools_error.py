@@ -20,25 +20,25 @@ import pytest
 
 # --8<-- [start:generate_content_config_tools_error]
 def code_under_test():
-  my_tool = lambda: None
-  gen_config = types.GenerateContentConfig(tools=[my_tool])
-  LlmAgent(
-      name="agent",
-      model="gemini-2.5-flash",
-      generate_content_config=gen_config,
-  )
+    my_tool = lambda: None
+    gen_config = types.GenerateContentConfig(tools=[my_tool])
+    LlmAgent(
+        name="agent",
+        model="gemini-2.5-flash",
+        generate_content_config=gen_config,
+    )
 
 
 # --8<-- [end:generate_content_config_tools_error]
 
 
 def test_generate_content_config_tools_error():
-  """
-  Validates that tools in generate_content_config raises ValidationError.
-  """
-  # Expected behavior: A ValidationError is raised because `tools` is not a valid
-  # field in `GenerateContentConfig`.
-  with pytest.raises(
-      ValidationError, match="All tools must be set via LlmAgent.tools"
-  ):
-    code_under_test()
+    """
+    Validates that tools in generate_content_config raises ValidationError.
+    """
+    # Expected behavior: A ValidationError is raised because `tools` is not a valid
+    # field in `GenerateContentConfig`.
+    with pytest.raises(
+        ValidationError, match="All tools must be set via LlmAgent.tools"
+    ):
+        code_under_test()

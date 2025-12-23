@@ -17,9 +17,12 @@
 import asyncio
 from typing import Any
 
-from benchmarks.answer_generators.gemini_cli_answer_generator import GeminiCliAnswerGenerator
+from benchmarks.answer_generators.gemini_cli_answer_generator import (
+    GeminiCliAnswerGenerator,
+)
 from benchmarks.data_models import TraceLogEvent
 from benchmarks.utils import parse_cli_stream_json_output
+
 
 class GeminiCliLocalAnswerGenerator(GeminiCliAnswerGenerator):
     """An AnswerGenerator that uses the local gemini CLI."""
@@ -46,14 +49,27 @@ class GeminiCliLocalAnswerGenerator(GeminiCliAnswerGenerator):
         logs: list[TraceLogEvent] = []
         for line in stderr_str.splitlines():
             if line.strip():
-                logs.append(TraceLogEvent(type="CLI_STDERR", source=self.name, content=line.strip()))
+                logs.append(
+                    TraceLogEvent(
+                        type="CLI_STDERR", source=self.name, content=line.strip()
+                    )
+                )
 
         # Always log full stdout for debugging/archival
         if stdout_str:
-            logs.append(TraceLogEvent(type="CLI_STDOUT_FULL", source=self.name, content=stdout_str))
+            logs.append(
+                TraceLogEvent(
+                    type="CLI_STDOUT_FULL", source=self.name, content=stdout_str
+                )
+            )
 
         # Parse stdout. If stream-json, parse events. Otherwise, treat as raw message.
-        response_dict = {"stdout": stdout_str, "stderr": stderr_str, "exit_code": proc.returncode, "response": ""}
+        response_dict = {
+            "stdout": stdout_str,
+            "stderr": stderr_str,
+            "exit_code": proc.returncode,
+            "response": "",
+        }
         if "--output-format" in command_parts and "stream-json" in command_parts:
             parsed_response_dict, parsed_logs = parse_cli_stream_json_output(stdout_str)
             response_dict.update(parsed_response_dict)
@@ -61,7 +77,13 @@ class GeminiCliLocalAnswerGenerator(GeminiCliAnswerGenerator):
         else:
             # If not stream-json, treat stdout as a single response message for logging purposes
             if stdout_str.strip():
-                logs.append(TraceLogEvent(type="CLI_STDOUT_RAW", source=self.name, content=stdout_str.strip()))
+                logs.append(
+                    TraceLogEvent(
+                        type="CLI_STDOUT_RAW",
+                        source=self.name,
+                        content=stdout_str.strip(),
+                    )
+                )
             response_dict["response"] = stdout_str.strip()  # Direct text response
 
         if proc.returncode != 0:

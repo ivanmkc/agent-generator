@@ -18,22 +18,22 @@ from pydantic import BaseModel
 
 # --8<-- [start:output_schema_json_enforcement]
 def code_under_test():
-  class MySchema(BaseModel):
-    answer: str
+    class MySchema(BaseModel):
+        answer: str
 
-  kwargs = {"output_schema": MySchema}
-  agent = LlmAgent(name="json_agent", model="gemini-2.5-flash", **kwargs)
-  return agent, MySchema
+    kwargs = {"output_schema": MySchema}
+    agent = LlmAgent(name="json_agent", model="gemini-2.5-flash", **kwargs)
+    return agent, MySchema
 
 
 # --8<-- [end:output_schema_json_enforcement]
 
 
 def test_output_schema_json_enforcement():
-  """
-  Validates 'output_schema' acceptance.
-  """
-  # Expected behavior: The LlmAgent is created successfully with the
-  # `output_schema` parameter.
-  agent, MySchema = code_under_test()
-  assert agent.output_schema == MySchema
+    """
+    Validates 'output_schema' acceptance.
+    """
+    # Expected behavior: The LlmAgent is created successfully with the
+    # `output_schema` parameter.
+    agent, MySchema = code_under_test()
+    assert agent.output_schema == MySchema

@@ -21,32 +21,34 @@ from benchmarks.test_helpers import run_agent_test
 
 
 def test_create_agent_unfixed_raises_error():
-  import unfixed
+    import unfixed
 
-  # The unfixed version should raise NotImplementedError
-  with pytest.raises(NotImplementedError):
-      unfixed.create_agent(MODEL_NAME)
+    # The unfixed version should raise NotImplementedError
+    with pytest.raises(NotImplementedError):
+        unfixed.create_agent(MODEL_NAME)
 
 
 @pytest.mark.asyncio
 async def test_create_agent_passes():
-  import fixed
+    import fixed
 
-  root_agent = fixed.create_agent(MODEL_NAME)
+    root_agent = fixed.create_agent(MODEL_NAME)
 
-  assert isinstance(
-      root_agent, BaseAgent
-  ), "root_agent should be an instance of Agent"
-  
-  # Verify positive case
-  response = await run_agent_test(
-      root_agent, "Say hello.", mock_llm_response="Hello World!"
-  )
-  assert "Hello World!" in response, "Agent should respond with 'Hello World!'"
-  assert root_agent.name == "logic_agent", "Agent name mismatch."
+    assert isinstance(
+        root_agent, BaseAgent
+    ), "root_agent should be an instance of Agent"
 
-  # Verify negative case
-  response_negative = await run_agent_test(
-      root_agent, "Something else", mock_llm_response="Goodbye!"
-  )
-  assert "Goodbye!" in response_negative, "Agent should respond with 'Goodbye!' for other inputs."
+    # Verify positive case
+    response = await run_agent_test(
+        root_agent, "Say hello.", mock_llm_response="Hello World!"
+    )
+    assert "Hello World!" in response, "Agent should respond with 'Hello World!'"
+    assert root_agent.name == "logic_agent", "Agent name mismatch."
+
+    # Verify negative case
+    response_negative = await run_agent_test(
+        root_agent, "Something else", mock_llm_response="Goodbye!"
+    )
+    assert (
+        "Goodbye!" in response_negative
+    ), "Agent should respond with 'Goodbye!' for other inputs."

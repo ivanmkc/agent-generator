@@ -28,7 +28,9 @@ from benchmarks.answer_generators.gemini_cli_docker import (
     GeminiCliPodmanAnswerGenerator,
 )
 from benchmarks.answer_generators.base import AnswerGenerator
-from benchmarks.answer_generators.gemini_cli_docker.image_definitions import IMAGE_DEFINITIONS
+from benchmarks.answer_generators.gemini_cli_docker.image_definitions import (
+    IMAGE_DEFINITIONS,
+)
 from benchmarks.answer_generators.ground_truth_answer_generator import (
     GroundTruthAnswerGenerator,
 )
@@ -36,11 +38,13 @@ from benchmarks.answer_generators.trivial_answer_generator import TrivialAnswerG
 from benchmarks.utils import permute
 from benchmarks.api_key_manager import ApiKeyManager
 
+
 # Define model constants as enum
 class ModelName(StrEnum):
     GEMINI_2_5_FLASH = "gemini-2.5-flash"
     GEMINI_2_5_PRO = "gemini-2.5-pro"
     GEMINI_3_0_PRO = "gemini-3.0-pro"
+
 
 api_key_manager = ApiKeyManager()
 
@@ -50,24 +54,32 @@ agent_pro = create_default_adk_agent(model_name=ModelName.GEMINI_2_5_PRO)
 
 _podman_image_configs = [
     {
-        "image_name": "gemini-cli:base", 
-        "dockerfile_dir": Path("benchmarks/answer_generators/gemini_cli_docker/base")
+        "image_name": "gemini-cli:base",
+        "dockerfile_dir": Path("benchmarks/answer_generators/gemini_cli_docker/base"),
     },
     {
-        "image_name": "gemini-cli:adk-python", 
-        "dockerfile_dir": Path("benchmarks/answer_generators/gemini_cli_docker/adk-python")
+        "image_name": "gemini-cli:adk-python",
+        "dockerfile_dir": Path(
+            "benchmarks/answer_generators/gemini_cli_docker/adk-python"
+        ),
     },
     {
-        "image_name": "gemini-cli:adk-docs-ext", 
-        "dockerfile_dir": Path("benchmarks/answer_generators/gemini_cli_docker/adk-docs-ext")
+        "image_name": "gemini-cli:adk-docs-ext",
+        "dockerfile_dir": Path(
+            "benchmarks/answer_generators/gemini_cli_docker/adk-docs-ext"
+        ),
     },
     {
-        "image_name": "gemini-cli:mcp-context7", 
-        "dockerfile_dir": Path("benchmarks/answer_generators/gemini_cli_docker/gemini-cli-mcp-context7")
+        "image_name": "gemini-cli:mcp-context7",
+        "dockerfile_dir": Path(
+            "benchmarks/answer_generators/gemini_cli_docker/gemini-cli-mcp-context7"
+        ),
     },
     {
-        "image_name": "gemini-cli:mcp_adk_agent_runner", 
-        "dockerfile_dir": Path("benchmarks/answer_generators/gemini_cli_docker/mcp_adk_agent_runner")
+        "image_name": "gemini-cli:mcp_adk_agent_runner",
+        "dockerfile_dir": Path(
+            "benchmarks/answer_generators/gemini_cli_docker/mcp_adk_agent_runner"
+        ),
     },
 ]
 
@@ -79,12 +91,14 @@ CANDIDATE_GENERATORS = [
         image_definitions=IMAGE_DEFINITIONS,
         api_key_manager=api_key_manager,
     )
-    for model_name in [ModelName.GEMINI_2_5_FLASH]#, ModelName.GEMINI_2_5_PRO]
+    for model_name in [ModelName.GEMINI_2_5_FLASH]  # , ModelName.GEMINI_2_5_PRO]
     for config in _podman_image_configs
 ]
 
-CANDIDATE_GENERATORS.extend([
-    # Control generators
-    GroundTruthAnswerGenerator(),
-    TrivialAnswerGenerator(),
-])
+CANDIDATE_GENERATORS.extend(
+    [
+        # Control generators
+        GroundTruthAnswerGenerator(),
+        TrivialAnswerGenerator(),
+    ]
+)
