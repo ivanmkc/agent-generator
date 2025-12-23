@@ -16,20 +16,14 @@ RUN git clone --branch v1.20.0 https://github.com/google/adk-python.git /workdir
 
 # Create the GEMINI_CONFIG_DIR and copy settings.json
 RUN mkdir -p /tmp/.gemini/
-COPY --chown=node:node settings.json /workdir/.gemini/settings.json
+COPY settings.json /workdir/.gemini/settings.json
 
 # Copy the INSTRUCTIONS.md for context
-COPY --chown=node:node INSTRUCTIONS.md /workdir/INSTRUCTIONS.md
+COPY INSTRUCTIONS.md /workdir/INSTRUCTIONS.md
 
 # Write version.txt from build argument
 ARG VERSION=unknown
 RUN echo "${VERSION}" > /workdir/version.txt
 
-# Ensure node owns /workdir
-RUN chown -R node:node /workdir
-
 # Set the final working directory to /workdir/
 WORKDIR /workdir
-
-# Switch back to a non-root user
-USER node
