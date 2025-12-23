@@ -27,3 +27,4 @@ prof/
 traces_verification/
 
 .DS_Store
+tmp/
