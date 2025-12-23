@@ -48,22 +48,56 @@ from benchmarks.answer_generators.hash_utils import calculate_source_hash
 
 
 class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
-    """An AnswerGenerator that uses the gemini CLI hosted in a local Podman container (API Server mode)."""
+    """
+    An AnswerGenerator that uses the gemini CLI hosted in a local Podman container.
+
+    This generator manages the lifecycle of a Podman container running the Gemini CLI
+    in API server mode. It builds the necessary Docker images (if not present or outdated),
+    starts the container, and communicates with it via HTTP requests.
+
+    The image name is dynamically generated from the `dockerfile_dir` name if not
+    explicitly provided, following the pattern `gemini-cli:{directory_name}`.
+
+    Attributes:
+        image_name: The resolved Docker image name.
+        dockerfile_dir: The local path to the directory containing the Dockerfile.
+        _image_definitions: A dictionary of predefined image configurations.
+        context_instruction: Optional additional context for the Gemini CLI.
+        _base_url: The base URL of the running API server in the container.
+        _is_proxy: True if this generator is acting as a proxy to an externally
+                   managed service.
+        _container_name: The name of the Podman container managed by this instance.
+    """
 
     def __init__(
         self,
         dockerfile_dir: str | Path,
-        image_name: str,
         image_definitions: dict[str, ImageDefinition],
+        image_name: str | None = None,
         model_name: str = "gemini-2.5-pro",
         context_instruction: str | None = None,
         service_url: str | None = None,
         api_key_manager: ApiKeyManager | None = None,
     ):
+        """
+        Initializes the GeminiCliPodmanAnswerGenerator.
+
+        Args:
+            dockerfile_dir: The path to the directory containing the Dockerfile
+                            for the image to be built/run.
+            image_definitions: A dictionary containing definitions for managed images.
+            image_name: Optional. The name to use for the Docker image. If not provided,
+                        it will be dynamically generated as `gemini-cli:{dockerfile_dir.name}`.
+            model_name: The LLM model name to pass to the Gemini CLI.
+            context_instruction: Optional additional context string to prepend to prompts.
+            service_url: Optional. If provided, the generator acts as a proxy to an
+                         already running service at this URL, skipping container management.
+            api_key_manager: Optional. An instance of ApiKeyManager for managing API keys.
+        """
         # Store all arguments specific to this class
-        self.image_name = image_name
-        self._image_definitions = image_definitions
         self.dockerfile_dir = Path(dockerfile_dir)
+        self.image_name = image_name or f"gemini-cli:{self.dockerfile_dir.name}"
+        self._image_definitions = image_definitions
         self.context_instruction = context_instruction
 
         # Call the parent constructor with only the arguments it expects
