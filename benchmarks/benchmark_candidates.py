@@ -1,8 +1,4 @@
 # Copyright 2025 Google LLC
-
-# %%
-# Parameters cell for papermill
-run_output_dir_str = "benchmark_runs/default_output" # This will be overwritten by papermill
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -46,49 +42,32 @@ class ModelName(StrEnum):
     GEMINI_2_5_PRO = "gemini-2.5-pro"
     GEMINI_3_0_PRO = "gemini-3.0-pro"
 
-
-# Helper to get project ID for Docker image
-def get_gcloud_project():
-  try:
-    if os.environ.get("GOOGLE_CLOUD_PROJECT"):
-      return os.environ.get("GOOGLE_CLOUD_PROJECT")
-    # Fallback to gcloud config
-    return subprocess.check_output(
-        ["gcloud", "config", "get-value", "project"], text=True
-    ).strip()
-  except (subprocess.CalledProcessError, FileNotFoundError):
-    # Fallback hardcoded if everything fails (user can modify this)
-    return "ivanmkc-experimental-665175"
-
-
-project_id = get_gcloud_project()
 api_key_manager = ApiKeyManager()
-
 
 # Create pre-configured agent instances for AdkAnswerGenerator
 agent_flash = create_default_adk_agent(model_name=ModelName.GEMINI_2_5_FLASH)
 agent_pro = create_default_adk_agent(model_name=ModelName.GEMINI_2_5_PRO)
 
 _podman_image_configs = [
-    # {
-    #     "image_name": "gemini-cli:base", 
-    #     "dockerfile_dir": Path("benchmarks/answer_generators/gemini_cli_docker/base")
-    # },
-    # {
-    #     "image_name": "gemini-cli:adk-python", 
-    #     "dockerfile_dir": Path("benchmarks/answer_generators/gemini_cli_docker/adk-python")
-    # },
-    # {
-    #     "image_name": "gemini-cli:adk-docs-ext", 
-    #     "dockerfile_dir": Path("benchmarks/answer_generators/gemini_cli_docker/adk-docs-ext")
-    # },
-    # {
-    #     "image_name": "gemini-cli:mcp-context7", 
-    #     "dockerfile_dir": Path("benchmarks/answer_generators/gemini_cli_docker/gemini-cli-mcp-context7")
-    # },
     {
-        "image_name": "gemini-cli:mcp-adk-agent-runner", 
-        "dockerfile_dir": Path("benchmarks/answer_generators/gemini_cli_docker/mcp-adk-agent-runner")
+        "image_name": "gemini-cli:base", 
+        "dockerfile_dir": Path("benchmarks/answer_generators/gemini_cli_docker/base")
+    },
+    {
+        "image_name": "gemini-cli:adk-python", 
+        "dockerfile_dir": Path("benchmarks/answer_generators/gemini_cli_docker/adk-python")
+    },
+    {
+        "image_name": "gemini-cli:adk-docs-ext", 
+        "dockerfile_dir": Path("benchmarks/answer_generators/gemini_cli_docker/adk-docs-ext")
+    },
+    {
+        "image_name": "gemini-cli:mcp-context7", 
+        "dockerfile_dir": Path("benchmarks/answer_generators/gemini_cli_docker/gemini-cli-mcp-context7")
+    },
+    {
+        "image_name": "gemini-cli:mcp_adk_agent_runner", 
+        "dockerfile_dir": Path("benchmarks/answer_generators/gemini_cli_docker/mcp_adk_agent_runner")
     },
 ]
 

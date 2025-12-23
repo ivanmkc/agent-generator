@@ -341,12 +341,7 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
             ["-e", f"GOOGLE_APPLICATION_CREDENTIALS={container_adc_path}"]
         )
       
-      # Config Dir
-      # podman_args.extend(["-e", "GEMINI_CONFIG_DIR=/tmp/.gemini/"])
-
       podman_args.append(self.image_name)
-      # Explicitly run the server, which works for both CMD-only images (overrides CMD)
-      # and ENTRYPOINT images (passed as args to entrypoint script)
       
       print(f"[Podman Setup] Running command: {" ".join(podman_args)}")
       proc = await asyncio.create_subprocess_exec(
