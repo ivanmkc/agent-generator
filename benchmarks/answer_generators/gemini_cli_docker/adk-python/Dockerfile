@@ -25,6 +25,9 @@ COPY --chown=node:node INSTRUCTIONS.md /workdir/INSTRUCTIONS.md
 ARG VERSION=unknown
 RUN echo "${VERSION}" > /workdir/version.txt
 
+# Ensure node owns /workdir
+RUN chown -R node:node /workdir
+
 # Set the final working directory to /workdir/
 WORKDIR /workdir
 
