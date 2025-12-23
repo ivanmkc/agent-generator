@@ -1,14 +1,14 @@
 import enum
+from pathlib import Path
 from benchmarks.utils import permute
 from benchmarks.api_key_manager import ApiKeyManager
 from benchmarks.answer_generators.adk_agents import create_default_adk_agent
-from pathlib import Path
 from benchmarks.answer_generators.gemini_cli_docker import (
     GeminiCliPodmanAnswerGenerator,
 )
-
-from benchmarks.answer_generators import GroundTruthAnswerGenerator
-from benchmarks.answer_generators import TrivialAnswerGenerator
+from benchmarks.answer_generators.ground_truth_answer_generator import GroundTruthAnswerGenerator
+from benchmarks.answer_generators.trivial_answer_generator import TrivialAnswerGenerator
+from benchmarks.answer_generators.workflow_adk_agent import WorkflowAdkAnswerGenerator
 from benchmarks.answer_generators.gemini_cli_docker.image_definitions import (
         IMAGE_DEFINITIONS,
     )
@@ -27,11 +27,11 @@ agent_flash = create_default_adk_agent(model_name=ModelName.GEMINI_2_5_FLASH)
 agent_pro = create_default_adk_agent(model_name=ModelName.GEMINI_2_5_PRO)
 
 _podman_image_dirs = [
-    Path("benchmarks/answer_generators/gemini_cli_docker/base"),
-    Path("benchmarks/answer_generators/gemini_cli_docker/adk-python"),
+    # Path("benchmarks/answer_generators/gemini_cli_docker/base"),
+    # Path("benchmarks/answer_generators/gemini_cli_docker/adk-python"),
     Path("benchmarks/answer_generators/gemini_cli_docker/adk-docs-ext"),
     Path("benchmarks/answer_generators/gemini_cli_docker/mcp_context7"),
-    Path("benchmarks/answer_generators/gemini_cli_docker/mcp_adk_agent_runner"),
+    # Path("benchmarks/answer_generators/gemini_cli_docker/mcp_adk_agent_runner"),
 ]
 
 CANDIDATE_GENERATORS = list(permute(
@@ -46,4 +46,5 @@ CANDIDATE_GENERATORS.extend([
     # Control generators
     GroundTruthAnswerGenerator(),
     TrivialAnswerGenerator(),
+    WorkflowAdkAnswerGenerator(model_name=ModelName.GEMINI_2_5_FLASH, api_key_manager=api_key_manager),
 ])
