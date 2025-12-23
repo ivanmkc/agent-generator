@@ -208,6 +208,7 @@ class PytestBenchmarkRunner(BenchmarkRunner[FixErrorBenchmarkCase]):
         "-m",
         "pytest",
         "--asyncio-mode=auto",
+        "-vv",
         "test_temp.py",
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
