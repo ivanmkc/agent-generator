@@ -15,12 +15,20 @@
 """An AnswerGenerator that uses an ADK Agent to generate answers."""
 
 import uuid
+import tempfile
+import shutil
+import subprocess
+import os
+from pathlib import Path
+from typing import Optional
 
-from google.adk.agents import Agent
+from google.adk.agents import Agent, LlmAgent
+from google.adk.tools import FunctionTool
 from google.adk.runners import InMemoryRunner
 from google.genai import types
 
 from benchmarks.answer_generators.llm_base import LlmAnswerGenerator
+from benchmarks.answer_generators.adk_tools import AdkTools
 from benchmarks.data_models import ApiUnderstandingAnswerOutput
 from benchmarks.data_models import ApiUnderstandingBenchmarkCase
 from benchmarks.data_models import BaseBenchmarkCase
@@ -31,17 +39,107 @@ from benchmarks.data_models import MultipleChoiceAnswerOutput
 from benchmarks.data_models import MultipleChoiceBenchmarkCase
 from benchmarks.data_models import TraceLogEvent
 from benchmarks.data_models import UsageMetadata
+from benchmarks.api_key_manager import ApiKeyManager
 
 
 class AdkAnswerGenerator(LlmAnswerGenerator):
     """An AnswerGenerator that uses an ADK Agent."""
 
-    def __init__(self, agent: Agent, name: str | None = None):
-        # Context handling is not primarily used for ADK agents yet, passing None
+    def __init__(
+        self,
+        agent: Optional[Agent] = None,
+        name: str | None = None,
+        enable_workflow: bool = False,
+        workspace_root: Path | None = None,
+        model_name: str = "gemini-2.5-flash",
+        api_key_manager: ApiKeyManager | None = None,
+    ):
         super().__init__(context=None)
+        self.api_key_manager = api_key_manager
+        self.enable_workflow = enable_workflow
+        self.workspace_root = workspace_root
+        self._setup_completed = False
+        
+        if self.enable_workflow:
+             if not self.workspace_root:
+                  self.workspace_root = Path(tempfile.mkdtemp(prefix="adk_workflow_"))
+             self.tools = AdkTools(self.workspace_root)
+             
+             if not agent:
+                 # Create default workflow agent
+                 agent = LlmAgent(
+                    name="workflow_solver",
+                    model=model_name,
+                    tools=[
+                        FunctionTool(self.tools.read_file),
+                        FunctionTool(self.tools.write_file),
+                        FunctionTool(self.tools.list_directory),
+                        FunctionTool(self.tools.run_shell_command),
+                        FunctionTool(self.tools.search_files),
+                    ],
+                    instruction=(
+                        "You are an expert software engineer tasked with solving programming benchmarks. "
+                        "You have access to a set of tools to read code, write files, and run commands. "
+                        f"You are operating in a workspace at {self.workspace_root}. "
+                        "The ADK Python repository is available at `repos/adk-python` relative to the workspace root. "
+                        "\n\n"
+                        "**Workflow:**\n"
+                        "1.  **Analyze:** Read the benchmark requirements and explore the codebase if necessary. "
+                        "Use `list_directory` and `read_file` to understand the environment.\n"
+                        "2.  **Plan:** Determine what code needs to be written or fixed.\n"
+                        "3.  **Implement:** Use `write_file` to create or modify the necessary Python files.\n"
+                        "4.  **Verify:** Use `run_shell_command` to execute tests (e.g., `pytest`) or run the code directly to ensure it works.\n"
+                        "5.  **Iterate:** If verification fails, analyze the error, fix the code, and verify again.\n"
+                        "6.  **Final Output:** Once satisfied, output the final JSON as requested by the user prompt."
+                    ),
+                 )
+
         self.agent = agent
-        self._name = name or f"AdkAnswerGenerator({self.agent.name})"
-        self.runner = InMemoryRunner(agent=self.agent)
+        if self.agent:
+             self.runner = InMemoryRunner(agent=self.agent)
+        else:
+             self.runner = None # Should not happen if used correctly
+             
+        self._name = name or f"AdkAnswerGenerator({self.agent.name if self.agent else 'None'})"
+
+    async def setup(self, force_deploy: bool = False) -> None:
+        """Sets up the workspace by cloning the ADK repository if enabled."""
+        if not self.enable_workflow or (self._setup_completed and not force_deploy):
+            return
+
+        print(f"[{self.name}] Setting up workspace at {self.workspace_root}")
+        
+        # Ensure workspace exists
+        self.workspace_root.mkdir(parents=True, exist_ok=True)
+        
+        # Define paths
+        repos_dir = self.workspace_root / "repos"
+        adk_repo_dir = repos_dir / "adk-python"
+        
+        repos_dir.mkdir(exist_ok=True)
+        
+        # Clone ADK Python
+        if not adk_repo_dir.exists():
+            print(f"[{self.name}] Cloning adk-python...")
+            try:
+                subprocess.run(
+                    ["git", "clone", "--branch", "v1.20.0", "https://github.com/google/adk-python.git", str(adk_repo_dir)],
+                    check=True,
+                    capture_output=True
+                )
+            except subprocess.CalledProcessError as e:
+                raise RuntimeError(f"Failed to clone adk-python: {e.stderr.decode()}")
+        
+        self._setup_completed = True
+        print(f"[{self.name}] Setup complete.")
+
+    async def teardown(self) -> None:
+        """Cleans up the temporary workspace."""
+        if self.enable_workflow and self.workspace_root and self.workspace_root.exists():
+            # Be careful not to delete user provided workspace unless intended?
+            # Assuming temp usage for now.
+             if "adk_workflow_" in str(self.workspace_root):
+                shutil.rmtree(self.workspace_root)
 
     @property
     def name(self) -> str:

@@ -1,6 +1,6 @@
 import pytest
 import os
-from benchmarks.answer_generators.workflow_adk_agent import WorkflowAdkAnswerGenerator
+from benchmarks.answer_generators.adk_answer_generator import AdkAnswerGenerator
 from benchmarks.tests.integration.predefined_cases import SIMPLE_API_UNDERSTANDING_CASE
 from benchmarks.api_key_manager import ApiKeyManager
 
@@ -11,9 +11,10 @@ async def test_workflow_adk_generator_api_understanding():
 
     # Initialize the generator
     # We rely on the default workspace creation (temp dir)
-    generator = WorkflowAdkAnswerGenerator(
+    generator = AdkAnswerGenerator(
         model_name="gemini-2.5-flash",
-        api_key_manager=ApiKeyManager()
+        api_key_manager=ApiKeyManager(),
+        enable_workflow=True
     )
 
     try:
