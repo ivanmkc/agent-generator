@@ -2,8 +2,7 @@ import enum
 from pathlib import Path
 from benchmarks.utils import permute
 from benchmarks.api_key_manager import ApiKeyManager
-from benchmarks.answer_generators.adk_agents import create_default_adk_agent
-from benchmarks.answer_generators.adk_answer_generator import AdkAnswerGenerator
+from benchmarks.answer_generators.adk_agents import create_default_adk_agent, create_workflow_adk_generator
 from benchmarks.answer_generators.gemini_cli_docker import (
     GeminiCliPodmanAnswerGenerator,
 )
@@ -46,10 +45,8 @@ CANDIDATE_GENERATORS.extend([
     # Control generators
     GroundTruthAnswerGenerator(),
     TrivialAnswerGenerator(),
-    AdkAnswerGenerator(
+    create_workflow_adk_generator(
         model_name=ModelName.GEMINI_2_5_FLASH,
-        api_key_manager=api_key_manager,
-        enable_workflow=True,
-        name="WorkflowAdk(gemini-2.5-flash)"
+        api_key_manager=api_key_manager
     ),
 ])

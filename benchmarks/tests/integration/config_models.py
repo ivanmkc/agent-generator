@@ -96,24 +96,24 @@ class CloudRunGeneratorConfig(GeneratorConfig):
     region: str = "us-central1"
     service_url: Optional[str] = None
 
-        def create_generator(self, model_name: str, project_id: str) -> AnswerGenerator:
-            """
-            Creates a Cloud Run-based AnswerGenerator instance based on this configuration.
-            """
-            from benchmarks.answer_generators.gemini_cli_docker import (
-                GeminiCliCloudRunAnswerGenerator,
-            )
-            # from benchmarks.api_key_manager import ApiKeyManager # Not used by CloudRun yet
-    
-            return GeminiCliCloudRunAnswerGenerator(
-                model_name=model_name,
-                dockerfile_dir=self.dockerfile_dir,
-                service_name=self.service_name,
-                project_id=project_id,
-                region=self.region,
-                # api_key_manager=api_key_manager,
-                service_url=self.service_url,
-            )
+    def create_generator(self, model_name: str, project_id: str) -> AnswerGenerator:
+        """
+        Creates a Cloud Run-based AnswerGenerator instance based on this configuration.
+        """
+        from benchmarks.answer_generators.gemini_cli_docker import (
+            GeminiCliCloudRunAnswerGenerator,
+        )
+        # from benchmarks.api_key_manager import ApiKeyManager # Not used by CloudRun yet
+
+        return GeminiCliCloudRunAnswerGenerator(
+            model_name=model_name,
+            dockerfile_dir=self.dockerfile_dir,
+            service_name=self.service_name,
+            project_id=project_id,
+            region=self.region,
+            # api_key_manager=api_key_manager,
+            service_url=self.service_url,
+        )
 
 class WorkflowAdkGeneratorConfig(GeneratorConfig):
     """
@@ -126,17 +126,16 @@ class WorkflowAdkGeneratorConfig(GeneratorConfig):
 
     def create_generator(self, model_name: str, project_id: str) -> AnswerGenerator:
         """
-        Creates a WorkflowAdkAnswerGenerator instance (via AdkAnswerGenerator).
+        Creates a WorkflowAdkAnswerGenerator instance (via factory).
         """
-        from benchmarks.answer_generators.adk_answer_generator import AdkAnswerGenerator
+        from benchmarks.answer_generators.adk_agents import create_workflow_adk_generator
         from benchmarks.api_key_manager import ApiKeyManager
 
         api_key_manager = ApiKeyManager()
 
-        return AdkAnswerGenerator(
+        return create_workflow_adk_generator(
             model_name=model_name,
-            api_key_manager=api_key_manager,
-            enable_workflow=True
+            api_key_manager=api_key_manager
         )
 
 # Union type for the configuration dictionary values
