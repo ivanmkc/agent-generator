@@ -17,72 +17,55 @@ Shared configuration for integration tests.
 Defines the metadata for each generator test case to allow dynamic orchestration.
 """
 
-from typing import Dict, Any
+from typing import Dict
+from pathlib import Path
 from benchmarks.tests.integration.predefined_cases import (
     ADK_BASE_AGENT_QUESTION_CASE_INTERMEDIATE,
-    FIX_ERROR_MINIMAL_AGENT_CONTENT,
     MCP_ADK_RUNNER_CASE,
 )
-from benchmarks.data_models import FixErrorBenchmarkCase
+from benchmarks.tests.integration.config_models import (
+    AnyGeneratorConfig,
+    PodmanGeneratorConfig,
+    CloudRunGeneratorConfig
+)
 
 # Map fixture names to their configuration metadata
-GENERATOR_METADATA: Dict[str, Dict[str, Any]] = {
-    "podman_base_test_case": {
-        "id": "podman_base_test_case",
-        "type": "podman",
-        "dockerfile_dir": "benchmarks/answer_generators/gemini_cli_docker/adk-python",
-        "image_name": "gemini-cli:adk-python",
-        "expected_context_files": ["/workdir/INSTRUCTIONS.md"],
-        "expected_extensions": [],
-        "expected_mcp_tools": [],
-        "custom_case": None, # Defaults to standard API check
-        "expected_tool_uses": []
-    },
-    "podman_adk_docs_test_case": {
-        "id": "podman_adk_docs_test_case",
-        "type": "podman",
-        "dockerfile_dir": "benchmarks/answer_generators/gemini_cli_docker/adk-docs-ext",
-        "image_name": "gemini-cli:adk-docs-ext",
-        "expected_context_files": [],
-        "expected_extensions": ["adk-docs-ext"],
-        "expected_mcp_tools": ["adk-docs-mcp"],
-        "custom_case": ADK_BASE_AGENT_QUESTION_CASE_INTERMEDIATE,
-        "expected_tool_uses": ["list_doc_sources", "fetch_docs",]
-    },
-    "podman_context7_test_case": {
-        "id": "podman_context7_test_case",
-        "type": "podman",
-        "dockerfile_dir": "benchmarks/answer_generators/gemini_cli_docker/gemini-cli-mcp-context7",
-        "image_name": "gemini-cli:mcp-context7",
-        "expected_context_files": [],
-        "expected_extensions": [],
-        "expected_mcp_tools": ["context7"],
-        "custom_case": ADK_BASE_AGENT_QUESTION_CASE_INTERMEDIATE,
-        "expected_tool_uses": []
-    },
-    "podman_mcp_adk_runner_test_case": {
-        "id": "podman_mcp_adk_runner_test_case",
-        "type": "podman",
-        "dockerfile_dir": "benchmarks/answer_generators/gemini_cli_docker/mcp-adk-agent-runner",
-        "image_name": "gemini-cli:mcp-adk-agent-runner",
-        "expected_context_files": [],
-        "expected_extensions": [],
-        "expected_mcp_tools": ["adk-agent-runner"],
-        "custom_case": MCP_ADK_RUNNER_CASE,
-        "expected_tool_uses": ["run_adk_agent"]
-    },
-    "cloud_run_test_case": {
-        "id": "cloud_run_test_case",
-        "type": "cloud_run",
-        "dockerfile_dir": "benchmarks/answer_generators/gemini_cli_docker/base",
-        "service_name": "gemini-cli-test-service",
-        "region": "us-central1",
-        "expected_context_files": [],
-        "expected_extensions": [],
-        "expected_mcp_tools": [],
-        "custom_case": None,
-        "expected_tool_uses": []
-    }
+GENERATOR_METADATA: Dict[str, AnyGeneratorConfig] = {
+    "podman_base_test_case": PodmanGeneratorConfig(
+        id="podman_base_test_case",
+        dockerfile_dir=Path("benchmarks/answer_generators/gemini_cli_docker/adk-python"),
+        image_name="gemini-cli:adk-python",
+        expected_context_files=["/workdir/INSTRUCTIONS.md"],
+    ),
+    "podman_adk_docs_test_case": PodmanGeneratorConfig(
+        id="podman_adk_docs_test_case",
+        dockerfile_dir=Path("benchmarks/answer_generators/gemini_cli_docker/adk-docs-ext"),
+        image_name="gemini-cli:adk-docs-ext",
+        expected_extensions=["adk-docs-ext"],
+        expected_mcp_tools=["adk-docs-mcp"],
+        custom_case=ADK_BASE_AGENT_QUESTION_CASE_INTERMEDIATE,
+        expected_tool_uses=["list_doc_sources", "fetch_docs"],
+    ),
+    "podman_context7_test_case": PodmanGeneratorConfig(
+        id="podman_context7_test_case",
+        dockerfile_dir=Path("benchmarks/answer_generators/gemini_cli_docker/gemini-cli-mcp-context7"),
+        image_name="gemini-cli:mcp-context7",
+        expected_mcp_tools=["context7"],
+        custom_case=ADK_BASE_AGENT_QUESTION_CASE_INTERMEDIATE,
+    ),
+    "podman_mcp_adk_runner_test_case": PodmanGeneratorConfig(
+        id="podman_mcp_adk_runner_test_case",
+        dockerfile_dir=Path("benchmarks/answer_generators/gemini_cli_docker/mcp_adk_agent_runner"),
+        image_name="gemini-cli:mcp_adk_agent_runner",
+        expected_mcp_tools=["adk-agent-runner"],
+        custom_case=MCP_ADK_RUNNER_CASE,
+        expected_tool_uses=["run_adk_agent"],
+    ),
+    "cloud_run_test_case": CloudRunGeneratorConfig(
+        id="cloud_run_test_case",
+        dockerfile_dir=Path("benchmarks/answer_generators/gemini_cli_docker/base"),
+        service_name="gemini-cli-test-service",
+    ),
 }
 
 # List of unmanaged (local) fixtures

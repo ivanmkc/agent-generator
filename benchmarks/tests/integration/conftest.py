@@ -173,6 +173,8 @@ async def managed_generator_test_case(request: pytest.FixtureRequest, model_name
 # NEW: test_case iterates over ["api_test_case", ..., "managed_generator_test_case"]
 # AND managed_generator_test_case is parameterized by the config keys.
 
+from benchmarks.tests.integration.config_models import PodmanGeneratorConfig, CloudRunGeneratorConfig
+
 @pytest.fixture(params=list(GENERATOR_METADATA.keys()), scope="module")
 async def managed_generator_test_case(request: pytest.FixtureRequest, model_name: str) -> GeneratorTestCase:
     """
@@ -181,7 +183,7 @@ async def managed_generator_test_case(request: pytest.FixtureRequest, model_name
     config_id = request.param
     config = GENERATOR_METADATA[config_id]
     
-    gen_type = config["type"]
+    gen_type = config.type
     
     service_url = None
     # Check for Proxy Mode: The orchestrator sets TEST_GENERATOR_ID to the specific config ID
@@ -200,37 +202,37 @@ async def managed_generator_test_case(request: pytest.FixtureRequest, model_name
 
     # Instantiate the correct generator class
     gen = None
-    if gen_type == "podman":
+    if isinstance(config, PodmanGeneratorConfig):
         gen = GeminiCliPodmanAnswerGenerator(
-            dockerfile_dir=Path(config["dockerfile_dir"]),
-            image_name=config["image_name"],
+            dockerfile_dir=config.dockerfile_dir,
+            image_name=config.image_name,
             image_definitions=IMAGE_DEFINITIONS,
             model_name=model_name,
             service_url=service_url
         )
-    elif gen_type == "cloud_run":
+    elif isinstance(config, CloudRunGeneratorConfig):
         from benchmarks.answer_generators.gemini_cli_docker.gemini_cli_cloud_run_answer_generator import GeminiCliCloudRunAnswerGenerator
         gen = GeminiCliCloudRunAnswerGenerator(
-            dockerfile_dir=Path(config["dockerfile_dir"]),
-            service_name=config["service_name"],
+            dockerfile_dir=config.dockerfile_dir,
+            service_name=config.service_name,
             model_name=model_name,
             service_url=service_url,
-            region=config.get("region", "us-central1")
+            region=config.region
         )
     else:
-        pytest.fail(f"Unknown generator type: {gen_type}")
+        pytest.fail(f"Unknown generator type: {type(config)}")
 
     print(f"--- [Setup] Initializing {gen.name} ---")
     await gen.setup()
     
     return GeneratorTestCase(
-        id=config["id"],
+        id=config.id,
         generator=gen,
-        expected_gemini_cli_extensions=config.get("expected_extensions", []),
-        expected_mcp_tools=config.get("expected_mcp_tools", []),
-        expected_context_files=config.get("expected_context_files", []),
-        custom_case=config.get("custom_case"),
-        trace_indicators=config.get("trace_indicators", [])
+        expected_gemini_cli_extensions=config.expected_extensions,
+        expected_mcp_tools=config.expected_mcp_tools,
+        expected_context_files=config.expected_context_files,
+        custom_case=config.custom_case,
+        expected_tool_uses=config.expected_tool_uses
     )
 
 
@@ -298,7 +300,7 @@ async def test_case(request: pytest.FixtureRequest, model_name: str) -> Generato
     # 1. Check if it's a managed generator
     if case_id in GENERATOR_METADATA:
         config = GENERATOR_METADATA[case_id]
-        gen_type = config["type"]
+        gen_type = config.type
         
         service_url = None
         # Check for Proxy Mode
@@ -317,40 +319,40 @@ async def test_case(request: pytest.FixtureRequest, model_name: str) -> Generato
 
         # Instantiate generator
         gen = None
-        if gen_type == "podman":
+        if isinstance(config, PodmanGeneratorConfig):
             gen = GeminiCliPodmanAnswerGenerator(
-                dockerfile_dir=Path(config["dockerfile_dir"]),
-                image_name=config["image_name"],
+                dockerfile_dir=config.dockerfile_dir,
+                image_name=config.image_name,
                 image_definitions=IMAGE_DEFINITIONS,
                 model_name=model_name,
                 service_url=service_url
             )
-        elif gen_type == "cloud_run":
+        elif isinstance(config, CloudRunGeneratorConfig):
             from benchmarks.answer_generators.gemini_cli_docker.gemini_cli_cloud_run_answer_generator import GeminiCliCloudRunAnswerGenerator
             gen = GeminiCliCloudRunAnswerGenerator(
-                dockerfile_dir=Path(config["dockerfile_dir"]),
-                service_name=config["service_name"],
+                dockerfile_dir=config.dockerfile_dir,
+                service_name=config.service_name,
                 model_name=model_name,
                 service_url=service_url,
-                region=config.get("region", "us-central1")
+                region=config.region
             )
         else:
-            pytest.fail(f"Unknown generator type: {gen_type}")
+            pytest.fail(f"Unknown generator type: {type(config)}")
 
-        custom_case_data = config.get("custom_case")
+        custom_case_data = config.custom_case
         custom_case_instance = custom_case_data # It's already an instance or None
 
         print(f"--- [Setup] Initializing {gen.name} ---")
         await gen.setup()
         
         return GeneratorTestCase(
-            id=config["id"],
+            id=config.id,
             generator=gen,
-            expected_gemini_cli_extensions=config.get("expected_extensions", []),
-            expected_mcp_tools=config.get("expected_mcp_tools", []),
-            expected_context_files=config.get("expected_context_files", []),
+            expected_gemini_cli_extensions=config.expected_extensions,
+            expected_mcp_tools=config.expected_mcp_tools,
+            expected_context_files=config.expected_context_files,
             custom_case=custom_case_instance,
-            expected_tool_uses=config.get("expected_tool_uses", [])
+            expected_tool_uses=config.expected_tool_uses
         )
     
     # 2. Fallback to Local Fixtures
