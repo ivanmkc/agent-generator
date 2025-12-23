@@ -50,25 +50,20 @@ class PodmanGeneratorConfig(GeneratorConfig):
     Attributes:
         type: Literal "podman".
         dockerfile_dir: Path to the directory containing the Dockerfile.
-        image_name: Name (tag) of the Docker/Podman image.
+        image_name: Optional name (tag) of the Docker/Podman image. Derived from dockerfile_dir if omitted.
         service_url: Optional URL if using an existing service (proxy mode).
     """
-
     type: Literal["podman"] = "podman"
     dockerfile_dir: Path
-    image_name: str
+    image_name: Optional[str] = None
     service_url: Optional[str] = None
 
     def create_generator(self, model_name: str, project_id: str) -> AnswerGenerator:
         """
         Creates a Podman-based AnswerGenerator instance based on this configuration.
         """
-        from benchmarks.answer_generators.gemini_cli_docker import (
-            GeminiCliPodmanAnswerGenerator,
-        )
-        from benchmarks.answer_generators.gemini_cli_docker.image_definitions import (
-            IMAGE_DEFINITIONS,
-        )
+        from benchmarks.answer_generators.gemini_cli_docker import GeminiCliPodmanAnswerGenerator
+        from benchmarks.answer_generators.gemini_cli_docker.image_definitions import IMAGE_DEFINITIONS
         from benchmarks.api_key_manager import ApiKeyManager
 
         api_key_manager = ApiKeyManager()
@@ -79,7 +74,7 @@ class PodmanGeneratorConfig(GeneratorConfig):
             image_name=self.image_name,
             image_definitions=IMAGE_DEFINITIONS,
             api_key_manager=api_key_manager,
-            service_url=self.service_url,
+            service_url=self.service_url
         )
 
 
@@ -123,5 +118,28 @@ class CloudRunGeneratorConfig(GeneratorConfig):
         )
 
 
+class WorkflowAdkGeneratorConfig(GeneratorConfig):
+    """
+    Configuration specific to Workflow ADK-based generators.
+
+    Attributes:
+        type: Literal "workflow_adk".
+    """
+    type: Literal["workflow_adk"] = "workflow_adk"
+
+    def create_generator(self, model_name: str, project_id: str) -> AnswerGenerator:
+        """
+        Creates a WorkflowAdkAnswerGenerator instance.
+        """
+        from benchmarks.answer_generators.workflow_adk_agent import WorkflowAdkAnswerGenerator
+        from benchmarks.api_key_manager import ApiKeyManager
+
+        api_key_manager = ApiKeyManager()
+
+        return WorkflowAdkAnswerGenerator(
+            model_name=model_name,
+            api_key_manager=api_key_manager
+        )
+
 # Union type for the configuration dictionary values
-AnyGeneratorConfig = Union[PodmanGeneratorConfig, CloudRunGeneratorConfig]
+AnyGeneratorConfig = Union[PodmanGeneratorConfig, CloudRunGeneratorConfig, WorkflowAdkGeneratorConfig]
