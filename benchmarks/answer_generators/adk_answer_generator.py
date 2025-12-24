@@ -6,16 +6,7 @@ from google.adk.runners import InMemoryRunner
 from google.genai import types
 
 from benchmarks.answer_generators.llm_base import LlmAnswerGenerator
-from benchmarks.data_models import ApiUnderstandingAnswerOutput
-from benchmarks.data_models import ApiUnderstandingBenchmarkCase
-from benchmarks.data_models import BaseBenchmarkCase
-from benchmarks.data_models import FixErrorAnswerOutput
-from benchmarks.data_models import FixErrorBenchmarkCase
-from benchmarks.data_models import GeneratedAnswer
-from benchmarks.data_models import MultipleChoiceAnswerOutput
-from benchmarks.data_models import MultipleChoiceBenchmarkCase
-from benchmarks.data_models import TraceLogEvent
-from benchmarks.data_models import UsageMetadata
+from benchmarks.data_models import BaseBenchmarkCase, ApiUnderstandingAnswerOutput, ApiUnderstandingBenchmarkCase, FixErrorAnswerOutput, FixErrorBenchmarkCase, GeneratedAnswer, MultipleChoiceAnswerOutput, MultipleChoiceBenchmarkCase, TraceLogEvent, TraceEventType, UsageMetadata
 from benchmarks.api_key_manager import ApiKeyManager
 
 
@@ -93,6 +84,9 @@ class AdkAnswerGenerator(LlmAnswerGenerator):
         self, prompt: str
     ) -> tuple[str, list[TraceLogEvent], UsageMetadata]:
         """Helper to run the agent and get the response."""
+        if not self.runner:
+            raise RuntimeError("ADK runner not initialized. Call setup() first.")
+
         session_id = f"benchmark_session_{uuid.uuid4()}"
         session = await self.runner.session_service.create_session(
             app_name=self.runner.app_name,
@@ -123,41 +117,84 @@ class AdkAnswerGenerator(LlmAnswerGenerator):
                 total_completion_tokens += cpt
                 total_tokens += tt
 
-            # Map ADK event to TraceLogEvent
-            log_event = TraceLogEvent(
-                type=getattr(event, "action", "ADK_EVENT"),
-                source="adk",
-                timestamp=(
-                    event.created_time.isoformat()
-                    if hasattr(event, "created_time") and event.created_time
-                    else None
-                ),
-                details=event.model_dump(mode='json'),
+            # Base details for the event
+            base_details = event.model_dump(mode='json')
+            timestamp = (
+                event.created_time.isoformat()
+                if hasattr(event, "created_time") and event.created_time
+                else None
             )
 
-            # Try to determine role and content
-            if hasattr(event, "action"):
-                if event.action == "user_message":
-                    log_event.role = "user"
-                    log_event.type = "message"
-                elif event.action == "model_response":
-                    log_event.role = "model"
-                    log_event.type = "message"
-                elif event.action == "tool_use":
-                    log_event.type = "tool_use"
-                    log_event.role = "model"
-                    # Extract tool info if available in content or tool_use part
-                    # This depends on ADK internal structure for tool calls
-                    pass
+            # Analyze content parts to generate specific log events
+            events_generated = False
+            if event.content and event.content.parts:
+                for part in event.content.parts:
+                    # 1. Text (Model Response or User Message)
+                    if part.text:
+                        log_event = TraceLogEvent(
+                            type=TraceEventType.MESSAGE,
+                            source="adk",
+                            timestamp=timestamp,
+                            role=event.content.role,
+                            content=part.text,
+                            details=base_details
+                        )
+                        logs.append(log_event)
+                        events_generated = True
 
-            if event.content:
-                # Convert ADK content to dict/str
-                try:
-                    log_event.content = event.content.model_dump(mode='json')
-                except:
-                    log_event.content = str(event.content)
+                    # 2. Function Call (Tool Use)
+                    if part.function_call:
+                        log_event = TraceLogEvent(
+                            type=TraceEventType.TOOL_USE,
+                            source="adk",
+                            timestamp=timestamp,
+                            role="model",
+                            tool_name=part.function_call.name,
+                            tool_input=part.function_call.args, # Assuming args is dict/json-serializable
+                            tool_call_id=getattr(part.function_call, "id", None),
+                            details=base_details
+                        )
+                        logs.append(log_event)
+                        events_generated = True
 
-            logs.append(log_event)
+                    # 3. Function Response (Tool Result)
+                    if part.function_response:
+                        response_content = part.function_response.response
+                        # Simplify response if it's just a 'result' key
+                        if isinstance(response_content, dict) and "result" in response_content and len(response_content) == 1:
+                            tool_output_str = str(response_content["result"])
+                        else:
+                            tool_output_str = str(response_content)
+
+                        log_event = TraceLogEvent(
+                            type=TraceEventType.TOOL_RESULT,
+                            source="adk",
+                            timestamp=timestamp,
+                            role="tool",
+                            tool_name=part.function_response.name,
+                            tool_output=tool_output_str,
+                            tool_call_id=getattr(part.function_response, "id", None),
+                            details=base_details
+                        )
+                        logs.append(log_event)
+                        events_generated = True
+
+            # Fallback if no specific parts were parsed or event has no content (e.g. system events)
+            if not events_generated:
+                log_event = TraceLogEvent(
+                    type=TraceEventType.ADK_EVENT,
+                    source="adk",
+                    timestamp=timestamp,
+                    details=base_details,
+                )
+                # Try to capture content if it exists but wasn't in parts (unlikely for Content object)
+                if event.content and not event.content.parts:
+                     try:
+                        log_event.content = event.content.model_dump(mode='json')
+                     except:
+                        log_event.content = str(event.content)
+                
+                logs.append(log_event)
 
             if event.is_final_response():
                 if event.content and event.content.parts:
@@ -165,7 +202,7 @@ class AdkAnswerGenerator(LlmAnswerGenerator):
                 # Don't break immediately if we want full traces?
                 # Usually final response is the end, but let's keep breaking to match logic.
                 break
-
+        
         usage_metadata = UsageMetadata(
             total_tokens=total_tokens,
             prompt_tokens=total_prompt_tokens,
@@ -173,3 +210,4 @@ class AdkAnswerGenerator(LlmAnswerGenerator):
         )
 
         return final_response, logs, usage_metadata
+

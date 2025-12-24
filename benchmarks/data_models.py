@@ -296,6 +296,24 @@ class BenchmarkErrorType(str, enum.Enum):
     OTHER_ERROR = "OtherError"
 
 
+class TraceEventType(str, enum.Enum):
+    """
+    Predefined types for trace log events.
+    """
+    ADK_EVENT = "ADK_EVENT" # Generic ADK event if more specific type not inferred
+    MESSAGE = "message"
+    TOOL_USE = "tool_use"
+    TOOL_RESULT = "tool_result"
+    GEMINI_API_RESPONSE = "GEMINI_API_RESPONSE"
+    INIT = "init"
+    CLI_STDOUT_FULL = "CLI_STDOUT_FULL" # Full stdout from CLI call
+    CLI_STDOUT_RAW = "CLI_STDOUT_RAW" # Raw stdout from CLI call if not stream-json
+    CLI_STDERR = "CLI_STDERR"
+    GEMINI_CLIENT_ERROR = "GEMINI_CLIENT_ERROR"
+    SYSTEM_RESULT = "system_result" # Internal system result like stats
+    RUN_START = "run_start"
+    RUN_END = "run_end"
+
 class BenchmarkResult(pydantic.BaseModel):
     """Represents the result of a benchmark run."""
 
@@ -319,10 +337,10 @@ class UsageMetadata(pydantic.BaseModel):
 class TraceLogEvent(pydantic.BaseModel):
     """Represents a single event in the trace logs."""
 
-    type: str = Field(
+    type: TraceEventType = Field(
         ...,
         description=(
-            "The type of event (e.g., 'tool_code', 'tool_output'," " 'model_response')."
+            "The type of event (e.g., 'tool_use', 'model_response')."
         ),
     )
     timestamp: Optional[str] = Field(

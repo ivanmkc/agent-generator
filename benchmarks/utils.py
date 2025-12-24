@@ -18,19 +18,11 @@ import itertools
 import json
 from typing import Any
 
-from benchmarks.data_models import TraceLogEvent
+from benchmarks.data_models import TraceLogEvent, TraceEventType
 
 
 def permute(cls, **kwargs):
     """Helper to generate permutations of class instances.
-
-    Args:
-        cls: The class to instantiate.
-        **kwargs: Dictionary where keys are argument names and values are lists of possible values.
-
-    Yields:
-        Instances of cls with all combinations of arguments.
-    """
     keys = kwargs.keys()
     values = kwargs.values()
     for instance_values in itertools.product(*values):
@@ -41,15 +33,6 @@ def parse_cli_stream_json_output(
     stdout_str: str,
 ) -> tuple[dict[str, Any], list[TraceLogEvent]]:
     """Parses the NDJSON output from the Gemini CLI in stream-json format.
-
-    Args:
-        stdout_str: The raw stdout string from the CLI.
-
-    Returns:
-        A tuple containing:
-        - A dictionary with the parsed response (e.g., {"response": "...", "stats": "..."}).
-        - A list of TraceLogEvent objects.
-    """
     response_dict = {"response": ""}
     logs: list[TraceLogEvent] = []
 
@@ -62,8 +45,22 @@ def parse_cli_stream_json_output(
             event_type = event.get("type")
             event_data = event.get("data", event)
 
+            # Map event_type to TraceEventType enum if it's one of the recognized types
+            if event_type == "init":
+                enum_type = TraceEventType.INIT
+            elif event_type == "message":
+                enum_type = TraceEventType.MESSAGE
+            elif event_type == "tool_use":
+                enum_type = TraceEventType.TOOL_USE
+            elif event_type == "tool_result":
+                enum_type = TraceEventType.TOOL_RESULT
+            elif event_type == "result":
+                enum_type = TraceEventType.SYSTEM_RESULT
+            else:
+                enum_type = TraceEventType.ADK_EVENT # Default to generic ADK_EVENT
+
             log_event = TraceLogEvent(
-                type=event_type or "unknown", source="cli_stream", details=event
+                type=enum_type, source="cli_stream", details=event
             )
 
             if event_type == "message":
@@ -90,7 +87,7 @@ def parse_cli_stream_json_output(
                 log_event.tool_output = str(event_data.get("output"))
 
             elif event_type == "result":
-                log_event.type = "system_result"
+                # This is already handled by enum_type = TraceEventType.SYSTEM_RESULT
                 if "stats" in event_data:
                     response_dict["stats"] = event_data["stats"]
                     log_event.content = event_data["stats"]
@@ -99,6 +96,6 @@ def parse_cli_stream_json_output(
 
         except json.JSONDecodeError:
             logs.append(
-                TraceLogEvent(type="CLI_STDOUT_RAW", source="cli_stream", content=line)
+                TraceLogEvent(type=TraceEventType.CLI_STDOUT_RAW, source="cli_stream", content=line)
             )
     return response_dict, logs

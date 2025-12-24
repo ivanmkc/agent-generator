@@ -18,16 +18,7 @@ import hashlib
 from pathlib import Path
 
 from benchmarks.answer_generators.llm_base import LlmAnswerGenerator
-from benchmarks.data_models import ApiUnderstandingAnswerOutput
-from benchmarks.data_models import ApiUnderstandingBenchmarkCase
-from benchmarks.data_models import BaseBenchmarkCase
-from benchmarks.data_models import FixErrorAnswerOutput
-from benchmarks.data_models import FixErrorBenchmarkCase
-from benchmarks.data_models import GeneratedAnswer
-from benchmarks.data_models import MultipleChoiceAnswerOutput
-from benchmarks.data_models import MultipleChoiceBenchmarkCase
-from benchmarks.data_models import TraceLogEvent
-from benchmarks.data_models import UsageMetadata
+from benchmarks.data_models import BaseBenchmarkCase, ApiUnderstandingAnswerOutput, ApiUnderstandingBenchmarkCase, FixErrorAnswerOutput, FixErrorBenchmarkCase, GeneratedAnswer, MultipleChoiceAnswerOutput, MultipleChoiceBenchmarkCase, TraceLogEvent, TraceEventType, UsageMetadata
 from benchmarks.api_key_manager import API_KEY_MANAGER, ApiKeyManager, KeyType
 from google import genai
 
@@ -124,9 +115,9 @@ class GeminiAnswerGenerator(LlmAnswerGenerator):
         # Populate trace_logs with the full response metadata (usage, safety ratings, etc.)
         trace_logs = [
             TraceLogEvent(
-                type="GEMINI_API_RESPONSE",
+                type=TraceEventType.GEMINI_API_RESPONSE,
                 content=response.text,
-                details=response.model_dump(),
+                details=response.model_dump(mode='json'),
             )
         ]
 
