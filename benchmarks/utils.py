@@ -23,6 +23,14 @@ from benchmarks.data_models import TraceLogEvent, TraceEventType
 
 def permute(cls, **kwargs):
     """Helper to generate permutations of class instances.
+
+    Args:
+        cls: The class to instantiate.
+        **kwargs: Dictionary where keys are argument names and values are lists of possible values.
+
+    Yields:
+        Instances of cls with all combinations of arguments.
+    """
     keys = kwargs.keys()
     values = kwargs.values()
     for instance_values in itertools.product(*values):
@@ -33,6 +41,15 @@ def parse_cli_stream_json_output(
     stdout_str: str,
 ) -> tuple[dict[str, Any], list[TraceLogEvent]]:
     """Parses the NDJSON output from the Gemini CLI in stream-json format.
+
+    Args:
+        stdout_str: The raw stdout string from the CLI.
+
+    Returns:
+        A tuple containing:
+        - A dictionary with the parsed response (e.g., {"response": "...", "stats": "..."}).
+        - A list of TraceLogEvent objects.
+    """
     response_dict = {"response": ""}
     logs: list[TraceLogEvent] = []
 

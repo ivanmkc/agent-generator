@@ -63,3 +63,18 @@ class TestAdkTools:
         # Check CWD
         result = tools.run_shell_command("pwd")
         assert str(workspace) in result
+
+    def test_shell_execution_venv(self, workspace):
+        """Test that shell commands use the venv PATH."""
+        venv_path = workspace / "venv"
+        tools = AdkTools(workspace_root=workspace, venv_path=venv_path)
+        
+        # We expect the venv bin directory to be at the start of PATH
+        venv_bin = str(venv_path / "bin")
+        result = tools.run_shell_command("echo $PATH")
+        
+        # The result string contains stdout: ...
+        assert venv_bin in result
+        # Check it's near the start (ignoring "Stdout:\n")
+        stdout = result.split("Stdout:\n")[1].split("\n")[0]
+        assert stdout.startswith(venv_bin)

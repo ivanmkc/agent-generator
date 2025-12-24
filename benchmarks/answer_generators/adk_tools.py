@@ -19,8 +19,9 @@ import subprocess
 from pathlib import Path
 
 class AdkTools:
-    def __init__(self, workspace_root: Path):
+    def __init__(self, workspace_root: Path, venv_path: Path | None = None):
         self.workspace_root = workspace_root
+        self.venv_path = venv_path
 
     def _resolve_path(self, path_str: str) -> Path:
         """Resolves a path relative to the workspace root and ensures it's safe."""
@@ -81,6 +82,14 @@ class AdkTools:
     def run_shell_command(self, command: str) -> str:
         """Runs a shell command in the workspace directory."""
         try:
+            env = os.environ.copy()
+            if self.venv_path:
+                # Prepend venv bin to PATH
+                venv_bin = self.venv_path / "bin"
+                env["PATH"] = f"{venv_bin}:{env.get('PATH', '')}"
+                # Unset PYTHONHOME if set, to ensure venv isolation
+                env.pop("PYTHONHOME", None)
+
             # We run the command with cwd=workspace_root
             result = subprocess.run(
                 command,
@@ -88,7 +97,8 @@ class AdkTools:
                 capture_output=True,
                 text=True,
                 cwd=self.workspace_root,
-                timeout=30
+                timeout=30,
+                env=env
             )
             return f"Stdout:\n{result.stdout}\nStderr:\n{result.stderr}\nReturn Code: {result.returncode}"
         except subprocess.TimeoutExpired:

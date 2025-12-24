@@ -40,15 +40,16 @@ def create_default_adk_agent(model_name: str = "gemini-2.5-pro") -> LlmAgent:
     )
 
 
-def create_workflow_agent(workspace_root: Path, model_name: str = "gemini-2.5-pro") -> LlmAgent:
+def create_workflow_agent(workspace_root: Path, model_name: str = "gemini-2.5-pro", venv_path: Path | None = None) -> LlmAgent:
     """
     Creates a workflow-enabled LlmAgent with file system and shell tools.
     
     Args:
         workspace_root: The root directory for the agent's workspace.
         model_name: The Gemini model to use.
+        venv_path: Optional path to a virtual environment to use for shell commands.
     """
-    tools_helper = AdkTools(workspace_root)
+    tools_helper = AdkTools(workspace_root, venv_path=venv_path)
     
     tools = [
         FunctionTool(tools_helper.read_file),
@@ -67,6 +68,7 @@ def create_workflow_agent(workspace_root: Path, model_name: str = "gemini-2.5-pr
             "You have access to a set of tools to read code, write files, and run commands. "
             f"You are operating in a workspace at {workspace_root}. "
             "The ADK Python repository is available at `repos/adk-python` relative to the workspace root. "
+            "A virtual environment is active for your shell commands, with `adk` and `pytest` installed. "
             "\n\n"
             "**Workflow:**\n"
             "1.  **Analyze:** Read the benchmark requirements and explore the codebase if necessary. "
@@ -85,10 +87,15 @@ def create_workflow_adk_generator(
 ) -> AdkAnswerGenerator:
     """
     Factory to create an AdkAnswerGenerator with a fully managed workflow agent.
-    Handles workspace creation, agent instantiation, and lifecycle hooks.
+    Handles workspace creation, venv setup, agent instantiation, and lifecycle hooks.
     """
     workspace_root = Path(tempfile.mkdtemp(prefix="adk_workflow_"))
-    agent = create_workflow_agent(workspace_root, model_name)
+    venv_path = workspace_root / "venv"
+    
+    # Deferred agent creation is not supported by AdkAnswerGenerator __init__ pattern I implemented earlier
+    # wait, AdkAnswerGenerator takes an 'agent' instance.
+    # So I must create the agent HERE.
+    agent = create_workflow_agent(workspace_root, model_name, venv_path=venv_path)
     
     async def setup_hook():
         print(f"[WorkflowAdk] Setting up workspace at {workspace_root}")
@@ -97,6 +104,7 @@ def create_workflow_adk_generator(
         adk_repo_dir = repos_dir / "adk-python"
         repos_dir.mkdir(exist_ok=True)
         
+        # 1. Clone ADK Python
         if not adk_repo_dir.exists():
             print(f"[WorkflowAdk] Cloning adk-python...")
             try:
@@ -107,6 +115,27 @@ def create_workflow_adk_generator(
                 )
             except subprocess.CalledProcessError as e:
                 raise RuntimeError(f"Failed to clone adk-python: {e.stderr.decode()}")
+        
+        # 2. Create Virtual Environment
+        if not venv_path.exists():
+            print(f"[WorkflowAdk] Creating virtual environment at {venv_path}...")
+            subprocess.run([os.sys.executable, "-m", "venv", str(venv_path)], check=True)
+            
+            # Helper to run pip in venv
+            pip_cmd = [str(venv_path / "bin" / "pip"), "install"]
+            
+            # 3. Install Dependencies
+            print(f"[WorkflowAdk] Installing dependencies...")
+            subprocess.run(pip_cmd + ["--upgrade", "pip"], check=True)
+            subprocess.run(pip_cmd + ["pytest", "google-adk"], check=True) # Basic deps
+            
+            # 4. Install Cloned Repo (Editable mode)
+            # We install the cloned adk-python to allow the agent to test modifications to it if needed, 
+            # or just to have it available as a library.
+            # Assuming adk-python root has setup.py or pyproject.toml
+            print(f"[WorkflowAdk] Installing local adk-python...")
+            subprocess.run(pip_cmd + ["-e", str(adk_repo_dir)], check=True)
+
         print(f"[WorkflowAdk] Setup complete.")
 
     async def teardown_hook():
