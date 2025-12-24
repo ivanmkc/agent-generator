@@ -612,11 +612,12 @@ def main():
             st.success("**Passed**")
 
         # Tabs for deep dive
-        tab_history, tab_answer, tab_logs, tab_error, tab_meta = st.tabs(
+        tab_history, tab_answer, tab_logs, tab_raw_events, tab_error, tab_meta = st.tabs(
             [
                 "Retry History",
                 "Diff & Code",
                 "Trace Logs",
+                "Raw Events",
                 "Validation Error",
                 "Metadata",
             ]
@@ -701,6 +702,17 @@ def main():
             if not case_trace_logs:
                 st.warning("Trace logs not found in results.json.")
             render_logs(case_trace_logs)
+
+        with tab_raw_events:
+            st.markdown("### Raw ADK Events")
+            st.markdown(
+                "This tab displays the raw, untransformed event data captured from the ADK runner. "
+                "This is useful for debugging the exact structure and content of events as they were received."
+            )
+            if not case_trace_logs:
+                st.warning("No trace logs available.")
+            else:
+                st.json(case_trace_logs)
 
         with tab_error:
             if row["validation_error"]:
