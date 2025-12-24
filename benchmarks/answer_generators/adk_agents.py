@@ -111,30 +111,33 @@ def create_workflow_adk_generator(
                 subprocess.run(
                     ["git", "clone", "--branch", "v1.20.0", "https://github.com/google/adk-python.git", str(adk_repo_dir)],
                     check=True,
-                    capture_output=True
+                    capture_output=True,
+                    timeout=300 # 5 minutes for cloning
                 )
             except subprocess.CalledProcessError as e:
                 raise RuntimeError(f"Failed to clone adk-python: {e.stderr.decode()}")
+            except subprocess.TimeoutExpired:
+                raise RuntimeError("Git clone timed out after 5 minutes.")
         
         # 2. Create Virtual Environment
         if not venv_path.exists():
             print(f"[WorkflowAdk] Creating virtual environment at {venv_path}...")
-            subprocess.run([os.sys.executable, "-m", "venv", str(venv_path)], check=True)
+            subprocess.run([os.sys.executable, "-m", "venv", str(venv_path)], check=True, timeout=300)
             
             # Helper to run pip in venv
             pip_cmd = [str(venv_path / "bin" / "pip"), "install"]
             
             # 3. Install Dependencies
             print(f"[WorkflowAdk] Installing dependencies...")
-            subprocess.run(pip_cmd + ["--upgrade", "pip"], check=True)
-            subprocess.run(pip_cmd + ["pytest", "--index-url", "https://pypi.org/simple"], check=True) # Install pytest from PyPI
+            subprocess.run(pip_cmd + ["--upgrade", "pip"], check=True, timeout=300)
+            subprocess.run(pip_cmd + ["pytest", "--index-url", "https://pypi.org/simple"], check=True, timeout=300) # Install pytest from PyPI
             
             # 4. Install Cloned Repo (Editable mode)
             # We install the cloned adk-python to allow the agent to test modifications to it if needed, 
             # or just to have it available as a library.
             # Assuming adk-python root has setup.py or pyproject.toml
             print(f"[WorkflowAdk] Installing local adk-python...")
-            subprocess.run(pip_cmd + ["-e", str(adk_repo_dir), "--index-url", "https://pypi.org/simple"], check=True)
+            subprocess.run(pip_cmd + ["-e", str(adk_repo_dir), "--index-url", "https://pypi.org/simple"], check=True, timeout=300)
 
         print(f"[WorkflowAdk] Setup complete.")
 
