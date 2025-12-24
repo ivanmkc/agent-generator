@@ -132,7 +132,7 @@ class AdkAnswerGenerator(LlmAnswerGenerator):
                     if hasattr(event, "created_time") and event.created_time
                     else None
                 ),
-                details=event.model_dump(),
+                details=event.model_dump(mode='json'),
             )
 
             # Try to determine role and content
@@ -153,7 +153,7 @@ class AdkAnswerGenerator(LlmAnswerGenerator):
             if event.content:
                 # Convert ADK content to dict/str
                 try:
-                    log_event.content = event.content.model_dump()
+                    log_event.content = event.content.model_dump(mode='json')
                 except:
                     log_event.content = str(event.content)
 

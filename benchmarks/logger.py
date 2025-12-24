@@ -135,17 +135,17 @@ class TraceMarkdownLogger(BenchmarkLogger):
                 f.write(f"**Temp Test File:** `{temp_test_file}`\n")
             if answer_data:
                 f.write("**Generated Answer:**\n")
-                f.write(f"```json\n{json.dumps(answer_data, indent=2)}\n```\n")
+                f.write(f"```json\n{json.dumps(answer_data, indent=2, cls=BytesEncoder)}\n```\n")
             if trace_logs:
                 f.write("**Trace Logs:**\n")
                 # Format trace logs nicely if possible, or just dump JSON
                 # Since TraceLogEvent is a Pydantic model (or dict), try to dump it
                 try:
                     logs_data = [
-                        t.model_dump() if hasattr(t, "model_dump") else t
+                        t.model_dump(mode='json') if hasattr(t, "model_dump") else t
                         for t in trace_logs
                     ]
-                    f.write(f"```json\n{json.dumps(logs_data, indent=2)}\n```\n")
+                    f.write(f"```json\n{json.dumps(logs_data, indent=2, cls=BytesEncoder)}\n```\n")
                 except Exception:
                     f.write(f"```\n{str(trace_logs)}\n```\n")
             f.write("\n")
@@ -160,6 +160,15 @@ class TraceMarkdownLogger(BenchmarkLogger):
             )
         print(f"Trace log written to {self.output_file}")
 
+
+class BytesEncoder(json.JSONEncoder):
+    """Custom JSON encoder to handle bytes and set objects."""
+    def default(self, obj):
+        if isinstance(obj, bytes):
+            return repr(obj)
+        if isinstance(obj, set):
+            return list(obj)
+        return super().default(obj)
 
 class JsonTraceLogger(BenchmarkLogger):
     """A benchmark logger that writes structured JSONL trace information to a unique file per run."""
@@ -183,7 +192,7 @@ class JsonTraceLogger(BenchmarkLogger):
     def _log_event(self, event_type: str, data: dict[str, Any]) -> None:
         entry = {"event_type": event_type, "timestamp": time.time(), "data": data}
         with open(self.output_file, "a", encoding="utf-8") as f:
-            f.write(json.dumps(entry) + "\n")
+            f.write(json.dumps(entry, cls=BytesEncoder) + "\n")
 
     def log_message(self, message: str) -> None:
         self._log_event("message", {"message": message})
@@ -213,7 +222,7 @@ class JsonTraceLogger(BenchmarkLogger):
         logs_data = None
         if trace_logs:
             logs_data = [
-                t.model_dump() if hasattr(t, "model_dump") else t for t in trace_logs
+                t.model_dump(mode='json') if hasattr(t, "model_dump") else t for t in trace_logs
             ]
 
         self._log_event(

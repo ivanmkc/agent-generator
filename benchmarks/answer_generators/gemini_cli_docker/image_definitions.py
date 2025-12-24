@@ -25,9 +25,9 @@ IMAGE_DEFINITIONS: Dict[str, ImageDefinition] = {
         dependencies=[f"{IMAGE_PREFIX}:base"],
         build_args={"BASE_IMAGE": f"{IMAGE_PREFIX}:base"},
     ),
-    f"{IMAGE_PREFIX}:mcp-context7": ImageDefinition(
-        source_dir="gemini-cli-mcp-context7",
-        dockerfile="gemini-cli-mcp-context7/Dockerfile",
+    f"{IMAGE_PREFIX}:mcp_context7": ImageDefinition(
+        source_dir="mcp_context7",
+        dockerfile="mcp_context7/Dockerfile",
         dependencies=[f"{IMAGE_PREFIX}:base"],
         build_args={"BASE_IMAGE": f"{IMAGE_PREFIX}:base"},
     ),
