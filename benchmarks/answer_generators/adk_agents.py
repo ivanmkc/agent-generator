@@ -127,14 +127,14 @@ def create_workflow_adk_generator(
             # 3. Install Dependencies
             print(f"[WorkflowAdk] Installing dependencies...")
             subprocess.run(pip_cmd + ["--upgrade", "pip"], check=True)
-            subprocess.run(pip_cmd + ["pytest", "google-adk"], check=True) # Basic deps
+            subprocess.run(pip_cmd + ["pytest", "--index-url", "https://pypi.org/simple"], check=True) # Install pytest from PyPI
             
             # 4. Install Cloned Repo (Editable mode)
             # We install the cloned adk-python to allow the agent to test modifications to it if needed, 
             # or just to have it available as a library.
             # Assuming adk-python root has setup.py or pyproject.toml
             print(f"[WorkflowAdk] Installing local adk-python...")
-            subprocess.run(pip_cmd + ["-e", str(adk_repo_dir)], check=True)
+            subprocess.run(pip_cmd + ["-e", str(adk_repo_dir), "--index-url", "https://pypi.org/simple"], check=True)
 
         print(f"[WorkflowAdk] Setup complete.")
 

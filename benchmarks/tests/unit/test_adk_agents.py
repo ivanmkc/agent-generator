@@ -59,10 +59,10 @@ class TestAdkAgents:
             mock_run.assert_any_call([pip_path, "install", "--upgrade", "pip"], check=True)
             
             # Install deps
-            mock_run.assert_any_call([pip_path, "install", "pytest", "google-adk"], check=True)
+            mock_run.assert_any_call([pip_path, "install", "pytest", "--index-url", "https://pypi.org/simple"], check=True)
             
             # Install local repo
-            mock_run.assert_any_call([pip_path, "install", "-e", str(mock_repo)], check=True)
+            mock_run.assert_any_call([pip_path, "install", "-e", str(mock_repo), "--index-url", "https://pypi.org/simple"], check=True)
 
     @pytest.mark.asyncio
     async def test_create_workflow_adk_generator_teardown(self):
