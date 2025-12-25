@@ -172,3 +172,20 @@ MCP_ADK_RUNNER_CASE = FixErrorBenchmarkCase(
         "You MUST import BaseAgent from `google.adk.agents.base_agent` (NOT `adk.agent`).",
     ],
 )
+
+# A case specifically designed for StructuredWorkflowAdk to test sub-agent orchestration
+# without imperative tool commands that confuse the Planner.
+STRUCTURED_WORKFLOW_CASE = FixErrorBenchmarkCase(
+    name="Structured Workflow Agent Creation",
+    description=(
+        "Create a Python file `my_agent.py` that defines a function `create_agent(model_name: str) -> Agent`.\n"
+        "The agent created should be a simple `LlmAgent` with the name 'simple_agent' and instruction 'You are a helpful assistant'.\n"
+        "Ensure the file imports `LlmAgent` from `google.adk.agents`."
+    ),
+    test_file=Path("tests/test_creation.py"),
+    requirements=[
+        "File `my_agent.py` exists.",
+        "Function `create_agent` exists and returns an LlmAgent.",
+        "The agent name is 'simple_agent'.",
+    ],
+)

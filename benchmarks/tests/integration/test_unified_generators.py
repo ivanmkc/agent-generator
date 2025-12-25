@@ -35,6 +35,7 @@ from colorama import init, Fore, Style
 from benchmarks.answer_generators.gemini_cli_answer_generator import (
     GeminiCliAnswerGenerator,
 )
+from benchmarks.validation_utils import validate_trace_log_expectations
 
 # Initialize colorama
 init()
@@ -151,28 +152,16 @@ async def test_generator_execution(
                 f"{Fore.GREEN}[{test_case.id}] Debug traces saved to {log_file}{Style.RESET_ALL}"
             )
 
-            if test_case.expected_tool_uses:
-                # Check for all indicators
-                all_tools_used = set(
-                    [
-                        log.tool_name
-                        for log in answer.trace_logs
-                        if log.type == "tool_use"
-                    ]
-                )
+            # Validate trace log expectations (Tools & Sub-Agents)
+            success, error_msg = validate_trace_log_expectations(
+                answer.trace_logs,
+                test_case.expected_sub_agent_calls,
+                test_case.expected_tool_uses
+            )
 
-                print(f"Tools used: {all_tools_used}")
+            if not success:
+                pytest.fail(f"[{test_case.id}] Trace validation failed: {error_msg}")
 
-                # Check if all expected tool uses are in tool_use names
-                found = all(
-                    indicator in all_tools_used
-                    for indicator in test_case.expected_tool_uses
-                )
-
-                if not found:
-                    pytest.fail(
-                        f"[{test_case.id}] Trace logs missing expected tool uses: {test_case.expected_tool_uses}"
-                    )
         else:
             print(f"[{test_case.id}] Warning: No trace logs returned.")
 

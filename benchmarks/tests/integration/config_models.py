@@ -33,6 +33,7 @@ class GeneratorConfig(BaseModel, abc.ABC):
     expected_mcp_tools: List[str] = Field(default_factory=list)
     custom_case: Optional[BaseBenchmarkCase] = None
     expected_tool_uses: List[str] = Field(default_factory=list)
+    expected_sub_agent_calls: Optional[List[str]] = Field(default=None)
 
     @abc.abstractmethod
     def create_generator(self, model_name: str, project_id: str) -> AnswerGenerator:
@@ -138,5 +139,33 @@ class WorkflowAdkGeneratorConfig(GeneratorConfig):
             api_key_manager=api_key_manager
         )
 
+class StructuredWorkflowAdkGeneratorConfig(GeneratorConfig):
+    """
+    Configuration specific to Structured Workflow ADK-based generators.
+
+    Attributes:
+        type: Literal "structured_workflow_adk".
+    """
+    type: Literal["structured_workflow_adk"] = "structured_workflow_adk"
+
+    def create_generator(self, model_name: str, project_id: str) -> AnswerGenerator:
+        """
+        Creates a StructuredWorkflowAdkAnswerGenerator instance (via factory).
+        """
+        from benchmarks.answer_generators.adk_agents import create_structured_workflow_adk_generator
+        from benchmarks.api_key_manager import ApiKeyManager
+
+        api_key_manager = ApiKeyManager()
+
+        return create_structured_workflow_adk_generator(
+            model_name=model_name,
+            api_key_manager=api_key_manager
+        )
+
 # Union type for the configuration dictionary values
-AnyGeneratorConfig = Union[PodmanGeneratorConfig, CloudRunGeneratorConfig, WorkflowAdkGeneratorConfig]
+AnyGeneratorConfig = Union[
+    PodmanGeneratorConfig, 
+    CloudRunGeneratorConfig, 
+    WorkflowAdkGeneratorConfig, 
+    StructuredWorkflowAdkGeneratorConfig
+]

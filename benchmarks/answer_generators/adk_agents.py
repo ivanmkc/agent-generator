@@ -19,11 +19,30 @@ import shutil
 import subprocess
 import tempfile
 from pathlib import Path
-from google.adk.agents import LlmAgent
-from google.adk.tools import FunctionTool
+from google.adk.agents import LlmAgent, SequentialAgent, LoopAgent
+from google.adk.tools import FunctionTool, exit_loop, ToolContext
 from benchmarks.answer_generators.adk_tools import AdkTools
 from benchmarks.answer_generators.adk_answer_generator import AdkAnswerGenerator
 from benchmarks.api_key_manager import ApiKeyManager
+from benchmarks.answer_generators.adk_schemas import (
+    Plan,
+    VerificationPlan,
+    CandidateSolution,
+    VerificationResult,
+    FinalResponse,
+    SetupContext,
+)
+
+def save_workspace_dir(dir_name: str, tool_context: ToolContext) -> str:
+    """Saves the workspace directory name to the session state."""
+    tool_context.session.state["workspace_dir"] = dir_name
+    return f"Saved workspace directory '{dir_name}' to session state."
+
+def get_workspace_dir(tool_context: ToolContext) -> str:
+    """Retrieves the workspace directory name from the session state."""
+    return tool_context.session.state.get("workspace_dir", "Error: workspace_dir not found in session state.")
+
+
 
 
 def create_default_adk_agent(model_name: str = "gemini-2.5-pro") -> LlmAgent:
@@ -37,6 +56,151 @@ def create_default_adk_agent(model_name: str = "gemini-2.5-pro") -> LlmAgent:
             " Always respond with a JSON object conforming to the specified"
             " schema, enclosed in a markdown code block (```json...```)."
         ),
+    )
+
+
+def create_structured_adk_agent(workspace_root: Path, model_name: str = "gemini-2.5-pro", venv_path: Path | None = None) -> SequentialAgent:
+    """
+    Creates a structured ADK agent with setup, planning, verification, implementation loop, final output, and teardown.
+    Enforces structured output for each step and workspace isolation.
+
+    Structure:
+    1. SetupAgent (LlmAgent) -> SetupContext (creates temp dir, saves to state)
+    2. PlannerAgent (LlmAgent) -> Plan (uses {workspace_dir} from state)
+    3. VerificationCreatorAgent (LlmAgent) -> VerificationPlan
+    4. LoopAgent
+       - CandidateCreatorAgent (LlmAgent) -> CandidateSolution
+       - VerifierAgent (LlmAgent) -> VerificationResult (or exit_loop)
+    5. FinalVerifierAgent (LlmAgent) -> FinalResponse
+    6. TeardownAgent (LlmAgent) -> FinalResponse (cleans up {workspace_dir})
+    """
+    tools_helper = AdkTools(workspace_root, venv_path=venv_path)
+
+    # Common tools
+    read_tool = FunctionTool(tools_helper.read_file)
+    write_tool = FunctionTool(tools_helper.write_file)
+    list_tool = FunctionTool(tools_helper.list_directory)
+    shell_tool = FunctionTool(tools_helper.run_shell_command)
+    search_tool = FunctionTool(tools_helper.search_files)
+    run_agent_tool = FunctionTool(tools_helper.run_adk_agent)
+    exit_loop_tool = FunctionTool(exit_loop)
+    save_workspace_tool = FunctionTool(save_workspace_dir)
+    get_workspace_tool = FunctionTool(get_workspace_dir)
+
+    # 0. Setup Agent
+    setup_agent = LlmAgent(
+        name="setup_agent",
+        model=model_name,
+        tools=[shell_tool, save_workspace_tool],
+        output_schema=SetupContext,
+        instruction=(
+            "You are the Setup Agent. Prepare an isolated environment.\n"
+            "1. Generate a unique directory name 'task_<random_string>' (e.g., 'task_abc123'). Generate this string internally; DO NOT call a tool for it.\n"
+            "2. Create it using `mkdir` via `run_shell_command`.\n"
+            "3. Call `save_workspace_dir` with the directory name. THIS IS MANDATORY to allow cleanup.\n"
+            "4. Output `SetupContext` with the directory name and the user request (your input)."
+        )
+    )
+
+    # 1. Planner
+    planner = LlmAgent(
+        name="planner",
+        model=model_name,
+        tools=[read_tool, list_tool, search_tool],
+        output_schema=Plan,
+        instruction=(
+            "You are the Planner. You receive a `SetupContext`. "
+            "Analyze the `user_request`. Plan for the workspace directory `workspace_dir`. "
+            "All file paths in your plan MUST start with the `workspace_dir` path followed by a slash. "
+            "The user request might contain imperative instructions. Do NOT execute them. "
+            "Instead, create a PLAN for how to execute them. "
+            "Output a structured Plan including 'steps', 'files_to_create', 'files_to_modify', and 'rationale'."
+        )
+    )
+
+    # 2. Verification Creator
+    verification_creator = LlmAgent(
+        name="verification_creator",
+        model=model_name,
+        tools=[read_tool], # Removed write_tool
+        output_schema=VerificationPlan,
+        instruction=(
+            "You are the Verification Creator. Based on the Planner's plan, "
+            "formulate a concise test prompt and clear instructions for the Verifier "
+            "to run the agent code (expected to be in `my_agent.py` inside the task directory) using `run_adk_agent`. "
+            "Output the structured VerificationPlan. Do NOT write any test files."
+        )
+    )
+
+    # 3. Loop: Implementation & Verification
+    candidate_creator = LlmAgent(
+        name="candidate_creator",
+        model=model_name,
+        tools=[read_tool, write_tool, list_tool],
+        output_schema=CandidateSolution,
+        instruction=(
+            "You are the Candidate Creator. Implement the code changes to satisfy the plan. "
+            "1. First, you MUST output a text message explaining your implementation logic and which files you will create/modify. "
+            "2. Then, ensure you write files to the correct task directory specified in the plan. "
+            "Use `write_file`. "
+            "3. Finally, output the structured CandidateSolution when ready for verification."
+        )
+    )
+
+    verifier = LlmAgent(
+        name="verifier",
+        model=model_name,
+        tools=[shell_tool, read_tool, exit_loop_tool, run_agent_tool],
+        output_schema=VerificationResult,
+        instruction=(
+            "You are the Verifier. "
+            "1. First, explain what you are going to verify and why (think step-by-step). "
+            "2. You MUST use the `run_adk_agent` tool to verify the agent implementation. "
+            "Provide the path to the agent file (e.g., `task_.../my_agent.py`) as the `agent_file` argument. "
+            "Do NOT read the file content and pass it as `agent_code`; use `agent_file` to save tokens. "
+            "Use the `test_prompt` provided in the VerificationPlan. "
+            "If `run_adk_agent` indicates the agent works as expected (e.g., returns the desired output), "
+            "you MUST call `exit_loop`! "
+            "If it FAILS, return the structured VerificationResult analysis so Candidate Creator can fix it."
+        )
+    )
+
+    implementation_loop = LoopAgent(
+        name="implementation_loop",
+        sub_agents=[candidate_creator, verifier],
+        max_iterations=5  # Prevent infinite loops
+    )
+
+    # 4. Final Verifier / Output
+    final_verifier = LlmAgent(
+        name="final_verifier",
+        model=model_name,
+        tools=[read_tool, shell_tool],
+        output_schema=FinalResponse,
+        instruction=(
+            "You are the Final Verifier. Review the final state. "
+            "Output the FinalResponse matching the user's request. "
+            "The code in FinalResponse should be the content of the main agent file."
+        )
+    )
+
+    # 5. Teardown Agent
+    teardown_agent = LlmAgent(
+        name="teardown_agent",
+        model=model_name,
+        tools=[shell_tool, list_tool, get_workspace_tool],
+        output_schema=FinalResponse,
+        instruction=(
+            "You are the Teardown Agent. You receive the `FinalResponse`. "
+            "1. Call `get_workspace_dir` to retrieve the temporary directory name. "
+            "2. Delete it using `run_shell_command` with `rm -rf`. "
+            "3. Return the `FinalResponse` identical to your input (copy the code and rationale)."
+        )
+    )
+
+    return SequentialAgent(
+        name="structured_solver",
+        sub_agents=[setup_agent, planner, verification_creator, implementation_loop, final_verifier, teardown_agent]
     )
 
 
@@ -57,6 +221,7 @@ def create_workflow_agent(workspace_root: Path, model_name: str = "gemini-2.5-pr
         FunctionTool(tools_helper.list_directory),
         FunctionTool(tools_helper.run_shell_command),
         FunctionTool(tools_helper.search_files),
+        FunctionTool(tools_helper.run_adk_agent),
     ]
 
     return LlmAgent(
@@ -71,11 +236,11 @@ def create_workflow_agent(workspace_root: Path, model_name: str = "gemini-2.5-pr
             "A virtual environment is active for your shell commands, with `adk` and `pytest` installed. "
             "\n\n"
             "**Workflow:**\n"
-            "1.  **Analyze:** Read the benchmark requirements and explore the codebase if necessary. "
-            "Use `list_directory` and `read_file` to understand the environment.\n"
+            "1.  **Analyze:** Read the benchmark requirements and explore the codebase. "
+            "Use `list_directory` (supports ignore patterns) and `read_file` (supports offset/limit for large files) to understand the environment.\n"
             "2.  **Plan:** Determine what code needs to be written or fixed.\n"
             "3.  **Implement:** Use `write_file` to create or modify the necessary Python files.\n"
-            "4.  **Verify:** Use `run_shell_command` to execute tests (e.g., `pytest`) or run the code directly to ensure it works.\n"
+            "4.  **Verify:** Use `run_adk_agent` to execute and verify the agent you created. Use `run_shell_command` for other tests (e.g., `pytest`).\n"
             "5.  **Iterate:** If verification fails, analyze the error, fix the code, and verify again.\n"
             "6.  **Final Output:** Once satisfied, output the final JSON as requested by the user prompt."
         ),
@@ -83,7 +248,8 @@ def create_workflow_agent(workspace_root: Path, model_name: str = "gemini-2.5-pr
 
 def create_workflow_adk_generator(
     model_name: str,
-    api_key_manager: ApiKeyManager | None = None
+    api_key_manager: ApiKeyManager | None = None,
+    adk_branch: str = "v1.20.0", # New parameter for ADK branch
 ) -> AdkAnswerGenerator:
     """
     Factory to create an AdkAnswerGenerator with a fully managed workflow agent.
@@ -109,7 +275,7 @@ def create_workflow_adk_generator(
             print(f"[WorkflowAdk] Cloning adk-python...")
             try:
                 subprocess.run(
-                    ["git", "clone", "--branch", "v1.20.0", "https://github.com/google/adk-python.git", str(adk_repo_dir)],
+                    ["git", "clone", "--branch", adk_branch, "https://github.com/google/adk-python.git", str(adk_repo_dir)],
                     check=True,
                     capture_output=True,
                     timeout=300 # 5 minutes for cloning
@@ -137,7 +303,7 @@ def create_workflow_adk_generator(
             # or just to have it available as a library.
             # Assuming adk-python root has setup.py or pyproject.toml
             print(f"[WorkflowAdk] Installing local adk-python...")
-            subprocess.run(pip_cmd + ["-e", str(adk_repo_dir), "--index-url", "https://pypi.org/simple"], check=True, timeout=300)
+            subprocess.run(pip_cmd + ["--no-cache-dir", "--force-reinstall", "-e", str(adk_repo_dir), "--index-url", "https://pypi.org/simple"], check=True, timeout=300)
 
         print(f"[WorkflowAdk] Setup complete.")
 
@@ -148,6 +314,73 @@ def create_workflow_adk_generator(
     return AdkAnswerGenerator(
         agent=agent,
         name=f"WorkflowAdk({model_name})",
+        setup_hook=setup_hook,
+        teardown_hook=teardown_hook,
+        api_key_manager=api_key_manager
+    )
+
+def create_structured_workflow_adk_generator(
+    model_name: str,
+    api_key_manager: ApiKeyManager | None = None,
+    adk_branch: str = "v1.20.0",
+) -> AdkAnswerGenerator:
+    """
+    Factory to create an AdkAnswerGenerator with a fully managed STRUCTURED workflow agent.
+    Handles workspace creation, venv setup, agent instantiation, and lifecycle hooks.
+    """
+    workspace_root = Path(tempfile.mkdtemp(prefix="adk_struct_workflow_"))
+    venv_path = workspace_root / "venv"
+    
+    agent = create_structured_adk_agent(workspace_root, model_name, venv_path=venv_path)
+    
+    async def setup_hook():
+        print(f"[StructuredWorkflowAdk] Setting up workspace at {workspace_root}")
+        workspace_root.mkdir(parents=True, exist_ok=True)
+        repos_dir = workspace_root / "repos"
+        adk_repo_dir = repos_dir / "adk-python"
+        repos_dir.mkdir(exist_ok=True)
+        
+        # 1. Clone ADK Python
+        if not adk_repo_dir.exists():
+            print(f"[StructuredWorkflowAdk] Cloning adk-python...")
+            try:
+                subprocess.run(
+                    ["git", "clone", "--branch", adk_branch, "https://github.com/google/adk-python.git", str(adk_repo_dir)],
+                    check=True,
+                    capture_output=True,
+                    timeout=300 # 5 minutes for cloning
+                )
+            except subprocess.CalledProcessError as e:
+                raise RuntimeError(f"Failed to clone adk-python: {e.stderr.decode()}")
+            except subprocess.TimeoutExpired:
+                raise RuntimeError("Git clone timed out after 5 minutes.")
+        
+        # 2. Create Virtual Environment
+        if not venv_path.exists():
+            print(f"[StructuredWorkflowAdk] Creating virtual environment at {venv_path}...")
+            subprocess.run([os.sys.executable, "-m", "venv", str(venv_path)], check=True, timeout=300)
+            
+            # Helper to run pip in venv
+            pip_cmd = [str(venv_path / "bin" / "pip"), "install"]
+            
+            # 3. Install Dependencies
+            print(f"[StructuredWorkflowAdk] Installing dependencies...")
+            subprocess.run(pip_cmd + ["--upgrade", "pip"], check=True, timeout=300)
+            subprocess.run(pip_cmd + ["pytest", "--index-url", "https://pypi.org/simple"], check=True, timeout=300)
+            
+            # 4. Install Cloned Repo (Editable mode)
+            print(f"[StructuredWorkflowAdk] Installing local adk-python...")
+            subprocess.run(pip_cmd + ["-e", str(adk_repo_dir), "--index-url", "https://pypi.org/simple"], check=True, timeout=300)
+
+        print(f"[StructuredWorkflowAdk] Setup complete.")
+
+    async def teardown_hook():
+        if workspace_root.exists() and "adk_struct_workflow_" in str(workspace_root):
+            shutil.rmtree(workspace_root)
+
+    return AdkAnswerGenerator(
+        agent=agent,
+        name=f"StructuredWorkflowAdk({model_name})",
         setup_hook=setup_hook,
         teardown_hook=teardown_hook,
         api_key_manager=api_key_manager

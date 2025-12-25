@@ -16,11 +16,11 @@
 
 from pathlib import Path
 import re
-from typing import Any
+from typing import Any, Optional
 
 import pydantic
 
-from benchmarks.data_models import AnswerTemplate
+from benchmarks.data_models import AnswerTemplate, TraceLogEvent, TraceEventType
 
 # --- Custom Exceptions ---
 
@@ -37,6 +37,10 @@ class ValidationError(Exception):
 
 class TemplateMismatchError(ValidationError):
     """Raised when an answer does not match its template."""
+
+
+class TraceValidationFailure(ValidationError):
+    """Raised when trace log expectations are not met."""
 
 
 # --- Template Definitions ---
@@ -187,3 +191,68 @@ def load_snippet(ref: Any) -> str:
     import textwrap
 
     return textwrap.dedent("".join(snippet))
+
+def validate_trace_log_expectations(
+    trace_logs: list[TraceLogEvent],
+    expected_sub_agent_calls: Optional[list[str]],
+    expected_tool_uses: Optional[list[str]],
+) -> tuple[bool, Optional[str]]:
+    """
+    Validates trace logs against expected sub-agent calls and tool uses.
+
+    Args:
+        trace_logs: The list of TraceLogEvent objects from the benchmark run.
+        expected_sub_agent_calls: An ordered list of expected sub-agent names.
+                                  If None or empty, no sub-agent validation is performed.
+        expected_tool_uses: An ordered list of expected tool names.
+                            If None or empty, no tool use validation is performed.
+
+    Returns:
+        A tuple (success, error_message).
+        Success is True if all expectations are met, False otherwise.
+        error_message is a string detailing the failure, or None on success.
+    """
+    # Validate expected sub-agent calls
+    if expected_sub_agent_calls:
+        actual_sub_agent_calls = []
+        for event in trace_logs:
+            # Assuming sub-agent calls are represented by messages, tool uses, or ADK events from the agent
+            if (
+                event.type in [TraceEventType.MESSAGE, TraceEventType.TOOL_USE, TraceEventType.ADK_EVENT]
+                and (event.role == "model" or event.type == TraceEventType.ADK_EVENT) # ADK_EVENT might not have role "model" explicitly in trace logs but has author
+                and event.author != "user" # Exclude user messages
+                and event.author # Ensure author is not empty
+            ):
+                actual_sub_agent_calls.append(event.author)
+
+        if not actual_sub_agent_calls:
+            return False, f"Expected sub-agent calls: {expected_sub_agent_calls}, but no sub-agent messages were found."
+
+        expected_idx = 0
+        for actual_agent_name in actual_sub_agent_calls:
+            if expected_idx < len(expected_sub_agent_calls) and actual_agent_name == expected_sub_agent_calls[expected_idx]:
+                expected_idx += 1
+        
+        if expected_idx < len(expected_sub_agent_calls):
+            return False, f"Expected sub-agent '{expected_sub_agent_calls[expected_idx]}' was not called in the expected order."
+
+    # Validate expected tool uses
+    if expected_tool_uses:
+        actual_tool_uses = []
+        for event in trace_logs:
+            if event.type == TraceEventType.TOOL_USE and event.tool_name:
+                actual_tool_uses.append(event.tool_name)
+        
+        if not actual_tool_uses:
+            return False, f"Expected tool uses: {expected_tool_uses}, but no tool uses were found."
+
+        expected_idx = 0
+        for actual_tool_name in actual_tool_uses:
+            if expected_idx < len(expected_tool_uses) and actual_tool_name == expected_tool_uses[expected_idx]:
+                expected_idx += 1
+        
+        if expected_idx < len(expected_tool_uses):
+            return False, f"Expected tool '{expected_tool_uses[expected_idx]}' was not used in the expected order."
+
+    return True, None
+

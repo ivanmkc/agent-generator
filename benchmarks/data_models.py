@@ -353,6 +353,9 @@ class TraceLogEvent(pydantic.BaseModel):
         None,
         description="The role associated with the event (user/model/system).",
     )
+    author: Optional[str] = Field(
+        None, description="The name of the agent or entity that produced the event."
+    )
     tool_name: Optional[str] = Field(None, description="Name of the tool used.")
     tool_call_id: Optional[str] = Field(
         None, description="Unique identifier for the tool call."

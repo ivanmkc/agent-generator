@@ -92,6 +92,7 @@ class GeneratorTestCase:
     custom_case: BaseBenchmarkCase = field(default=None)
 
     expected_tool_uses: List[str] = field(default_factory=list)
+    expected_sub_agent_calls: Optional[List[str]] = field(default=None)
 
     def __post_init__(self):
         if self.custom_case is None:
@@ -241,6 +242,7 @@ async def managed_generator_test_case(
         expected_context_files=config.expected_context_files,
         custom_case=config.custom_case,
         expected_tool_uses=config.expected_tool_uses,
+        expected_sub_agent_calls=config.expected_sub_agent_calls,
     )
 
 
@@ -355,7 +357,8 @@ async def test_case(
             expected_mcp_tools=config.expected_mcp_tools,
             expected_context_files=config.expected_context_files,
             custom_case=custom_case_instance,
-            expected_tool_uses=config.expected_tool_uses
+            expected_tool_uses=config.expected_tool_uses,
+            expected_sub_agent_calls=config.expected_sub_agent_calls,
         )
 
     # 2. Fallback to Local Fixtures

@@ -2,7 +2,7 @@ import enum
 from pathlib import Path
 from benchmarks.utils import permute
 from benchmarks.api_key_manager import ApiKeyManager
-from benchmarks.answer_generators.adk_agents import create_default_adk_agent, create_workflow_adk_generator
+from benchmarks.answer_generators.adk_agents import create_default_adk_agent, create_workflow_adk_generator, create_structured_workflow_adk_generator
 from benchmarks.answer_generators.gemini_cli_docker import (
     GeminiCliPodmanAnswerGenerator,
 )
@@ -43,7 +43,11 @@ _podman_image_dirs = [
 CANDIDATE_GENERATORS = []
 
 CANDIDATE_GENERATORS.extend([
-    create_workflow_adk_generator(
+    # create_workflow_adk_generator(
+    #     model_name=ModelName.GEMINI_2_5_FLASH,
+    #     api_key_manager=api_key_manager
+    # ),
+    create_structured_workflow_adk_generator(
         model_name=ModelName.GEMINI_2_5_FLASH,
         api_key_manager=api_key_manager
     ),

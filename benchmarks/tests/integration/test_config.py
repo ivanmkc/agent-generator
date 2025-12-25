@@ -22,12 +22,14 @@ from pathlib import Path
 from benchmarks.tests.integration.predefined_cases import (
     ADK_BASE_AGENT_QUESTION_CASE_INTERMEDIATE,
     MCP_ADK_RUNNER_CASE,
+    STRUCTURED_WORKFLOW_CASE,
 )
 from benchmarks.tests.integration.config_models import (
     AnyGeneratorConfig,
     PodmanGeneratorConfig,
     CloudRunGeneratorConfig,
-    WorkflowAdkGeneratorConfig
+    WorkflowAdkGeneratorConfig,
+    StructuredWorkflowAdkGeneratorConfig
 )
 
 # Map fixture names to their configuration metadata
@@ -35,6 +37,15 @@ GENERATOR_METADATA: Dict[str, AnyGeneratorConfig] = {
     "workflow_adk_test_case": WorkflowAdkGeneratorConfig(
         id="workflow_adk_test_case",
         expected_context_files=[], # It clones repo but doesn't use the file-based context check mechanism same way
+        expected_tool_uses=[],
+        expected_sub_agent_calls=None # No specific sub-agent flow for unstructured workflow
+    ),
+    "structured_workflow_adk_test_case": StructuredWorkflowAdkGeneratorConfig(
+        id="structured_workflow_adk_test_case",
+        expected_context_files=[],
+        expected_tool_uses=["write_file", "run_adk_agent"],
+        expected_sub_agent_calls=["setup_agent", "planner", "verification_creator", "candidate_creator", "verifier", "final_verifier", "teardown_agent"],
+        custom_case=STRUCTURED_WORKFLOW_CASE,
     ),
     "podman_base_test_case": PodmanGeneratorConfig(
 

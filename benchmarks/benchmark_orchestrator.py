@@ -32,6 +32,7 @@ from benchmarks.data_models import BenchmarkResultType
 from benchmarks.data_models import BenchmarkRunResult
 from benchmarks.data_models import GenerationAttempt
 from benchmarks.logger import BenchmarkLogger
+import benchmarks.validation_utils as validation_utils
 
 
 async def _run_single_benchmark(

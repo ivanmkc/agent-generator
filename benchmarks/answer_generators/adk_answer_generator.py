@@ -1,7 +1,10 @@
 import uuid
+import time
+import datetime # Added import
 from typing import Optional, Callable, Awaitable
 
 from google.adk.agents import Agent
+from google.adk.apps import App # Added import for App
 from google.adk.runners import InMemoryRunner
 from google.genai import types
 
@@ -29,7 +32,9 @@ class AdkAnswerGenerator(LlmAnswerGenerator):
         self.api_key_manager = api_key_manager
         self.setup_hook = setup_hook
         self.teardown_hook = teardown_hook
-        self.runner = InMemoryRunner(agent=self.agent)
+        # Explicitly create an App instance to control its name
+        self.app = App(name=f"AdkBenchmarkApp_{self.agent.name}_{uuid.uuid4().hex}", root_agent=self.agent)
+        self.runner = InMemoryRunner(app=self.app) # Pass the App instance
         self._name = name or f"AdkAnswerGenerator({self.agent.name})"
 
     @property
@@ -89,12 +94,25 @@ class AdkAnswerGenerator(LlmAnswerGenerator):
 
         session_id = f"benchmark_session_{uuid.uuid4()}"
         session = await self.runner.session_service.create_session(
-            app_name=self.runner.app_name,
+            app_name=self.app.name, # Use self.app.name here
             user_id="benchmark_user",
             session_id=session_id,
         )
         final_response = ""
         logs: list[TraceLogEvent] = []
+
+        # Explicitly log the initial prompt as a user message
+        logs.append(
+            TraceLogEvent(
+                type=TraceEventType.MESSAGE,
+                source="adk",
+                timestamp=datetime.datetime.now().isoformat(),
+                role="user",
+                author="system",  # Indicates it's the initial system/user prompt
+                content=prompt,
+                details={"step": "Initial Prompt to Agent"}
+            )
+        )
 
         total_prompt_tokens = 0
         total_completion_tokens = 0
@@ -125,6 +143,10 @@ class AdkAnswerGenerator(LlmAnswerGenerator):
                 else None
             )
 
+            # Attempt to extract common fields that might be present directly on the ADK event
+            event_tool_name = getattr(event, "tool_name", None)
+            event_agent_name = getattr(event, "agent_name", None)
+
             # Analyze content parts to generate specific log events
             events_generated = False
             if event.content and event.content.parts:
@@ -136,6 +158,7 @@ class AdkAnswerGenerator(LlmAnswerGenerator):
                             source="adk",
                             timestamp=timestamp,
                             role=event.content.role,
+                            author=event_agent_name or event.author,
                             content=part.text,
                             details=base_details
                         )
@@ -149,7 +172,8 @@ class AdkAnswerGenerator(LlmAnswerGenerator):
                             source="adk",
                             timestamp=timestamp,
                             role="model",
-                            tool_name=part.function_call.name,
+                            author=event_agent_name or event.author,
+                            tool_name=event_tool_name or part.function_call.name,
                             tool_input=part.function_call.args, # Assuming args is dict/json-serializable
                             tool_call_id=getattr(part.function_call, "id", None),
                             details=base_details
@@ -171,7 +195,8 @@ class AdkAnswerGenerator(LlmAnswerGenerator):
                             source="adk",
                             timestamp=timestamp,
                             role="tool",
-                            tool_name=part.function_response.name,
+                            author=event_agent_name or event.author,
+                            tool_name=event_tool_name or part.function_response.name,
                             tool_output=tool_output_str,
                             tool_call_id=getattr(part.function_response, "id", None),
                             details=base_details
@@ -179,29 +204,26 @@ class AdkAnswerGenerator(LlmAnswerGenerator):
                         logs.append(log_event)
                         events_generated = True
 
-            # Fallback if no specific parts were parsed or event has no content (e.g. system events)
+            # Fallback for ADK internal events (e.g., sub-agent orchestration)
             if not events_generated:
                 log_event = TraceLogEvent(
                     type=TraceEventType.ADK_EVENT,
                     source="adk",
                     timestamp=timestamp,
+                    role=getattr(event, "role", None), # ADK events might have a role directly
+                    author=event_agent_name or event.author,
+                    tool_name=event_tool_name,
+                    content=getattr(event, "content", None).text if getattr(event, "content", None) else None,
                     details=base_details,
                 )
-                # Try to capture content if it exists but wasn't in parts (unlikely for Content object)
-                if event.content and not event.content.parts:
-                     try:
-                        log_event.content = event.content.model_dump(mode='json')
-                     except:
-                        log_event.content = str(event.content)
-                
                 logs.append(log_event)
 
             if event.is_final_response():
                 if event.content and event.content.parts:
                     final_response = event.content.parts[0].text
-                # Don't break immediately if we want full traces?
-                # Usually final response is the end, but let's keep breaking to match logic.
-                break
+                # Continue consuming the stream to allow subsequent agents in a sequence to run.
+                # The final_response variable will be updated with the last response.
+                
         
         usage_metadata = UsageMetadata(
             total_tokens=total_tokens,
