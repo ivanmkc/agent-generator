@@ -269,22 +269,22 @@ async def run_orchestrator():
     generators = [
         config
         for config in GENERATOR_METADATA.values()
-        if config["type"] in ["podman", "cloud_run"]
+        if config.type in ["podman", "cloud_run"]
     ]
 
     print("=== Starting Sequential Integration Test Suite ===")
 
     for config in generators:
-        gen_id = config["id"]
-        gen_type = config["type"]
+        gen_id = config.id
+        gen_type = config.type
         print(f"\n>>> Preparing Generator: {gen_id} ({gen_type})")
 
         generator = None
         # Instantiate
         if gen_type == "podman":
             generator = GeminiCliPodmanAnswerGenerator(
-                dockerfile_dir=Path(config["dockerfile_dir"]),
-                image_name=config["image_name"],
+                dockerfile_dir=Path(config.dockerfile_dir),
+                image_name=config.image_name,
                 image_definitions=IMAGE_DEFINITIONS,
                 model_name="gemini-2.5-flash",
             )
@@ -295,9 +295,9 @@ async def run_orchestrator():
                 continue
 
             generator = GeminiCliCloudRunAnswerGenerator(
-                dockerfile_dir=Path(config["dockerfile_dir"]),
-                service_name=config["service_name"],
-                region=config.get("region", "us-central1"),
+                dockerfile_dir=Path(config.dockerfile_dir),
+                service_name=config.service_name,
+                region=getattr(config, "region", "us-central1"),
                 model_name="gemini-2.5-flash",
             )
         else:
