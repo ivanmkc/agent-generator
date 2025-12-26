@@ -114,6 +114,7 @@ def create_structured_adk_agent(workspace_root: Path, model_name: str = "gemini-
     list_tool = FunctionTool(tools_helper.list_directory)
     shell_tool = FunctionTool(tools_helper.run_shell_command)
     search_tool = FunctionTool(tools_helper.search_files)
+    get_help_tool = FunctionTool(tools_helper.get_module_help)
     # run_agent_tool = FunctionTool(tools_helper.run_adk_agent) # Deprecated for inner loop in favor of run_current_agent
     exit_loop_tool = FunctionTool(exit_loop)
     save_workspace_tool = FunctionTool(save_workspace_dir)
@@ -143,14 +144,16 @@ def create_structured_adk_agent(workspace_root: Path, model_name: str = "gemini-
     knowledge_retrieval_agent = LlmAgent(
         name="knowledge_retrieval_agent",
         model=model_name,
-        tools=[search_tool, read_tool, list_tool],
+        tools=[search_tool, get_help_tool, read_tool, list_tool],
         output_schema=SetupContext,
         instruction=(
             "You are the Knowledge Retrieval Agent. Your goal is to gather relevant API information or code snippets "
             "from the repository to help the Planner and Candidate Creator.\n"
             "1. Analyze the `user_request` in the input `SetupContext`.\n"
-            "2. Use `search_files` or `list_directory`/`read_file` to find relevant examples, definitions, or documentation in the workspace.\n"
-            "3. Update the `SetupContext` by populating the `knowledge_context` field with a summary of findings and useful code snippets.\n"
+            "2. Prioritize using `get_module_help` to get summaries of relevant modules (e.g. `google.adk`, `google.genai`). "
+            "   This is token-efficient.\n"
+            "3. Use `search_files` or `read_file` only if specific code examples or details are missing from the help output.\n"
+            "4. Update the `SetupContext` by populating the `knowledge_context` field with a summary of findings and useful code snippets/docstrings.\n"
             "   Preserve `workspace_dir` and `user_request` exactly as they are."
         )
     )
@@ -159,7 +162,7 @@ def create_structured_adk_agent(workspace_root: Path, model_name: str = "gemini-
     planner = LlmAgent(
         name="planner",
         model=model_name,
-        tools=[read_tool, list_tool, search_tool],
+        tools=[read_tool, list_tool, search_tool, get_help_tool],
         output_schema=Plan,
         instruction=(
             "You are the Planner. You receive a `SetupContext`. "
@@ -193,15 +196,15 @@ def create_structured_adk_agent(workspace_root: Path, model_name: str = "gemini-
     candidate_creator = LlmAgent(
         name="candidate_creator",
         model=model_name,
-        tools=[read_tool, write_tool, list_tool, save_code_tool, search_tool],
+        tools=[read_tool, write_tool, list_tool, save_code_tool, search_tool, get_help_tool],
         output_schema=CandidateSolution,
         instruction=(
             "You are the Candidate Creator. Implement the code changes to satisfy the plan. "
             "1. First, you MUST output a text message explaining your implementation logic. "
             "2. IMPLEMENT the agent code and SAVE it to session state using `save_agent_code`. "
             "   Do NOT write the agent code to a file using `write_file` unless explicitly instructed for auxiliary files. "
-            "3. If you are stuck or need to check API details, you may use `search_files` or `read_file` to look up information, "
-            "   but ONLY if you cannot proceed otherwise. "
+            "3. If you are stuck or need to check API details, you may use `get_module_help` (preferred) or `search_files` "
+            "   to look up information, but ONLY if you cannot proceed otherwise. "
             "4. Finally, output the structured CandidateSolution when ready for verification."
         )
     )
@@ -209,7 +212,7 @@ def create_structured_adk_agent(workspace_root: Path, model_name: str = "gemini-
     verifier = LlmAgent(
         name="verifier",
         model=model_name,
-        tools=[shell_tool, read_tool, exit_loop_tool, run_current_tool, search_tool, list_tool],
+        tools=[shell_tool, read_tool, exit_loop_tool, run_current_tool, search_tool, list_tool, get_help_tool],
         output_schema=VerificationResult,
         instruction=(
             "You are the Verifier. "
@@ -218,8 +221,8 @@ def create_structured_adk_agent(workspace_root: Path, model_name: str = "gemini-
             "   Use the `test_prompt` provided in the VerificationPlan. "
             "   If you didn't specify `model_name` in `run_current_agent`, it defaults to the agent's model. "
             "3. If `run_current_agent` FAILS or gives unexpected results, analyze the logs. "
-            "   If you are unable to diagnose the issue from logs, you may use `search_files` or `read_file` to check "
-            "   documentation or codebase for correct API usage, but ONLY after exhausting debug info from the run. "
+            "   If you are unable to diagnose the issue from logs, you may use `get_module_help` (preferred) or `search_files` "
+            "   to check documentation or codebase for correct API usage, but ONLY after exhausting debug info from the run. "
             "4. If `run_current_agent` indicates the agent works as expected, you MUST call `exit_loop`! "
             "   If it FAILS, return the structured VerificationResult analysis so Candidate Creator can fix it."
         )

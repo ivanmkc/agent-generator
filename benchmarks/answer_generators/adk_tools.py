@@ -309,6 +309,26 @@ Action: To read more of the file, you can use the 'offset' and 'limit' parameter
         cmd = f"grep -r '{safe_pattern}' '{path}'"
         return self.run_shell_command(cmd)
 
+    def get_module_help(self, module_name: str) -> str:
+        """
+        Retrieves the documentation (pydoc) for a Python module.
+        
+        This is often more token-efficient than reading source files as it provides 
+        a summary of classes, functions, and docstrings.
+
+        Args:
+            module_name: The name of the module to get help for (e.g., 'json', 'google.adk').
+
+        Returns:
+            The output of `pydoc`, or an error message.
+        """
+        # Validate module name to prevent arbitrary command execution
+        if not module_name.replace(".", "").replace("_", "").isalnum():
+             return "Error: Invalid module name. Only alphanumeric characters, dots, and underscores are allowed."
+        
+        cmd = f"python3 -m pydoc {module_name}"
+        return self.run_shell_command(cmd)
+
     def run_adk_agent(self, prompt: str, model_name: str, agent_code: Optional[str] = None, agent_file: Optional[str] = None, initial_state: Optional[str] = None) -> str:
         """
         Executes a Python ADK agent.
