@@ -54,6 +54,17 @@ CANDIDATE_GENERATORS = list(permute(
 # ])
 
 CANDIDATE_GENERATORS.extend([
+    create_structured_workflow_adk_generator(
+        model_name=ModelName.GEMINI_2_5_FLASH,
+        api_key_manager=api_key_manager
+    ),
+    GeminiCliPodmanAnswerGenerator(
+        dockerfile_dir=Path("benchmarks/answer_generators/gemini_cli_docker/mcp_adk_agent_runner_retrieval"),
+        image_name="gemini-cli:mcp_adk_agent_runner_retrieval",
+        image_definitions=IMAGE_DEFINITIONS,
+        model_name=ModelName.GEMINI_2_5_FLASH,
+        api_key_manager=api_key_manager
+    ),
     # Control generators
     GroundTruthAnswerGenerator(),
     TrivialAnswerGenerator(),

@@ -43,4 +43,10 @@ IMAGE_DEFINITIONS: Dict[str, ImageDefinition] = {
         dependencies=[f"{IMAGE_PREFIX}:adk-python"],
         build_args={"BASE_IMAGE": f"{IMAGE_PREFIX}:adk-python"},
     ),
+    f"{IMAGE_PREFIX}:mcp_adk_agent_runner_retrieval": ImageDefinition(
+        source_dir="mcp_adk_agent_runner_retrieval",
+        dockerfile="mcp_adk_agent_runner_retrieval/Dockerfile",
+        dependencies=[f"{IMAGE_PREFIX}:adk-python"],
+        build_args={"BASE_IMAGE": f"{IMAGE_PREFIX}:adk-python"},
+    ),
 }
