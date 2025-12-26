@@ -431,12 +431,12 @@ def create_structured_workflow_adk_generator(
             
             # 3. Install Dependencies
             print(f"[StructuredWorkflowAdk] Installing dependencies...")
-            subprocess.run(pip_cmd + ["--upgrade", "pip"], check=True, timeout=300)
-            subprocess.run(pip_cmd + ["pytest", "--index-url", "https://pypi.org/simple"], check=True, timeout=300)
+            subprocess.run(pip_cmd + ["--upgrade", "--quiet", "pip"], check=True, timeout=300)
+            subprocess.run(pip_cmd + ["--quiet", "pytest", "--index-url", "https://pypi.org/simple"], check=True, timeout=300)
             
             # 4. Install Cloned Repo (Editable mode)
             print(f"[StructuredWorkflowAdk] Installing local adk-python...")
-            subprocess.run(pip_cmd + ["-e", str(adk_repo_dir), "--index-url", "https://pypi.org/simple"], check=True, timeout=300)
+            subprocess.run(pip_cmd + ["--quiet", "-e", str(adk_repo_dir), "--index-url", "https://pypi.org/simple"], check=True, timeout=300)
 
         print(f"[StructuredWorkflowAdk] Setup complete.")
 
