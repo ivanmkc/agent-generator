@@ -10,7 +10,10 @@ This directory contains the implementations of various "Answer Generators" used 
 *   **`trivial_answer_generator.py`**: Returns empty or simple answers (sanity check/baseline).
 *   **`gemini_answer_generator.py`**: Uses the Gemini Python SDK to generate answers.
 *   **`gemini_cli_answer_generator.py`**: Uses the Gemini CLI tool to generate answers.
-*   **`adk_answer_generator.py`**: Uses ADK agents to generate answers.
+*   **`adk_answer_generator.py`**: Uses ADK agents to generate answers. Supports `StructuredWorkflowAdk` for complex tasks involving planning, coding, and verification loops.
+*   **`adk_agents.py`**: Defines specific ADK agent configurations, including the `StructuredWorkflowAdk` sequential agent (Setup -> Knowledge Retrieval -> Planner -> Implementation Loop -> Final Output).
+*   **`adk_schemas.py`**: Pydantic models defining the structured output for each step of the ADK workflow (`Plan`, `VerificationPlan`, `SetupContext`, etc.).
+*   **`adk_tools.py`**: Custom tools for ADK agents, including file system operations, shell commands, and `get_module_help` for efficient API discovery.
 *   **`gemini_cli_docker/`**: Contains the Docker-based Gemini CLI generator and its sandbox resources.
 *   **`prompts/`**: Contains prompt templates used by the LLM-based generators.
 

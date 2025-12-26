@@ -295,6 +295,8 @@ def main():
 
     statuses = ["All"] + sorted(df["status"].unique().tolist())
     selected_status = st.sidebar.selectbox("Filter Status", statuses)
+    
+    exclude_system_failures = st.sidebar.checkbox("Exclude System Failures", value=False, help="Hides cases with FAIL_SETUP or FAIL_GENERATION status.")
 
     # 4. Filter Data (Preliminary)
     filtered_df = df.copy()
@@ -302,6 +304,8 @@ def main():
         filtered_df = filtered_df[filtered_df["suite"] == selected_suite]
     if selected_status != "All":
         filtered_df = filtered_df[filtered_df["status"] == selected_status]
+    if exclude_system_failures:
+        filtered_df = filtered_df[~filtered_df["status"].isin([BenchmarkResultType.FAIL_SETUP.value, BenchmarkResultType.FAIL_GENERATION.value])]
 
     if filtered_df.empty:
         st.info("No data matches the current filters.")
@@ -590,11 +594,14 @@ def main():
         row = filtered_df.loc[selected_case_id]
         case_trace_logs = row.get("trace_logs", []) or []
         generation_attempts = row.get("generation_attempts", []) or []
+        
+        usage = row.get("usage_metadata") or {}
+        total_tokens = usage.get("total_tokens", "N/A")
 
         # Header Info
         h1, h2, h3 = st.columns([3, 1, 1])
         h1.markdown(f"#### {row['benchmark_name']}")
-        h2.caption(f"Latency: {row['latency']:.4f}s")
+        h2.caption(f"Latency: {row['latency']:.4f}s | Tokens: {total_tokens}")
         h3.caption(
             f"Attempts: {len(generation_attempts) if generation_attempts else 'N/A'}"
         )
