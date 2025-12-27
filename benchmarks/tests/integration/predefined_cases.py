@@ -159,10 +159,10 @@ ADK_BASE_AGENT_QUESTION_CASE_INTERMEDIATE = ApiUnderstandingBenchmarkCase(
 MCP_ADK_RUNNER_CASE = FixErrorBenchmarkCase(
     name="MCP ADK Runner Test",
     description=(
-        "You must complete this task in two steps:\n"
-        "1. FIRST, use the `run_adk_agent` tool to execute the agent code and verify it returns 'Hello World'. "
-        "Do not skip this step.\n"
-        "2. SECOND, after receiving the tool output, generate the final JSON object containing the code and rationale."
+        "You must complete this task in steps:\n"
+        "1. FIRST, verify the correct imports and class signatures using available tools (e.g. `get_module_help` or search).\n"
+        "2. SECOND, use the `run_adk_agent` tool to execute the agent code and verify it returns 'Hello World'.\n"
+        "3. THIRD, after receiving the tool output, generate the final JSON object containing the code and rationale."
     ),
     test_file=Path("tests/test_agent.py"),  # Dummy path
     requirements=[

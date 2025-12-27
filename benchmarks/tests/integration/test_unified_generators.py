@@ -86,20 +86,15 @@ async def test_generator_capabilities(test_case: GeneratorTestCase) -> None:
         )
 
     # 2. MCP Tools Check
-    if isinstance(generator, GeminiCliAnswerGenerator):
-        checks_performed = True
-        print(f"[{test_case.id}] Fetching MCP tools...")
-        actual_mcp = await generator.get_mcp_tools()
-        print(f"[{test_case.id}] Discovered MCP tools: {actual_mcp}")
+    checks_performed = True
+    print(f"[{test_case.id}] Fetching MCP tools...")
+    actual_mcp = await generator.get_mcp_tools()
+    print(f"[{test_case.id}] Discovered MCP tools: {actual_mcp}")
 
-        for expected in test_case.expected_mcp_tools:
-            assert any(
-                expected in t for t in actual_mcp
-            ), f"[{test_case.id}] Expected MCP tool '{expected}' not found. Available: {actual_mcp}"
-    elif test_case.expected_mcp_tools:
-        pytest.fail(
-            f"[{test_case.id}] Configured to expect MCP tools {test_case.expected_mcp_tools}, but generator does not support 'get_mcp_tools'."
-        )
+    for expected in test_case.expected_mcp_tools:
+        assert any(
+            expected in t for t in actual_mcp
+        ), f"[{test_case.id}] Expected MCP tool '{expected}' not found. Available: {actual_mcp}"
 
     if not checks_performed:
         pytest.skip(
@@ -179,12 +174,7 @@ async def test_generator_memory_context(test_case: GeneratorTestCase) -> None:
     # Check if this test case expects any context files
     if not test_case.expected_context_files:
         # Skip memory context test for MCP generators that don't explicitly define expected files
-        if "mcp" in test_case.id:
-            pytest.skip(
-                f"Generator {test_case.id} is an MCP generator and does not rely on file-based memory context."
-            )
-        else:
-            pytest.skip(f"No expected context files defined for {test_case.id}")
+        pytest.skip(f"No expected context files defined for {test_case.id}")
 
     # Ensure generator is set up (e.g., container running)
     await generator.setup()
@@ -215,19 +205,9 @@ async def test_generator_memory_context(test_case: GeneratorTestCase) -> None:
         full_logs_content,
     )
     if not match:
-        # If the debug line is not found, check if it's an LLM refusal
-        if (
-            "I cannot" in full_logs_content
-            or "I am unable" in full_logs_content
-            or "I am a specialized agent" in full_logs_content
-        ):
-            pytest.skip(
-                f"[{test_case.id}] CLI returned LLM explanation instead of debug memory logs: {full_logs_content.strip()[:100]}..."
-            )
-        else:
-            pytest.fail(
-                f"[{test_case.id}] 'Final ordered INSTRUCTIONS.md paths' debug line not found in logs, and no LLM refusal detected."
-            )
+        pytest.fail(
+            f"[{test_case.id}] 'Final ordered INSTRUCTIONS.md paths' debug line not found in logs, and no LLM refusal detected."
+        )
 
     # Extract the paths string and parse as JSON array
     paths_str = match.group(1).replace(
