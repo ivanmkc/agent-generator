@@ -18,6 +18,7 @@ import os
 import shutil
 import subprocess
 import tempfile
+import uuid
 from pathlib import Path
 from typing import Optional, Any
 from google.adk.agents import LlmAgent, SequentialAgent, LoopAgent
@@ -43,7 +44,9 @@ def get_workspace_dir(tool_context: ToolContext) -> str:
     """Retrieves the workspace directory name from the session state."""
     return tool_context.session.state.get("workspace_dir", "Error: workspace_dir not found in session state.")
 
-
+def uuid4() -> str:
+    """Generates a random UUID."""
+    return str(uuid.uuid4())
 
 
 def create_default_adk_agent(model_name: str = "gemini-2.5-pro") -> LlmAgent:
@@ -124,19 +127,20 @@ def create_structured_adk_agent(workspace_root: Path, model_name: str = "gemini-
     save_code_tool = FunctionTool(save_agent_code)
     get_code_tool = FunctionTool(get_agent_code)
     run_current_tool = FunctionTool(run_current_agent)
+    uuid4_tool = FunctionTool(uuid4)
 
     # 0. Setup Agent
     setup_agent = LlmAgent(
         name="setup_agent",
         model=model_name,
-        tools=[shell_tool, save_workspace_tool],
+        tools=[shell_tool, save_workspace_tool, uuid4_tool],
         output_schema=SetupContext,
         instruction=(
             "You are the Setup Agent. Prepare an isolated environment.\n"
-            "1. Generate a unique directory name 'task_<random_string>' (e.g., 'task_abc123'). Generate this string internally; DO NOT call a tool for it.\n"
-            "2. Create it using `mkdir` via `run_shell_command`.\n"
-            "3. Call `save_workspace_dir` with the directory name. THIS IS MANDATORY to allow cleanup.\n"
-            "4. Output `SetupContext` with the directory name and the user request (your input)."
+            "1. Generate a unique directory name 'task_<random_string>' (e.g., 'task_abc123'). Generate this string internally or use the `uuid4` tool.\n"
+            "2. Create the directory using `run_shell_command` with `mkdir -p <directory_name>`.\n"
+            "3. Call `save_workspace_dir` with the created directory name. THIS IS MANDATORY to allow cleanup.\n"
+            "4. Finally, output a JSON object conforming to the `SetupContext` schema, including the `workspace_dir` and the original `user_request` (your input)."
         )
     )
 

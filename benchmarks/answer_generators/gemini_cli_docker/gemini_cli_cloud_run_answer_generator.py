@@ -58,6 +58,7 @@ from benchmarks.answer_generators.gemini_cli_answer_generator import (
     GeminiCliAnswerGenerator,
 )
 from benchmarks.config import CLOUD_RUN_CONFIG
+from benchmarks.api_key_manager import ApiKeyManager # Added import
 
 # Cloud Build API endpoint
 SERVICE_BASE_PATH = "cloudbuild.googleapis.com"
@@ -84,6 +85,7 @@ class GeminiCliCloudRunAnswerGenerator(GeminiCliAnswerGenerator):
         context_instruction: str | None = None,
         image_name: str | None = None,
         service_url: str | None = None,
+        api_key_manager: ApiKeyManager | None = None, # Added this argument
     ):
         # Store all arguments specific to this class first
         self.dockerfile_dir = Path(dockerfile_dir)
@@ -91,10 +93,11 @@ class GeminiCliCloudRunAnswerGenerator(GeminiCliAnswerGenerator):
         self.project_id = project_id
         self.region = region
         self.context_instruction = context_instruction  # Store locally
+        self.api_key_manager = api_key_manager # Store api_key_manager
 
         # Then call the parent constructor with only the arguments it expects
         super().__init__(
-            model_name=model_name, cli_path="gemini", context=self.context_instruction
+            model_name=model_name, cli_path="gemini", context=self.context_instruction, api_key_manager=api_key_manager # Pass api_key_manager to super
         )
 
         self._auth_req = google.auth.transport.requests.Request()
@@ -132,6 +135,26 @@ class GeminiCliCloudRunAnswerGenerator(GeminiCliAnswerGenerator):
                         "`image_name` must be provided explicitly."
                     )
                 self.image_name = "unknown-proxy"
+
+    async def _check_health(self, endpoint: str = "/health") -> tuple[int, str] | None:
+        """Checks the health of the remote service."""
+        if not self.service_url:
+            return None
+        url = f"{self.service_url.rstrip('/')}{endpoint}"
+        try:
+            # Get ID token for auth if needed (Cloud Run usually requires it unless public)
+            token = await self._get_id_token()
+            headers = {}
+            if token:
+                headers["Authorization"] = f"Bearer {token}"
+
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url, headers=headers, timeout=5) as resp:
+                    text = await resp.text()
+                    return resp.status, text
+        except Exception as e:
+            print(f"[Health Check] Failed to reach {url}: {e}")
+            return None
 
     @property
     def name(self) -> str:
@@ -195,7 +218,7 @@ class GeminiCliCloudRunAnswerGenerator(GeminiCliAnswerGenerator):
         # 3. Check Remote Version
         remote_version = None
         if self.service_url and not force_deploy:
-            health_result = await check_health(endpoint="/version")
+            health_result = await self._check_health(endpoint="/version")
             if health_result and health_result[0] == 200:
                 remote_version = health_result[1].strip()
                 self._remote_version = remote_version
@@ -281,9 +304,7 @@ class GeminiCliCloudRunAnswerGenerator(GeminiCliAnswerGenerator):
 
         # Create a staging bucket if it doesn't exist
         staging_bucket_name = f"{self.project_id}-adk-benchmark-staging"
-        storage_client = storage.Client(
-            project=self.project_id, credentials=google.auth.default()[0]
-        )
+        storage_client = storage.Client(project=self.project_id)
         bucket = storage_client.bucket(staging_bucket_name)
         if not bucket.exists():
             print(f"    -> Creating GCS staging bucket: {staging_bucket_name}")

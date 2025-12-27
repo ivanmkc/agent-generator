@@ -32,10 +32,10 @@ class GeminiAnswerGenerator(LlmAnswerGenerator):
         context: str | Path | None = None,
         api_key_manager: ApiKeyManager | None = None,
     ):
-        super().__init__(context=context)
+        super().__init__(context=context, api_key_manager=api_key_manager)
         self.model_name = model_name
-        self.client = genai.Client().aio
         self.api_key_manager = api_key_manager or API_KEY_MANAGER
+        self.client = genai.Client(api_key=self.api_key_manager.get_next_key(KeyType.GEMINI_API)).aio
 
     @property
     def name(self) -> str:

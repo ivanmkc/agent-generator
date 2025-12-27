@@ -23,6 +23,7 @@ from benchmarks.data_models import FixErrorBenchmarkCase
 from benchmarks.data_models import MultipleChoiceBenchmarkCase
 from benchmarks.validation_utils import load_snippet
 from benchmarks.validation_utils import TEMPLATES
+from benchmarks.api_key_manager import ApiKeyManager
 
 
 class LlmAnswerGenerator(AnswerGenerator):
@@ -31,9 +32,14 @@ class LlmAnswerGenerator(AnswerGenerator):
     Provides shared logic for prompt construction and context management.
     """
 
-    def __init__(self, context: str | Path | None = None):
+    def __init__(
+        self,
+        context: str | Path | None = None,
+        api_key_manager: ApiKeyManager | None = None, # Added this argument
+    ):
         super().__init__()
         self.context = context
+        self.api_key_manager = api_key_manager # Store api_key_manager
         self._prompts_dir = Path(__file__).resolve().parents[0] / "prompts"
 
     def _read_prompt_template(self, filename: str) -> str:

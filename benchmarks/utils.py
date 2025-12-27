@@ -63,6 +63,7 @@ def parse_cli_stream_json_output(
             event_data = event.get("data", event)
 
             # Map event_type to TraceEventType enum if it's one of the recognized types
+            # TODO: Use polymorphism for cleaner mapping
             if event_type == "init":
                 enum_type = TraceEventType.INIT
             elif event_type == "message":

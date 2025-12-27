@@ -21,7 +21,9 @@ import shutil
 import pytest
 from pathlib import Path
 from dataclasses import dataclass, field
-from typing import List, Optional, Any
+from typing import List, Optional, Any, Callable
+
+from benchmarks.api_key_manager import ApiKeyManager
 
 # --- Generator Imports ---
 from benchmarks.answer_generators.base import AnswerGenerator
@@ -79,6 +81,7 @@ class GeneratorTestCase:
                      of the default `SIMPLE_API_UNDERSTANDING_CASE`.
         expected_tool_uses: A list of tool names or log indicators expected to be found
                           within the trace logs of a successful generation.
+        expected_sub_agent_calls: A list of expected sub-agent calls.
     """
 
     id: str
@@ -121,71 +124,42 @@ def model_name() -> str:
     return "gemini-2.5-flash"
 
 
+@pytest.fixture(scope="module")
+def api_key_manager() -> ApiKeyManager:
+    """Returns an instance of ApiKeyManager."""
+    return ApiKeyManager()
+
+
 # --- Individual Fixtures returning TestCase objects ---
 
 
 @pytest.fixture(scope="module")
-def api_test_case(model_name: str) -> GeneratorTestCase:
+def api_test_case(model_name: str, api_key_manager: ApiKeyManager) -> GeneratorTestCase:
     """Fixture for Direct Gemini API."""
     if not has_env("GEMINI_API_KEY"):
         pytest.skip("GEMINI_API_KEY not set")
 
-    gen = GeminiAnswerGenerator(model_name=model_name)
+    gen = GeminiAnswerGenerator(model_name=model_name, api_key_manager=api_key_manager)
 
     return GeneratorTestCase(id="api-direct", generator=gen)
 
 
 @pytest.fixture(scope="module")
-async def cli_local_test_case(model_name: str) -> GeneratorTestCase:
-    """Fixture for Local CLI."""
-    if not has_env("GEMINI_API_KEY"):
-        pytest.skip("GEMINI_API_KEY not set")
-
-    gen = GeminiCliLocalAnswerGenerator(model_name=model_name)
-    await gen.setup()
-
-    return GeneratorTestCase(
-        id="cli-local", generator=gen, expected_gemini_cli_extensions=[]
-    )
-
+def adk_agent_image() -> str:
+    return "gemini-cli:adk-python"
 
 @pytest.fixture(scope="module")
-def adk_agent_test_case(model_name: str) -> GeneratorTestCase:
-    """Fixture for ADK Agents."""
-    if not has_env("GEMINI_API_KEY"):
-        pytest.skip("GEMINI_API_KEY not set")
-
-    agent = create_default_adk_agent(model_name=model_name)
-    gen = AdkAnswerGenerator(agent=agent)
-
-    return GeneratorTestCase(id="adk-agent", generator=gen)
-
+def agent_name() -> str:
+    return "default-adk-agent"
 
 @pytest.fixture(scope="module")
-async def managed_generator_test_case(
-    request: pytest.FixtureRequest, model_name: str
-) -> GeneratorTestCase:
-    """
-    Generic fixture for all managed generators (Podman/Cloud Run).
-    It expects the request.param to be the configuration ID string.
-    """
-    # The param is passed from the meta-fixture 'test_case' which iterates over TEST_CASE_FIXTURES.
-    # However, 'managed_generator_test_case' itself is not parameterized by pytest directly here
-    # because it is called via `request.getfixturevalue` in `test_case`.
-    # BUT, `test_case` passes the fixture NAME string (e.g. "managed_generator_test_case[podman_base]").
-    # Wait, the meta-fixture logic in `test_case` expects the param to be a fixture NAME.
-    # To support dynamic orchestration, we need `test_case` to handle this.
-
-    # Actually, simpler: We make `managed_generator_test_case` parameterized itself
-    # over the keys of GENERATOR_METADATA.
-    pass
+def workspace_dir(tmp_path_factory: pytest.TempPathFactory) -> Path:
+    return tmp_path_factory.mktemp("adk_agent_workspace")
 
 
-# We need to restructure slightly.
-# OLD: test_case iterates over ["api_test_case", "podman_base_test_case", ...]
-# NEW: test_case iterates over ["api_test_case", ..., "managed_generator_test_case"]
-# AND managed_generator_test_case is parameterized by the config keys.
+# --- Meta-Fixture ---
 
+from benchmarks.tests.integration.test_config import TEST_CASE_FIXTURES
 from benchmarks.tests.integration.config_models import (
     PodmanGeneratorConfig,
     CloudRunGeneratorConfig,
@@ -194,7 +168,7 @@ from benchmarks.tests.integration.config_models import (
 
 @pytest.fixture(params=list(GENERATOR_METADATA.keys()), scope="module")
 async def managed_generator_test_case(
-    request: pytest.FixtureRequest, model_name: str
+    request: pytest.FixtureRequest, model_name: str, api_key_manager: ApiKeyManager
 ) -> GeneratorTestCase:
     """
     Generic fixture for all managed generators defined in GENERATOR_METADATA.
@@ -229,7 +203,7 @@ async def managed_generator_test_case(
 
     # Instantiate the correct generator class
     project_id = os.environ.get("GOOGLE_CLOUD_PROJECT", None)
-    gen = config.create_generator(model_name=model_name, project_id=project_id)
+    gen = config.create_generator(model_name=model_name, project_id=project_id, api_key_manager=api_key_manager)
 
     print(f"--- [Setup] Initializing {gen.name} ---")
     await gen.setup()
@@ -246,73 +220,22 @@ async def managed_generator_test_case(
     )
 
 
-@pytest.fixture(scope="module")
-async def cli_fix_error_test_case(
-    model_name: str, tmp_path_factory: pytest.TempPathFactory
-) -> GeneratorTestCase:
-    """Fixture for Local CLI running a Fix Error case."""
-    if not has_env("GEMINI_API_KEY"):
-        pytest.skip("GEMINI_API_KEY not set")
-
-    gen = GeminiCliLocalAnswerGenerator(model_name=model_name)
-    await gen.setup()
-
-    # Create a temporary directory for this specific test case setup
-    case_tmp_path = tmp_path_factory.mktemp("fix_error_case")
-
-    # Setup files for the fix error case
-    test_file_path = case_tmp_path / "test_agent.py"
-    unfixed_file_path = case_tmp_path / "unfixed.py"
-    fixed_file_path = case_tmp_path / "fixed.py"
-
-    test_file_path.write_text("def test_fixed(): pass")
-    unfixed_file_path.write_text("def unfixed(): pass")
-    fixed_file_path.write_text("def fixed(): pass")
-
-    from benchmarks.tests.integration.test_utils import create_fix_error_benchmark_case
-
-    case = create_fix_error_benchmark_case(
-        case_path=case_tmp_path,
-        name="Test Fix Error",
-        description="Fix a bug by creating a valid agent.",
-        requirements=[
-            (
-                "The solution MUST import `BaseAgent` directly from"
-                " `google.adk.agents`."
-            ),
-            (
-                "The `create_agent` function MUST have the return type annotation"
-                " `-> BaseAgent`."
-            ),
-        ],
-    )
-
-    return GeneratorTestCase(
-        id="cli-fix-error",
-        generator=gen,
-        expected_gemini_cli_extensions=[],
-        custom_case=case,
-    )
-
-
-# --- Meta-Fixture ---
-
-from benchmarks.tests.integration.test_config import TEST_CASE_FIXTURES
-
-
 @pytest.fixture(params=TEST_CASE_FIXTURES, scope="module")
 async def test_case(
-    request: pytest.FixtureRequest, model_name: str
+    request: pytest.FixtureRequest,
+    model_name: str,
+    api_key_manager: ApiKeyManager,
+    tmp_path_factory: pytest.TempPathFactory,
 ) -> GeneratorTestCase:
     """
     Meta-fixture that provides the GeneratorTestCase for the current test iteration.
     It handles both:
     1. Managed generators (defined in test_config.py): Instantiates them dynamically.
-    2. Local fixtures (defined in conftest.py): Resolves them via getfixturevalue.
+    2. Local fixtures: Instantiates them inline to ensure async setup works correctly.
     """
     case_id = request.param
 
-    # 1. Check if it's a managed generator
+    # 1. Managed Generators
     if case_id in GENERATOR_METADATA:
         config = GENERATOR_METADATA[case_id]
         gen_type = config.type
@@ -342,14 +265,14 @@ async def test_case(
 
         # Instantiate generator
         project_id = os.environ.get("GOOGLE_CLOUD_PROJECT", None)
-        gen = config.create_generator(model_name=model_name, project_id=project_id)
+        gen = config.create_generator(model_name=model_name, project_id=project_id, api_key_manager=api_key_manager)
 
         custom_case_data = config.custom_case
         custom_case_instance = custom_case_data  # It's already an instance or None
 
         print(f"--- [Setup] Initializing {gen.name} ---")
         await gen.setup()
-        
+
         return GeneratorTestCase(
             id=config.id,
             generator=gen,
@@ -361,10 +284,66 @@ async def test_case(
             expected_sub_agent_calls=config.expected_sub_agent_calls,
         )
 
-    # 2. Fallback to Local Fixtures
+    # 2. Local Async Generators (Inlined to avoid event loop conflicts)
+    elif case_id == "cli_local_test_case":
+        gen = GeminiCliLocalAnswerGenerator(api_key_manager=api_key_manager)
+        await gen.setup()
+        return GeneratorTestCase(id="cli-local", generator=gen)
+
+    elif case_id == "adk_agent_test_case":
+        # Create an Agent instance
+        agent = create_default_adk_agent(model_name=model_name)
+        
+        gen = AdkAnswerGenerator(
+            agent=agent,
+            api_key_manager=api_key_manager,
+        )
+        await gen.setup()
+        return GeneratorTestCase(id="adk-agent-default", generator=gen)
+
+    elif case_id == "cli_fix_error_test_case":
+        if not has_env("GEMINI_API_KEY"):
+            pytest.skip("GEMINI_API_KEY not set")
+
+        gen = GeminiCliLocalAnswerGenerator(model_name=model_name)
+        await gen.setup()
+        
+        # Setup temp dir and files
+        case_tmp_path = tmp_path_factory.mktemp("fix_error_case")
+        
+        test_file_path = case_tmp_path / "test_agent.py"
+        unfixed_file_path = case_tmp_path / "unfixed.py"
+        fixed_file_path = case_tmp_path / "fixed.py"
+
+        test_file_path.write_text("def test_fixed(): pass")
+        unfixed_file_path.write_text("def unfixed(): pass")
+        fixed_file_path.write_text("def fixed(): pass")
+
+        from benchmarks.tests.integration.test_utils import create_fix_error_benchmark_case
+
+        case = create_fix_error_benchmark_case(
+            case_path=case_tmp_path,
+            name="Test Fix Error",
+            description="Fix a bug by creating a valid agent.",
+            requirements=[
+                (
+                    "The solution MUST import `BaseAgent` directly from"
+                    " `google.adk.agents`."
+                ),
+                (
+                    "The `create_agent` function MUST have the return type annotation"
+                    " `-> BaseAgent`."
+                ),
+            ],
+        )
+
+        return GeneratorTestCase(
+            id="cli-fix-error",
+            generator=gen,
+            expected_gemini_cli_extensions=[],
+            custom_case=case,
+        )
+
+    # 3. Fallback for Sync Fixtures (api_test_case)
     else:
-        # For async fixtures, getfixturevalue returns the result directly (awaited by pytest)
-        # But wait, request.getfixturevalue() is synchronous-ish in how it resolves?
-        # If the target fixture is async, getfixturevalue returns the value (not coroutine)
-        # because Pytest handles the loop.
         return request.getfixturevalue(case_id)

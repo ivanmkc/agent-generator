@@ -12,6 +12,7 @@ import abc
 from pydantic import BaseModel, Field
 from benchmarks.data_models import BaseBenchmarkCase
 from benchmarks.answer_generators.base import AnswerGenerator
+from benchmarks.api_key_manager import ApiKeyManager
 
 
 class GeneratorConfig(BaseModel, abc.ABC):
@@ -58,16 +59,14 @@ class PodmanGeneratorConfig(GeneratorConfig):
     dockerfile_dir: Path
     image_name: Optional[str] = None
     service_url: Optional[str] = None
+    context_instruction: Optional[str] = None
 
-    def create_generator(self, model_name: str, project_id: str) -> AnswerGenerator:
+    def create_generator(self, model_name: str, project_id: str, api_key_manager: ApiKeyManager) -> AnswerGenerator:
         """
         Creates a Podman-based AnswerGenerator instance based on this configuration.
         """
         from benchmarks.answer_generators.gemini_cli_docker import GeminiCliPodmanAnswerGenerator
         from benchmarks.answer_generators.gemini_cli_docker.image_definitions import IMAGE_DEFINITIONS
-        from benchmarks.api_key_manager import ApiKeyManager
-
-        api_key_manager = ApiKeyManager()
 
         return GeminiCliPodmanAnswerGenerator(
             model_name=model_name,
@@ -75,7 +74,8 @@ class PodmanGeneratorConfig(GeneratorConfig):
             image_name=self.image_name,
             image_definitions=IMAGE_DEFINITIONS,
             api_key_manager=api_key_manager,
-            service_url=self.service_url
+            service_url=self.service_url,
+            context_instruction=self.context_instruction
         )
 
 
@@ -97,22 +97,21 @@ class CloudRunGeneratorConfig(GeneratorConfig):
     region: str = "us-central1"
     service_url: Optional[str] = None
 
-    def create_generator(self, model_name: str, project_id: str) -> AnswerGenerator:
+    def create_generator(self, model_name: str, project_id: str, api_key_manager: ApiKeyManager) -> AnswerGenerator:
         """
         Creates a Cloud Run-based AnswerGenerator instance based on this configuration.
         """
         from benchmarks.answer_generators.gemini_cli_docker import (
             GeminiCliCloudRunAnswerGenerator,
         )
-        # from benchmarks.api_key_manager import ApiKeyManager # Not used by CloudRun yet
-
+        
         return GeminiCliCloudRunAnswerGenerator(
             model_name=model_name,
             dockerfile_dir=self.dockerfile_dir,
             service_name=self.service_name,
             project_id=project_id,
             region=self.region,
-            # api_key_manager=api_key_manager,
+            api_key_manager=api_key_manager,
             service_url=self.service_url,
         )
 
@@ -125,14 +124,11 @@ class WorkflowAdkGeneratorConfig(GeneratorConfig):
     """
     type: Literal["workflow_adk"] = "workflow_adk"
 
-    def create_generator(self, model_name: str, project_id: str) -> AnswerGenerator:
+    def create_generator(self, model_name: str, project_id: str, api_key_manager: ApiKeyManager) -> AnswerGenerator:
         """
         Creates a WorkflowAdkAnswerGenerator instance (via factory).
         """
         from benchmarks.answer_generators.adk_agents import create_workflow_adk_generator
-        from benchmarks.api_key_manager import ApiKeyManager
-
-        api_key_manager = ApiKeyManager()
 
         return create_workflow_adk_generator(
             model_name=model_name,
@@ -148,14 +144,11 @@ class StructuredWorkflowAdkGeneratorConfig(GeneratorConfig):
     """
     type: Literal["structured_workflow_adk"] = "structured_workflow_adk"
 
-    def create_generator(self, model_name: str, project_id: str) -> AnswerGenerator:
+    def create_generator(self, model_name: str, project_id: str, api_key_manager: ApiKeyManager) -> AnswerGenerator:
         """
         Creates a StructuredWorkflowAdkAnswerGenerator instance (via factory).
         """
         from benchmarks.answer_generators.adk_agents import create_structured_workflow_adk_generator
-        from benchmarks.api_key_manager import ApiKeyManager
-
-        api_key_manager = ApiKeyManager()
 
         return create_structured_workflow_adk_generator(
             model_name=model_name,
