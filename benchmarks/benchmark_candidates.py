@@ -30,7 +30,8 @@ _podman_image_dirs = [
     # Path("benchmarks/answer_generators/gemini_cli_docker/adk-python"),
     Path("benchmarks/answer_generators/gemini_cli_docker/adk-docs-ext"),
     Path("benchmarks/answer_generators/gemini_cli_docker/mcp_context7"),
-    Path("benchmarks/answer_generators/gemini_cli_docker/mcp_adk_agent_runner"),
+    Path("benchmarks/answer_generators/gemini_cli_docker/mcp_adk_agent_runner_basic"),
+    Path("benchmarks/answer_generators/gemini_cli_docker/mcp_adk_agent_runner_smart_search"),
 ]
 
 CANDIDATE_GENERATORS = list(permute(
@@ -41,7 +42,7 @@ CANDIDATE_GENERATORS = list(permute(
     api_key_manager=[api_key_manager]
 ))
 
-# # Add ADK Agent-based generators
+# Add Workflow ADK-based generators
 # CANDIDATE_GENERATORS.extend([
 #     create_workflow_adk_generator(
 #         model_name=ModelName.GEMINI_2_5_FLASH,
@@ -50,21 +51,11 @@ CANDIDATE_GENERATORS = list(permute(
 #     create_structured_workflow_adk_generator(
 #         model_name=ModelName.GEMINI_2_5_FLASH,
 #         api_key_manager=api_key_manager
-#     ),
-# ])
+#     )]
+# )
 
+# Add trivial and ground truth generators
 CANDIDATE_GENERATORS.extend([
-    create_structured_workflow_adk_generator(
-        model_name=ModelName.GEMINI_2_5_FLASH,
-        api_key_manager=api_key_manager
-    ),
-    GeminiCliPodmanAnswerGenerator(
-        dockerfile_dir=Path("benchmarks/answer_generators/gemini_cli_docker/mcp_adk_agent_runner_retrieval"),
-        image_name="gemini-cli:mcp_adk_agent_runner_retrieval",
-        image_definitions=IMAGE_DEFINITIONS,
-        model_name=ModelName.GEMINI_2_5_FLASH,
-        api_key_manager=api_key_manager
-    ),
     # Control generators
     GroundTruthAnswerGenerator(),
     TrivialAnswerGenerator(),

@@ -73,29 +73,47 @@ GENERATOR_METADATA: Dict[str, AnyGeneratorConfig] = {
 
     ),
 
-    "podman_context7_test_case": PodmanGeneratorConfig(
+        "podman_context7_test_case": PodmanGeneratorConfig(
 
-        id="podman_context7_test_case",
+            id="podman_context7_test_case",
 
-        dockerfile_dir=Path("benchmarks/answer_generators/gemini_cli_docker/gemini-cli-mcp-context7"),
+            dockerfile_dir=Path("benchmarks/answer_generators/gemini_cli_docker/gemini-cli-mcp-context7"),
 
-        expected_mcp_tools=["context7"],
+            expected_mcp_tools=["context7"],
 
-        custom_case=ADK_BASE_AGENT_QUESTION_CASE_INTERMEDIATE,
+            custom_case=ADK_BASE_AGENT_QUESTION_CASE_INTERMEDIATE,
 
-    ),
+            context_instruction=(
+
+                "You have access to a 'context7' tool for searching the codebase. "
+
+                "ALWAYS use this tool to find relevant code definitions before answering questions about the codebase."
+
+            ),
+
+        ),
 
     "podman_mcp_adk_runner_test_case": PodmanGeneratorConfig(
-
         id="podman_mcp_adk_runner_test_case",
+        dockerfile_dir=Path("benchmarks/answer_generators/gemini_cli_docker/mcp_adk_agent_runner_basic"),
+        expected_mcp_tools=["adk-agent-runner"],
+        custom_case=MCP_ADK_RUNNER_CASE,
+        expected_tool_uses=["run_adk_agent"],
 
-        dockerfile_dir=Path("benchmarks/answer_generators/gemini_cli_docker/mcp_adk_agent_runner"),
+    ),
+    "podman_mcp_adk_runner_smart_search_test_case": PodmanGeneratorConfig(
+
+        id="podman_mcp_adk_runner_smart_search_test_case",
+
+        dockerfile_dir=Path("benchmarks/answer_generators/gemini_cli_docker/mcp_adk_agent_runner_smart_search"),
 
         expected_mcp_tools=["adk-agent-runner"],
 
         custom_case=MCP_ADK_RUNNER_CASE,
 
-        expected_tool_uses=["run_adk_agent"],
+        # Expect get_module_help, though prompt is probabilistic. 
+        # But instructions prioritize it, so it should appear.
+        expected_tool_uses=["get_module_help", "run_adk_agent"],
 
     ),
     "cloud_run_test_case": CloudRunGeneratorConfig(

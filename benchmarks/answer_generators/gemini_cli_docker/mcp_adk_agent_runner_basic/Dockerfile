@@ -31,6 +31,7 @@ COPY settings.json /root/.gemini/settings.json
 
 # Overwrite INSTRUCTIONS.md with the MCP-specific version
 COPY INSTRUCTIONS_MCP_RUNNER.md /workdir/INSTRUCTIONS.md
+ENV GEMINI_SYSTEM_MD=/workdir/INSTRUCTIONS.md
 
 # Ensure the server script is executable
 RUN chmod +x /src/mcp-server/adk_runner_server.py

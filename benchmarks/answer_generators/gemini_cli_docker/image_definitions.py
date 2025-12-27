@@ -37,16 +37,22 @@ IMAGE_DEFINITIONS: Dict[str, ImageDefinition] = {
         dependencies=[f"{IMAGE_PREFIX}:base"],
         build_args={"BASE_IMAGE": f"{IMAGE_PREFIX}:base"},
     ),
-    f"{IMAGE_PREFIX}:mcp_adk_agent_runner": ImageDefinition(
-        source_dir="mcp_adk_agent_runner",
-        dockerfile="mcp_adk_agent_runner/Dockerfile",
+    f"{IMAGE_PREFIX}:mcp_adk_agent_runner_basic": ImageDefinition(
+        source_dir="mcp_adk_agent_runner_basic",
+        dockerfile="mcp_adk_agent_runner_basic/Dockerfile",
         dependencies=[f"{IMAGE_PREFIX}:adk-python"],
         build_args={"BASE_IMAGE": f"{IMAGE_PREFIX}:adk-python"},
     ),
-    f"{IMAGE_PREFIX}:mcp_adk_agent_runner_retrieval": ImageDefinition(
-        source_dir="mcp_adk_agent_runner_retrieval",
-        dockerfile="mcp_adk_agent_runner_retrieval/Dockerfile",
+    f"{IMAGE_PREFIX}:mcp_adk_agent_runner_smart_search": ImageDefinition(
+        source_dir="mcp_adk_agent_runner_smart_search",
+        dockerfile="mcp_adk_agent_runner_smart_search/Dockerfile",
         dependencies=[f"{IMAGE_PREFIX}:adk-python"],
         build_args={"BASE_IMAGE": f"{IMAGE_PREFIX}:adk-python"},
+    ),
+    f"{IMAGE_PREFIX}:gemini-cli-mcp-context7": ImageDefinition(
+        source_dir="mcp_context7",
+        dockerfile="mcp_context7/Dockerfile",
+        dependencies=[f"{IMAGE_PREFIX}:base"],
+        build_args={"BASE_IMAGE": f"{IMAGE_PREFIX}:base"},
     ),
 }

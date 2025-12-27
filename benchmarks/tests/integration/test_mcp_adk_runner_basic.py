@@ -1,4 +1,4 @@
-from benchmarks.answer_generators.gemini_cli_docker.mcp_adk_agent_runner.src.adk_runner_server import (
+from benchmarks.answer_generators.gemini_cli_docker.mcp_adk_agent_runner_basic.src.adk_runner_server import (
     run_adk_agent,
 )
 
