@@ -21,6 +21,7 @@ import shlex
 import uuid
 from pathlib import Path
 from typing import List, Optional, Any
+import json # Moved to top
 
 class AdkTools:
     def __init__(self, workspace_root: Path, venv_path: Path | None = None):
@@ -49,7 +50,7 @@ class AdkTools:
         
         return full_path
 
-    def read_file(self, file_path: str, offset: int = 0, limit: int = -1) -> str:
+    def read_file(self, file_path: str, offset: int = 0, limit: int = 200) -> str:
         """
         Reads and returns the content of a specified file.
         
@@ -60,7 +61,7 @@ class AdkTools:
         Args:
             file_path: The path to the file to read, relative to the workspace root.
             offset: The 0-based line number to start reading from. Defaults to 0.
-            limit: Maximum number of lines to read. If -1, reads the rest of the file. Defaults to -1.
+            limit: Maximum number of lines to read. If -1, reads the rest of the file. Defaults to 200.
 
         Returns:
             The content of the file, or a formatted string containing a truncation message and partial content.
@@ -216,7 +217,7 @@ Action: To read more of the file, you can use the 'offset' and 'limit' parameter
         except Exception as e:
             return f"Error listing directory {dir_path}: {e}"
 
-    def run_shell_command(self, command: str, dir_path: Optional[str] = None) -> str:
+    def run_shell_command(self, command: str, dir_path: Optional[str] = None, extra_env: Optional[dict[str, str]] = None) -> str:
         """
         Executes a shell command in the workspace.
         
@@ -226,6 +227,7 @@ Action: To read more of the file, you can use the 'offset' and 'limit' parameter
             command: The shell command to execute.
             dir_path: Optional working directory for the command, relative to the workspace root.
                       If not provided, defaults to the workspace root.
+            extra_env: Optional dictionary of environment variables to add/override for this command.
 
         Returns:
             A structured string containing:
@@ -247,6 +249,10 @@ Action: To read more of the file, you can use the 'offset' and 'limit' parameter
                 env["PATH"] = f"{venv_bin}:{env.get('PATH', '')}"
                 # Unset PYTHONHOME if set, to ensure venv isolation
                 env.pop("PYTHONHOME", None)
+            
+            # Merge extra_env if provided
+            if extra_env:
+                env.update(extra_env)
 
             # Determine CWD
             if dir_path:
@@ -291,6 +297,8 @@ Action: To read more of the file, you can use the 'offset' and 'limit' parameter
     def search_files(self, pattern: str, path: str) -> str:
         """
         Searches for files matching a specific pattern using `grep -r`.
+        
+        Output is limited to 50 matches to prevent context explosion.
 
         Args:
             pattern: The pattern to search for (passed to grep). Can be a literal string.
@@ -306,30 +314,124 @@ Action: To read more of the file, you can use the 'offset' and 'limit' parameter
         """
         # Escape single quotes in pattern to prevent shell injection/breaking
         safe_pattern = pattern.replace("'", "'\\''")
-        cmd = f"grep -r '{safe_pattern}' '{path}'"
+        # Use head to limit output
+        cmd = f"grep -r '{safe_pattern}' '{path}' | head -n 50"
         return self.run_shell_command(cmd)
 
     def get_module_help(self, module_name: str) -> str:
         """
-        Retrieves the documentation (pydoc) for a Python module.
+        Retrieves a summary of the public API for a Python module.
         
-        This is often more token-efficient than reading source files as it provides 
-        a summary of classes, functions, and docstrings.
+        This filters out private members (starting with '_') to provide a token-efficient
+        overview of classes, functions, and submodules.
 
         Args:
             module_name: The name of the module to get help for (e.g., 'json', 'google.adk').
 
         Returns:
-            The output of `pydoc`, or an error message.
+            A formatted string containing the module summary, or an error message.
         """
         # Validate module name to prevent arbitrary command execution
         if not module_name.replace(".", "").replace("_", "").isalnum():
              return "Error: Invalid module name. Only alphanumeric characters, dots, and underscores are allowed."
         
-        cmd = f"python3 -m pydoc {module_name}"
-        return self.run_shell_command(cmd)
+        script_content = r'''
+import sys
+import inspect
+import pkgutil
+import importlib
 
-    def run_adk_agent(self, prompt: str, model_name: str, agent_code: Optional[str] = None, agent_file: Optional[str] = None, initial_state: Optional[str] = None) -> str:
+def get_summary(obj):
+    doc = inspect.getdoc(obj)
+    if doc:
+        return doc.split('\n')[0]
+    return ""
+
+def print_help(name):
+    try:
+        mod = importlib.import_module(name)
+    except ImportError as e:
+        print(f"Error: Could not import {name}: {e}")
+        return
+
+    print(f"Module: {name}")
+    print(f"Doc: {get_summary(mod)}\n")
+
+    # Submodules (if package)
+    if hasattr(mod, "__path__"):
+        submodules = []
+        try:
+            for _, subname, _ in pkgutil.iter_modules(mod.__path__):
+                if not subname.startswith("_"):
+                    submodules.append(subname)
+        except Exception:
+            pass # Ignore errors listing submodules
+            
+        if submodules:
+            print("Public Submodules:")
+            for s in sorted(submodules):
+                print(f"  {s}")
+            print("")
+
+    # Classes
+    classes = []
+    # We want classes defined in this module, or exported by it.
+    # inspect.getmembers returns everything.
+    for n, o in inspect.getmembers(mod, inspect.isclass):
+        if not n.startswith("_"):
+            # Check if it's defined here or if the module exports it (e.g. via __all__ or import)
+            # For simplicity, we show everything present that isn't private
+            classes.append((n, o))
+    
+    if classes:
+        print("Public Classes:")
+        for n, o in sorted(classes, key=lambda x: x[0]):
+            print(f"  class {n}: {get_summary(o)}")
+            # Show public methods
+            for mn, mo in inspect.getmembers(o):
+                if not mn.startswith("_") and (inspect.isfunction(mo) or inspect.ismethod(mo)):
+                     try:
+                         sig = inspect.signature(mo)
+                     except:
+                         sig = "(...)"
+                     print(f"    def {mn}{sig}")
+            print("")
+
+    # Functions
+    funcs = []
+    for n, o in inspect.getmembers(mod, inspect.isfunction):
+        if not n.startswith("_"):
+            funcs.append((n, o))
+    
+    if funcs:
+        print("Public Functions:")
+        for n, o in sorted(funcs, key=lambda x: x[0]):
+            try:
+                sig = inspect.signature(o)
+            except:
+                sig = "(...)"
+            print(f"  def {n}{sig}: {get_summary(o)}")
+
+if __name__ == "__main__":
+    print_help(sys.argv[1])
+'''
+        
+        run_id = uuid.uuid4().hex
+        script_name = f"_help_runner_{run_id}.py"
+        self.write_file(script_name, script_content)
+        
+        cmd = f"python3 {script_name} {module_name}"
+        output = self.run_shell_command(cmd)
+        
+        # Cleanup
+        try:
+            (self.workspace_root / script_name).unlink(missing_ok=True)
+        except Exception:
+            pass
+            
+        return output
+
+    def run_adk_agent(self, prompt: str, model_name: str, agent_code: Optional[str] = None, agent_file: Optional[str] = None, initial_state: Optional[str] = None, api_key: Optional[str] = None) -> str:
         """
         Executes a Python ADK agent.
         
@@ -346,6 +448,7 @@ Action: To read more of the file, you can use the 'offset' and 'limit' parameter
             agent_file: The path to an existing Python file in the workspace containing the agent code.
             initial_state: An optional JSON string representing the initial session state for the agent.
                            Example: '{"user_name": "Alice"}'
+            api_key: Optional API key to use for this execution. If provided, it sets GEMINI_API_KEY env var.
 
         Returns:
             A string containing the agent's response, any execution logs (stdout/stderr), or error details if the execution failed.
@@ -522,8 +625,13 @@ if __name__ == "__main__":
         # Use shlex.quote for prompt to handle spaces/quotes safely
         cmd = f"python3 {runner_filename} --agent-file {agent_filename} --prompt {shlex.quote(prompt)} --model-name {shlex.quote(model_name)} {initial_state_arg}"
         
+        # Configure extra env
+        extra_env = {}
+        if api_key:
+            extra_env["GEMINI_API_KEY"] = api_key
+        
         # Execute
-        output = self.run_shell_command(cmd)
+        output = self.run_shell_command(cmd, extra_env=extra_env)
         
         # Cleanup
         try:

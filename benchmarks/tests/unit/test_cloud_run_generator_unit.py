@@ -164,13 +164,20 @@ async def test_cloud_run_generator_setup_resolves_url():
     # Mock google.auth.default
     with patch("google.auth.default", return_value=(None, "test-project")):
 
-        # Mock ServicesAsyncClient
-        with patch(
-            "benchmarks.answer_generators.gemini_cli_docker.gemini_cli_cloud_run_answer_generator.ServicesAsyncClient"
-        ) as MockServicesClient:
-            mock_client = MockServicesClient.return_value
+        # Mock google.cloud.storage.Client to prevent actual API calls
+        with patch("google.cloud.storage.Client") as MockStorageClient:
+            mock_storage_client_instance = MockStorageClient.return_value
+            mock_bucket = MagicMock()
+            mock_bucket.exists.return_value = True  # Simulate bucket exists
+            mock_storage_client_instance.bucket.return_value = mock_bucket
 
-            # Mock get_service returning a service with URI
+            # Mock ServicesAsyncClient
+            with patch(
+                "benchmarks.answer_generators.gemini_cli_docker.gemini_cli_cloud_run_answer_generator.ServicesAsyncClient"
+            ) as MockServicesClient:
+                mock_client = MockServicesClient.return_value
+
+                # Mock get_service returning a service with URI
             mock_service = MagicMock()
             mock_service.uri = "https://resolved-url.run.app"
 

@@ -292,6 +292,20 @@ class ApiKeyManager:
     def get_key_count(self, key_type: KeyType) -> int:
         return len(self._key_stats.get(key_type, {}))
 
+    def get_key_id(self, key: str, key_type: KeyType = KeyType.GEMINI_API) -> Optional[str]:
+        """
+        Reverse lookup: Find the ID for a given key string.
+        """
+        with self._lock:
+            stats_map = self._key_stats.get(key_type)
+            if not stats_map:
+                return None
+            
+            for k_id, stat in stats_map.items():
+                if stat.key == key:
+                    return k_id
+            return None
+
 
 # Global instance of ApiKeyManager.
 # This singleton can be used for convenience or as a default dependency.

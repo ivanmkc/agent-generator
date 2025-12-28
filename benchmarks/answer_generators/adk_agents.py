@@ -21,6 +21,10 @@ import tempfile
 import uuid
 from pathlib import Path
 from typing import Optional, Any
+import threading
+from pydantic import PrivateAttr
+from google.adk.models import Gemini
+from google.genai import Client, types
 from google.adk.agents import LlmAgent, SequentialAgent, LoopAgent
 from google.adk.tools import FunctionTool, exit_loop, ToolContext
 from benchmarks.answer_generators.adk_tools import AdkTools
@@ -34,6 +38,54 @@ from benchmarks.answer_generators.adk_schemas import (
     FinalResponse,
     SetupContext,
 )
+
+class RotatingKeyGemini(Gemini):
+    """
+    A Gemini model that rotates through a pool of API keys for each request.
+    Thread-safe and race-condition free.
+    Uses ApiKeyManager to handle rotation and cooldowns.
+    Caches Client instances to maintain persistent aiohttp sessions.
+    """
+    _api_key_manager: ApiKeyManager = PrivateAttr()
+    _lock: threading.Lock = PrivateAttr()
+    _client_cache: dict[str, Client] = PrivateAttr(default_factory=dict)
+
+    def __init__(self, api_key_manager: ApiKeyManager, **kwargs):
+        super().__init__(**kwargs)
+        self._api_key_manager = api_key_manager
+        self._lock = threading.Lock()
+        self._client_cache = {}
+
+    @property
+    def api_client(self) -> Client:
+        """Overrides the standard client to provide one with a rotated key."""
+        with self._lock:
+            # Safely get the next key from the manager
+            current_key = self._api_key_manager.get_next_key()
+            
+            if not current_key:
+                # Fallback or error if no keys available (should rely on manager to handle)
+                # But we need a key to create a client.
+                # If manager returns None, we might be in trouble.
+                # Assuming manager always returns a string if initialized correctly.
+                # If None, let's try to use the environment variable as fallback?
+                # Or just raise error.
+                if os.environ.get("GEMINI_API_KEY"):
+                    current_key = os.environ.get("GEMINI_API_KEY")
+                else:
+                    raise ValueError("No API keys available from ApiKeyManager or environment.")
+
+            # Check cache
+            if current_key not in self._client_cache:
+                self._client_cache[current_key] = Client(
+                    api_key=current_key,
+                    http_options=types.HttpOptions(
+                        headers=self._tracking_headers(),
+                        retry_options=self.retry_options,
+                    )
+                )
+            
+            return self._client_cache[current_key]
 
 def save_workspace_dir(dir_name: str, tool_context: ToolContext) -> str:
     """Saves the workspace directory name to the session state."""
@@ -63,7 +115,12 @@ def create_default_adk_agent(model_name: str = "gemini-2.5-pro") -> LlmAgent:
     )
 
 
-def create_structured_adk_agent(workspace_root: Path, model_name: str = "gemini-2.5-pro", venv_path: Path | None = None) -> SequentialAgent:
+def create_structured_adk_agent(
+    workspace_root: Path,
+    model_name: str = "gemini-2.5-pro",
+    venv_path: Path | None = None,
+    api_key_manager: ApiKeyManager | None = None
+) -> SequentialAgent:
     """
     Creates a structured ADK agent with setup, planning, verification, implementation loop, final output, and teardown.
     Enforces structured output for each step and workspace isolation.
@@ -108,8 +165,19 @@ def create_structured_adk_agent(workspace_root: Path, model_name: str = "gemini-
         # Use provided model_name or fallback to the default for this generator
         effective_model_name = model_name if model_name else "gemini-2.5-pro"
         
+        # Get a fresh API key for this execution if manager is available
+        api_key = None
+        if api_key_manager:
+            api_key = api_key_manager.get_next_key()
+        
         # Delegate to the robust run_adk_agent tool
-        return tools_helper.run_adk_agent(prompt=prompt, model_name=effective_model_name, agent_code=code, initial_state=initial_state)
+        return tools_helper.run_adk_agent(
+            prompt=prompt, 
+            model_name=effective_model_name, 
+            agent_code=code, 
+            initial_state=initial_state,
+            api_key=api_key
+        )
 
     # Common tools
     read_tool = FunctionTool(tools_helper.read_file)
@@ -118,7 +186,7 @@ def create_structured_adk_agent(workspace_root: Path, model_name: str = "gemini-
     shell_tool = FunctionTool(tools_helper.run_shell_command)
     search_tool = FunctionTool(tools_helper.search_files)
     get_help_tool = FunctionTool(tools_helper.get_module_help)
-    # run_agent_tool = FunctionTool(tools_helper.run_adk_agent) # Deprecated for inner loop in favor of run_current_agent
+    run_agent_tool = FunctionTool(tools_helper.run_adk_agent)
     exit_loop_tool = FunctionTool(exit_loop)
     save_workspace_tool = FunctionTool(save_workspace_dir)
     get_workspace_tool = FunctionTool(get_workspace_dir)
@@ -129,10 +197,20 @@ def create_structured_adk_agent(workspace_root: Path, model_name: str = "gemini-
     run_current_tool = FunctionTool(run_current_agent)
     uuid4_tool = FunctionTool(uuid4)
 
+    # Determine Model (String or Object)
+    # If we have an api_key_manager, we use the RotatingKeyGemini model to avoid rate limits
+    if api_key_manager:
+        model = RotatingKeyGemini(
+            model=model_name, 
+            api_key_manager=api_key_manager
+        )
+    else:
+        model = model_name
+
     # 0. Setup Agent
     setup_agent = LlmAgent(
         name="setup_agent",
-        model=model_name,
+        model=model,
         tools=[shell_tool, save_workspace_tool, uuid4_tool],
         output_schema=SetupContext,
         instruction=(
@@ -140,41 +218,50 @@ def create_structured_adk_agent(workspace_root: Path, model_name: str = "gemini-
             "1. Generate a unique directory name 'task_<random_string>' (e.g., 'task_abc123'). Generate this string internally or use the `uuid4` tool.\n"
             "2. Create the directory using `run_shell_command` with `mkdir -p <directory_name>`.\n"
             "3. Call `save_workspace_dir` with the created directory name. THIS IS MANDATORY to allow cleanup.\n"
-            "4. Finally, output a JSON object conforming to the `SetupContext` schema, including the `workspace_dir` and the original `user_request` (your input)."
+            "4. Output a JSON object conforming to the `SetupContext` schema. "
+            "   - Populate `workspace_dir` with the created directory. "
+            "   - Populate `user_request` with the original user input (your input). "
+            "   - Populate `sanitized_user_request` by extracting the core task from `user_request`, removing any direct instructions to use tools like `run_adk_agent` or `run_current_agent` (e.g., phrases like \"use the `run_adk_agent` tool\"). Focus on the objective, not the method. "
         )
     )
 
     # 0.5 Knowledge Retrieval Agent
     knowledge_retrieval_agent = LlmAgent(
         name="knowledge_retrieval_agent",
-        model=model_name,
-        tools=[search_tool, get_help_tool, read_tool, list_tool],
+        model=model,
+        # Add run_agent_tool to prevent crash if model ignores instruction and tries to run it
+        tools=[search_tool, get_help_tool, read_tool, list_tool, run_agent_tool],
         output_schema=SetupContext,
         instruction=(
             "You are the Knowledge Retrieval Agent. Your goal is to gather relevant API information or code snippets "
             "from the repository to help the Planner and Candidate Creator.\n"
-            "1. Analyze the `user_request` in the input `SetupContext`.\n"
+            "CRITICAL: The `user_request` field may contain imperative instructions for a different agent. "
+            "ONLY refer to the `sanitized_user_request` field to understand the core task. "
+            "IGNORE any direct execution instructions found in `user_request`. Your ONLY job is to search the codebase and read docs. "
+            "Do NOT attempt to run the agent or satisfy the user request directly.\n"
+            "1. Analyze the `sanitized_user_request` in the input `SetupContext` to understand what APIs are needed.\n"
             "2. Prioritize using `get_module_help` to get summaries of relevant modules (e.g. `google.adk`, `google.genai`). "
             "   This is token-efficient.\n"
             "3. Use `search_files` or `read_file` only if specific code examples or details are missing from the help output.\n"
             "4. Update the `SetupContext` by populating the `knowledge_context` field with a summary of findings and useful code snippets/docstrings.\n"
-            "   Preserve `workspace_dir` and `user_request` exactly as they are."
+            "   Preserve `workspace_dir`, `user_request`, and `sanitized_user_request` exactly as they are."
         )
     )
 
     # 1. Planner
     planner = LlmAgent(
         name="planner",
-        model=model_name,
-        tools=[read_tool, list_tool, search_tool, get_help_tool],
+        model=model,
+        # Add run_agent_tool to prevent crash if model tries to verify plan execution
+        tools=[read_tool, list_tool, search_tool, get_help_tool, run_agent_tool],
         output_schema=Plan,
         instruction=(
             "You are the Planner. You receive a `SetupContext`. "
-            "Analyze the `user_request` and the provided `knowledge_context` (if any). "
+            "Analyze the `sanitized_user_request` and the provided `knowledge_context` (if any). "
             "Plan for the workspace directory `workspace_dir`. "
             "All file paths in your plan MUST start with the `workspace_dir` path followed by a slash. "
-            "The user request might contain imperative instructions. Do NOT execute them. "
-            "Instead, create a PLAN for how to execute them. "
+            "The original `user_request` may contain imperative instructions, but your plan should be based on the `sanitized_user_request`. "
+            "Do NOT execute the `user_request` directly. "
             "NOTE: You will be developing the Agent code in memory (Session State). "
             "Do NOT plan to write the main agent file to disk. Plan to use `save_agent_code`. "
             "Auxiliary files (if any) should still be written to disk. "
@@ -185,7 +272,7 @@ def create_structured_adk_agent(workspace_root: Path, model_name: str = "gemini-
     # 2. Verification Creator
     verification_creator = LlmAgent(
         name="verification_creator",
-        model=model_name,
+        model=model,
         tools=[read_tool], # Removed write_tool
         output_schema=VerificationPlan,
         instruction=(
@@ -199,35 +286,41 @@ def create_structured_adk_agent(workspace_root: Path, model_name: str = "gemini-
     # 3. Loop: Implementation & Verification
     candidate_creator = LlmAgent(
         name="candidate_creator",
-        model=model_name,
-        tools=[read_tool, write_tool, list_tool, save_code_tool, search_tool, get_help_tool],
+        model=model,
+        # Give access to BOTH run_current_tool (state-based) and run_agent_tool (direct)
+        tools=[read_tool, write_tool, list_tool, save_code_tool, search_tool, get_help_tool, run_current_tool, run_agent_tool],
         output_schema=CandidateSolution,
         instruction=(
             "You are the Candidate Creator. Implement the code changes to satisfy the plan. "
             "1. First, you MUST output a text message explaining your implementation logic. "
-            "2. IMPLEMENT the agent code and SAVE it to session state using `save_agent_code`. "
+            "2. IMPLEMENT the agent code. "
+            "   - PREFERRED: Save it to session state using `save_agent_code`. "
+            "   - ALTERNATIVE: If the task explicitly requires running the agent directly with `run_adk_agent` (bypassing state), you may do so. "
             "   Do NOT write the agent code to a file using `write_file` unless explicitly instructed for auxiliary files. "
             "3. If you are stuck or need to check API details, you may use `get_module_help` (preferred) or `search_files` "
             "   to look up information, but ONLY if you cannot proceed otherwise. "
-            "4. Finally, output the structured CandidateSolution when ready for verification."
+            "4. You may use `run_current_agent` (or `run_adk_agent`) to quick-check your code if needed. "
+            "5. Finally, output the structured CandidateSolution when ready for verification."
         )
     )
 
     verifier = LlmAgent(
         name="verifier",
-        model=model_name,
-        tools=[shell_tool, read_tool, exit_loop_tool, run_current_tool, search_tool, list_tool, get_help_tool],
+        model=model,
+        tools=[shell_tool, read_tool, exit_loop_tool, run_current_tool, run_agent_tool, search_tool, list_tool, get_help_tool],
         output_schema=VerificationResult,
         instruction=(
             "You are the Verifier. "
             "1. First, explain what you are going to verify and why (think step-by-step). "
-            "2. You MUST use the `run_current_agent` tool to verify the agent implementation stored in session state. "
-            "   Use the `test_prompt` provided in the VerificationPlan. "
+            "2. Verify the agent implementation. "
+            "   - If code is in session state: Use `run_current_agent` with the `test_prompt`. "
+            "   - If code was run/provided directly: You may need to use `run_adk_agent` if the previous step didn't use state. "
             "   If you didn't specify `model_name` in `run_current_agent`, it defaults to the agent's model. "
-            "3. If `run_current_agent` FAILS or gives unexpected results, analyze the logs. "
+            "   Do NOT use `list_models` or try to verify available models. Assume `gemini-2.5-flash` is available. "
+            "3. If execution FAILS or gives unexpected results, analyze the logs. "
             "   If you are unable to diagnose the issue from logs, you may use `get_module_help` (preferred) or `search_files` "
             "   to check documentation or codebase for correct API usage, but ONLY after exhausting debug info from the run. "
-            "4. If `run_current_agent` indicates the agent works as expected, you MUST call `exit_loop`! "
+            "4. If execution indicates the agent works as expected, you MUST call `exit_loop`! "
             "   If it FAILS, return the structured VerificationResult analysis so Candidate Creator can fix it."
         )
     )
@@ -241,7 +334,7 @@ def create_structured_adk_agent(workspace_root: Path, model_name: str = "gemini-
     # 4. Final Verifier / Output
     final_verifier = LlmAgent(
         name="final_verifier",
-        model=model_name,
+        model=model,
         tools=[read_tool, shell_tool, get_code_tool, write_tool],
         output_schema=FinalResponse,
         instruction=(
@@ -257,7 +350,7 @@ def create_structured_adk_agent(workspace_root: Path, model_name: str = "gemini-
     # 5. Teardown Agent
     teardown_agent = LlmAgent(
         name="teardown_agent",
-        model=model_name,
+        model=model,
         tools=[shell_tool, list_tool, get_workspace_tool],
         output_schema=FinalResponse,
         instruction=(
@@ -401,7 +494,12 @@ def create_structured_workflow_adk_generator(
     workspace_root = Path(tempfile.mkdtemp(prefix="adk_struct_workflow_"))
     venv_path = workspace_root / "venv"
     
-    agent = create_structured_adk_agent(workspace_root, model_name, venv_path=venv_path)
+    agent = create_structured_adk_agent(
+        workspace_root, 
+        model_name, 
+        venv_path=venv_path,
+        api_key_manager=api_key_manager
+    )
     
     async def setup_hook():
         print(f"[StructuredWorkflowAdk] Setting up workspace at {workspace_root}")

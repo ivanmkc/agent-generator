@@ -52,4 +52,5 @@ class SetupContext(BaseModel):
     """Context passed from Setup agent to Planner."""
     workspace_dir: str = Field(..., description="The directory created for this task (e.g., 'task_123').")
     user_request: str = Field(..., description="The original user request/prompt.")
+    sanitized_user_request: str = Field(..., description="The user's request, with direct tool-calling instructions removed.")
     knowledge_context: Optional[str] = Field(None, description="Relevant API information or code snippets retrieved from the codebase.")

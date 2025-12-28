@@ -28,7 +28,13 @@ class TestAdkTools(unittest.TestCase):
     def setUp(self):
         self.workspace_dir = tempfile.mkdtemp()
         self.workspace_path = Path(self.workspace_dir)
-        self.tools = AdkTools(self.workspace_path)
+        
+        # Use local 'env' as venv_path if available, to support running agents in tests
+        venv_path = None
+        if Path("env").exists():
+            venv_path = Path("env").resolve()
+            
+        self.tools = AdkTools(self.workspace_path, venv_path=venv_path)
 
     def tearDown(self):
         shutil.rmtree(self.workspace_dir)
@@ -249,12 +255,13 @@ class TestAdkTools(unittest.TestCase):
         prompt = "test prompt"
         model = "gemini-pro"
         initial_state = {"key": "value"}
+        initial_state_str = json.dumps(initial_state)
 
         # Mock run_shell_command to verify it gets called with correct python script
         with patch.object(self.tools, "run_shell_command") as mock_run_shell:
             mock_run_shell.return_value = "Agent Output"
             
-            result = self.tools.run_adk_agent(agent_code, prompt, model, initial_state=initial_state)
+            result = self.tools.run_adk_agent(prompt=prompt, model_name=model, agent_code=agent_code, initial_state=initial_state_str)
             
             self.assertEqual(result, "Agent Output")
             
@@ -266,11 +273,40 @@ class TestAdkTools(unittest.TestCase):
             self.assertIn("--agent-file", cmd)
             self.assertIn("--prompt 'test prompt'", cmd)
             self.assertIn(f"--model-name {model}", cmd)
-            self.assertIn(f"--initial-state '{json.dumps(initial_state)}'", cmd)
+            self.assertIn(f"--initial-state '{initial_state_str}'", cmd)
 
             # Cleanup check
             files = list(self.workspace_path.glob("agent_to_run_*.py"))
             self.assertEqual(len(files), 0)
+
+    def test_run_adk_agent_injects_key(self):
+        # This test verifies that the api_key argument is correctly passed to the subprocess environment
+        
+        agent_code = """
+import os
+# We print to stdout so we can capture it even if the ADK import fails later
+print(f"DEBUG_ENV_KEY: {os.environ.get('GEMINI_API_KEY')}")
+
+def create_agent(model_name: str):
+    class DummyAgent: pass
+    return DummyAgent()
+"""
+        agent_file = self.workspace_path / "test_agent_key.py"
+        with open(agent_file, "w") as f:
+            f.write(agent_code)
+        
+        test_key = "sk-TEST-ROTATION-KEY-999"
+        
+        # Execute run_adk_agent with the specific key
+        output = self.tools.run_adk_agent(
+            prompt="hi", 
+            model_name="test-model", 
+            agent_file=str("test_agent_key.py"),
+            api_key=test_key
+        )
+        
+        # Verify the key was present in the environment
+        self.assertIn(f"DEBUG_ENV_KEY: {test_key}", output)
 
 if __name__ == "__main__":
     unittest.main()

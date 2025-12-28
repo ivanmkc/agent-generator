@@ -55,11 +55,11 @@ async def run_comparison(
 
     all_benchmark_suites = [
         #   "benchmarks/benchmark_definitions/api_understanding/benchmark.yaml",
-        "benchmarks/benchmark_definitions/fix_errors/benchmark.yaml",
+        # "benchmarks/benchmark_definitions/fix_errors/benchmark.yaml",
         #   "benchmarks/benchmark_definitions/diagnose_setup_errors_mc/benchmark.yaml",
         #   "benchmarks/benchmark_definitions/configure_adk_features_mc/benchmark.yaml",
         #   "benchmarks/benchmark_definitions/predict_runtime_behavior_mc/benchmark.yaml",
-        #   "benchmarks/benchmark_definitions/debug_suite/benchmark.yaml",
+        "benchmarks/benchmark_definitions/debug_suite/benchmark.yaml",
     ]
 
     if selected_suite:
@@ -117,10 +117,16 @@ async def run_comparison(
                         image_name=generator.image_name,
                     )
 
+            # Adjust concurrency for heavy generators
+            concurrency = PODMAN_CONFIG.MAX_GLOBAL_CONCURRENCY
+            if "StructuredWorkflowAdk" in generator.name:
+                print(f"[{generator.name}] High-token generator detected. Reducing concurrency to 3.")
+                concurrency = 3
+
             results = await benchmark_orchestrator.run_benchmarks(
                 benchmark_suites=benchmark_suites,
                 answer_generators=[target_generator],
-                max_concurrency=PODMAN_CONFIG.MAX_GLOBAL_CONCURRENCY,
+                max_concurrency=concurrency,
                 max_retries=2,
                 logger=logger,
             )

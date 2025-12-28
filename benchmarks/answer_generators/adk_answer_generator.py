@@ -2,6 +2,7 @@ import uuid
 import time
 import datetime # Added import
 from typing import Optional, Callable, Awaitable
+import os # Added import
 
 from google.adk.agents import Agent
 from google.adk.apps import App # Added import for App
@@ -81,8 +82,19 @@ class AdkAnswerGenerator(LlmAnswerGenerator):
         # Parse the JSON response into the appropriate Pydantic model.
         # This will raise a ValidationError if the schema doesn't match.
         output = output_schema_class.model_validate_json(json_str)
+        
+        # Resolve API Key ID
+        api_key_id = None
+        if self.api_key_manager:
+            current_key = os.environ.get("GEMINI_API_KEY")
+            if current_key:
+                api_key_id = self.api_key_manager.get_key_id(current_key)
+
         return GeneratedAnswer(
-            output=output, trace_logs=trace_logs, usage_metadata=usage_metadata
+            output=output, 
+            trace_logs=trace_logs, 
+            usage_metadata=usage_metadata,
+            api_key_id=api_key_id
         )
 
     async def _run_agent_async(
@@ -206,6 +218,10 @@ class AdkAnswerGenerator(LlmAnswerGenerator):
 
             # Fallback for ADK internal events (e.g., sub-agent orchestration)
             if not events_generated:
+                content_text = None
+                if getattr(event, "content", None) and event.content.parts:
+                    content_text = "".join([p.text for p in event.content.parts if p.text])
+
                 log_event = TraceLogEvent(
                     type=TraceEventType.ADK_EVENT,
                     source="adk",
@@ -213,7 +229,7 @@ class AdkAnswerGenerator(LlmAnswerGenerator):
                     role=getattr(event, "role", None), # ADK events might have a role directly
                     author=event_agent_name or event.author,
                     tool_name=event_tool_name,
-                    content=getattr(event, "content", None).text if getattr(event, "content", None) else None,
+                    content=content_text,
                     details=base_details,
                 )
                 logs.append(log_event)

@@ -78,6 +78,8 @@ async def _run_single_benchmark(
 
             except Exception as e:
                 # Record Failure
+                import traceback
+                traceback.print_exc() # Print to stdout for debugging
                 attempts_history.append(
                     GenerationAttempt(
                         attempt_number=attempt_idx + 1,
