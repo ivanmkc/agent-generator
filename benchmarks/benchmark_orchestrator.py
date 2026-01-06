@@ -20,6 +20,7 @@ import time
 import random
 import traceback
 import uuid
+import datetime
 from typing import List
 from typing import Optional
 
@@ -82,6 +83,11 @@ async def _run_single_benchmark(
                 # Record Failure
                 traceback.print_exc() # Print to stdout for debugging
                 
+                print(
+                    f"\n[Error Detected] Generator: {generator.name}, Case: {case.get_identifier()}"
+                )
+                print(f"  Error: {e}")
+
                 # Extract API key if available in the custom exception
                 failed_key_id = None
                 if isinstance(e, BenchmarkGenerationError):
@@ -99,6 +105,7 @@ async def _run_single_benchmark(
 
                 # Check if we should retry
                 if attempt_idx < max_retries:
+                    print(f"  Action: Retrying (Attempt {attempt_idx + 1} of {max_retries})...")
                     # Release the key for this failed run before retrying
                     if generator.api_key_manager and failed_key_id:
                         generator.api_key_manager.release_run(run_id)
@@ -109,6 +116,7 @@ async def _run_single_benchmark(
                     delay *= 0.5 + random.random()
                     await asyncio.sleep(delay)
                 else:
+                    print(f"  Action: Giving up after {max_retries + 1} attempts.")
                     # Final Failure after all retries
                     error_message = f"Generation failed after {max_retries + 1} attempts. Last error: {e}"
                     if logger:
@@ -278,8 +286,9 @@ async def run_benchmarks(
                 elapsed_minutes = (current_time - start_gen_time) / 60
                 completed_tasks = completed_by_generator[result.answer_generator]
                 total_tasks = tasks_by_generator[result.answer_generator]
+                timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 print(
-                    f"  - {generator.name}: {completed_tasks}/{total_tasks} tasks "
+                    f"  [{timestamp}] - {generator.name}: {completed_tasks}/{total_tasks} tasks "
                     f"completed in {elapsed_minutes:.1f} minutes."
                 )
                 last_log_time = current_time
