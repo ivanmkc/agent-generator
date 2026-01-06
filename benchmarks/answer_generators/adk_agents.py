@@ -678,7 +678,7 @@ def create_structured_adk_agent(
     run_analysis_agent = LlmAgent(
         name="run_analysis_agent",
         model=model,
-        tools=[exit_loop_tool, read_tool],
+        tools=[exit_loop_tool, read_tool, get_help_tool, search_tool, list_tool],
         include_contents='none',
         instruction=(
             "You are the Run Analyst. "
@@ -688,11 +688,15 @@ def create_structured_adk_agent(
             "2. Determine if the agent successfully satisfied the requirements by checking its `Stdout` and `Stderr` against the `Expected Runtime Behavior` in the plan. "
             "   - Look for a coherent response from the agent in `Stdout` that matches the `Expected Runtime Behavior`. "
             "   - Check for any errors in `Stderr`. A clean `Stderr` is usually desired. "
-            "3. Action: "
+            "3. INVESTIGATE FAILURES: "
+            "   - If there is an error (e.g., ImportError, AttributeError, TypeError) or unexpected behavior, "
+            "     use tools like `get_module_help`, `search_files`, or `read_file` to understand the root cause. "
+            "   - Verify the correct API usage if you see an API-related error. "
+            "4. Action: "
             "   - If SUCCESS: Call `exit_loop` immediately. "
             "   - If FAILURE: Output a clear, concise analysis of WHY it failed. "
-            "     This analysis will be read by the Candidate Creator in the next step to fix the code. "
-            "     Do not write code yourself, just analyze."
+            "     Include specific findings from your investigation (e.g. 'Method X doesn't exist, use Y instead'). "
+            "     This analysis will be read by the Candidate Creator in the next step to fix the code."
         )
     )
 
