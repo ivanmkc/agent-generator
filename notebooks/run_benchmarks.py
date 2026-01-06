@@ -54,8 +54,8 @@ async def run_comparison(
     print("Configuring benchmark run...")
 
     all_benchmark_suites = [
-        #   "benchmarks/benchmark_definitions/api_understanding/benchmark.yaml",
-        # "benchmarks/benchmark_definitions/fix_errors/benchmark.yaml",
+        "benchmarks/benchmark_definitions/api_understanding/benchmark.yaml",
+        "benchmarks/benchmark_definitions/fix_errors/benchmark.yaml",
         #   "benchmarks/benchmark_definitions/diagnose_setup_errors_mc/benchmark.yaml",
         #   "benchmarks/benchmark_definitions/configure_adk_features_mc/benchmark.yaml",
         #   "benchmarks/benchmark_definitions/predict_runtime_behavior_mc/benchmark.yaml",
@@ -78,7 +78,20 @@ async def run_comparison(
     for generator in answer_generators:
         print(f"\n--- Starting Generator: {generator.name} ---")
 
+        # Filter suites based on generator compatibility
+        current_suites = list(benchmark_suites)
+        # TODO: Remove this filter when StructuredWorkflowAdk can adapt its output schema
+        # to match different benchmark types (e.g., ApiUnderstanding). Currently, its FinalResponse
+        # is hardcoded to FixErrorAnswerOutput.
+        if "StructuredWorkflowAdk" in generator.name or "BaselineWorkflowAdk" in generator.name:
+             current_suites = [s for s in current_suites if "fix_errors" in s]
+             if not current_suites:
+                 print(f"[{generator.name}] Skipping: No compatible suites found (requires 'fix_errors').")
+                 continue
+             print(f"[{generator.name}] Restricted suites to: {current_suites}")
+
         try:
+            print(f"[{generator.name}] Running benchmarks on suites: {current_suites}")
             print(f"[{generator.name}] Setting up...")
             await generator.setup()
 
@@ -119,12 +132,9 @@ async def run_comparison(
 
             # Adjust concurrency for heavy generators
             concurrency = PODMAN_CONFIG.MAX_GLOBAL_CONCURRENCY
-            if "StructuredWorkflowAdk" in generator.name:
-                print(f"[{generator.name}] High-token generator detected. Reducing concurrency to 3.")
-                concurrency = 3
 
             results = await benchmark_orchestrator.run_benchmarks(
-                benchmark_suites=benchmark_suites,
+                benchmark_suites=current_suites,
                 answer_generators=[target_generator],
                 max_concurrency=concurrency,
                 max_retries=2,

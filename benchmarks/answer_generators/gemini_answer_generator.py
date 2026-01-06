@@ -18,7 +18,7 @@ import hashlib
 from pathlib import Path
 
 from benchmarks.answer_generators.llm_base import LlmAnswerGenerator
-from benchmarks.data_models import BaseBenchmarkCase, ApiUnderstandingAnswerOutput, ApiUnderstandingBenchmarkCase, FixErrorAnswerOutput, FixErrorBenchmarkCase, GeneratedAnswer, MultipleChoiceAnswerOutput, MultipleChoiceBenchmarkCase, TraceLogEvent, TraceEventType, UsageMetadata
+from benchmarks.data_models import BaseBenchmarkCase, ApiUnderstandingAnswerOutput, ApiUnderstandingBenchmarkCase, FixErrorAnswerOutput, FixErrorBenchmarkCase, GeneratedAnswer, MultipleChoiceAnswerOutput, MultipleChoiceBenchmarkCase, TraceLogEvent, TraceEventType, UsageMetadata, BenchmarkGenerationError
 from benchmarks.api_key_manager import API_KEY_MANAGER, ApiKeyManager, KeyType
 from google import genai
 
@@ -56,7 +56,7 @@ class GeminiAnswerGenerator(LlmAnswerGenerator):
         return base_name
 
     async def generate_answer(
-        self, benchmark_case: BaseBenchmarkCase
+        self, benchmark_case: BaseBenchmarkCase, run_id: str
     ) -> GeneratedAnswer:
         """Generates an answer using the Gemini API's structured output feature."""
         if isinstance(benchmark_case, FixErrorBenchmarkCase):
@@ -82,12 +82,15 @@ class GeminiAnswerGenerator(LlmAnswerGenerator):
         if "required" in json_schema and "benchmark_type" in json_schema["required"]:
             json_schema["required"].remove("benchmark_type")
 
-        # Rotate API Key if available
-        api_key, key_id = self.api_key_manager.get_next_key_with_id(KeyType.GEMINI_API)
-        if api_key:
-            client = genai.Client(api_key=api_key).aio
-        else:
-            client = self.client
+        # Retrieve API Key for this run
+        if not self.api_key_manager:
+            raise RuntimeError("ApiKeyManager is not configured for GeminiAnswerGenerator.")
+
+        api_key, key_id = self.api_key_manager.get_key_for_run(run_id, KeyType.GEMINI_API)
+        if not api_key:
+            raise RuntimeError(f"No API key available for run_id '{run_id}' from ApiKeyManager.")
+
+        client = genai.Client(api_key=api_key).aio
 
         try:
             response = await client.models.generate_content(
@@ -98,17 +101,17 @@ class GeminiAnswerGenerator(LlmAnswerGenerator):
                     "response_json_schema": json_schema,
                 },
             )
-            if key_id:
-                self.api_key_manager.report_result(
-                    KeyType.GEMINI_API, key_id, success=True
-                )
+            self.api_key_manager.report_result(
+                KeyType.GEMINI_API, key_id, success=True
+            )
 
         except Exception as e:
-            if key_id:
-                self.api_key_manager.report_result(
-                    KeyType.GEMINI_API, key_id, success=False, error_message=str(e)
-                )
-            raise e
+            self.api_key_manager.report_result(
+                KeyType.GEMINI_API, key_id, success=False, error_message=str(e)
+            )
+            raise BenchmarkGenerationError(f"Gemini API Generation failed: {e}", original_exception=e, api_key_id=key_id) from e
+        finally:
+            self.api_key_manager.release_run(run_id)
 
         output = response_schema.model_validate_json(response.text)
 

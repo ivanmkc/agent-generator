@@ -513,7 +513,9 @@ class GeminiCliCloudRunAnswerGenerator(GeminiCliAnswerGenerator):
         return token
 
     async def run_cli_command(
-        self, command_parts: list[str]
+        self,
+        command_parts: list[str],
+        extra_env: dict[str, str] = None,
     ) -> tuple[dict[str, Any], list[TraceLogEvent]]:
         """Sends the command to the Cloud Run service."""
 
@@ -542,6 +544,11 @@ class GeminiCliCloudRunAnswerGenerator(GeminiCliAnswerGenerator):
                 "GOOGLE_CLOUD_LOCATION": os.environ.get("GOOGLE_CLOUD_LOCATION", ""),
             },
         }
+        
+        # Merge extra_env
+        if extra_env:
+            payload["env"].update(extra_env)
+
         # Note: Passing credentials explicitly (like API Key) is done via payload env.
         # ADC handling on the server side depends on the Service Account.
 

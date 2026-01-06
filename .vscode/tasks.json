@@ -50,6 +50,18 @@
             "detail": "Runs the specific integration test for unified generators.",
         },
         {
+            "label": "Integration Test: ADK-based Generators",
+            "type": "shell",
+            "command": "env/bin/python -m pytest -v --import-mode=importlib benchmarks/tests/integration/test_unified_generators.py -k \"structured_workflow_adk_test_case or workflow_adk_test_case or adk_agent_test_case\"",
+            "group": "test",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": [],
+            "detail": "Runs unified integration tests, filtered for ADK-based generators."
+        },
+        {
             "label": "Profile Integration Tests",
             "type": "shell",
             "command": "env/bin/python -m pytest --profile --import-mode=importlib benchmarks/tests/integration/",

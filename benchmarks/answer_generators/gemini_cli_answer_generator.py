@@ -32,9 +32,10 @@ from benchmarks.data_models import MultipleChoiceAnswerOutput
 from benchmarks.data_models import MultipleChoiceBenchmarkCase
 from benchmarks.data_models import TraceLogEvent
 from benchmarks.data_models import UsageMetadata
+from benchmarks.data_models import BenchmarkGenerationError
 from benchmarks.utils import parse_cli_stream_json_output
 from pydantic import BaseModel
-from benchmarks.api_key_manager import ApiKeyManager
+from benchmarks.api_key_manager import ApiKeyManager, KeyType
 from benchmarks.answer_generators.gemini_answer_generator import GeminiAnswerGenerator
 
 
@@ -65,7 +66,7 @@ class GeminiCliAnswerGenerator(GeminiAnswerGenerator):
         return base.replace("GeminiAnswerGenerator", "GeminiCliAnswerGenerator")
 
     async def generate_answer(
-        self, benchmark_case: BaseBenchmarkCase
+        self, benchmark_case: BaseBenchmarkCase, run_id: str
     ) -> GeneratedAnswer:
         """Generates an answer using the gemini CLI."""
         prompt: str
@@ -76,6 +77,7 @@ class GeminiCliAnswerGenerator(GeminiAnswerGenerator):
             response_schema = FixErrorAnswerOutput
         elif isinstance(benchmark_case, ApiUnderstandingBenchmarkCase):
             prompt = self._create_prompt_for_api_understanding(benchmark_case)
+            output_schema_class = ApiUnderstandingAnswerOutput
             response_schema = ApiUnderstandingAnswerOutput
         elif isinstance(benchmark_case, MultipleChoiceBenchmarkCase):
             prompt = self._create_prompt_for_multiple_choice(benchmark_case)
@@ -103,9 +105,34 @@ class GeminiCliAnswerGenerator(GeminiAnswerGenerator):
             "--debug",
             prompt,  # Positional argument for the prompt
         ]
+        
+        # Resolve API Key for this run
+        extra_env = {}
+        api_key_id: Optional[str] = None
+        if not self.api_key_manager:
+            raise RuntimeError("ApiKeyManager is not configured for GeminiCliAnswerGenerator.")
 
-        # Run the CLI command
-        cli_response_dict, logs = await self.run_cli_command(command_parts)
+        current_key, api_key_id = self.api_key_manager.get_key_for_run(run_id, KeyType.GEMINI_API)
+        if not current_key:
+            raise RuntimeError(f"No API key available for run_id '{run_id}' from ApiKeyManager.")
+        
+        extra_env["GEMINI_API_KEY"] = current_key
+
+        try:
+            # Run the CLI command
+            cli_response_dict, logs = await self.run_cli_command(command_parts, extra_env=extra_env)
+
+            # Report success
+            self.api_key_manager.report_result(KeyType.GEMINI_API, api_key_id, success=True)
+            # Note: We don't easily detect 429s from CLI text output here unless we parse logs deeply.
+            # Assuming CLI handles retries or we catch generic failures.
+
+        except Exception as e:
+            # Report Failure 
+            self.api_key_manager.report_result(KeyType.GEMINI_API, api_key_id, success=False, error_message=str(e))
+            raise BenchmarkGenerationError(f"Gemini CLI Generation failed: {e}", original_exception=e, api_key_id=api_key_id) from e
+        finally:
+            self.api_key_manager.release_run(run_id)
 
         # Extract the 'response' field which contains the model's text output
         model_text = cli_response_dict.get("response", "")
@@ -119,6 +146,9 @@ class GeminiCliAnswerGenerator(GeminiAnswerGenerator):
             # Parse the inner JSON content into the Pydantic model
             output = response_schema.model_validate_json(json_content)
         except Exception as e:
+            # Report Failure if key was used
+            self.api_key_manager.report_result(KeyType.GEMINI_API, api_key_id, success=False)
+
             # If parsing fails, wrap it in a generic error or re-raise
             # For now, we'll try to fail gracefully if possible, or just raise
             raise ValueError(
@@ -135,18 +165,20 @@ class GeminiCliAnswerGenerator(GeminiAnswerGenerator):
                 completion_tokens=stats.get("candidates_token_count"),
             )
 
-        api_key_id = cli_response_dict.get("api_key_id")
+        # Use our managed key ID if available, otherwise what CLI returned (if any)
+        final_api_key_id = api_key_id or cli_response_dict.get("api_key_id")
 
         return GeneratedAnswer(
             output=output,
             trace_logs=logs,
             usage_metadata=usage_metadata,
-            api_key_id=api_key_id,
+            api_key_id=final_api_key_id,
         )
 
     async def run_cli_command(
         self,
         command_parts: list[str],
+        extra_env: dict[str, str] = None, # Added argument
     ) -> tuple[dict[str, Any], list[TraceLogEvent]]:
         """Executes the gemini CLI command and returns the parsed JSON output and raw logs.
 

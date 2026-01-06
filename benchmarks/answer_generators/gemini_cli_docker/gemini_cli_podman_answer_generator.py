@@ -507,14 +507,9 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
     async def run_cli_command(
         self,
         command_parts: list[str],
+        extra_env: dict[str, str] = None,
     ) -> tuple[dict[str, Any], list[TraceLogEvent]]:
         """Executes the gemini CLI command via the local API server."""
-        if not self._setup_completed:
-            await self.setup()
-
-        # The server expects ["gemini", "arg1", ...]
-        # command_parts already contains [self.cli_path, flags..., prompt]
-        # self.cli_path is usually "gemini"
         if not self._setup_completed:
             await self.setup()
 
@@ -530,15 +525,12 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
 
         payload = {
             "args": full_args,
-            "env": {
-                # Pass extra envs if needed per request, but we mostly did it at startup
-            },
+            "env": {},
         }
-
-        # Inject rotated API key if available
-        api_key, key_id = self.api_key_manager.get_next_key_with_id(KeyType.GEMINI_API)
-        if api_key:
-            payload["env"]["GEMINI_API_KEY"] = api_key
+        
+        # Merge extra_env into payload env
+        if extra_env:
+            payload["env"].update(extra_env)
 
         logs: list[TraceLogEvent] = []
 
@@ -606,7 +598,6 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
             "stderr": stderr_str,
             "exit_code": returncode,
             "response": "",
-            "api_key_id": key_id,
         }
 
         # Parse stdout
@@ -630,14 +621,6 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
             if captured_error_report:
                 error_msg += f"\n\n[Captured Error Report]\n{captured_error_report}"
 
-            if key_id:
-                self.api_key_manager.report_result(
-                    KeyType.GEMINI_API, key_id, success=False, error_message=error_msg
-                )
-
             raise RuntimeError(f"Gemini CLI failed with code {returncode}: {error_msg}")
-
-        if key_id:
-            self.api_key_manager.report_result(KeyType.GEMINI_API, key_id, success=True)
 
         return response_dict, logs

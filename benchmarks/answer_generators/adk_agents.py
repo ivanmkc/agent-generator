@@ -18,26 +18,36 @@ import os
 import shutil
 import subprocess
 import tempfile
+import threading
 import uuid
 from pathlib import Path
-from typing import Optional, Any
-import threading
-from pydantic import PrivateAttr
+from typing import Any, Optional, AsyncGenerator
+import json
+import re
+
+from google.adk.agents import InvocationContext, LlmAgent, LoopAgent, SequentialAgent, Agent
+from google.adk.events import Event
 from google.adk.models import Gemini
+from google.adk.tools import FunctionTool, ToolContext, exit_loop
 from google.genai import Client, types
-from google.adk.agents import LlmAgent, SequentialAgent, LoopAgent
-from google.adk.tools import FunctionTool, exit_loop, ToolContext
+from pydantic import PrivateAttr
+from google.adk.utils.output_schema_utils import can_use_output_schema_with_tools
+
 from benchmarks.answer_generators.adk_tools import AdkTools
 from benchmarks.answer_generators.adk_answer_generator import AdkAnswerGenerator
+from benchmarks.answer_generators.adk_context import adk_execution_context
 from benchmarks.api_key_manager import ApiKeyManager
 from benchmarks.answer_generators.adk_schemas import (
-    Plan,
-    VerificationPlan,
     CandidateSolution,
-    VerificationResult,
     FinalResponse,
+    Plan,
     SetupContext,
+    VerificationPlan,
+    VerificationResult,
+    RelevantModules,
+    PlanningResult,
 )
+
 
 class RotatingKeyGemini(Gemini):
     """
@@ -46,6 +56,7 @@ class RotatingKeyGemini(Gemini):
     Uses ApiKeyManager to handle rotation and cooldowns.
     Caches Client instances to maintain persistent aiohttp sessions.
     """
+
     _api_key_manager: ApiKeyManager = PrivateAttr()
     _lock: threading.Lock = PrivateAttr()
     _client_cache: dict[str, Client] = PrivateAttr(default_factory=dict)
@@ -59,22 +70,23 @@ class RotatingKeyGemini(Gemini):
     @property
     def api_client(self) -> Client:
         """Overrides the standard client to provide one with a rotated key."""
-        with self._lock:
-            # Safely get the next key from the manager
-            current_key = self._api_key_manager.get_next_key()
-            
-            if not current_key:
-                # Fallback or error if no keys available (should rely on manager to handle)
-                # But we need a key to create a client.
-                # If manager returns None, we might be in trouble.
-                # Assuming manager always returns a string if initialized correctly.
-                # If None, let's try to use the environment variable as fallback?
-                # Or just raise error.
-                if os.environ.get("GEMINI_API_KEY"):
-                    current_key = os.environ.get("GEMINI_API_KEY")
-                else:
-                    raise ValueError("No API keys available from ApiKeyManager or environment.")
+        
+        # 1. Check for context-scoped key (set by AdkAnswerGenerator)
+        ctx = adk_execution_context.get()
+        if ctx and "api_key" in ctx:
+            current_key = ctx["api_key"]
+        else:
+            # 2. Fallback to internal rotation (if running outside a generator context)
+            with self._lock:
+                current_key, _ = self._api_key_manager.get_next_key_with_id()
 
+        # Guard statement: If no current_key from either source, raise error.
+        if not current_key:
+            raise ValueError(
+                "No API keys available from ApiKeyManager or Context. Please ensure keys are configured or present in context."
+            )
+        
+        with self._lock:
             # Check cache
             if current_key not in self._client_cache:
                 self._client_cache[current_key] = Client(
@@ -82,19 +94,21 @@ class RotatingKeyGemini(Gemini):
                     http_options=types.HttpOptions(
                         headers=self._tracking_headers(),
                         retry_options=self.retry_options,
-                    )
+                    ),
                 )
-            
+
             return self._client_cache[current_key]
 
-def save_workspace_dir(dir_name: str, tool_context: ToolContext) -> str:
-    """Saves the workspace directory name to the session state."""
-    tool_context.session.state["workspace_dir"] = dir_name
-    return f"Saved workspace directory '{dir_name}' to session state."
-
-def get_workspace_dir(tool_context: ToolContext) -> str:
+def get_workspace_dir(ctx: InvocationContext) -> str:
     """Retrieves the workspace directory name from the session state."""
-    return tool_context.session.state.get("workspace_dir", "Error: workspace_dir not found in session state.")
+    return ctx.session.state.get(
+        "workspace_dir", "Error: No workspace directory found in session state."
+    )
+
+def save_workspace_dir(dir_name: str, ctx: InvocationContext) -> str:
+    """Saves the workspace directory name to the session state."""
+    ctx.session.state["workspace_dir"] = dir_name
+    return f"Saved workspace directory '{dir_name}' to session state."
 
 def uuid4() -> str:
     """Generates a random UUID."""
@@ -103,6 +117,7 @@ def uuid4() -> str:
 
 def create_default_adk_agent(model_name: str = "gemini-2.5-pro") -> LlmAgent:
     """Creates the default LlmAgent used for ADK benchmarking."""
+
     return LlmAgent(
         name="adk_test_agent",
         model=model_name,
@@ -114,270 +129,623 @@ def create_default_adk_agent(model_name: str = "gemini-2.5-pro") -> LlmAgent:
         ),
     )
 
+class SetupAgentCodeBased(Agent):
+    """
+    A code-based agent that performs initial workspace setup programmatically.
+    """
+
+    def __init__(self, workspace_root: Path, tools_helper: AdkTools, **kwargs):
+        super().__init__(**kwargs)
+        self._workspace_root = workspace_root
+        self._tools_helper = tools_helper
+
+    async def _run_async_impl(self, ctx: InvocationContext) -> AsyncGenerator[Event, None]:
+
+        # Get the original user request from the input context
+        user_request = ""
+        if ctx.user_content and ctx.user_content.parts:
+             user_request = "".join(
+                [p.text for p in ctx.user_content.parts if p.text]
+            )
+
+        # 1. Generate a unique directory name
+        unique_dir_name = f"task_{uuid.uuid4().hex}"
+        workspace_dir = self._workspace_root / unique_dir_name
+
+        # 2. Create the directory
+        mkdir_command = f"mkdir -p {workspace_dir}"
+        await self._tools_helper.run_shell_command(mkdir_command)
+
+        # 3. Save the workspace directory to session state
+        save_workspace_dir(str(workspace_dir), ctx)
+        ctx.session.state["user_request"] = user_request
+
+        # 4. Output SetupContext
+        setup_context = SetupContext(
+            workspace_dir=str(workspace_dir),
+            user_request=user_request,
+            sanitized_user_request=None,
+            knowledge_context=None,  # Populated by Knowledge Retrieval Agent
+        )
+        
+        json_output = json.dumps(setup_context.model_dump())
+
+        yield Event(
+            invocation_id=ctx.invocation_id,
+            author=self.name,
+            content=types.Content(
+                role="model",
+                parts=[types.Part(text=json_output)]
+            )
+        )
+
+class CodeBasedTeardownAgent(Agent):
+    """
+    A code-based agent that performs teardown actions programmatically.
+    """
+    def __init__(self, workspace_root: Path, tools_helper: AdkTools, **kwargs):
+        super().__init__(**kwargs)
+        self._workspace_root = workspace_root
+        self._tools_helper = tools_helper
+
+    async def _run_async_impl(self, ctx: InvocationContext) -> AsyncGenerator[Event, None]:
+        # 1. Retrieve the temporary directory name.
+        workspace_dir = get_workspace_dir(ctx)
+        
+        # 2. Delete it using run_shell_command with rm -rf.
+        if workspace_dir and "Error" not in workspace_dir and Path(workspace_dir).exists():
+            rm_command = f"rm -rf {workspace_dir}"
+            await self._tools_helper.run_shell_command(rm_command)
+
+        # 3. Return the FinalResponse from session state.
+        final_response_json = ctx.session.state.get("final_response", "")
+
+        # Yield the FinalResponse
+        yield Event(
+            invocation_id=ctx.invocation_id,
+            author=self.name,
+            content=types.Content(
+                role="model",
+                parts=[types.Part(text=final_response_json)]
+            )
+        )
+
+class PromptSanitizerAgent(LlmAgent):
+    """
+    An LLM agent that sanitizes user requests by removing direct tool-calling instructions.
+    """
+    def __init__(self, model: str | Gemini, **kwargs):
+        super().__init__(
+            name="prompt_sanitizer_agent",
+            model=model,
+            tools=[],  # No tools for this agent, purely text transformation
+            instruction=(
+                "You are a prompt sanitization expert. "
+                "Request: {user_request}\n"
+                "Task: Remove explicit instructions to call tools (e.g., 'use run_adk_agent', 'write_file') "
+                "or internal operational directives. Keep the core objective. "
+                "Output ONLY the sanitized request as plain text."
+            ),
+            **kwargs
+        )
+
+class CodeBasedRunner(Agent):
+    """
+    A code-based agent that merely executes the agent code programmatically.
+    It does NOT analyze the result.
+    """
+    def __init__(self, tools_helper: AdkTools, model_name: str, name: str):
+        super().__init__(name=name)
+        self._tools_helper = tools_helper
+        self._model_name = model_name
+
+    async def _run_async_impl(self, ctx: InvocationContext) -> AsyncGenerator[Event, None]:
+        # 1. Retrieve candidate response from state (saved via output_key)
+        candidate_response = ctx.session.state.get("candidate_response", "")
+        
+        # 2. Extract Python code
+        agent_code = "# Error: No code found."
+        
+        # Try finding a python block first
+        python_match = re.search(r"```python\n([\s\S]*?)\n```", candidate_response)
+        if python_match:
+            agent_code = python_match.group(1).strip()
+        else:
+            # Try finding a JSON block and extracting 'code' field
+            json_match = re.search(r"```json\n([\s\S]*?)\n```", candidate_response)
+            if json_match:
+                try:
+                    json_str = json_match.group(1).strip()
+                    data = json.loads(json_str)
+                    if "code" in data:
+                        agent_code = data["code"]
+                    else:
+                        agent_code = "# Error: JSON found but no 'code' field."
+                except json.JSONDecodeError:
+                    agent_code = "# Error: Invalid JSON block found."
+            else:
+                # Fallback: check for just ``` (generic block)
+                # Matches ``` followed by optional language identifier, then content
+                code_match_loose = re.search(r"```(?:\w+)?\n([\s\S]*?)\n```", candidate_response)
+                if code_match_loose:
+                    agent_code = code_match_loose.group(1).strip()
+
+        # Save extracted code to state
+        ctx.session.state["agent_code"] = agent_code
+
+        # 3. Retrieve verification plan directly from session state
+        verification_plan = ctx.session.state.get("verification_plan", "Error: No verification plan found in session state.")
+        
+        # Use a fixed sanity check prompt for the agent execution
+        test_prompt = "Hello! Please confirm you are working."
+        
+        # Try to extract a specific test prompt from the verification plan if present
+        prompt_match = re.search(r"Test Prompt:\s*(.*?)(?:\n|$)", verification_plan, re.IGNORECASE)
+        if prompt_match:
+            extracted_prompt = prompt_match.group(1).strip()
+            if extracted_prompt:
+                test_prompt = extracted_prompt
+
+        # Yield fake tool call for trace logging consistency
+        run_adk_tool_id = f"call_{uuid.uuid4().hex}"
+        yield Event(
+            invocation_id=ctx.invocation_id,
+            author=self.name,
+            content=types.Content(
+                role="model",
+                parts=[types.Part(function_call=types.FunctionCall(
+                    name="run_adk_agent",
+                    args={"prompt": test_prompt, "agent_code": agent_code},
+                    id=run_adk_tool_id 
+                ))]
+            )
+        )
+
+        # 4. Execute the agent code using run_adk_agent
+        run_output = await self._tools_helper.run_adk_agent(
+            prompt=test_prompt,
+            model_name=self._model_name, 
+            agent_code=agent_code,
+        )
+
+        # Yield fake tool result for trace logging consistency
+        yield Event(
+            invocation_id=ctx.invocation_id,
+            author=self.name,
+            content=types.Content(
+                role="tool",
+                parts=[types.Part(function_response=types.FunctionResponse(
+                    name="run_adk_agent",
+                    response={"result": run_output}, 
+                    id=run_adk_tool_id
+                ))]
+            )
+        )
+
+        # 5. Save output to session state for the Analyst
+        ctx.session.state["run_output"] = run_output
+
+        # 6. Yield the logs so the Analyst can see them in history
+        yield Event(
+            invocation_id=ctx.invocation_id,
+            author=self.name,
+            content=types.Content(
+                role="model",
+                parts=[types.Part(text=f"Execution Logs:\n{run_output}")]
+            )
+        )
+
+
+class CodeBasedFinalVerifier(Agent):
+    """
+    A code-based agent that finalizes the solution by persisting it and returning the structured response.
+    """
+    def __init__(self, tools_helper: AdkTools, **kwargs):
+        super().__init__(**kwargs)
+        self._tools_helper = tools_helper
+
+    async def _run_async_impl(self, ctx: InvocationContext) -> AsyncGenerator[Event, None]:
+        # 1. Retrieve code from session state
+        agent_code = ctx.session.state.get("agent_code", "# Error: No agent code found in session state.")
+        
+        # 2. Write to file
+        # We assume 'my_agent.py' is the desired output file for this benchmark context
+        self._tools_helper.write_file("my_agent.py", agent_code)
+        
+        # Yield fake tool call for trace logging consistency
+        yield Event(
+            invocation_id=ctx.invocation_id,
+            author=self.name,
+            content=types.Content(
+                role="model",
+                parts=[types.Part(function_call=types.FunctionCall(
+                    name="write_file",
+                    args={"file_path": "my_agent.py", "content": agent_code},
+                    id=f"call_{uuid.uuid4().hex}"
+                ))]
+            )
+        )
+        
+        # 3. Construct FinalResponse
+        # Ideally, we would retrieve the rationale from the CandidateCreator's output or session state.
+        # For now, we provide a standard rationale.
+        # TODO: Replace with FixErrorAnswerOutput or equivalent
+        response = FinalResponse(
+            code=agent_code,
+            rationale="The agent code has been implemented, verified, and persisted to my_agent.py."
+        )
+        
+        json_str = json.dumps(response.model_dump())
+        
+        # 4. Save to session state for TeardownAgent
+        ctx.session.state["final_response"] = json_str
+
+        # 5. Yield output
+        yield Event(
+            invocation_id=ctx.invocation_id,
+            author=self.name,
+            content=types.Content(
+                role="model",
+                parts=[types.Part(text=json_str)]
+            )
+        )
 
 def create_structured_adk_agent(
     workspace_root: Path,
     model_name: str = "gemini-2.5-pro",
     venv_path: Path | None = None,
-    api_key_manager: ApiKeyManager | None = None
+    api_key_manager: ApiKeyManager | None = None,
+    use_index_retrieval: bool = True,
 ) -> SequentialAgent:
     """
     Creates a structured ADK agent with setup, planning, verification, implementation loop, final output, and teardown.
     Enforces structured output for each step and workspace isolation.
-    
-    Refactored to store the agent implementation code in session state to reduce token usage from disk I/O.
 
-    Structure:
-    1. SetupAgent (LlmAgent) -> SetupContext (creates temp dir, saves to state)
-    2. PlannerAgent (LlmAgent) -> Plan (uses {workspace_dir} from state)
-    3. VerificationCreatorAgent (LlmAgent) -> VerificationPlan
-    4. LoopAgent
-       - CandidateCreatorAgent (LlmAgent) -> CandidateSolution (Saves code to state)
-       - VerifierAgent (LlmAgent) -> VerificationResult (Runs code from state)
-    5. FinalVerifierAgent (LlmAgent) -> FinalResponse (Gets code from state)
-    6. TeardownAgent (LlmAgent) -> FinalResponse (cleans up {workspace_dir})
+    Refactored to store the agent implementation code in session state to reduce token usage from disk I/O.
     """
     tools_helper = AdkTools(workspace_root, venv_path=venv_path)
 
     # --- State Management Tools ---
-    def save_agent_code(code: str, tool_context: ToolContext) -> str:
-        """Saves the agent implementation code to the session state. Use this instead of writing to disk."""
-        tool_context.session.state["agent_code"] = code
-        return "Successfully saved agent code to session state."
+    def save_final_response(response_json: str, tool_context: ToolContext) -> str:
+        """Saves the final response JSON to the session state."""
+        tool_context.session.state["final_response"] = response_json
+        return "Successfully saved final response to session state."
+
+    def save_verification_plan(test_prompt: str, tool_context: ToolContext) -> str:
+        """Saves the verification test prompt to session state."""
+        tool_context.session.state["test_prompt"] = test_prompt
+        return "Successfully saved test prompt."
+
+    def save_relevant_modules(modules: list[str], tool_context: ToolContext) -> str:
+        """Saves the list of relevant modules to session state."""
+        tool_context.session.state["relevant_modules_json"] = json.dumps({"modules": modules})
+        return f"Saved {len(modules)} modules."
+
+    def save_implementation_plan(plan_text: str, tool_context: ToolContext) -> str:
+        """Saves the implementation plan text to session state."""
+        tool_context.session.state["implementation_plan"] = plan_text
+        return "Successfully saved implementation plan."
 
     def get_agent_code(tool_context: ToolContext) -> str:
         """Retrieves the agent implementation code from the session state."""
-        return tool_context.session.state.get("agent_code", "Error: No agent code found in session state.")
+        return tool_context.session.state.get(
+            "agent_code", "Error: No agent code found in session state."
+        )
 
-    def run_current_agent(prompt: str, model_name: Optional[str] = None, initial_state: Optional[str] = None, tool_context: ToolContext = None) -> str:
+    async def run_adk_agent(
+        prompt: str,
+        model_name: Optional[str] = None,
+        agent_code: Optional[str] = None,
+        agent_file: Optional[str] = None,
+        initial_state: Optional[str] = None,
+    ) -> str:
         """
-        Runs the agent code currently stored in the session state.
-        
-        Args:
-            prompt: The input prompt for the agent.
-            model_name: The model to use. Defaults to the agent's configured model if not provided.
-            initial_state: Optional JSON string for initial state.
+        Runs an ADK agent.
         """
-        code = tool_context.session.state.get("agent_code")
-        if not code:
-            return "Error: No agent code found in session state. Use `save_agent_code` first."
-        
+        code_to_run = agent_code
+        if not code_to_run and not agent_file:
+            return "Error: No agent code provided and none found in session state. Provide `agent_code`, `agent_file`, or use `save_agent_code` first."
+
         # Use provided model_name or fallback to the default for this generator
         effective_model_name = model_name if model_name else "gemini-2.5-pro"
-        
+
         # Get a fresh API key for this execution if manager is available
         api_key = None
         if api_key_manager:
             api_key = api_key_manager.get_next_key()
-        
+
         # Delegate to the robust run_adk_agent tool
-        return tools_helper.run_adk_agent(
-            prompt=prompt, 
-            model_name=effective_model_name, 
-            agent_code=code, 
+        return await tools_helper.run_adk_agent(
+            prompt=prompt,
+            model_name=effective_model_name,
+            agent_code=code_to_run,
+            agent_file=agent_file,
             initial_state=initial_state,
-            api_key=api_key
+            api_key=api_key,
         )
 
     # Common tools
     read_tool = FunctionTool(tools_helper.read_file)
     write_tool = FunctionTool(tools_helper.write_file)
     list_tool = FunctionTool(tools_helper.list_directory)
-    shell_tool = FunctionTool(tools_helper.run_shell_command)
     search_tool = FunctionTool(tools_helper.search_files)
     get_help_tool = FunctionTool(tools_helper.get_module_help)
-    run_agent_tool = FunctionTool(tools_helper.run_adk_agent)
     exit_loop_tool = FunctionTool(exit_loop)
-    save_workspace_tool = FunctionTool(save_workspace_dir)
-    get_workspace_tool = FunctionTool(get_workspace_dir)
-    
+
     # New state tools
-    save_code_tool = FunctionTool(save_agent_code)
-    get_code_tool = FunctionTool(get_agent_code)
-    run_current_tool = FunctionTool(run_current_agent)
-    uuid4_tool = FunctionTool(uuid4)
+    # save_final_response_tool = FunctionTool(save_final_response)
+    save_plan_tool = FunctionTool(save_verification_plan)
+    save_impl_plan_tool = FunctionTool(save_implementation_plan)
+    save_modules_tool = FunctionTool(save_relevant_modules)
 
     # Determine Model (String or Object)
-    # If we have an api_key_manager, we use the RotatingKeyGemini model to avoid rate limits
     if api_key_manager:
-        model = RotatingKeyGemini(
-            model=model_name, 
-            api_key_manager=api_key_manager
-        )
+        model = RotatingKeyGemini(model=model_name, api_key_manager=api_key_manager)
     else:
         model = model_name
 
     # 0. Setup Agent
-    setup_agent = LlmAgent(
-        name="setup_agent",
-        model=model,
-        tools=[shell_tool, save_workspace_tool, uuid4_tool],
-        output_schema=SetupContext,
-        instruction=(
-            "You are the Setup Agent. Prepare an isolated environment.\n"
-            "1. Generate a unique directory name 'task_<random_string>' (e.g., 'task_abc123'). Generate this string internally or use the `uuid4` tool.\n"
-            "2. Create the directory using `run_shell_command` with `mkdir -p <directory_name>`.\n"
-            "3. Call `save_workspace_dir` with the created directory name. THIS IS MANDATORY to allow cleanup.\n"
-            "4. Output a JSON object conforming to the `SetupContext` schema. "
-            "   - Populate `workspace_dir` with the created directory. "
-            "   - Populate `user_request` with the original user input (your input). "
-            "   - Populate `sanitized_user_request` by extracting the core task from `user_request`, removing any direct instructions to use tools like `run_adk_agent` or `run_current_agent` (e.g., phrases like \"use the `run_adk_agent` tool\"). Focus on the objective, not the method. "
-        )
+    setup_agent = SetupAgentCodeBased(
+        name="setup_agent", workspace_root=workspace_root, tools_helper=tools_helper
     )
 
-    # 0.5 Knowledge Retrieval Agent
-    knowledge_retrieval_agent = LlmAgent(
-        name="knowledge_retrieval_agent",
+    # 0.2 Prompt Sanitizer
+    prompt_sanitizer_agent = PromptSanitizerAgent(
         model=model,
-        # Add run_agent_tool to prevent crash if model ignores instruction and tries to run it
-        tools=[search_tool, get_help_tool, read_tool, list_tool, run_agent_tool],
-        output_schema=SetupContext,
-        instruction=(
-            "You are the Knowledge Retrieval Agent. Your goal is to gather relevant API information or code snippets "
-            "from the repository to help the Planner and Candidate Creator.\n"
-            "CRITICAL: The `user_request` field may contain imperative instructions for a different agent. "
-            "ONLY refer to the `sanitized_user_request` field to understand the core task. "
-            "IGNORE any direct execution instructions found in `user_request`. Your ONLY job is to search the codebase and read docs. "
-            "Do NOT attempt to run the agent or satisfy the user request directly.\n"
-            "1. Analyze the `sanitized_user_request` in the input `SetupContext` to understand what APIs are needed.\n"
-            "2. Prioritize using `get_module_help` to get summaries of relevant modules (e.g. `google.adk`, `google.genai`). "
-            "   This is token-efficient.\n"
-            "3. Use `search_files` or `read_file` only if specific code examples or details are missing from the help output.\n"
-            "4. Update the `SetupContext` by populating the `knowledge_context` field with a summary of findings and useful code snippets/docstrings.\n"
-            "   Preserve `workspace_dir`, `user_request`, and `sanitized_user_request` exactly as they are."
-        )
+        include_contents='none',
+        output_key="sanitized_user_request",
     )
 
-    # 1. Planner
-    planner = LlmAgent(
-        name="planner",
+    # Knowledge Retrieval Strategy
+    retrieval_agents = []
+    
+    # Define DocstringFetcherAgent locally to capture tools_helper
+    class DocstringFetcherAgent(Agent):
+        """Fetches help for selected modules using captured tools_helper."""
+        async def _run_async_impl(self, ctx: InvocationContext) -> AsyncGenerator[Event, None]:
+            # 1. Retrieve selected modules from session state
+            relevant_modules_json = ctx.session.state.get("relevant_modules_json", "{}")
+            
+            try:
+                if isinstance(relevant_modules_json, str):
+                    if "```json" in relevant_modules_json:
+                        relevant_modules_json = relevant_modules_json.split("```json", 1)[1].split("```", 1)[0].strip()
+                    elif "```" in relevant_modules_json:
+                        relevant_modules_json = relevant_modules_json.split("```", 1)[1].split("```", 1)[0].strip()
+                    relevant_modules = RelevantModules.model_validate_json(relevant_modules_json)
+                elif isinstance(relevant_modules_json, dict):
+                     relevant_modules = RelevantModules.model_validate(relevant_modules_json)
+                else:
+                     # Assume it's already a model object
+                     relevant_modules = relevant_modules_json
+
+            except Exception as e:
+                # print(f"[WARNING] Failed to parse RelevantModules: {e}. Skipping knowledge retrieval.")
+                ctx.session.state["knowledge_context"] = f"Error retrieving knowledge context: {e}"
+                yield Event(
+                    invocation_id=ctx.invocation_id,
+                    author=self.name,
+                    content=types.Content(
+                        role="model",
+                        parts=[types.Part(text=f"Error parsing relevant modules: {e}")]
+                    )
+                )
+                return
+
+            # 2. Fetch help for each module using captured tools_helper
+            knowledge_context_parts = []
+            for module_name in relevant_modules.modules:
+                try:
+                    help_text = await tools_helper.get_module_help(module_name)
+                    knowledge_context_parts.append(f"--- Help for {module_name} ---\n{help_text}\n")
+                except Exception as e:
+                    knowledge_context_parts.append(f"Error fetching help for {module_name}: {e}\n")
+
+            full_context = "\n".join(knowledge_context_parts)
+            
+            # 3. Save to session state
+            ctx.session.state["knowledge_context"] = full_context
+            
+            # 4. Yield output
+            yield Event(
+                invocation_id=ctx.invocation_id,
+                author=self.name,
+                content=types.Content(
+                    role="model",
+                    parts=[types.Part(text=f"Fetched knowledge context for {len(relevant_modules.modules)} modules.")]
+                )
+            )
+
+    if use_index_retrieval:
+        # Load index content
+        index_path = Path("benchmarks/adk_index.yaml")
+        if index_path.exists():
+            with open(index_path, "r") as f:
+                adk_index_content = f.read()
+        else:
+            adk_index_content = "Error: adk_index.yaml not found."
+
+        module_selector_agent = LlmAgent(
+            name="module_selector_agent",
+            model=model,
+            tools=[save_modules_tool], 
+            # output_schema=RelevantModules, # REMOVED
+            # output_key="relevant_modules_json", # REMOVED
+            include_contents='none',
+            instruction=(
+                f"You are the Module Selector Agent. Use the provided index to select relevant modules.\n"
+                f"Index:\n{adk_index_content}\n"
+                "Request: {sanitized_user_request}\n"
+                "Analyze the request and select the modules that are most likely to contain the APIs needed."
+                "CRITICAL: Use the `save_relevant_modules` tool to save the list of modules that are most likely to contain the APIs needed."
+            )
+        )
+        docstring_fetcher_agent = DocstringFetcherAgent(name="docstring_fetcher_agent")
+        retrieval_agents = [module_selector_agent, docstring_fetcher_agent]
+    else:
+        # Baseline: Tool-based retrieval
+        module_selector_agent = LlmAgent(
+            name="module_selector_agent",
+            model=model,
+            tools=[read_tool, list_tool, search_tool, get_help_tool],
+            include_contents='none',
+            output_key="knowledge_context",
+            instruction=(
+                "You are the Module Selector Agent (Tool-Based Baseline). "
+                "Request: {sanitized_user_request}\\n"
+                "Your goal is to find relevant information about the ADK codebase to help answer the request. "
+                "Use the available tools (`list_directory`, `search_files`, `get_module_help`) to explore. "
+                "Once you have gathered enough information, summarize the key findings and API definitions relevant to the request. "
+                "Output this summary as natural text. It will be used as the 'Context' for the Planner."
+            )
+        )
+        retrieval_agents = [module_selector_agent]
+
+    # 1. Implementation Planner
+    implementation_planner = LlmAgent(
+        name="implementation_planner",
         model=model,
-        # Add run_agent_tool to prevent crash if model tries to verify plan execution
-        tools=[read_tool, list_tool, search_tool, get_help_tool, run_agent_tool],
-        output_schema=Plan,
+        tools=[read_tool, list_tool, search_tool, get_help_tool],
+        include_contents='none',
+        output_key="implementation_plan",
         instruction=(
-            "You are the Planner. You receive a `SetupContext`. "
-            "Analyze the `sanitized_user_request` and the provided `knowledge_context` (if any). "
-            "Plan for the workspace directory `workspace_dir`. "
+            "You are the Implementation Planner. "
+            "Request: {sanitized_user_request}\n"
+            "Context: {knowledge_context}\n"
+            "Workspace: {workspace_dir}\n"
+            "Plan for the workspace directory `workspace_dir` (available in context). "
             "All file paths in your plan MUST start with the `workspace_dir` path followed by a slash. "
             "The original `user_request` may contain imperative instructions, but your plan should be based on the `sanitized_user_request`. "
             "Do NOT execute the `user_request` directly. "
             "NOTE: You will be developing the Agent code in memory (Session State). "
-            "Do NOT plan to write the main agent file to disk. Plan to use `save_agent_code`. "
-            "Auxiliary files (if any) should still be written to disk. "
-            "Output a structured Plan including 'steps', 'files_to_create', 'files_to_modify', and 'rationale'."
-        )
+            "Do NOT plan to write the main agent file to disk. "
+            "Output a detailed step-by-step implementation plan as natural text. "
+            "CRITICAL: Do NOT write the actual agent code yet. Just the plan."
+        ),
     )
 
-    # 2. Verification Creator
-    verification_creator = LlmAgent(
-        name="verification_creator",
+    # 2. Verification Planner
+    verification_planner = LlmAgent(
+        name="verification_planner",
         model=model,
-        tools=[read_tool], # Removed write_tool
-        output_schema=VerificationPlan,
+        tools=[read_tool, list_tool, search_tool, get_help_tool],
+        include_contents='none',
+        output_key="verification_plan",
         instruction=(
-            "You are the Verification Creator. Based on the Planner's plan, "
-            "formulate a concise test prompt and clear instructions for the Verifier "
-            "to run the agent code using `run_current_agent`. "
-            "Output the structured VerificationPlan. Do NOT write any test files."
-        )
+            "You are the Verification Planner. "
+            "Request: {sanitized_user_request}\n"
+            "Implementation Plan: {implementation_plan}\n"
+            "Formulate a verification plan. This plan will consist of a `Test Prompt` to send to the newly created agent and `Expected Runtime Behavior`. "
+            "CRITICAL: The `Test Prompt` you generate will be sent to the *newly created agent*. "
+            "Ensure the prompt is something the agent can actually handle based on its description (e.g., if it's a simple assistant, just say 'Hello' or ask a relevant question). "
+            "The `Expected Runtime Behavior` should describe what output the agent is expected to produce in response to the `Test Prompt`. "
+            "Output the verification plan as natural text, clearly separating the 'Test Prompt' and 'Expected Runtime Behavior'. "
+            "DO NOT include manual steps or static file verification in this plan, as those will be handled by the system later."
+        ),
     )
 
     # 3. Loop: Implementation & Verification
     candidate_creator = LlmAgent(
         name="candidate_creator",
         model=model,
-        # Give access to BOTH run_current_tool (state-based) and run_agent_tool (direct)
-        tools=[read_tool, write_tool, list_tool, save_code_tool, search_tool, get_help_tool, run_current_tool, run_agent_tool],
-        output_schema=CandidateSolution,
+        tools=[
+            read_tool,
+            write_tool,
+        ],
+        output_key="candidate_response",
+        # output_schema=CandidateSolution, # REMOVED
         instruction=(
-            "You are the Candidate Creator. Implement the code changes to satisfy the plan. "
-            "1. First, you MUST output a text message explaining your implementation logic. "
-            "2. IMPLEMENT the agent code. "
-            "   - PREFERRED: Save it to session state using `save_agent_code`. "
-            "   - ALTERNATIVE: If the task explicitly requires running the agent directly with `run_adk_agent` (bypassing state), you may do so. "
-            "   Do NOT write the agent code to a file using `write_file` unless explicitly instructed for auxiliary files. "
-            "3. If you are stuck or need to check API details, you may use `get_module_help` (preferred) or `search_files` "
-            "   to look up information, but ONLY if you cannot proceed otherwise. "
-            "4. You may use `run_current_agent` (or `run_adk_agent`) to quick-check your code if needed. "
-            "5. Finally, output the structured CandidateSolution when ready for verification."
-        )
+            "You are the Candidate Creator. Your goal is to implement or fix the agent code. "
+            "Plan: {implementation_plan}\n"
+            "Context: {knowledge_context}\n"
+            "1. Analyze the given Plan and Context. If there is feedback from 'Run Analyst' in the history, address the reported failures. "
+            "2. IMPLEMENT/FIX the agent code. "
+            "   - Output your rationale as natural text first. "
+            "   - Then, provide the complete, corrected Python file content within a markdown code block (```python...```). "
+            "     Ensure all necessary imports are included and the code is syntactically valid."
+            "CRITICAL: Your ONLY allowed tools are: `read_file`, `write_file`. "
+            "DO NOT call any tools for code submission or execution. The system will extract your code from the markdown block and handle execution."
+        ),
     )
 
-    verifier = LlmAgent(
-        name="verifier",
+
+    code_based_runner = CodeBasedRunner(
+        name="code_based_runner",
+        tools_helper=tools_helper,
+        model_name=model_name
+    )
+
+    run_analysis_agent = LlmAgent(
+        name="run_analysis_agent",
         model=model,
-        tools=[shell_tool, read_tool, exit_loop_tool, run_current_tool, run_agent_tool, search_tool, list_tool, get_help_tool],
-        output_schema=VerificationResult,
+        tools=[exit_loop_tool, read_tool],
+        include_contents='none',
         instruction=(
-            "You are the Verifier. "
-            "1. First, explain what you are going to verify and why (think step-by-step). "
-            "2. Verify the agent implementation. "
-            "   - If code is in session state: Use `run_current_agent` with the `test_prompt`. "
-            "   - If code was run/provided directly: You may need to use `run_adk_agent` if the previous step didn't use state. "
-            "   If you didn't specify `model_name` in `run_current_agent`, it defaults to the agent's model. "
-            "   Do NOT use `list_models` or try to verify available models. Assume `gemini-2.5-flash` is available. "
-            "3. If execution FAILS or gives unexpected results, analyze the logs. "
-            "   If you are unable to diagnose the issue from logs, you may use `get_module_help` (preferred) or `search_files` "
-            "   to check documentation or codebase for correct API usage, but ONLY after exhausting debug info from the run. "
-            "4. If execution indicates the agent works as expected, you MUST call `exit_loop`! "
-            "   If it FAILS, return the structured VerificationResult analysis so Candidate Creator can fix it."
+            "You are the Run Analyst. "
+            "Verification Plan: {verification_plan}\n"
+            "Logs: {run_output}\n"
+            "1. Analyze the 'Execution Logs' based on the 'Verification Plan'. The agent was run with a `Test Prompt` as defined in the plan. "
+            "2. Determine if the agent successfully satisfied the requirements by checking its `Stdout` and `Stderr` against the `Expected Runtime Behavior` in the plan. "
+            "   - Look for a coherent response from the agent in `Stdout` that matches the `Expected Runtime Behavior`. "
+            "   - Check for any errors in `Stderr`. A clean `Stderr` is usually desired. "
+            "3. Action: "
+            "   - If SUCCESS: Call `exit_loop` immediately. "
+            "   - If FAILURE: Output a clear, concise analysis of WHY it failed. "
+            "     This analysis will be read by the Candidate Creator in the next step to fix the code. "
+            "     Do not write code yourself, just analyze."
         )
     )
 
     implementation_loop = LoopAgent(
         name="implementation_loop",
-        sub_agents=[candidate_creator, verifier],
-        max_iterations=5  # Prevent infinite loops
+        sub_agents=[candidate_creator, code_based_runner, run_analysis_agent],
+        max_iterations=5,
     )
 
     # 4. Final Verifier / Output
-    final_verifier = LlmAgent(
+    final_verifier = CodeBasedFinalVerifier(
         name="final_verifier",
-        model=model,
-        tools=[read_tool, shell_tool, get_code_tool, write_tool],
-        output_schema=FinalResponse,
-        instruction=(
-            "You are the Final Verifier. Review the final state. "
-            "1. Retrieve the final agent code from session state using `get_agent_code`. "
-            "2. Write this code to `my_agent.py` (or the appropriate file name for the task) using `write_file`. "
-            "   This ensures the final solution is persisted for external validation. "
-            "3. Output the FinalResponse matching the user's request. "
-            "   The code in FinalResponse should be the content of the main agent file."
-        )
+        tools_helper=tools_helper
     )
 
     # 5. Teardown Agent
-    teardown_agent = LlmAgent(
-        name="teardown_agent",
-        model=model,
-        tools=[shell_tool, list_tool, get_workspace_tool],
-        output_schema=FinalResponse,
-        instruction=(
-            "You are the Teardown Agent. You receive the `FinalResponse`. "
-            "1. Call `get_workspace_dir` to retrieve the temporary directory name. "
-            "2. Delete it using `run_shell_command` with `rm -rf`. "
-            "3. Return the `FinalResponse` identical to your input (copy the code and rationale)."
-        )
+    teardown_agent = CodeBasedTeardownAgent(
+        name="teardown_agent", 
+        workspace_root=workspace_root, 
+        tools_helper=tools_helper
     )
 
-    return SequentialAgent(
+    agent_obj = SequentialAgent(
         name="structured_solver",
-        sub_agents=[setup_agent, knowledge_retrieval_agent, planner, verification_creator, implementation_loop, final_verifier, teardown_agent]
+        sub_agents=[
+            setup_agent,
+            prompt_sanitizer_agent,
+            *retrieval_agents,
+            implementation_planner,
+            verification_planner,
+            implementation_loop,
+            final_verifier,
+            teardown_agent,
+        ],
     )
 
+    return agent_obj
 
-def create_workflow_agent(workspace_root: Path, model_name: str = "gemini-2.5-pro", venv_path: Path | None = None) -> LlmAgent:
+def create_workflow_agent(
+    workspace_root: Path,
+    model_name: str = "gemini-2.5-pro",
+    venv_path: Path | None = None,
+) -> LlmAgent:
     """
     Creates a workflow-enabled LlmAgent with file system and shell tools.
-    
+
     Args:
         workspace_root: The root directory for the agent's workspace.
         model_name: The Gemini model to use.
         venv_path: Optional path to a virtual environment to use for shell commands.
     """
     tools_helper = AdkTools(workspace_root, venv_path=venv_path)
-    
+
     tools = [
         FunctionTool(tools_helper.read_file),
         FunctionTool(tools_helper.write_file),
@@ -409,10 +777,11 @@ def create_workflow_agent(workspace_root: Path, model_name: str = "gemini-2.5-pr
         ),
     )
 
+
 def create_workflow_adk_generator(
     model_name: str,
     api_key_manager: ApiKeyManager | None = None,
-    adk_branch: str = "v1.20.0", # New parameter for ADK branch
+    adk_branch: str = "v1.20.0",  # New parameter for ADK branch
 ) -> AdkAnswerGenerator:
     """
     Factory to create an AdkAnswerGenerator with a fully managed workflow agent.
@@ -420,53 +789,81 @@ def create_workflow_adk_generator(
     """
     workspace_root = Path(tempfile.mkdtemp(prefix="adk_workflow_"))
     venv_path = workspace_root / "venv"
-    
+
     # Deferred agent creation is not supported by AdkAnswerGenerator __init__ pattern I implemented earlier
     # wait, AdkAnswerGenerator takes an 'agent' instance.
     # So I must create the agent HERE.
     agent = create_workflow_agent(workspace_root, model_name, venv_path=venv_path)
-    
+
     async def setup_hook():
         print(f"[WorkflowAdk] Setting up workspace at {workspace_root}")
         workspace_root.mkdir(parents=True, exist_ok=True)
         repos_dir = workspace_root / "repos"
         adk_repo_dir = repos_dir / "adk-python"
         repos_dir.mkdir(exist_ok=True)
-        
+
         # 1. Clone ADK Python
         if not adk_repo_dir.exists():
             print(f"[WorkflowAdk] Cloning adk-python...")
             try:
                 subprocess.run(
-                    ["git", "clone", "--branch", adk_branch, "https://github.com/google/adk-python.git", str(adk_repo_dir)],
+                    [
+                        "git",
+                        "clone",
+                        "--branch",
+                        adk_branch,
+                        "https://github.com/google/adk-python.git",
+                        str(adk_repo_dir),
+                    ],
                     check=True,
                     capture_output=True,
-                    timeout=300 # 5 minutes for cloning
+                    timeout=300,  # 5 minutes for cloning
                 )
             except subprocess.CalledProcessError as e:
                 raise RuntimeError(f"Failed to clone adk-python: {e.stderr.decode()}")
             except subprocess.TimeoutExpired:
                 raise RuntimeError("Git clone timed out after 5 minutes.")
-        
+
         # 2. Create Virtual Environment
         if not venv_path.exists():
             print(f"[WorkflowAdk] Creating virtual environment at {venv_path}...")
-            subprocess.run([os.sys.executable, "-m", "venv", str(venv_path)], check=True, timeout=300)
-            
+            subprocess.run(
+                [os.sys.executable, "-m", "venv", str(venv_path)],
+                check=True,
+                timeout=300,
+            )
+
             # Helper to run pip in venv
             pip_cmd = [str(venv_path / "bin" / "pip"), "install"]
-            
+
             # 3. Install Dependencies
             print(f"[WorkflowAdk] Installing dependencies...")
             subprocess.run(pip_cmd + ["--upgrade", "pip"], check=True, timeout=300)
-            subprocess.run(pip_cmd + ["pytest", "--index-url", "https://pypi.org/simple"], check=True, timeout=300) # Install pytest from PyPI
-            
+            subprocess.run(
+                pip_cmd + ["pytest", "--index-url", "https://pypi.org/simple"],
+                check=True,
+                timeout=300,
+            )  # Install pytest from PyPI
+
             # 4. Install Cloned Repo (Editable mode)
-            # We install the cloned adk-python to allow the agent to test modifications to it if needed, 
+            # We install the cloned adk-python to allow the agent to test modifications to it if needed,
             # or just to have it available as a library.
             # Assuming adk-python root has setup.py or pyproject.toml
             print(f"[WorkflowAdk] Installing local adk-python...")
-            subprocess.run(pip_cmd + ["--no-cache-dir", "--force-reinstall", "-e", str(adk_repo_dir), "--index-url", "https://pypi.org/simple"], check=True, timeout=300)
+            subprocess.run(
+                pip_cmd
+                +
+                [
+                    "--no-cache-dir",
+                    "--force-reinstall",
+                    "-e",
+                    str(adk_repo_dir),
+                    "--index-url",
+                    "https://pypi.org/simple",
+                ],
+                check=True,
+                timeout=300,
+            )
 
         print(f"[WorkflowAdk] Setup complete.")
 
@@ -479,8 +876,9 @@ def create_workflow_adk_generator(
         name=f"WorkflowAdk({model_name})",
         setup_hook=setup_hook,
         teardown_hook=teardown_hook,
-        api_key_manager=api_key_manager
+        api_key_manager=api_key_manager,
     )
+
 
 def create_structured_workflow_adk_generator(
     model_name: str,
@@ -491,65 +889,100 @@ def create_structured_workflow_adk_generator(
     Factory to create an AdkAnswerGenerator with a fully managed STRUCTURED workflow agent.
     Handles workspace creation, venv setup, agent instantiation, and lifecycle hooks.
     """
-    workspace_root = Path(tempfile.mkdtemp(prefix="adk_struct_workflow_"))
-    venv_path = workspace_root / "venv"
-    
-    agent = create_structured_adk_agent(
-        workspace_root, 
-        model_name, 
-        venv_path=venv_path,
-        api_key_manager=api_key_manager
+    return _create_managed_adk_generator(
+        model_name, api_key_manager, adk_branch, 
+        use_index_retrieval=True, 
+        name_prefix="StructuredWorkflowAdk", 
+        folder_prefix="adk_struct_workflow_"
     )
+
+
+# Helper to avoid duplication
+def _create_managed_adk_generator(
+    model_name: str,
+    api_key_manager: ApiKeyManager | None,
+    adk_branch: str,
+    use_index_retrieval: bool,
+    name_prefix: str,
+    folder_prefix: str
+) -> AdkAnswerGenerator:
+    """
+    Internal helper to create a managed ADK generator with environment setup/teardown.
+
+    Args:
+        model_name: The Gemini model to use.
+        api_key_manager: Optional API key manager.
+        adk_branch: Git branch of ADK Python to clone.
+        use_index_retrieval: Whether to use the optimized index-based retrieval (True) or tool-based (False).
+        name_prefix: Prefix for the generator name (e.g., "StructuredWorkflowAdk").
+        folder_prefix: Prefix for the temporary workspace folder.
+    """
     
+    if not can_use_output_schema_with_tools(model_name):
+        print(f"[WARNING] Native output schema with tools is NOT supported for model '{model_name}'.")
+
+    workspace_root = Path(tempfile.mkdtemp(prefix=folder_prefix))
+    venv_path = workspace_root / "venv"
+
+    agent = create_structured_adk_agent(
+        workspace_root, model_name, venv_path=venv_path, api_key_manager=api_key_manager,
+        use_index_retrieval=use_index_retrieval
+    )
+
     async def setup_hook():
-        print(f"[StructuredWorkflowAdk] Setting up workspace at {workspace_root}")
+        print(f"[{name_prefix}] Setting up workspace at {workspace_root}")
         workspace_root.mkdir(parents=True, exist_ok=True)
         repos_dir = workspace_root / "repos"
         adk_repo_dir = repos_dir / "adk-python"
         repos_dir.mkdir(exist_ok=True)
-        
-        # 1. Clone ADK Python
+
         if not adk_repo_dir.exists():
-            print(f"[StructuredWorkflowAdk] Cloning adk-python...")
+            print(f"[{name_prefix}] Cloning adk-python...")
             try:
                 subprocess.run(
                     ["git", "clone", "--branch", adk_branch, "https://github.com/google/adk-python.git", str(adk_repo_dir)],
-                    check=True,
-                    capture_output=True,
-                    timeout=300 # 5 minutes for cloning
+                    check=True, capture_output=True, timeout=300
                 )
-            except subprocess.CalledProcessError as e:
-                raise RuntimeError(f"Failed to clone adk-python: {e.stderr.decode()}")
-            except subprocess.TimeoutExpired:
-                raise RuntimeError("Git clone timed out after 5 minutes.")
-        
-        # 2. Create Virtual Environment
+            except Exception as e:
+                raise RuntimeError(f"Failed to clone adk-python: {e}")
+
         if not venv_path.exists():
-            print(f"[StructuredWorkflowAdk] Creating virtual environment at {venv_path}...")
+            print(f"[{name_prefix}] Creating virtual environment...")
             subprocess.run([os.sys.executable, "-m", "venv", str(venv_path)], check=True, timeout=300)
             
-            # Helper to run pip in venv
             pip_cmd = [str(venv_path / "bin" / "pip"), "install"]
-            
-            # 3. Install Dependencies
-            print(f"[StructuredWorkflowAdk] Installing dependencies...")
             subprocess.run(pip_cmd + ["--upgrade", "--quiet", "pip"], check=True, timeout=300)
             subprocess.run(pip_cmd + ["--quiet", "pytest", "--index-url", "https://pypi.org/simple"], check=True, timeout=300)
-            
-            # 4. Install Cloned Repo (Editable mode)
-            print(f"[StructuredWorkflowAdk] Installing local adk-python...")
             subprocess.run(pip_cmd + ["--quiet", "-e", str(adk_repo_dir), "--index-url", "https://pypi.org/simple"], check=True, timeout=300)
 
-        print(f"[StructuredWorkflowAdk] Setup complete.")
+        print(f"[{name_prefix}] Setup complete.")
 
     async def teardown_hook():
-        if workspace_root.exists() and "adk_struct_workflow_" in str(workspace_root):
+        if workspace_root.exists() and folder_prefix in str(workspace_root):
             shutil.rmtree(workspace_root)
 
     return AdkAnswerGenerator(
         agent=agent,
-        name=f"StructuredWorkflowAdk({model_name})",
+        name=f"{name_prefix}({model_name})",
         setup_hook=setup_hook,
         teardown_hook=teardown_hook,
-        api_key_manager=api_key_manager
+        api_key_manager=api_key_manager,
+    )
+
+def create_baseline_workflow_adk_generator(
+    model_name: str,
+    api_key_manager: ApiKeyManager | None = None,
+    adk_branch: str = "v1.20.0",
+) -> AdkAnswerGenerator:
+    """
+    Factory to create a BASELINE structured workflow agent.
+    This version uses TOOL-BASED knowledge retrieval (search, read_file) instead of the optimized index.
+    It is slower but produces more concise, summarized context for the Planner.
+    Useful for benchmarking against the optimized StructuredWorkflowAdk.
+    """
+    return _create_managed_adk_generator(
+        model_name, api_key_manager, adk_branch, 
+        use_index_retrieval=False, 
+        name_prefix="BaselineWorkflowAdk", 
+        folder_prefix="adk_base_workflow_"
     )

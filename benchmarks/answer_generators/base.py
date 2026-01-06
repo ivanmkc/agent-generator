@@ -36,10 +36,19 @@ class AnswerGenerator(abc.ABC):
 
     @abc.abstractmethod
     async def generate_answer(
-        self, benchmark_case: BaseBenchmarkCase
+        self, benchmark_case: BaseBenchmarkCase, run_id: str
     ) -> GeneratedAnswer:
-        """Generates an answer for a given benchmark case."""
-        pass
+        """
+        Generates an answer for the given benchmark case.
+
+        Args:
+            benchmark_case: The benchmark case to solve.
+            run_id: A unique identifier for this execution run (used for sticky resources).
+
+        Returns:
+            A GeneratedAnswer object containing the structured output and metadata.
+        """
+        raise NotImplementedError
 
     async def get_mcp_tools(self) -> list[str]:
         """Returns a list of available MCP tools."""

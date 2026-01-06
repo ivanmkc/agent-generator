@@ -62,6 +62,8 @@ class ApiKeyManager:
         self._key_stats: Dict[KeyType, Dict[str, KeyStats]] = {}
         # We keep a simple cycle iterator as a fallback/baseline for round-robin
         self._pools: Dict[KeyType, itertools.cycle] = {}
+        # Mapping from run_id -> key_id for sticky sessions
+        self._run_key_map: Dict[str, str] = {}
         self._lock = threading.Lock()
 
         # Persistence setup
@@ -70,6 +72,45 @@ class ApiKeyManager:
 
         self._load_all_keys()
         self._load_stats()  # Load saved stats *after* keys are initialized
+
+    def get_key_for_run(self, run_id: str, key_type: KeyType = KeyType.GEMINI_API) -> tuple[Optional[str], Optional[str]]:
+        """
+        Gets a sticky API key for a specific run ID.
+        If the run_id already has a key, returns it.
+        Otherwise, rotates a new key, assigns it to the run_id, and returns it.
+        """
+        with self._lock:
+            # 1. Check if run_id already has a key assigned
+            if run_id in self._run_key_map:
+                key_id = self._run_key_map[run_id]
+                stats_map = self._key_stats.get(key_type)
+                if stats_map and key_id in stats_map:
+                    key_stat = stats_map[key_id]
+                    # Update last used even for sticky retrieval
+                    key_stat.last_used = time.time()
+                    self._save_stats()
+                    return key_stat.key, key_id
+            
+            # 2. No key assigned, get a new one using standard rotation logic
+            # (We release the lock momentarily by calling the public method, but we need to hold it for assignment)
+            # Actually, get_next_key_with_id acquires lock. Re-entrant lock? No, threading.Lock is not re-entrant.
+            # We must duplicate logic or assume get_next_key_with_id handles its own lock.
+            # get_next_key_with_id uses `with self._lock`.
+            # So we must NOT hold the lock when calling it.
+        
+        # Call outside the lock
+        key, key_id = self.get_next_key_with_id(key_type)
+        
+        with self._lock:
+            if key and key_id:
+                self._run_key_map[run_id] = key_id
+            return key, key_id
+
+    def release_run(self, run_id: str):
+        """Releases the key mapping for a run ID."""
+        with self._lock:
+            if run_id in self._run_key_map:
+                del self._run_key_map[run_id]
 
     def _load_all_keys(self):
         for key_type in KeyType:

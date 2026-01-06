@@ -10,8 +10,9 @@ from google.adk.runners import InMemoryRunner
 from google.genai import types
 
 from benchmarks.answer_generators.llm_base import LlmAnswerGenerator
-from benchmarks.data_models import BaseBenchmarkCase, ApiUnderstandingAnswerOutput, ApiUnderstandingBenchmarkCase, FixErrorAnswerOutput, FixErrorBenchmarkCase, GeneratedAnswer, MultipleChoiceAnswerOutput, MultipleChoiceBenchmarkCase, TraceLogEvent, TraceEventType, UsageMetadata
-from benchmarks.api_key_manager import ApiKeyManager
+from benchmarks.data_models import BaseBenchmarkCase, ApiUnderstandingAnswerOutput, ApiUnderstandingBenchmarkCase, FixErrorAnswerOutput, FixErrorBenchmarkCase, GeneratedAnswer, MultipleChoiceAnswerOutput, MultipleChoiceBenchmarkCase, TraceLogEvent, TraceEventType, UsageMetadata, BenchmarkGenerationError
+from benchmarks.api_key_manager import ApiKeyManager, KeyType
+from benchmarks.answer_generators.adk_context import adk_execution_context
 
 
 class AdkAnswerGenerator(LlmAnswerGenerator):
@@ -34,9 +35,10 @@ class AdkAnswerGenerator(LlmAnswerGenerator):
         self.setup_hook = setup_hook
         self.teardown_hook = teardown_hook
         # Explicitly create an App instance to control its name
-        self.app = App(name=f"AdkBenchmarkApp_{self.agent.name}_{uuid.uuid4().hex}", root_agent=self.agent)
+        app_name = f"AdkBenchmarkApp_{getattr(self.agent, 'name', 'unnamed_agent')}_{uuid.uuid4().hex}"
+        self.app = App(name=app_name, root_agent=self.agent)
         self.runner = InMemoryRunner(app=self.app) # Pass the App instance
-        self._name = name or f"AdkAnswerGenerator({self.agent.name})"
+        self._name = name or app_name
 
     @property
     def name(self) -> str:
@@ -54,7 +56,7 @@ class AdkAnswerGenerator(LlmAnswerGenerator):
             await self.teardown_hook()
 
     async def generate_answer(
-        self, benchmark_case: BaseBenchmarkCase
+        self, benchmark_case: BaseBenchmarkCase, run_id: str
     ) -> GeneratedAnswer:
         """Generates an answer using the ADK Agent."""
 
@@ -70,8 +72,41 @@ class AdkAnswerGenerator(LlmAnswerGenerator):
         else:
             raise TypeError(f"Unsupported benchmark case type: {type(benchmark_case)}")
 
-        # Run the agent asynchronously.
-        response_text, trace_logs, usage_metadata = await self._run_agent_async(prompt)
+        # Manage API Key for this run via ContextVars
+        api_key_id: Optional[str] = None
+        token = None
+        
+        # Retrieve key for this run from the manager (always expected if manager exists)
+        if not self.api_key_manager:
+            raise RuntimeError("ApiKeyManager is not configured for AdkAnswerGenerator.")
+
+        current_key, api_key_id = self.api_key_manager.get_key_for_run(run_id, KeyType.GEMINI_API)
+        if not current_key:
+            raise RuntimeError(f"No API key available for run_id '{run_id}' from ApiKeyManager.")
+
+        # Set context for RotatingKeyGemini to pick up
+        token = adk_execution_context.set({"api_key": current_key, "key_id": api_key_id})
+        
+        try:
+            # Run the agent asynchronously.
+            response_text, trace_logs, usage_metadata = await self._run_agent_async(prompt)
+            
+            # Report success 
+            self.api_key_manager.report_result(KeyType.GEMINI_API, api_key_id, success=True)
+                
+        except Exception as e:
+            # Report failure
+            self.api_key_manager.report_result(KeyType.GEMINI_API, api_key_id, success=False, error_message=str(e))
+            # Wrap and re-raise with metadata
+            raise BenchmarkGenerationError(f"ADK Generation failed: {e}", original_exception=e, api_key_id=api_key_id) from e
+            
+        finally:
+            # Cleanup context
+            if token:
+                adk_execution_context.reset(token)
+            
+            # Release the run mapping
+            self.api_key_manager.release_run(run_id)
 
         # Extract JSON from markdown code block if present
         if "```json" in response_text:
@@ -82,13 +117,6 @@ class AdkAnswerGenerator(LlmAnswerGenerator):
         # Parse the JSON response into the appropriate Pydantic model.
         # This will raise a ValidationError if the schema doesn't match.
         output = output_schema_class.model_validate_json(json_str)
-        
-        # Resolve API Key ID
-        api_key_id = None
-        if self.api_key_manager:
-            current_key = os.environ.get("GEMINI_API_KEY")
-            if current_key:
-                api_key_id = self.api_key_manager.get_key_id(current_key)
 
         return GeneratedAnswer(
             output=output, 
@@ -132,9 +160,45 @@ class AdkAnswerGenerator(LlmAnswerGenerator):
 
         new_message = types.UserContent(parts=[types.Part(text=prompt)])
 
+        # Timing Stats
+        execution_sequence = []
+        last_event_time = time.time()
+        
+        # Track current block
+        current_block_agent = None
+        current_block_duration = 0.0
+        current_block_prompt_tokens = 0
+        current_block_completion_tokens = 0
+
         async for event in self.runner.run_async(
             user_id=session.user_id, session_id=session.id, new_message=new_message
         ):
+            now = time.time()
+            duration = now - last_event_time
+            last_event_time = now
+            
+            author = getattr(event, "author", "unknown") or "unknown"
+            if author == "unknown":
+                 author = getattr(event, "agent_name", "system") or "system"
+            
+            if current_block_agent is None:
+                current_block_agent = author
+            
+            if author != current_block_agent:
+                # Switch detected
+                execution_sequence.append({
+                    "agent": current_block_agent, 
+                    "duration": current_block_duration,
+                    "prompt_tokens": current_block_prompt_tokens,
+                    "completion_tokens": current_block_completion_tokens
+                })
+                current_block_agent = author
+                current_block_duration = 0.0
+                current_block_prompt_tokens = 0
+                current_block_completion_tokens = 0
+            
+            current_block_duration += duration
+
             # Extract usage metadata if available
             if hasattr(event, "usage_metadata") and event.usage_metadata:
                 # Note: ADK usage_metadata attributes might vary, assuming standard keys
@@ -146,6 +210,9 @@ class AdkAnswerGenerator(LlmAnswerGenerator):
                 total_prompt_tokens += pmt
                 total_completion_tokens += cpt
                 total_tokens += tt
+                
+                current_block_prompt_tokens += pmt
+                current_block_completion_tokens += cpt
 
             # Base details for the event
             base_details = event.model_dump(mode='json')
@@ -239,13 +306,72 @@ class AdkAnswerGenerator(LlmAnswerGenerator):
                     final_response = event.content.parts[0].text
                 # Continue consuming the stream to allow subsequent agents in a sequence to run.
                 # The final_response variable will be updated with the last response.
-                
         
+        # Append last block
+        if current_block_agent:
+             execution_sequence.append({
+                 "agent": current_block_agent, 
+                 "duration": current_block_duration,
+                 "prompt_tokens": current_block_prompt_tokens,
+                 "completion_tokens": current_block_completion_tokens
+             })
+                
         usage_metadata = UsageMetadata(
             total_tokens=total_tokens,
             prompt_tokens=total_prompt_tokens,
             completion_tokens=total_completion_tokens,
         )
 
+        self._print_timing_report(session_id, execution_sequence)
+
         return final_response, logs, usage_metadata
+
+    def _print_timing_report(self, session_id: str, execution_sequence: list):
+        print(f"\n--- Agent Timing & Token Report [{session_id}] ---")
+        
+        i = 0
+        while i < len(execution_sequence):
+            item = execution_sequence[i]
+            agent = item['agent']
+            
+            # Format token string
+            token_str = ""
+            if item.get('prompt_tokens', 0) > 0 or item.get('completion_tokens', 0) > 0:
+                token_str = f" [Tokens: {item.get('prompt_tokens', 0)} prompt + {item.get('completion_tokens', 0)} completion]"
+
+            # Check for start of loop (candidate_creator)
+            if agent == "candidate_creator":
+                # Scan ahead to capture the loop
+                loop_items = []
+                # Loop must involve candidate_creator and verifier
+                while i < len(execution_sequence) and execution_sequence[i]['agent'] in ["candidate_creator", "verifier"]:
+                    loop_items.append(execution_sequence[i])
+                    i += 1
+                
+                # Did we actually find a loop?
+                if len(loop_items) > 0:
+                    total_loop_time = sum(x['duration'] for x in loop_items)
+                    total_loop_prompt = sum(x.get('prompt_tokens', 0) for x in loop_items)
+                    total_loop_completion = sum(x.get('completion_tokens', 0) for x in loop_items)
+                    
+                    # Count iterations: Number of times 'verifier' appears implies an attempt.
+                    verifier_count = sum(1 for x in loop_items if x['agent'] == "verifier")
+                    iterations = verifier_count if verifier_count > 0 else 1
+                    
+                    avg_time = total_loop_time / iterations if iterations else 0
+                    
+                    print(f"Implementation Loop (Total: {total_loop_time:.2f}s, Tokens: {total_loop_prompt}P + {total_loop_completion}C, Iterations: {iterations}, Avg: {avg_time:.2f}s/iter):")
+                    for loop_item in loop_items:
+                         l_token_str = ""
+                         if loop_item.get('prompt_tokens', 0) > 0 or loop_item.get('completion_tokens', 0) > 0:
+                             l_token_str = f" [Tokens: {loop_item.get('prompt_tokens', 0)}P + {loop_item.get('completion_tokens', 0)}C]"
+                         print(f"  - {loop_item['agent']}: {loop_item['duration']:.2f}s{l_token_str}")
+                    
+                    continue
+            
+            # Normal item
+            print(f"{item['agent']}: {item['duration']:.2f}s{token_str}")
+            i += 1
+            
+        print("-------------------------------------------\n")
 

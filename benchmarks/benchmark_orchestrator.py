@@ -18,6 +18,8 @@ import asyncio
 from pathlib import Path
 import time
 import random
+import traceback
+import uuid
 from typing import List
 from typing import Optional
 
@@ -31,6 +33,7 @@ from benchmarks.data_models import BenchmarkFile
 from benchmarks.data_models import BenchmarkResultType
 from benchmarks.data_models import BenchmarkRunResult
 from benchmarks.data_models import GenerationAttempt
+from benchmarks.data_models import BenchmarkGenerationError
 from benchmarks.logger import BenchmarkLogger
 import benchmarks.validation_utils as validation_utils
 
@@ -51,10 +54,6 @@ async def _run_single_benchmark(
 
         generated_answer = None
         ground_truth = case.get_ground_truth()
-
-        start_time = time.time()
-        generated_answer = None
-        ground_truth = case.get_ground_truth()
         attempts_history: List[GenerationAttempt] = []
 
         start_time = time.time()
@@ -62,8 +61,11 @@ async def _run_single_benchmark(
         # Manual Retry Loop
         for attempt_idx in range(max_retries + 1):
             attempt_start = time.time()
+            # Generate a unique run ID for each attempt
+            run_id = f"run_{uuid.uuid4().hex}"
             try:
-                generated_answer = await generator.generate_answer(case)
+                # Pass the run_id to the generator
+                generated_answer = await generator.generate_answer(case, run_id=run_id)
 
                 # Record Success
                 attempts_history.append(
@@ -78,20 +80,29 @@ async def _run_single_benchmark(
 
             except Exception as e:
                 # Record Failure
-                import traceback
                 traceback.print_exc() # Print to stdout for debugging
+                
+                # Extract API key if available in the custom exception
+                failed_key_id = None
+                if isinstance(e, BenchmarkGenerationError):
+                    failed_key_id = e.api_key_id
+                
                 attempts_history.append(
                     GenerationAttempt(
                         attempt_number=attempt_idx + 1,
                         status="failure",
                         error_message=str(e),
                         duration=time.time() - attempt_start,
-                        api_key_id=None,  # We don't easily know which key failed here without more plumbing
+                        api_key_id=failed_key_id,
                     )
                 )
 
                 # Check if we should retry
                 if attempt_idx < max_retries:
+                    # Release the key for this failed run before retrying
+                    if generator.api_key_manager and failed_key_id:
+                        generator.api_key_manager.release_run(run_id)
+                    # Exponential Backoff: min_wait * 2^attempt
                     # Exponential Backoff: min_wait * 2^attempt
                     delay = min(max_wait, min_wait * (2**attempt_idx))
                     # Add jitter (0.5 to 1.5 multiplier)

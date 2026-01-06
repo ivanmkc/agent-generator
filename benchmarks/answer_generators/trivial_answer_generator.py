@@ -34,10 +34,10 @@ class TrivialAnswerGenerator(AnswerGenerator):
         return "TrivialAnswerGenerator"
 
     async def generate_answer(
-        self, benchmark_case: BaseBenchmarkCase
+        self, benchmark_case: BaseBenchmarkCase, run_id: str
     ) -> GeneratedAnswer:
-        """Returns an empty answer for any benchmark case."""
-        if isinstance(benchmark_case, ApiUnderstandingBenchmarkCase):
+        """Returns a trivial incorrect answer."""
+        if isinstance(benchmark_case, FixErrorBenchmarkCase):
             output = ApiUnderstandingAnswerOutput(
                 code="class Trivial:",
                 fully_qualified_class_name="trivial.module",

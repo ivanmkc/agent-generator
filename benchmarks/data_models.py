@@ -494,6 +494,26 @@ class GenerationAttempt(pydantic.BaseModel):
     )
 
 
+class BenchmarkGenerationError(Exception):
+    """
+    Custom exception raised when an AnswerGenerator fails to produce a valid response.
+    
+    This exception is used to wrap lower-level exceptions and attach additional metadata
+    relevant to the benchmark execution, such as the `api_key_id` that was in use
+    during the failed generation attempt. This allows the benchmark orchestrator
+    to log specific details about failures for debugging and analysis.
+
+    Attributes:
+        message (str): A human-readable message describing the error.
+        original_exception (Exception): The underlying exception that caused this error.
+        api_key_id (Optional[str]): The ID of the API key that was being used when the failure occurred.
+    """
+    def __init__(self, message: str, original_exception: Exception, api_key_id: Optional[str] = None):
+        super().__init__(message)
+        self.original_exception = original_exception
+        self.api_key_id = api_key_id
+
+
 class BenchmarkRunResult(pydantic.BaseModel):
     """Represents the structured result of a single benchmark run."""
 

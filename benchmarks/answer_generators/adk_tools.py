@@ -22,6 +22,8 @@ import uuid
 from pathlib import Path
 from typing import List, Optional, Any
 import json # Moved to top
+import asyncio # Added for async operations
+import functools # Added for partial in async operations
 
 class AdkTools:
     def __init__(self, workspace_root: Path, venv_path: Path | None = None):
@@ -217,9 +219,9 @@ Action: To read more of the file, you can use the 'offset' and 'limit' parameter
         except Exception as e:
             return f"Error listing directory {dir_path}: {e}"
 
-    def run_shell_command(self, command: str, dir_path: Optional[str] = None, extra_env: Optional[dict[str, str]] = None) -> str:
+    async def run_shell_command(self, command: str, dir_path: Optional[str] = None, extra_env: Optional[dict[str, str]] = None) -> str:
         """
-        Executes a shell command in the workspace.
+        Executes a shell command in the workspace asynchronously.
         
         The command runs in the configured virtual environment (if present), ensuring access to installed packages.
 
@@ -238,7 +240,7 @@ Action: To read more of the file, you can use the 'offset' and 'limit' parameter
             - Exit Code: Integer exit code
 
         Example:
-            >>> run_shell_command("pytest tests/", dir_path=".")
+            >>> await run_shell_command("pytest tests/", dir_path=".")
             # Runs pytest in the root workspace directory.
         """
         try:
@@ -263,17 +265,28 @@ Action: To read more of the file, you can use the 'offset' and 'limit' parameter
             if not cwd.exists():
                  return f"Error: Directory not found at {cwd}"
 
-            # We run the command with cwd
-            result = subprocess.run(
-                command,
-                shell=True,
-                capture_output=True,
-                text=True,
-                cwd=cwd,
-                timeout=60, # Increased timeout slightly
-                env=env
-            )
-            
+            loop = asyncio.get_running_loop()
+            try:
+                result = await loop.run_in_executor(
+                    None,
+                    functools.partial(
+                        subprocess.run,
+                        command,
+                        shell=True,
+                        capture_output=True,
+                        text=True,
+                        cwd=cwd,
+                        timeout=60, # Increased timeout slightly
+                        env=env
+                    )
+                )
+            except subprocess.TimeoutExpired:
+                return (
+                    f"Command: {command}\n"
+                    f"Directory: {dir_path if dir_path else '(root)'}\n"
+                    f"Error: Command timed out after 60 seconds."
+                )
+
             # Format output similar to TS ShellTool
             output_parts = [
                 f"Command: {command}",
@@ -285,16 +298,10 @@ Action: To read more of the file, you can use the 'offset' and 'limit' parameter
             
             return "\n".join(output_parts)
 
-        except subprocess.TimeoutExpired:
-            return (
-                f"Command: {command}\n"
-                f"Directory: {dir_path if dir_path else '(root)'}\n"
-                f"Error: Command timed out after 60 seconds."
-            )
         except Exception as e:
             return f"Error running command: {e}"
 
-    def search_files(self, pattern: str, path: str) -> str:
+    async def search_files(self, pattern: str, path: str) -> str:
         """
         Searches for files matching a specific pattern using `grep -r`.
         
@@ -309,16 +316,16 @@ Action: To read more of the file, you can use the 'offset' and 'limit' parameter
             The output of the grep command (stdout/stderr/exit code) formatted by `run_shell_command`.
 
         Example:
-            >>> search_files("def create_agent", ".")
+            >>> await search_files("def create_agent", ".")
             # Recursively searches for "def create_agent" in all files in the workspace.
         """
         # Escape single quotes in pattern to prevent shell injection/breaking
         safe_pattern = pattern.replace("'", "'\\''")
         # Use head to limit output
         cmd = f"grep -r '{safe_pattern}' '{path}' | head -n 50"
-        return self.run_shell_command(cmd)
+        return await self.run_shell_command(cmd)
 
-    def get_module_help(self, module_name: str) -> str:
+    async def get_module_help(self, module_name: str) -> str:
         """
         Retrieves a summary of the public API for a Python module.
         
@@ -421,7 +428,7 @@ if __name__ == "__main__":
         self.write_file(script_name, script_content)
         
         cmd = f"python3 {script_name} {module_name}"
-        output = self.run_shell_command(cmd)
+        output = await self.run_shell_command(cmd)
         
         # Cleanup
         try:
@@ -431,7 +438,7 @@ if __name__ == "__main__":
             
         return output
 
-    def run_adk_agent(self, prompt: str, model_name: str, agent_code: Optional[str] = None, agent_file: Optional[str] = None, initial_state: Optional[str] = None, api_key: Optional[str] = None) -> str:
+    async def run_adk_agent(self, prompt: str, model_name: str, agent_code: Optional[str] = None, agent_file: Optional[str] = None, initial_state: Optional[str] = None, api_key: Optional[str] = None) -> str:
         """
         Executes a Python ADK agent.
         
@@ -631,7 +638,7 @@ if __name__ == "__main__":
             extra_env["GEMINI_API_KEY"] = api_key
         
         # Execute
-        output = self.run_shell_command(cmd, extra_env=extra_env)
+        output = await self.run_shell_command(cmd, extra_env=extra_env)
         
         # Cleanup
         try:

@@ -208,7 +208,7 @@ async def managed_generator_test_case(
     print(f"--- [Setup] Initializing {gen.name} ---")
     await gen.setup()
 
-    return GeneratorTestCase(
+    yield GeneratorTestCase(
         id=config.id,
         generator=gen,
         expected_gemini_cli_extensions=config.expected_extensions,
@@ -218,6 +218,9 @@ async def managed_generator_test_case(
         expected_tool_uses=config.expected_tool_uses,
         expected_sub_agent_calls=config.expected_sub_agent_calls,
     )
+    
+    print(f"--- [Teardown] Cleaning up {gen.name} ---")
+    await gen.teardown()
 
 
 @pytest.fixture(params=TEST_CASE_FIXTURES, scope="module")
@@ -234,116 +237,123 @@ async def test_case(
     2. Local fixtures: Instantiates them inline to ensure async setup works correctly.
     """
     case_id = request.param
+    gen = None
 
-    # 1. Managed Generators
-    if case_id in GENERATOR_METADATA:
-        config = GENERATOR_METADATA[case_id]
-        gen_type = config.type
+    try:
+        # 1. Managed Generators
+        if case_id in GENERATOR_METADATA:
+            config = GENERATOR_METADATA[case_id]
+            gen_type = config.type
 
-        service_url = None
-        # Check for Proxy Mode
-        if os.environ.get("TEST_GENERATOR_ID") == case_id and os.environ.get(
-            "TEST_GENERATOR_URL"
-        ):
-            print(
-                f"[Fixture] Using Proxy Generator for {case_id} at {os.environ['TEST_GENERATOR_URL']}"
-            )
-            service_url = os.environ["TEST_GENERATOR_URL"]
-        else:
-            # Check for parallel execution without orchestrator
-            if os.environ.get("PYTEST_XDIST_WORKER") and not os.environ.get(
+            service_url = None
+            # Check for Proxy Mode
+            if os.environ.get("TEST_GENERATOR_ID") == case_id and os.environ.get(
                 "TEST_GENERATOR_URL"
             ):
-                pytest.skip(
-                    f"Skipping resource-heavy {gen_type} test {case_id} in parallel mode without orchestrator."
+                print(
+                    f"[Fixture] Using Proxy Generator for {case_id} at {os.environ['TEST_GENERATOR_URL']}"
                 )
+                service_url = os.environ["TEST_GENERATOR_URL"]
+            else:
+                # Check for parallel execution without orchestrator
+                if os.environ.get("PYTEST_XDIST_WORKER") and not os.environ.get(
+                    "TEST_GENERATOR_URL"
+                ):
+                    pytest.skip(
+                        f"Skipping resource-heavy {gen_type} test {case_id} in parallel mode without orchestrator."
+                    )
 
-            if gen_type == "podman" and not has_cmd("podman"):
-                pytest.skip("Podman not installed")
-            if gen_type == "cloud_run" and not has_env("GOOGLE_CLOUD_PROJECT"):
-                pytest.skip("GOOGLE_CLOUD_PROJECT not set")
+                if gen_type == "podman" and not has_cmd("podman"):
+                    pytest.skip("Podman not installed")
+                if gen_type == "cloud_run" and not has_env("GOOGLE_CLOUD_PROJECT"):
+                    pytest.skip("GOOGLE_CLOUD_PROJECT not set")
 
-        # Instantiate generator
-        project_id = os.environ.get("GOOGLE_CLOUD_PROJECT", None)
-        gen = config.create_generator(model_name=model_name, project_id=project_id, api_key_manager=api_key_manager)
+            # Instantiate generator
+            project_id = os.environ.get("GOOGLE_CLOUD_PROJECT", None)
+            gen = config.create_generator(model_name=model_name, project_id=project_id, api_key_manager=api_key_manager)
 
-        custom_case_data = config.custom_case
-        custom_case_instance = custom_case_data  # It's already an instance or None
+            custom_case_data = config.custom_case
+            custom_case_instance = custom_case_data  # It's already an instance or None
 
-        print(f"--- [Setup] Initializing {gen.name} ---")
-        await gen.setup()
+            print(f"--- [Setup] Initializing {gen.name} ---")
+            await gen.setup()
 
-        return GeneratorTestCase(
-            id=config.id,
-            generator=gen,
-            expected_gemini_cli_extensions=config.expected_extensions,
-            expected_mcp_tools=config.expected_mcp_tools,
-            expected_context_files=config.expected_context_files,
-            custom_case=custom_case_instance,
-            expected_tool_uses=config.expected_tool_uses,
-            expected_sub_agent_calls=config.expected_sub_agent_calls,
-        )
+            yield GeneratorTestCase(
+                id=config.id,
+                generator=gen,
+                expected_gemini_cli_extensions=config.expected_extensions,
+                expected_mcp_tools=config.expected_mcp_tools,
+                expected_context_files=config.expected_context_files,
+                custom_case=custom_case_instance,
+                expected_tool_uses=config.expected_tool_uses,
+                expected_sub_agent_calls=config.expected_sub_agent_calls,
+            )
 
-    # 2. Local Async Generators (Inlined to avoid event loop conflicts)
-    elif case_id == "cli_local_test_case":
-        gen = GeminiCliLocalAnswerGenerator(api_key_manager=api_key_manager)
-        await gen.setup()
-        return GeneratorTestCase(id="cli-local", generator=gen)
+        # 2. Local Async Generators (Inlined to avoid event loop conflicts)
+        elif case_id == "cli_local_test_case":
+            gen = GeminiCliLocalAnswerGenerator(api_key_manager=api_key_manager)
+            await gen.setup()
+            yield GeneratorTestCase(id="cli-local", generator=gen)
 
-    elif case_id == "adk_agent_test_case":
-        # Create an Agent instance
-        agent = create_default_adk_agent(model_name=model_name)
-        
-        gen = AdkAnswerGenerator(
-            agent=agent,
-            api_key_manager=api_key_manager,
-        )
-        await gen.setup()
-        return GeneratorTestCase(id="adk-agent-default", generator=gen)
+        elif case_id == "adk_agent_test_case":
+            # Create an Agent instance
+            agent = create_default_adk_agent(model_name=model_name)
+            
+            gen = AdkAnswerGenerator(
+                agent=agent,
+                api_key_manager=api_key_manager,
+            )
+            await gen.setup()
+            yield GeneratorTestCase(id="adk-agent-default", generator=gen)
 
-    elif case_id == "cli_fix_error_test_case":
-        if not has_env("GEMINI_API_KEY"):
-            pytest.skip("GEMINI_API_KEY not set")
+        elif case_id == "cli_fix_error_test_case":
+            if not has_env("GEMINI_API_KEY"):
+                pytest.skip("GEMINI_API_KEY not set")
 
-        gen = GeminiCliLocalAnswerGenerator(model_name=model_name)
-        await gen.setup()
-        
-        # Setup temp dir and files
-        case_tmp_path = tmp_path_factory.mktemp("fix_error_case")
-        
-        test_file_path = case_tmp_path / "test_agent.py"
-        unfixed_file_path = case_tmp_path / "unfixed.py"
-        fixed_file_path = case_tmp_path / "fixed.py"
+            gen = GeminiCliLocalAnswerGenerator(model_name=model_name)
+            await gen.setup()
+            
+            # Setup temp dir and files
+            case_tmp_path = tmp_path_factory.mktemp("fix_error_case")
+            
+            test_file_path = case_tmp_path / "test_agent.py"
+            unfixed_file_path = case_tmp_path / "unfixed.py"
+            fixed_file_path = case_tmp_path / "fixed.py"
 
-        test_file_path.write_text("def test_fixed(): pass")
-        unfixed_file_path.write_text("def unfixed(): pass")
-        fixed_file_path.write_text("def fixed(): pass")
+            test_file_path.write_text("def test_fixed(): pass", encoding='utf-8')
+            unfixed_file_path.write_text("def unfixed(): pass", encoding='utf-8')
+            fixed_file_path.write_text("def fixed(): pass", encoding='utf-8')
 
-        from benchmarks.tests.integration.test_utils import create_fix_error_benchmark_case
+            from benchmarks.tests.integration.test_utils import create_fix_error_benchmark_case
 
-        case = create_fix_error_benchmark_case(
-            case_path=case_tmp_path,
-            name="Test Fix Error",
-            description="Fix a bug by creating a valid agent.",
-            requirements=[
-                (
-                    "The solution MUST import `BaseAgent` directly from"
-                    " `google.adk.agents`."
-                ),
-                (
-                    "The `create_agent` function MUST have the return type annotation"
-                    " `-> BaseAgent`."
-                ),
-            ],
-        )
+            case = create_fix_error_benchmark_case(
+                case_path=case_tmp_path,
+                name="Test Fix Error",
+                description="Fix a bug by creating a valid agent.",
+                requirements=[
+                    (
+                        "The solution MUST import `BaseAgent` directly from"
+                        " `google.adk.agents`."
+                    ),
+                    (
+                        "The `create_agent` function MUST have the return type annotation"
+                        " `-> BaseAgent`."
+                    ),
+                ],
+            )
 
-        return GeneratorTestCase(
-            id="cli-fix-error",
-            generator=gen,
-            expected_gemini_cli_extensions=[],
-            custom_case=case,
-        )
+            yield GeneratorTestCase(
+                id="cli-fix-error",
+                generator=gen,
+                expected_gemini_cli_extensions=[],
+                custom_case=case,
+            )
 
-    # 3. Fallback for Sync Fixtures (api_test_case)
-    else:
-        return request.getfixturevalue(case_id)
+        # 3. Fallback for Sync Fixtures (api_test_case)
+        else:
+            yield request.getfixturevalue(case_id)
+            
+    finally:
+        if gen:
+            print(f"--- [Teardown] Cleaning up {gen.name} ---")
+            await gen.teardown()

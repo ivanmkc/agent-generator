@@ -1,5 +1,6 @@
 import pytest
 import os
+import uuid
 from benchmarks.answer_generators.adk_agents import create_workflow_adk_generator
 from benchmarks.tests.integration.predefined_cases import SIMPLE_API_UNDERSTANDING_CASE
 from benchmarks.api_key_manager import ApiKeyManager
@@ -20,7 +21,8 @@ async def test_adk_generator_output_structure():
         await generator.setup()
 
         # Generate answer
-        result: GeneratedAnswer = await generator.generate_answer(SIMPLE_API_UNDERSTANDING_CASE)
+        run_id = f"test_run_{uuid.uuid4().hex}"
+        result: GeneratedAnswer = await generator.generate_answer(SIMPLE_API_UNDERSTANDING_CASE, run_id=run_id)
 
         # 1. Verify Output Structure
         assert isinstance(result.output, ApiUnderstandingAnswerOutput)

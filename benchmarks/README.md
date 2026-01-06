@@ -147,6 +147,7 @@ from benchmarks.answer_generators import (
     TrivialAnswerGenerator,
     GeminiAnswerGenerator,
     AdkAnswerGenerator,
+    create_structured_workflow_adk_generator, # Import the factory
     GeminiCliDockerAnswerGenerator,
     GeminiCliLocalAnswerGenerator,
 )
@@ -156,11 +157,15 @@ async def main():
         "benchmarks/benchmark_definitions/fix_errors/benchmark.yaml",
         "benchmarks/benchmark_definitions/api_understanding/benchmark.yaml",
     ]
+    
+    # Create the ADK generator using the factory
+    adk_gen = create_structured_workflow_adk_generator(model_name="gemini-2.5-flash")
+
     answer_generators_to_test = [
         GroundTruthAnswerGenerator(),
         TrivialAnswerGenerator(),
         GeminiAnswerGenerator(model_name="gemini-2.5-pro"),
-        AdkAnswerGenerator(model_name="gemini-2.5-flash"),
+        adk_gen,
         GeminiCliDockerAnswerGenerator(model_name="gemini-2.5-flash", image_name="gemini-cli:adk-python"),
     ]
 

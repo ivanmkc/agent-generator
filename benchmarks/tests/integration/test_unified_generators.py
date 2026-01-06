@@ -21,6 +21,7 @@ import sys
 import os
 from pathlib import Path
 import datetime
+import uuid
 
 # Ensure project root is in sys.path for direct execution
 project_root = Path(os.getcwd()).resolve()
@@ -116,7 +117,8 @@ async def test_generator_execution(
     print(f"[{test_case.id}] Generating answer for case: '{case.get_identifier()}'")
 
     try:
-        answer = await generator.generate_answer(case)
+        run_id = f"test_run_{uuid.uuid4().hex}"
+        answer = await generator.generate_answer(case, run_id=run_id)
 
         # Basic Checks
         assert answer is not None

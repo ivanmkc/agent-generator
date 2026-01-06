@@ -38,9 +38,10 @@ class GroundTruthAnswerGenerator(AnswerGenerator):
         return "GroundTruthAnswerGenerator"
 
     async def generate_answer(
-        self, benchmark_case: BaseBenchmarkCase
+        self, benchmark_case: BaseBenchmarkCase, run_id: str
     ) -> GeneratedAnswer:
         """Returns the ground truth answer for the benchmark case."""
+        ground_truth = benchmark_case.get_ground_truth()
         if isinstance(benchmark_case, FixErrorBenchmarkCase):
             # Extract the answer code from the fixed_file.
             file_path = benchmark_case.fixed_file

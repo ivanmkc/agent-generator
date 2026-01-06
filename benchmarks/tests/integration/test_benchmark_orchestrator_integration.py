@@ -109,7 +109,7 @@ async def test_benchmark_orchestrator_sequential_execution():
             await asyncio.sleep(0.1)  # Simulate setup work
 
         async def generate_answer(
-            self, benchmark_case: BaseBenchmarkCase
+            self, benchmark_case: BaseBenchmarkCase, run_id: str
         ) -> GeneratedAnswer:
             self.generation_times.append(time.time())
             # Return a valid output that matches one of the types in the union (ApiUnderstandingAnswerOutput)

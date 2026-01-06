@@ -30,14 +30,22 @@ class GeminiCliLocalAnswerGenerator(GeminiCliAnswerGenerator):
     async def run_cli_command(
         self,
         command_parts: list[str],
+        extra_env: dict[str, str] = None,
     ) -> tuple[dict[str, Any], list[TraceLogEvent]]:
         """Executes the gemini CLI command and returns the parsed JSON output and raw logs."""
+        
+        # Prepare environment
+        import os
+        env = os.environ.copy()
+        if extra_env:
+            env.update(extra_env)
 
         # Create subprocess
         proc = await asyncio.create_subprocess_exec(
             *command_parts,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
+            env=env,
         )
 
         stdout, stderr = await proc.communicate()

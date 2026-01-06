@@ -43,8 +43,20 @@ GENERATOR_METADATA: Dict[str, AnyGeneratorConfig] = {
     "structured_workflow_adk_test_case": StructuredWorkflowAdkGeneratorConfig(
         id="structured_workflow_adk_test_case",
         expected_context_files=[],
-        expected_tool_uses=["save_agent_code", "run_current_agent", "write_file"],
-        expected_sub_agent_calls=["setup_agent", "knowledge_retrieval_agent", "planner", "verification_creator", "candidate_creator", "verifier", "final_verifier", "teardown_agent"],
+        expected_tool_uses=["run_adk_agent", "exit_loop", "write_file"],
+        expected_sub_agent_calls=[
+            "setup_agent",
+            "prompt_sanitizer_agent",
+            "module_selector_agent",
+            "docstring_fetcher_agent",
+            "implementation_planner",
+            "verification_planner",
+            "candidate_creator",
+            "code_based_runner",
+            "run_analysis_agent",
+            "final_verifier",
+            "teardown_agent",
+        ],
         custom_case=STRUCTURED_WORKFLOW_CASE,
     ),
     "podman_base_test_case": PodmanGeneratorConfig(
