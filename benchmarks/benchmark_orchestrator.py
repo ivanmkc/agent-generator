@@ -15,6 +15,7 @@
 """A test rig to validate the benchmarks against the codebase."""
 
 import asyncio
+import contextlib
 from pathlib import Path
 import time
 import random
@@ -25,6 +26,7 @@ from typing import List
 from typing import Optional
 
 import tenacity
+import pydantic
 
 import yaml
 
@@ -38,6 +40,12 @@ from benchmarks.data_models import BenchmarkGenerationError
 from benchmarks.logger import BenchmarkLogger
 import benchmarks.validation_utils as validation_utils
 
+# Default configuration constants
+DEFAULT_MAX_CONCURRENCY = 10
+DEFAULT_MAX_RETRIES = 2
+DEFAULT_MIN_WAIT = 4.0
+DEFAULT_MAX_WAIT = 20.0
+
 
 async def _run_single_benchmark(
     suite_file: str,
@@ -48,6 +56,7 @@ async def _run_single_benchmark(
     max_retries: int,
     min_wait: float,
     max_wait: float,
+    retry_on_validation_error: bool = True,
 ) -> BenchmarkRunResult:
     """Helper coroutine to run one benchmark case and return its result."""
     async with semaphore:
@@ -68,6 +77,16 @@ async def _run_single_benchmark(
                 # Pass the run_id to the generator
                 generated_answer = await generator.generate_answer(case, run_id=run_id)
 
+                # Extract answer string for history
+                attempt_answer_str = ""
+                if generated_answer and generated_answer.output:
+                    if hasattr(generated_answer.output, "code"):
+                        attempt_answer_str = generated_answer.output.code
+                    elif hasattr(generated_answer.output, "answer"):
+                        attempt_answer_str = generated_answer.output.answer
+                    else:
+                        attempt_answer_str = str(generated_answer.output)
+
                 # Record Success
                 attempts_history.append(
                     GenerationAttempt(
@@ -75,23 +94,30 @@ async def _run_single_benchmark(
                         status="success",
                         duration=time.time() - attempt_start,
                         api_key_id=generated_answer.api_key_id,
+                        trace_logs=generated_answer.trace_logs,
+                        answer=attempt_answer_str,
+                        rationale=generated_answer.output.rationale if generated_answer.output else None,
+                        usage_metadata=generated_answer.usage_metadata,
                     )
                 )
                 break  # Exit loop on success
 
             except Exception as e:
                 # Record Failure
-                traceback.print_exc() # Print to stdout for debugging
+                # We do NOT print stack traces to console anymore to keep the output clean.
+                # The logger will summarize the failure at the end.
                 
-                print(
-                    f"\n[Error Detected] Generator: {generator.name}, Case: {case.get_identifier()}"
-                )
-                print(f"  Error: {e}")
-
-                # Extract API key if available in the custom exception
+                # Extract metadata if available in the custom exception
                 failed_key_id = None
+                failed_logs = None
+                failed_usage = None
+                original_exception = e
+                
                 if isinstance(e, BenchmarkGenerationError):
                     failed_key_id = e.api_key_id
+                    failed_logs = e.trace_logs
+                    failed_usage = e.usage_metadata
+                    original_exception = e.original_exception
                 
                 attempts_history.append(
                     GenerationAttempt(
@@ -100,37 +126,47 @@ async def _run_single_benchmark(
                         error_message=str(e),
                         duration=time.time() - attempt_start,
                         api_key_id=failed_key_id,
+                        trace_logs=failed_logs,
+                        usage_metadata=failed_usage,
                     )
                 )
 
                 # Check if we should retry
-                if attempt_idx < max_retries:
-                    print(f"  Action: Retrying (Attempt {attempt_idx + 1} of {max_retries})...")
+                should_retry = attempt_idx < max_retries
+                
+                # Check for validation error logic
+                is_validation_error = isinstance(original_exception, pydantic.ValidationError)
+                if is_validation_error and not retry_on_validation_error:
+                    should_retry = False
+
+                if should_retry:
                     # Release the key for this failed run before retrying
                     if generator.api_key_manager and failed_key_id:
                         generator.api_key_manager.release_run(run_id)
-                    # Exponential Backoff: min_wait * 2^attempt
                     # Exponential Backoff: min_wait * 2^attempt
                     delay = min(max_wait, min_wait * (2**attempt_idx))
                     # Add jitter (0.5 to 1.5 multiplier)
                     delay *= 0.5 + random.random()
                     await asyncio.sleep(delay)
                 else:
-                    print(f"  Action: Giving up after {max_retries + 1} attempts.")
-                    # Final Failure after all retries
-                    error_message = f"Generation failed after {max_retries + 1} attempts. Last error: {e}"
+                    # Final Failure after all retries (or if retry aborted)
+                    error_message = f"Generation failed after {attempt_idx + 1} attempts. Last error: {e}"
                     if logger:
-                        logger.log_generation_failure(
+                        # Log the final failure summary
+                        # We use log_test_result even for generation failure to get the consistent block format
+                        logger.log_test_result(
                             benchmark_name=case.get_identifier(),
-                            error_message=error_message,
-                            prompt="",
+                            result=BenchmarkResultType.FAIL_GENERATION,
+                            validation_error=error_message,
+                            temp_test_file=None,
+                            generation_attempts=attempts_history,
                         )
 
                     from benchmarks.data_models import BenchmarkErrorType
 
                     # Try to map common generation errors
                     gen_error_type = BenchmarkErrorType.OTHER_ERROR
-                    exc_name = type(e).__name__
+                    exc_name = type(original_exception).__name__
                     for member in BenchmarkErrorType:
                         if member.value == exc_name:
                             gen_error_type = member
@@ -168,6 +204,7 @@ async def _run_single_benchmark(
                     generated_answer.output.model_dump() if generated_answer else None
                 ),
                 trace_logs=(generated_answer.trace_logs if generated_answer else None),
+                generation_attempts=attempts_history,
             )
 
         # Extract the actual answer string based on the output type
@@ -205,10 +242,11 @@ async def _run_single_benchmark(
 async def run_benchmarks(
     benchmark_suites: List[str],
     answer_generators: List[AnswerGenerator],
-    max_concurrency: int = 50,
-    max_retries: int = 2,
-    min_wait: float = 4.0,
-    max_wait: float = 20.0,
+    max_concurrency: int = DEFAULT_MAX_CONCURRENCY,
+    max_retries: int = DEFAULT_MAX_RETRIES,
+    min_wait: float = DEFAULT_MIN_WAIT,
+    max_wait: float = DEFAULT_MAX_WAIT,
+    retry_on_validation_error: bool = True,
     logger: Optional[BenchmarkLogger] = None,
 ) -> List[BenchmarkRunResult]:
     """
@@ -237,76 +275,106 @@ async def run_benchmarks(
     tasks_by_generator = {g.name: 0 for g in answer_generators}
 
     for generator in answer_generators:
-        print(f"\n=== Processing Answer Generator: {generator.name} ===")
+        # Use context manager for section logging if logger is available
+        ctx = logger.section(f"Agent: {generator.name}") if logger else contextlib.nullcontext()
+        
+        with ctx:
+            if not logger:
+                print(f"\n=== Processing Answer Generator: {generator.name} ===")
 
-        print(f"  - Setting up answer generator: {generator.name}...")
-        await generator.setup()  # Initialize/Deploy if needed
+            if logger:
+                logger.log_message(f"Setting up answer generator: {generator.name}...")
+            else:
+                print(f"  - Setting up answer generator: {generator.name}...")
+            
+            await generator.setup()  # Initialize/Deploy if needed
 
-        generator_tasks = []
+            generator_tasks = []
 
-        for suite_file in benchmark_suites:
-            print(f"  - Loading benchmark suite: {suite_file}")
-            with open(suite_file, "r", encoding="utf-8") as f:
-                data = yaml.safe_load(f)
-            benchmark_file = BenchmarkFile.model_validate(data)
+            for suite_file in benchmark_suites:
+                if logger:
+                    logger.log_message(f"Loading benchmark suite: {suite_file}")
+                else:
+                    print(f"  - Loading benchmark suite: {suite_file}")
+                    
+                with open(suite_file, "r", encoding="utf-8") as f:
+                    data = yaml.safe_load(f)
+                benchmark_file = BenchmarkFile.model_validate(data)
 
-            for case in benchmark_file.benchmarks:
-                generator_tasks.append(
-                    _run_single_benchmark(
-                        suite_file,
-                        case,
-                        generator,
-                        semaphore,
-                        logger,
-                        max_retries,
-                        min_wait,
-                        max_wait,
+                for case in benchmark_file.benchmarks:
+                    generator_tasks.append(
+                        _run_single_benchmark(
+                            suite_file,
+                            case,
+                            generator,
+                            semaphore,
+                            logger,
+                            max_retries,
+                            min_wait,
+                            max_wait,
+                            retry_on_validation_error,
+                        )
                     )
-                )
 
-        total_gen_tasks = len(generator_tasks)
-        tasks_by_generator[generator.name] = total_gen_tasks
+            total_gen_tasks = len(generator_tasks)
+            tasks_by_generator[generator.name] = total_gen_tasks
 
-        print(
-            f"  - Running {total_gen_tasks} benchmarks in parallel for {generator.name}"
-            f" (max_concurrency={max_concurrency})..."
-        )
+            msg = (f"Running {total_gen_tasks} benchmarks in parallel for {generator.name}"
+                   f" (max_concurrency={max_concurrency})..."
+            )
+            if logger:
+                logger.log_message(msg)
+            else:
+                print(f"  - {msg}")
 
-        start_gen_time = time.time()
-        last_log_time = time.time()
-        log_interval_minutes = 1  # Log every minute
+            start_gen_time = time.time()
+            last_log_time = time.time()
+            log_interval_minutes = 1  # Log every minute
 
-        for task_future in asyncio.as_completed(generator_tasks):
-            result = await task_future
-            results.append(result)
-            completed_by_generator[result.answer_generator] += 1
+            for task_future in asyncio.as_completed(generator_tasks):
+                result = await task_future
+                results.append(result)
+                completed_by_generator[result.answer_generator] += 1
 
-            current_time = time.time()
-            if (current_time - last_log_time) / 60 >= log_interval_minutes:
-                elapsed_minutes = (current_time - start_gen_time) / 60
-                completed_tasks = completed_by_generator[result.answer_generator]
-                total_tasks = tasks_by_generator[result.answer_generator]
-                timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                print(
-                    f"  [{timestamp}] - {generator.name}: {completed_tasks}/{total_tasks} tasks "
-                    f"completed in {elapsed_minutes:.1f} minutes."
-                )
-                last_log_time = current_time
+                current_time = time.time()
+                if (current_time - last_log_time) / 60 >= log_interval_minutes:
+                    elapsed_minutes = (current_time - start_gen_time) / 60
+                    completed_tasks = completed_by_generator[result.answer_generator]
+                    total_tasks = tasks_by_generator[result.answer_generator]
+                    timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    msg = (f"[{timestamp}] - {generator.name}: {completed_tasks}/{total_tasks} tasks "
+                           f"completed in {elapsed_minutes:.1f} minutes.")
+                    if logger:
+                        logger.log_message(msg)
+                    else:
+                        print(f"  {msg}")
+                    last_log_time = current_time
 
-        print(f"  - Completed all tasks for {generator.name}.")
-
-        print(f"  - Tearing down answer generator: {generator.name}...")
-        try:
-            await generator.teardown()
-        except Exception as e:
-            print(f"  - Warning: Teardown failed for {generator.name}: {e}")
+            if logger:
+                logger.log_message(f"Completed all tasks for {generator.name}.")
+                logger.log_message(f"Tearing down answer generator: {generator.name}...")
+            else:
+                print(f"  - Completed all tasks for {generator.name}.")
+                print(f"  - Tearing down answer generator: {generator.name}...")
+            
+            try:
+                await generator.teardown()
+            except Exception as e:
+                msg = f"Warning: Teardown failed for {generator.name}: {e}"
+                if logger:
+                    logger.log_message(msg)
+                else:
+                    print(f"  - {msg}")
 
     # Final progress reporting
-    print("\n--- Summary of Progress per Answer Generator ---")
-    for gen_name, total_tasks in tasks_by_generator.items():
-        completed = completed_by_generator[gen_name]
-        print(f"  - {gen_name}: {completed} of {total_tasks} tasks completed.")
-
     if logger:
+        with logger.section("Summary of Progress"):
+            for gen_name, total_tasks in tasks_by_generator.items():
+                completed = completed_by_generator[gen_name]
+                logger.log_message(f"{gen_name}: {completed} of {total_tasks} tasks completed.")
+        
+        # Log the summary table
+        logger.log_summary_table(results)
+        
         logger.finalize_run()
     return results
