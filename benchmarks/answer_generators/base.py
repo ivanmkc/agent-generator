@@ -34,6 +34,11 @@ class AnswerGenerator(abc.ABC):
         """Returns a unique name for this generator instance, reflecting its configuration."""
         pass
 
+    @property
+    def description(self) -> Optional[str]:
+        """Returns a description of the generator, explaining its configuration and purpose."""
+        return None
+
     @abc.abstractmethod
     async def generate_answer(
         self, benchmark_case: BaseBenchmarkCase, run_id: str

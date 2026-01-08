@@ -135,6 +135,23 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
             f" image={self.image_name})"
         )
 
+    @property
+    def description(self) -> str:
+        """Returns a detailed description of the generator based on image contents."""
+        image_def = self._image_definitions.get(self.image_name)
+        content_desc = image_def.description if image_def else "Custom environment."
+        
+        desc = f"**Model:** {self.model_name}\n\n"
+        desc += f"**Environment:** {content_desc}\n\n"
+        
+        if self._is_proxy:
+            desc += f"*Note: Acting as a proxy to service at {self._base_url}.*"
+        
+        if self.context_instruction:
+            desc += f"\n\n**Context Instruction:**\n> {self.context_instruction[:200]}..."
+            
+        return desc
+
     async def setup(self, force_deploy: bool = False) -> None:
         """Ensures the Podman image is built and starts the API server container."""
         async with self._setup_lock:

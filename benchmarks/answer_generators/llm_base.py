@@ -14,6 +14,7 @@
 
 """Base class for LLM-based answer generators with shared prompt logic."""
 
+import logging
 from pathlib import Path
 
 from benchmarks.answer_generators.base import AnswerGenerator
@@ -114,8 +115,9 @@ class LlmAnswerGenerator(AnswerGenerator):
             try:
                 code_content = load_snippet(case.code_snippet_ref)
                 code_snippet_section = f"Code:\n```python\n{code_content}\n```\n\n"
-            except Exception:
+            except Exception as e:
                 # Warning: Failed to load code snippet. The model will not have this context.
+                logging.warning(f"Failed to load code snippet {case.code_snippet_ref}: {e}")
                 pass
 
         template = self._read_prompt_template("multiple_choice_prompt.txt")

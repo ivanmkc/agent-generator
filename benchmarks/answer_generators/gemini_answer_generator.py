@@ -55,6 +55,19 @@ class GeminiAnswerGenerator(LlmAnswerGenerator):
                     return f"{base_name}-with-context-hash-{context_hash_digest}"
         return base_name
 
+    @property
+    def description(self) -> str:
+        """Returns a detailed description of the generator."""
+        desc = f"**Model:** {self.model_name}\n\n"
+        desc += "**Type:** Gemini API (Direct Structured Output)\n\n"
+        
+        context_content = self._get_context_content()
+        if context_content:
+            preview = context_content[:200]
+            desc += f"**Context Preview:**\n> {preview}..."
+            
+        return desc
+
     async def generate_answer(
         self, benchmark_case: BaseBenchmarkCase, run_id: str
     ) -> GeneratedAnswer:

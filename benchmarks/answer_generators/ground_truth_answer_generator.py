@@ -37,6 +37,11 @@ class GroundTruthAnswerGenerator(AnswerGenerator):
         """Returns the name of the generator."""
         return "GroundTruthAnswerGenerator"
 
+    @property
+    def description(self) -> str:
+        """Returns a detailed description of the generator."""
+        return "Returns the **Ground Truth** (pre-defined correct answer) for each benchmark case. Used as a stable baseline for framework validation."
+
     async def generate_answer(
         self, benchmark_case: BaseBenchmarkCase, run_id: str
     ) -> GeneratedAnswer:

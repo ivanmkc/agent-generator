@@ -15,6 +15,7 @@
 """An AnswerGenerator that uses the gemini CLI to generate answers."""
 
 import asyncio
+import logging
 import json
 from pathlib import Path
 import re
@@ -64,6 +65,19 @@ class GeminiCliAnswerGenerator(GeminiAnswerGenerator):
         # Reuse parent naming logic but indicate CLI usage
         base = super().name
         return base.replace("GeminiAnswerGenerator", "GeminiCliAnswerGenerator")
+
+    @property
+    def description(self) -> str:
+        """Returns a detailed description of the generator."""
+        desc = f"**Model:** {self.model_name}\n\n"
+        desc += "**Type:** Gemini CLI (Local Process)\n\n"
+        
+        context_content = self._get_context_content()
+        if context_content:
+            preview = context_content[:200]
+            desc += f"**Context Preview:**\n> {preview}..."
+            
+        return desc
 
     async def generate_answer(
         self, benchmark_case: BaseBenchmarkCase, run_id: str
@@ -227,8 +241,8 @@ class GeminiCliAnswerGenerator(GeminiAnswerGenerator):
 
                 if tool_name_candidate:
                     tools.append(tool_name_candidate)
-        except Exception:
-            pass
+        except Exception as e:
+            logging.warning(f"Failed to list MCP tools: {e}")
 
         return list(set(tools))
 
@@ -278,8 +292,8 @@ class GeminiCliAnswerGenerator(GeminiAnswerGenerator):
                 )
                 if match:
                     extensions.append(match.group(1).strip())
-        except Exception:
-            pass
+        except Exception as e:
+            logging.warning(f"Failed to list Gemini CLI extensions: {e}")
 
         return list(set(extensions))
 
