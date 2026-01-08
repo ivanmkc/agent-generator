@@ -6,6 +6,9 @@ from pathlib import Path
 from typing import List, Dict, Any, Optional
 from dataclasses import dataclass, field
 
+import pandas as pd
+import pydantic
+
 # Add project root to sys.path to allow imports from benchmarks when running directly
 project_root = str(Path(__file__).resolve().parent.parent.parent)
 if project_root not in sys.path:
@@ -13,6 +16,8 @@ if project_root not in sys.path:
 
 from google.genai import Client, types
 from benchmarks.api_key_manager import API_KEY_MANAGER, KeyType
+from benchmarks.data_models import BenchmarkRunResult
+from benchmarks.analysis import process_results
 
 @dataclass
 class LogNode:
@@ -223,6 +228,39 @@ class LogAnalyzer:
             
         return "\n".join(context_parts)
 
+    def _calculate_quantitative_stats(self, results_df: pd.DataFrame) -> str:
+        """Calculates quantitative statistics from the results DataFrame."""
+        if results_df.empty:
+            return "No quantitative results available."
+
+        stats_lines = ["### Quantitative Summary (From results.json)\n"]
+        
+        # Group by generator
+        grouped = results_df.groupby("answer_generator")
+        
+        # Create a summary table
+        summary_table = "| Generator | Total | Passed | Pass Rate | Avg Latency | Avg Tokens |\n"
+        summary_table += "| :--- | :--- | :--- | :--- | :--- | :--- |\n"
+        
+        for name, group in grouped:
+            total = len(group)
+            passed = group["result"].sum()
+            pass_rate = (passed / total) * 100 if total > 0 else 0
+            avg_latency = group["latency"].mean()
+            
+            # Safely extract tokens
+            def get_tokens(row):
+                if isinstance(row.get("usage_metadata"), dict):
+                    return row["usage_metadata"].get("total_tokens", 0) or 0
+                return 0
+            
+            avg_tokens = group.apply(get_tokens, axis=1).mean()
+            
+            summary_table += f"| {name} | {total} | {passed} | {pass_rate:.1f}% | {avg_latency:.2f}s | {avg_tokens:.0f} |\n"
+            
+        stats_lines.append(summary_table)
+        return "\n".join(stats_lines)
+
     async def analyze_log_file(self, log_path: Path) -> str:
         """
         Analyzes the trace.jsonl file and returns a summary.
@@ -232,9 +270,30 @@ class LogAnalyzer:
 
         print(f"Analyzing log file: {log_path}")
         
-        # Load and Prepare Static Context
+        # Load Static Metadata
         run_dir = log_path.parent
         generator_context = self._load_static_context(run_dir)
+
+        # Load Quantitative Results (results.json)
+        results_path = run_dir / "results.json"
+        quantitative_context = ""
+        
+        if results_path.exists():
+            try:
+                with open(results_path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                
+                # Parse into objects then dataframe
+                TypeAdapter = pydantic.TypeAdapter(List[BenchmarkRunResult])
+                results_list = TypeAdapter.validate_python(data)
+                results_df = process_results(results_list)
+                
+                quantitative_context = self._calculate_quantitative_stats(results_df)
+            except Exception as e:
+                print(f"Error loading/processing results.json: {e}")
+                quantitative_context = f"Error loading results data: {e}"
+        else:
+            quantitative_context = "No results.json found."
 
         # 1. Parse Structure
         nodes = self._parse_log_file(log_path)
@@ -247,7 +306,7 @@ class LogAnalyzer:
         node_analyses = await self._analyze_nodes(nodes)
 
         # 3. Reduce: Synthesize the final report
-        final_summary = await self._reduce_analyses(node_analyses, generator_context)
+        final_summary = await self._reduce_analyses(node_analyses, generator_context, quantitative_context)
         
         return final_summary
 
@@ -295,7 +354,7 @@ class LogAnalyzer:
             print(f"Error analyzing node {node.name}: {e}")
             return f"Error analyzing node {node.name}: {e}"
 
-    async def _reduce_analyses(self, analyses: List[str], static_context: str = "") -> str:
+    async def _reduce_analyses(self, analyses: List[str], static_context: str = "", quantitative_context: str = "") -> str:
         """
         Aggregates per-node analyses into a final report.
         """
@@ -310,7 +369,26 @@ class LogAnalyzer:
              # Fallback
              prompt_template = "Synthesize these analyses into a report: {combined_text}\nContext: {static_context}"
 
-        prompt = prompt_template.format(combined_text=combined_text, static_context=static_context)
+        # Allow prompt to use quantitative_context if placeholder exists, or append it if not
+        # To be safe, we'll assume the prompt will be updated to include it. 
+        # But for robustness, we can check.
+        # Actually, I'll update the prompt file in the next step. 
+        # Here I just pass it.
+        
+        # If the template doesn't have the placeholder, we append it to combined_text or static_context 
+        # so the model sees it.
+        if "{quantitative_context}" not in prompt_template:
+             static_context += "\n\n" + quantitative_context
+             # Dummy replacement if key missing
+             formatted_quantitative = ""
+        else:
+             formatted_quantitative = quantitative_context
+
+        prompt = prompt_template.format(
+            combined_text=combined_text, 
+            static_context=static_context,
+            quantitative_context=formatted_quantitative
+        )
 
         try:
             client = self._get_client()

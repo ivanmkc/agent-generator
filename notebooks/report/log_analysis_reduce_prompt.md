@@ -8,16 +8,20 @@ Synthesize these into a cohesive, high-level report.
 
 ## 1. Generator Internals & Configuration
 *   **Instruction:** Using the **Generator Context** provided below, describe the architecture of the generators used in *this specific run*.
-*   **Detail:** Replace any placeholders with the actual model names found in the context. Ensure the distinction between different runner types (e.g., Basic vs Smart Search) is clear.
+*   **Detail:** Replace any placeholders with the actual model names found in the context.
 
 ## 2. Executive Summary
-*   High-level overview of the session (success/failure, major issues).
+*   High-level overview of the session.
+*   **Use the 'Quantitative Stats' provided below** to cite precise Pass Rates (e.g., "82.5% passed"). Do NOT guess stats from the logs.
 
 ## 3. Generator Analysis
-*   Summary table of results (Pass Rate, Latency).
+*   Provide a dedicated sub-section for each generator.
+*   **Stats:** Start with a summary line: "Pass Rate: X% (N/M passed) | Avg Latency: Ys". Use the Quantitative Stats.
+*   **Performance:** Discuss stability and any per-suite patterns found in the logs.
 
 ## 4. Cross-Generator Comparison
 *   Compare generators on Quality, Latency, and Stability.
+*   Use the Quantitative Stats to back up your claims (e.g., "Generator A was 2x faster than B").
 
 ## 5. Root Cause Analysis
 ### 5.0 Global Summary
@@ -38,6 +42,9 @@ A detailed breakdown of failures for this generator:
 *   Actionable steps to fix errors or improve performance.
 
 ---
+**Quantitative Stats (Ground Truth):**
+{quantitative_context}
+
 **Generator Context (Scaffold):**
 {static_context}
 ---
