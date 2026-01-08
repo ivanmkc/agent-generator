@@ -45,14 +45,14 @@ IMAGE_DEFINITIONS: Dict[str, ImageDefinition] = {
     f"{IMAGE_PREFIX}:mcp_adk_agent_runner_basic": ImageDefinition(
         source_dir="mcp_adk_agent_runner_basic",
         dockerfile="mcp_adk_agent_runner_basic/Dockerfile",
-        description="MCP-based runner that dynamically loads and executes ADK agent code, managing the full agent lifecycle and capturing execution logs.",
+        description="**Baseline Runner:** A minimal execution environment for ADK agents. It can load and run provided agent code but lacks intrinsic tools for code exploration or documentation lookup. It relies entirely on the model's pre-trained knowledge for API usage.",
         dependencies=[f"{IMAGE_PREFIX}:adk-python"],
         build_args={"BASE_IMAGE": f"{IMAGE_PREFIX}:adk-python"},
     ),
     f"{IMAGE_PREFIX}:mcp_adk_agent_runner_smart_search": ImageDefinition(
         source_dir="mcp_adk_agent_runner_smart_search",
         dockerfile="mcp_adk_agent_runner_smart_search/Dockerfile",
-        description="Enhanced ADK runner that includes integrated pydoc discovery tools, allowing the agent to research library documentation before executing code.",
+        description="**Smart Discovery Runner:** An enhanced environment equipped with active research tools (`pydoc_search`, `source_browser`). It enables the agent to dynamically look up library documentation and inspect source code *during* the generation loop, allowing it to correct hallucinations and find the right imports.",
         dependencies=[f"{IMAGE_PREFIX}:adk-python"],
         build_args={"BASE_IMAGE": f"{IMAGE_PREFIX}:adk-python"},
     ),
