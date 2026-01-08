@@ -59,10 +59,8 @@ def save_static_metadata(
 ) -> None:
     """Saves static metadata about generators and suites to a JSON file and a Markdown file."""
     
-    # Extract Generator Metadata
+    # Extract Generator Metadata (for JSON)
     gen_meta_list = []
-    gen_md_content = ["# Generator Internals\n"]
-    
     for g in generators:
         model_name = getattr(g, "model_name", "Unknown")
         desc = getattr(g, "description", "No description provided.")
@@ -74,13 +72,6 @@ def save_static_metadata(
             "description": desc,
             "image_name": image_name
         })
-        
-        # Append to Markdown content
-        gen_md_content.append(f"### {g.name}")
-        gen_md_content.append(f"- **Model:** `{model_name}`")
-        if image_name:
-            gen_md_content.append(f"- **Docker Image:** `{image_name}`")
-        gen_md_content.append(f"\n{desc}\n")
 
     # Extract Suite Metadata
     suite_meta_list = []
@@ -107,13 +98,33 @@ def save_static_metadata(
     except Exception as e:
         print(f"Failed to save run metadata: {e}")
 
-    # Save Markdown Cache
+    # Copy Markdown Cache
     md_output_path = output_dir / "generator_internals.md"
-    try:
-        with open(md_output_path, "w", encoding="utf-8") as f:
-            f.write("\n".join(gen_md_content))
-    except Exception as e:
-        print(f"Failed to save generator internals markdown: {e}")
+    cached_md_path = Path("benchmarks/generator_internals.md")
+    
+    if cached_md_path.exists():
+        try:
+            import shutil
+            shutil.copy(cached_md_path, md_output_path)
+            # print(f"Copied generator internals from {cached_md_path}")
+        except Exception as e:
+            print(f"Failed to copy generator internals markdown: {e}")
+    else:
+        # Fallback: Generate on the fly if cache is missing
+        print("Warning: benchmarks/generator_internals.md not found. Generating on the fly.")
+        gen_md_content = ["# Generator Internals (Generated on the fly)\n"]
+        for g in generators:
+            model_name = getattr(g, "model_name", "Unknown")
+            desc = getattr(g, "description", "No description provided.")
+            gen_md_content.append(f"### {g.name}")
+            gen_md_content.append(f"- **Model:** `{model_name}`")
+            gen_md_content.append(f"\n{desc}\n")
+            
+        try:
+            with open(md_output_path, "w", encoding="utf-8") as f:
+                f.write("\n".join(gen_md_content))
+        except Exception as e:
+            print(f"Failed to save generator internals markdown: {e}")
 
 
 async def run_comparison(
