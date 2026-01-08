@@ -7,7 +7,7 @@ from typing import List, Dict, Any, Optional
 from dataclasses import dataclass, field
 
 # Add project root to sys.path to allow imports from benchmarks when running directly
-project_root = str(Path(__file__).resolve().parent.parent)
+project_root = str(Path(__file__).resolve().parent.parent.parent)
 if project_root not in sys.path:
     sys.path.append(project_root)
 

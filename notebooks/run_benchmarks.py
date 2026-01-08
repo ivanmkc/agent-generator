@@ -45,7 +45,7 @@ from benchmarks.logger import (
     CompositeLogger
 )
 import benchmarks.analysis as analysis
-from tools.log_analyzer import analyze_run_logs
+from notebooks.report.log_analyzer import analyze_run_logs
 
 # Set pandas display options (needed for analysis functions)
 pd.set_option("display.max_colwidth", None)

@@ -29,6 +29,15 @@ For each generator found in the logs, provide a dedicated sub-section:
 ## 5. Recommendations
 *   Actionable steps to fix errors or improve performance.
 
+### Example Input Context
+*Analysis 1*: Generator A passed 10/10. Fast (2s).
+*Analysis 2*: Generator B failed 10/10. Error: "API Key Invalid".
+
+### Example Output Section
+**Executive Summary:** Run was mixed. Generator A performed perfectly, while Generator B failed completely due to configuration errors.
+
+**Root Cause Analysis:** Generator B's failure stems from an invalid API key configuration, not model capability.
+
 **Configuration Context:**
 {static_context}
 
