@@ -174,6 +174,7 @@ async def _run_single_benchmark(
                         logger.log_test_result(
                             benchmark_name=case.get_identifier(),
                             result=BenchmarkResultType.FAIL_GENERATION,
+                            suite=Path(suite_file).parent.name,
                             validation_error=error_message,
                             temp_test_file=None,
                             generation_attempts=attempts_history,
@@ -215,6 +216,7 @@ async def _run_single_benchmark(
             logger.log_test_result(
                 benchmark_name=case.get_identifier(),
                 result=result,
+                suite=Path(suite_file).parent.name,
                 validation_error=validation_error,
                 temp_test_file=Path(temp_file_path) if temp_file_path else None,
                 answer_data=(

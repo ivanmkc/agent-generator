@@ -4,7 +4,6 @@ import sys
 import json
 from pathlib import Path
 from typing import List, Dict, Any, Optional
-from dataclasses import dataclass, field
 
 import pandas as pd
 import pydantic
@@ -17,53 +16,20 @@ if project_root not in sys.path:
 from google.genai import Client, types
 from benchmarks.api_key_manager import API_KEY_MANAGER, KeyType
 from benchmarks.data_models import BenchmarkRunResult
-from benchmarks.analysis import process_results
-
-@dataclass
-class LogNode:
-    name: str
-    start_time: float
-    end_time: Optional[float] = None
-    events: List[Dict[str, Any]] = field(default_factory=list)
-    children: List["LogNode"] = field(default_factory=list)
-
-    def to_text(self, depth: int = 0) -> str:
-        indent = "  " * depth
-        lines = [f"{indent}SECTION: {self.name}"]
-        
-        for event in self.events:
-            # Format generic events
-            ts = f"{event.get('timestamp', 0):.2f}"
-            etype = event.get('event_type', 'unknown')
-            data = event.get('data', {})
-            
-            if etype == 'message':
-                msg = data.get('message', '')
-                lines.append(f"{indent}  [{ts}] {msg}")
-            elif etype == 'test_result':
-                # Simplified test result logging
-                bname = data.get('benchmark_name', 'unknown')
-                res = data.get('result', 'unknown')
-                err = data.get('validation_error')
-                status_icon = "✅" if res == 'pass' else "❌"
-                lines.append(f"{indent}  [{ts}] {status_icon} {bname}: {res}")
-                if err:
-                    lines.append(f"{indent}      Error: {err}")
-            else:
-                lines.append(f"{indent}  [{ts}] {etype}: {data}")
-
-        for child in self.children:
-            lines.append(child.to_text(depth + 1))
-            
-        return "\n".join(lines)
+from benchmarks.analysis import (
+    process_results,
+    get_token_usage_stats,
+    get_tool_success_stats,
+    format_as_markdown
+)
 
 class LogAnalyzer:
     """
     Analyzes benchmark logs using Gemini to provide insights and summaries.
-    Parses logs into a hierarchy and maps analysis over top-level runs.
+    Uses pandas to group results by Generator -> Suite -> Case -> Attempt.
     """
 
-    def __init__(self, model_name: str = "gemini-2.5-flash"):
+    def __init__(self, model_name: str = "gemini-3-pro-preview"):
         self.model_name = model_name
 
     def _get_client(self):
@@ -73,78 +39,14 @@ class LogAnalyzer:
             raise ValueError("No API key available for LogAnalyzer.")
         return Client(api_key=api_key)
 
-    def _parse_log_file(self, log_path: Path) -> List[LogNode]:
-        """Parses the trace.jsonl file into a forest of LogNodes."""
-        roots = []
-        stack: List[LogNode] = []
-        
-        # Virtual root for global events if needed, but we'll try to find natural roots
-        # If events occur before the first section, we might lose them or need a 'Global' node.
-        # Let's use a 'Global' node if needed, but 'trace.jsonl' usually starts with global events.
-        global_node = LogNode(name="Global Context", start_time=0)
-        roots.append(global_node)
-        
-        # We'll treat the 'Global Context' as the default bucket for non-nested events
-        # Top-level sections will be siblings in 'roots' (actually let's make them children of global? 
-        # No, better to have a list of distinct runs if they are sections).
-        
-        # Actually, let's keep it simple: Roots are top-level sections. 
-        # Events outside any section go to a 'Prelude' node.
-        prelude = LogNode(name="Prelude", start_time=0)
-        roots = [prelude]
-        
-        try:
-            with open(log_path, "r", encoding="utf-8") as f:
-                for line in f:
-                    line = line.strip()
-                    if not line:
-                        continue
-                    try:
-                        event = json.loads(line)
-                    except json.JSONDecodeError:
-                        continue
-                        
-                    etype = event.get('event_type')
-                    timestamp = event.get('timestamp', 0)
-                    data = event.get('data', {})
-
-                    if etype == 'section_start':
-                        name = data.get('name', 'Unnamed Section')
-                        node = LogNode(name=name, start_time=timestamp)
-                        
-                        if stack:
-                            stack[-1].children.append(node)
-                        else:
-                            roots.append(node)
-                        
-                        stack.append(node)
-                    
-                    elif etype == 'section_end':
-                        if stack:
-                            node = stack.pop()
-                            node.end_time = timestamp
-                    
-                    else:
-                        # Add event to current section
-                        if stack:
-                            stack[-1].events.append(event)
-                        else:
-                            # Add to the last root (likely Prelude or a closed section?)
-                            # If we are not in a section, it belongs to the top level context.
-                            # If roots[-1] is a closed section, we might need a new 'Interlude' node?
-                            # For simplicity, add to 'Prelude' if it's the only one, or append to the last root.
-                            # Actually, if we have multiple roots (runs), inter-run events are rare.
-                            # Let's just add to the last root for continuity.
-                            roots[-1].events.append(event)
-
-        except Exception as e:
-            print(f"Error reading log file: {e}")
-            
-        # Remove Prelude if empty
-        if not prelude.events and not prelude.children:
-            roots.remove(prelude)
-            
-        return roots
+    async def _generate_content(self, prompt: str) -> str:
+        """Generates content using the Gemini API."""
+        client = self._get_client()
+        response = await client.aio.models.generate_content(
+            model=self.model_name,
+            contents=[types.Content(parts=[types.Part(text=prompt)])]
+        )
+        return response.text
 
     def _parse_generator_internals(self, md_content: str) -> Dict[str, str]:
         """Parses the generator_internals.md content into a dict of archetype -> description."""
@@ -184,7 +86,11 @@ class LogAnalyzer:
         Loads and merges run_metadata.json (runtime params) and generator_internals.md (static scaffolding).
         """
         metadata_path = run_dir / "run_metadata.json"
+        # Look for the file in the run directory first, then fallback to the report directory
         internals_path = run_dir / "generator_internals.md"
+        if not internals_path.exists():
+             # Fallback to the source location if not copied to run dir yet (e.g. during dev)
+             internals_path = Path("notebooks/report/generator_internals.md")
         
         if not metadata_path.exists():
             return "No run metadata found."
@@ -228,131 +134,196 @@ class LogAnalyzer:
             
         return "\n".join(context_parts)
 
-    def _calculate_quantitative_stats(self, results_df: pd.DataFrame) -> str:
+    def _calculate_quantitative_stats(self, results_df: pd.DataFrame, results_list: List[BenchmarkRunResult]) -> str:
         """Calculates quantitative statistics from the results DataFrame."""
         if results_df.empty:
             return "No quantitative results available."
 
-        stats_lines = ["### Quantitative Summary (From results.json)\n"]
+        stats_lines = ["### Quantitative Summary (Ground Truth)\n"]
         
-        # Group by generator
-        grouped = results_df.groupby("answer_generator")
+        # 1. Summary by Generator and Suite
+        stats_lines.append("#### Results by Generator & Suite\n")
         
-        # Create a summary table
-        summary_table = "| Generator | Total | Passed | Pass Rate | Avg Latency | Avg Tokens |\n"
-        summary_table += "| :--- | :--- | :--- | :--- | :--- | :--- |\n"
+        # Group by generator and suite
+        grouped = results_df.groupby(["answer_generator", "suite"])
         
-        for name, group in grouped:
-            total = len(group)
-            passed = group["result"].sum()
-            pass_rate = (passed / total) * 100 if total > 0 else 0
+        summary_data = []
+        
+        for (gen_name, suite_name), group in grouped:
+            total_cases = len(group)
+            passed_cases = group["result"].sum()
+            case_pass_rate = (passed_cases / total_cases) * 100 if total_cases > 0 else 0
+            
+            # Calculate attempt-level stats
+            all_attempts = []
+            for att_list in group["generation_attempts"]:
+                if isinstance(att_list, list):
+                    all_attempts.extend(att_list)
+            
+            total_attempts = len(all_attempts)
+            successful_attempts = sum(1 for a in all_attempts if (a.get('status') if isinstance(a, dict) else getattr(a, 'status', '')) == 'success')
+            attempt_pass_rate = (successful_attempts / total_attempts) * 100 if total_attempts > 0 else 0
+            
             avg_latency = group["latency"].mean()
             
-            # Safely extract tokens
+            summary_data.append({
+                "Generator": gen_name,
+                "Suite": suite_name,
+                "Cases": total_cases,
+                "Passed": passed_cases,
+                "Case Pass Rate": f"{case_pass_rate:.1f}%",
+                "Total Attempts": total_attempts,
+                "Attempt Success Rate": f"{attempt_pass_rate:.1f}%",
+                "Avg Latency": f"{avg_latency:.2f}s"
+            })
+            
+        summary_df = pd.DataFrame(summary_data)
+        stats_lines.append(format_as_markdown(summary_df))
+
+        # 2. Token Usage & Cost (Aggregated)
+        stats_lines.append("\n#### Token Usage & Cost (Summary)\n")
+        
+        token_data = []
+        gen_grouped = results_df.groupby("answer_generator")
+        for name, group in gen_grouped:
             def get_tokens(row):
                 if isinstance(row.get("usage_metadata"), dict):
                     return row["usage_metadata"].get("total_tokens", 0) or 0
                 return 0
-            
+            def get_cost(row):
+                if isinstance(row.get("usage_metadata"), dict):
+                    return row["usage_metadata"].get("cost", 0.0) or 0.0
+                return 0.0
+                
             avg_tokens = group.apply(get_tokens, axis=1).mean()
+            total_cost = group.apply(get_cost, axis=1).sum()
+            token_data.append({
+                "Generator": name,
+                "Avg Tokens": f"{avg_tokens:.0f}",
+                "Total Cost": f"${total_cost:.4f}"
+            })
             
-            summary_table += f"| {name} | {total} | {passed} | {pass_rate:.1f}% | {avg_latency:.2f}s | {avg_tokens:.0f} |\n"
-            
-        stats_lines.append(summary_table)
+        token_summary_df = pd.DataFrame(token_data)
+        stats_lines.append(format_as_markdown(token_summary_df))
+
+        # 3. Detailed Token Usage (by Action)
+        stats_lines.append("\n#### Token Usage by Action (Detailed)\n")
+        try:
+            token_df = get_token_usage_stats(results_list)
+            if not token_df.empty:
+                # Group by Action
+                action_stats = token_df.groupby("Action")[["Total Tokens"]].sum().sort_values("Total Tokens", ascending=False).reset_index()
+                stats_lines.append(format_as_markdown(action_stats))
+                
+                # Top expensive steps
+                stats_lines.append("\n**Top 5 Most Expensive Single Steps:**\n")
+                top_steps = token_df.sort_values("Total Tokens", ascending=False).head(5)
+                # Select readable columns
+                top_steps_display = top_steps[["Benchmark", "Agent", "Action", "Total Tokens"]]
+                stats_lines.append(format_as_markdown(top_steps_display))
+            else:
+                 stats_lines.append("*No token usage details available.*")
+        except Exception as e:
+            stats_lines.append(f"Error calculating token details: {e}")
+
+        # 4. Tool Success Rates
+        stats_lines.append("\n#### Tool Success Rates\n")
+        try:
+            tool_df = get_tool_success_stats(results_list)
+            if not tool_df.empty:
+                # Format percentages
+                tool_df["success_rate"] = (tool_df["success_rate"] * 100).map("{:.1f}%".format)
+                tool_df["lift"] = (tool_df["lift"] * 100).map("{:+.1f}%".format)
+                # Rename columns for display
+                tool_df = tool_df.rename(columns={
+                    "tool": "Tool",
+                    "times_used": "Times Used",
+                    "successes": "Successes",
+                    "success_rate": "Success Rate",
+                    "lift": "Lift"
+                })
+                stats_lines.append(format_as_markdown(tool_df))
+            else:
+                stats_lines.append("No tool usage detected.")
+        except Exception as e:
+            stats_lines.append(f"Error calculating tool stats: {e}")
+        
         return "\n".join(stats_lines)
 
-    async def analyze_log_file(self, log_path: Path) -> str:
+    def _format_generator_logs(self, generator_name: str, results_list: List[BenchmarkRunResult]) -> str:
         """
-        Analyzes the trace.jsonl file and returns a summary.
+        Formats the execution logs for a specific generator into a structured text block for the LLM.
+        Groups by Suite -> Case -> Attempts.
         """
-        if not log_path.exists():
-            return f"Log file not found: {log_path}"
-
-        print(f"Analyzing log file: {log_path}")
+        lines = [f"GENERATOR: {generator_name}"]
         
-        # Load Static Metadata
-        run_dir = log_path.parent
-        generator_context = self._load_static_context(run_dir)
-
-        # Load Quantitative Results (results.json)
-        results_path = run_dir / "results.json"
-        quantitative_context = ""
+        # Convert to DF for easier grouping
+        df = pd.DataFrame([r.model_dump() for r in results_list])
         
-        if results_path.exists():
-            try:
-                with open(results_path, "r", encoding="utf-8") as f:
-                    data = json.load(f)
-                
-                # Parse into objects then dataframe
-                TypeAdapter = pydantic.TypeAdapter(List[BenchmarkRunResult])
-                results_list = TypeAdapter.validate_python(data)
-                results_df = process_results(results_list)
-                
-                quantitative_context = self._calculate_quantitative_stats(results_df)
-            except Exception as e:
-                print(f"Error loading/processing results.json: {e}")
-                quantitative_context = f"Error loading results data: {e}"
+        if df.empty:
+            return f"No results found for generator: {generator_name}"
+
+        # Clean suite names
+        if "suite" in df.columns:
+            df["suite"] = df["suite"].apply(lambda x: Path(x).parent.name)
         else:
-            quantitative_context = "No results.json found."
+            df["suite"] = "unknown_suite"
 
-        # 1. Parse Structure
-        nodes = self._parse_log_file(log_path)
-        if not nodes:
-            return "Log file is empty or could not be parsed."
+        for suite_name, suite_group in df.groupby("suite"):
+            lines.append(f"\nSUITE: {suite_name}")
+            
+            for _, row in suite_group.iterrows():
+                case_name = row["benchmark_name"]
+                result = "PASS" if row["result"] == 1 else "FAIL"
+                icon = "✅" if row["result"] == 1 else "❌"
+                
+                lines.append(f"\n  CASE: {case_name} -> {icon} {result}")
+                
+                if row["validation_error"]:
+                    lines.append(f"    Validation Error: {row['validation_error']}")
+                
+                # Attempts
+                attempts = row.get("generation_attempts", [])
+                if attempts:
+                    lines.append("    Attempts:")
+                    for att in attempts:
+                        # Handle attempt being dict (from model_dump) or object
+                        if isinstance(att, dict):
+                            a_num = att.get("attempt_number")
+                            a_status = att.get("status")
+                            a_dur = att.get("duration", 0)
+                            a_err = att.get("error_message")
+                        else:
+                            a_num = att.attempt_number
+                            a_status = att.status
+                            a_dur = att.duration
+                            a_err = att.error_message
+                            
+                        lines.append(f"      Attempt {a_num}: {a_status.upper()} ({a_dur:.2f}s)")
+                        if a_err:
+                            lines.append(f"        Error: {a_err}")
+                            
+        return "\n".join(lines)
 
-        print(f"Identified {len(nodes)} top-level execution blocks. Starting parallel analysis...")
-
-        # 2. Map: Analyze each top-level node concurrently
-        node_analyses = await self._analyze_nodes(nodes)
-
-        # 3. Reduce: Synthesize the final report
-        final_summary = await self._reduce_analyses(node_analyses, generator_context, quantitative_context)
-        
-        return final_summary
-
-    async def _analyze_nodes(self, nodes: List[LogNode]) -> List[str]:
+    async def _analyze_generator(self, generator_name: str, log_text: str) -> str:
         """
-        Runs analysis on each node in parallel.
+        Analyzes the logs for a single generator.
         """
-        tasks = []
-        for i, node in enumerate(nodes):
-            tasks.append(self._analyze_single_node(i, node))
-        
-        results = await asyncio.gather(*tasks)
-        return [r for r in results if r]
-
-    async def _analyze_single_node(self, index: int, node: LogNode) -> str:
-        """
-        Analyzes a single LogNode (and its hierarchy).
-        """
-        # Convert node tree to text representation
-        log_text = node.to_text()
-        
-        # Skip empty nodes (common with Prelude)
-        if len(log_text.splitlines()) < 2: 
-            return ""
-
-        # Load prompt from external file
         prompt_path = Path("notebooks/report/log_analysis_node_prompt.md")
         if prompt_path.exists():
             with open(prompt_path, "r", encoding="utf-8") as f:
                 prompt_template = f.read()
         else:
-             # Fallback to a minimal prompt if file is missing
-             prompt_template = "Analyze the following log block: {log_text}"
+             prompt_template = "Analyze this generator execution: {log_text}"
 
-        prompt = prompt_template.format(node_name=node.name, log_text=log_text)
+        prompt = prompt_template.format(node_name=generator_name, log_text=log_text)
 
         try:
-            client = self._get_client()
-            response = await client.aio.models.generate_content(
-                model=self.model_name,
-                contents=[types.Content(parts=[types.Part(text=prompt)])]
-            )
-            return f"### Analysis of '{node.name}'\n\n{response.text}"
+            text = await self._generate_content(prompt)
+            return f"### Analysis of '{generator_name}'\n\n{text}"
         except Exception as e:
-            print(f"Error analyzing node {node.name}: {e}")
-            return f"Error analyzing node {node.name}: {e}"
+            print(f"Error analyzing generator {generator_name}: {e}")
+            return f"Error analyzing generator {generator_name}: {e}"
 
     async def _reduce_analyses(self, analyses: List[str], static_context: str = "", quantitative_context: str = "") -> str:
         """
@@ -366,20 +337,11 @@ class LogAnalyzer:
             with open(prompt_path, "r", encoding="utf-8") as f:
                 prompt_template = f.read()
         else:
-             # Fallback
-             prompt_template = "Synthesize these analyses into a report: {combined_text}\nContext: {static_context}"
+             prompt_template = "Synthesize these analyses: {combined_text}"
 
-        # Allow prompt to use quantitative_context if placeholder exists, or append it if not
-        # To be safe, we'll assume the prompt will be updated to include it. 
-        # But for robustness, we can check.
-        # Actually, I'll update the prompt file in the next step. 
-        # Here I just pass it.
-        
-        # If the template doesn't have the placeholder, we append it to combined_text or static_context 
-        # so the model sees it.
+        # If the template doesn't have the placeholder, append context manually
         if "{quantitative_context}" not in prompt_template:
              static_context += "\n\n" + quantitative_context
-             # Dummy replacement if key missing
              formatted_quantitative = ""
         else:
              formatted_quantitative = quantitative_context
@@ -391,15 +353,67 @@ class LogAnalyzer:
         )
 
         try:
-            client = self._get_client()
-            response = await client.aio.models.generate_content(
-                model=self.model_name,
-                contents=[types.Content(parts=[types.Part(text=prompt)])]
-            )
-            return response.text
+            return await self._generate_content(prompt)
         except Exception as e:
             print(f"Error generating final summary: {e}")
             return "Failed to generate final summary."
+
+    async def analyze_log_file(self, log_path: Path) -> str:
+        """
+        Analyzes the results and logs.
+        """
+        if not log_path.exists():
+            return f"Log file not found: {log_path}"
+
+        print(f"Analyzing run directory: {log_path.parent}")
+        
+        # Load Static Metadata
+        run_dir = log_path.parent
+        generator_context = self._load_static_context(run_dir)
+
+        # Load Quantitative Results (results.json)
+        results_path = run_dir / "results.json"
+        
+        if not results_path.exists():
+            return "No results.json found. Cannot proceed with analysis."
+
+        try:
+            with open(results_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            
+            # Parse into objects then dataframe
+            TypeAdapter = pydantic.TypeAdapter(List[BenchmarkRunResult])
+            results_list = TypeAdapter.validate_python(data)
+            results_df = process_results(results_list)
+            
+            quantitative_context = self._calculate_quantitative_stats(results_df, results_list)
+        except Exception as e:
+            print(f"Error loading/processing results.json: {e}")
+            return f"Error analyzing results: {e}"
+
+        # 1. Map: Analyze each Generator
+        tasks = []
+        # Group by generator
+        grouped = results_df.groupby("answer_generator")
+        
+        print(f"Identified {len(grouped)} generators. Starting parallel analysis...")
+        
+        for gen_name, _ in grouped:
+            # Filter the list for this generator
+            gen_results = [r for r in results_list if r.answer_generator == gen_name]
+            
+            # Format the logs/results for this generator
+            log_text = self._format_generator_logs(gen_name, gen_results)
+            
+            # Create analysis task
+            tasks.append(self._analyze_generator(gen_name, log_text))
+        
+        node_analyses = await asyncio.gather(*tasks)
+
+        # 2. Reduce: Synthesize the final report
+        final_summary = await self._reduce_analyses(node_analyses, generator_context, quantitative_context)
+        
+        return final_summary
 
 async def analyze_run_logs(run_dir: Path):
     """
@@ -407,7 +421,7 @@ async def analyze_run_logs(run_dir: Path):
     """
     log_path = run_dir / "trace.jsonl"
     analyzer = LogAnalyzer()
-    print(f"\n--- Starting Log Analysis on {log_path} ---")
+    print(f"\n--- Starting Log Analysis on {run_dir} ---")
     summary = await analyzer.analyze_log_file(log_path)
     
     # Save the analysis

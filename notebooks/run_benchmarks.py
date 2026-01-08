@@ -100,7 +100,7 @@ def save_static_metadata(
 
     # Copy Markdown Cache
     md_output_path = output_dir / "generator_internals.md"
-    cached_md_path = Path("benchmarks/generator_internals.md")
+    cached_md_path = Path("notebooks/report/generator_internals.md")
     
     if cached_md_path.exists():
         try:

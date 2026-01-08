@@ -17,7 +17,7 @@
 import re
 import difflib
 from pathlib import Path
-from typing import List
+from typing import List, Dict, Any, Set, Optional
 
 import pandas as pd
 
@@ -408,3 +408,181 @@ def generate_detailed_reports(raw_results_df: pd.DataFrame, output_dir: Path):
         with open(file_path, "w", encoding="utf-8-sig") as f:
             f.write("\n".join(report_lines))
             print(f"  - Report saved: {file_path}")
+
+
+def get_token_usage_stats(results: List[BenchmarkRunResult]) -> pd.DataFrame:
+    """
+    Analyzes token usage from trace logs.
+    Returns a DataFrame with columns: [Benchmark, Generator, Agent, Action, Prompt Tokens, Completion Tokens, Total Tokens]
+    """
+    token_entries = []
+
+    for r in results:
+        if not r.trace_logs:
+            continue
+        
+        # Group logs by timestamp + author + total_tokens to handle multi-part events (text + tool) from one API call
+        unique_generations = {}
+
+        for event in r.trace_logs:
+            # Handle Pydantic model vs dict
+            details = event.details if hasattr(event, "details") else event.get("details", {})
+            if not details: 
+                continue
+
+            usage = details.get("usage_metadata")
+            if not usage:
+                continue
+
+            # normalize usage to dict
+            if not isinstance(usage, dict):
+                usage = {
+                    "prompt_token_count": getattr(usage, "prompt_token_count", 0),
+                    "candidates_token_count": getattr(usage, "candidates_token_count", 0),
+                    "total_token_count": getattr(usage, "total_token_count", 0)
+                }
+            
+            total = usage.get("total_token_count", 0)
+            if total == 0:
+                continue
+
+            # Identify the event
+            timestamp = event.timestamp if hasattr(event, "timestamp") else event.get("timestamp")
+            author = event.author if hasattr(event, "author") else event.get("author")
+            if not author:
+                 author = event.source if hasattr(event, "source") else event.get("source", "unknown")
+            
+            # Create a unique key for this "generation turn"
+            key = (timestamp, author, total)
+            
+            if key not in unique_generations:
+                unique_generations[key] = {
+                    "benchmark": r.benchmark_name,
+                    "generator": r.answer_generator,
+                    "author": author,
+                    "prompt_tokens": usage.get("prompt_token_count", 0),
+                    "completion_tokens": usage.get("candidates_token_count", 0),
+                    "total_tokens": total,
+                    "tool_names": set(),
+                    "has_text": False
+                }
+            
+            # Update the group info based on this specific log event type
+            e_type = event.type if hasattr(event, "type") else event.get("type")
+            if hasattr(e_type, "value"):
+                e_type = e_type.value
+                
+            if e_type == "tool_use":
+                t_name = event.tool_name if hasattr(event, "tool_name") else event.get("tool_name")
+                if t_name:
+                    unique_generations[key]["tool_names"].add(t_name)
+            elif e_type == "message":
+                role = event.role if hasattr(event, "role") else event.get("role")
+                if role == "model":
+                    unique_generations[key]["has_text"] = True
+
+        # Convert unique generations to list
+        for gen in unique_generations.values():
+            tools = list(gen["tool_names"])
+            if tools:
+                label = f"Tool: {', '.join(sorted(tools))}"
+            elif gen["has_text"]:
+                label = "Text Generation"
+            else:
+                label = "Other"
+            
+            token_entries.append({
+                "Benchmark": gen["benchmark"],
+                "Generator": gen["generator"],
+                "Agent": gen["author"],
+                "Action": label,
+                "Prompt Tokens": gen["prompt_tokens"],
+                "Completion Tokens": gen["completion_tokens"],
+                "Total Tokens": gen["total_tokens"]
+            })
+
+    if not token_entries:
+        return pd.DataFrame()
+
+    return pd.DataFrame(token_entries)
+
+
+def get_tool_success_stats(results: List[BenchmarkRunResult]) -> pd.DataFrame:
+    """
+    Calculates Success Rate and Lift for each tool used.
+    Returns a DataFrame with columns: [tool, times_used, successes, success_rate, lift]
+    """
+    tool_stats_data = []
+    
+    for r in results:
+        # Extract unique tools used in this run from trace_logs
+        tools_used = set()
+        logs = r.trace_logs or []
+        for log in logs:
+            # Handle Pydantic model vs dict
+            e_type = log.type if hasattr(log, "type") else log.get("type")
+            if hasattr(e_type, "value"): e_type = e_type.value
+            
+            if e_type == "tool_use":
+                t_name = log.tool_name if hasattr(log, "tool_name") else log.get("tool_name")
+                if t_name:
+                    tools_used.add(t_name)
+        
+        is_success = (r.result == 1)
+        
+        for tool in tools_used:
+            tool_stats_data.append({"tool": tool, "success": is_success})
+            
+    if not tool_stats_data:
+        return pd.DataFrame()
+
+    df_tools = pd.DataFrame(tool_stats_data)
+    
+    # Aggregate
+    tool_agg = df_tools.groupby("tool").agg(
+        times_used=("success", "count"),
+        successes=("success", "sum")
+    ).reset_index()
+    
+    tool_agg["success_rate"] = tool_agg["successes"] / tool_agg["times_used"]
+    
+    # Calculate Lift (Difference from overall pass rate)
+    overall_pass_rate = sum(1 for r in results if r.result == 1) / len(results) if results else 0
+    tool_agg["lift"] = tool_agg["success_rate"] - overall_pass_rate
+    
+    return tool_agg.sort_values("times_used", ascending=False)
+
+
+def format_as_markdown(df: pd.DataFrame, index: bool = False) -> str:
+    """Formats a DataFrame as a Markdown table."""
+    if df.empty:
+        return ""
+    
+    # Prepare data (including index if requested)
+    data = df.copy()
+    if index:
+        data.reset_index(inplace=True)
+    
+    headers = [str(c) for c in data.columns]
+    rows = [[str(x) for x in row] for row in data.values]
+    
+    # Calculate column widths
+    widths = [len(h) for h in headers]
+    for row in rows:
+        for i, cell in enumerate(row):
+            widths[i] = max(widths[i], len(cell))
+            
+    # Helper to format a single row
+    def _fmt(items):
+        return "| " + " | ".join(f"{item:<{w}}" for item, w in zip(items, widths)) + " |"
+    
+    lines = []
+    lines.append(_fmt(headers))
+    # Separator
+    lines.append("| " + " | ".join("-" * w for w in widths) + " |")
+    # Data
+    for row in rows:
+        lines.append(_fmt(row))
+        
+    return "\n".join(lines)
+

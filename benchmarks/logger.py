@@ -56,6 +56,7 @@ class BenchmarkLogger(abc.ABC):
         self,
         benchmark_name: str,
         result: str,
+        suite: str,
         validation_error: Optional[str],
         temp_test_file: Optional[Path],
         answer_data: Optional[dict] = None,
@@ -114,6 +115,7 @@ class ConsoleBenchmarkLogger(BenchmarkLogger):
         self,
         benchmark_name: str,
         result: str,
+        suite: str,
         validation_error: Optional[str],
         temp_test_file: Optional[Path],
         answer_data: Optional[dict] = None,
@@ -128,7 +130,7 @@ class ConsoleBenchmarkLogger(BenchmarkLogger):
         # But since cases run in parallel, we want a self-contained block for the case.
         
         # Indent specifically for this case block
-        with self.section(f"Case: {benchmark_name}"):
+        with self.section(f"Case: {benchmark_name} (Suite: {suite})"):
             # Log attempts if provided
             if generation_attempts:
                 for attempt in generation_attempts:
@@ -241,6 +243,7 @@ class TraceMarkdownLogger(BenchmarkLogger):
         self,
         benchmark_name: str,
         result: str,
+        suite: str,
         validation_error: Optional[str],
         temp_test_file: Optional[Path],
         answer_data: Optional[dict] = None,
@@ -250,7 +253,7 @@ class TraceMarkdownLogger(BenchmarkLogger):
         status_icon = "✅" if result == "pass" else "❌"
         status_text = "PASSED" if result == "pass" else "FAILED"
         with open(self.output_file, "a", encoding="utf-8") as f:
-            f.write(f"### {status_icon} Test {status_text}: {benchmark_name}\n")
+            f.write(f"### {status_icon} Test {status_text}: {benchmark_name} (Suite: {suite})\n")
             if generation_attempts:
                 f.write("**Generation Attempts:**\n")
                 for att in generation_attempts:
@@ -364,6 +367,7 @@ class JsonTraceLogger(BenchmarkLogger):
         self,
         benchmark_name: str,
         result: str,
+        suite: str,
         validation_error: Optional[str],
         temp_test_file: Optional[Path],
         answer_data: Optional[dict] = None,
@@ -388,6 +392,7 @@ class JsonTraceLogger(BenchmarkLogger):
             {
                 "benchmark_name": benchmark_name,
                 "result": result,
+                "suite": suite,
                 "validation_error": validation_error,
                 "temp_test_file": str(temp_test_file) if temp_test_file else None,
                 "answer_data": answer_data,
@@ -436,6 +441,7 @@ class CompositeLogger(BenchmarkLogger):
         self,
         benchmark_name: str,
         result: str,
+        suite: str,
         validation_error: Optional[str],
         temp_test_file: Optional[Path],
         answer_data: Optional[dict] = None,
@@ -446,6 +452,7 @@ class CompositeLogger(BenchmarkLogger):
             logger.log_test_result(
                 benchmark_name,
                 result,
+                suite,
                 validation_error,
                 temp_test_file,
                 answer_data,
