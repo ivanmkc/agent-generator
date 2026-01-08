@@ -37,7 +37,7 @@ class TrivialAnswerGenerator(AnswerGenerator):
         self, benchmark_case: BaseBenchmarkCase, run_id: str
     ) -> GeneratedAnswer:
         """Returns a trivial incorrect answer."""
-        if isinstance(benchmark_case, FixErrorBenchmarkCase):
+        if isinstance(benchmark_case, ApiUnderstandingBenchmarkCase):
             output = ApiUnderstandingAnswerOutput(
                 code="class Trivial:",
                 fully_qualified_class_name="trivial.module",
@@ -45,7 +45,7 @@ class TrivialAnswerGenerator(AnswerGenerator):
             )
             return GeneratedAnswer(output=output)
         elif isinstance(benchmark_case, FixErrorBenchmarkCase):
-            output = FixErrorAnswerOutput(code="", rationale="Trivial answer.")
+            output = FixErrorAnswerOutput(code="class Trivial: pass", rationale="Trivial answer.")
             return GeneratedAnswer(output=output)
         elif isinstance(benchmark_case, MultipleChoiceBenchmarkCase):
             import random  # pylint: disable=import-outside-toplevel

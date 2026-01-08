@@ -49,6 +49,8 @@ def mock_api_key_manager():
 @pytest.mark.asyncio
 async def test_cloud_run_generator_generate_answer(mock_api_key_manager):
     """Test that the generator correctly calls the Cloud Run service and parses the response."""
+    
+    mock_api_key_manager.get_key_for_run.return_value = ("test-key", "key-id")
 
     generator = GeminiCliCloudRunAnswerGenerator(
         dockerfile_dir=".",
@@ -121,7 +123,7 @@ async def test_cloud_run_generator_generate_answer(mock_api_key_manager):
             mock_get_token.return_value = "mock-token"
 
             # Run generation
-            result = await generator.generate_answer(case)
+            result = await generator.generate_answer(case, run_id="test_run")
 
             # Verify request construction
             # Call args for session.post

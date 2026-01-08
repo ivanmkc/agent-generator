@@ -25,6 +25,9 @@ class MockBenchmarkCase(BaseBenchmarkCase):
     def get_ground_truth(self):
         return "ground_truth"
 
+    def get_unfixed_code(self):
+        return "unfixed_code"
+
 class MockAnswerGenerator(AnswerGenerator):
     def __init__(self, name="mock_generator"):
         super().__init__()

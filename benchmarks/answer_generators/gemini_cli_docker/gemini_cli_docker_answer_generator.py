@@ -63,7 +63,7 @@ class GeminiCliDockerAnswerGenerator(GeminiCliAnswerGenerator):
         )
 
     async def run_cli_command(
-        self, command_parts: list[str]
+        self, command_parts: list[str], extra_env: dict[str, str] = None
     ) -> tuple[dict[str, Any], list[TraceLogEvent]]:
         """Executes the gemini CLI command inside Docker and returns the parsed JSON output."""
 
@@ -105,8 +105,13 @@ class GeminiCliDockerAnswerGenerator(GeminiCliAnswerGenerator):
             # Pass CONTEXT7_API_KEY if present (for MCP)
             if os.environ.get("CONTEXT7_API_KEY"):
                 docker_args.extend(["-e", "CONTEXT7_API_KEY"])
+            
+            # 2. Pass explicit extra_env variables
+            if extra_env:
+                for k, v in extra_env.items():
+                    docker_args.extend(["-e", f"{k}={v}"])
 
-            # 2. Check for Vertex AI params
+            # 3. Check for Vertex AI params
             if os.environ.get("GOOGLE_GENAI_USE_VERTEXAI"):
                 docker_args.extend(["-e", "GOOGLE_GENAI_USE_VERTEXAI"])
                 if os.environ.get("GOOGLE_API_KEY"):
@@ -199,16 +204,28 @@ class GeminiCliDockerAnswerGenerator(GeminiCliAnswerGenerator):
                     # Handle potential 'data' wrapper if present (though usually flat in CLI)
                     event_data = event.get("data", event)
 
+                    # Map raw event type to TraceEventType
+                    mapped_type = "unknown"
+                    if event_type == "message":
+                        mapped_type = "message"
+                    elif event_type == "tool_use":
+                        mapped_type = "tool_use"
+                    elif event_type == "tool_result":
+                        mapped_type = "tool_result"
+                    elif event_type == "result":
+                        mapped_type = "system_result"
+                    elif event_type == "init":
+                        mapped_type = "init"
+                    
                     # Create a structured TraceLogEvent
                     log_event = TraceLogEvent(
-                        type=event_type or "unknown",
+                        type=mapped_type,
                         source="docker",
                         timestamp=timestamp,
                         details=event,  # Store full raw event in details
                     )
 
                     if event_type == "init":
-                        log_event.type = "system_init"
                         log_event.content = event
 
                     elif event_type == "message":

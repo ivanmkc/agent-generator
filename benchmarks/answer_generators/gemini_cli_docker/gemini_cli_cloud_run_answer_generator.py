@@ -547,7 +547,9 @@ class GeminiCliCloudRunAnswerGenerator(GeminiCliAnswerGenerator):
         
         # Merge extra_env
         if extra_env:
-            payload["env"].update(extra_env)
+            # Filter out GEMINI_API_KEY as it is handled via Secret Manager
+            filtered_env = {k: v for k, v in extra_env.items() if k != "GEMINI_API_KEY"}
+            payload["env"].update(filtered_env)
 
         # Note: Passing credentials explicitly (like API Key) is done via payload env.
         # ADC handling on the server side depends on the Service Account.

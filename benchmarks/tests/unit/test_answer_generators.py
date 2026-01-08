@@ -72,7 +72,7 @@ async def test_ground_truth_answer_generator(
 ):
     """Tests that the GroundTruthAnswerGenerator returns the correct answer."""
     generator = GroundTruthAnswerGenerator()
-    generated_answer = await generator.generate_answer(mock_api_case)
+    generated_answer = await generator.generate_answer(mock_api_case, run_id="test_run")
     assert generated_answer.output.code == "class Session(BaseModel):"
     assert (
         generated_answer.output.fully_qualified_class_name
@@ -86,7 +86,7 @@ async def test_trivial_answer_generator(
 ):
     """Tests that the TrivialAnswerGenerator returns a trivial answer."""
     generator = TrivialAnswerGenerator()
-    generated_answer = await generator.generate_answer(mock_api_case)
+    generated_answer = await generator.generate_answer(mock_api_case, run_id="test_run")
     assert generated_answer.output.code == "class Trivial:"
     assert generated_answer.output.fully_qualified_class_name == "trivial.module"
 
@@ -112,7 +112,7 @@ async def test_gemini_answer_generator(
         )
 
         generator = GeminiAnswerGenerator()
-        generated_answer = await generator.generate_answer(mock_api_case)
+        generated_answer = await generator.generate_answer(mock_api_case, run_id="test_run")
 
         assert generated_answer.output.code == "mocked class"
         assert generated_answer.output.fully_qualified_class_name == "mocked.module"
@@ -153,16 +153,17 @@ async def test_gemini_cli_answer_generator(
         mock_exec.return_value = mock_proc
 
         generator = GeminiCliLocalAnswerGenerator()
-        generated_answer = await generator.generate_answer(mock_api_case)
+        generated_answer = await generator.generate_answer(mock_api_case, run_id="test_run")
 
         # Verify parsed output
         assert generated_answer.output.code == "cli class"
         assert generated_answer.output.fully_qualified_class_name == "cli.module"
 
-        # Verify trace logs
-        assert len(generated_answer.trace_logs) == 1
-        assert generated_answer.trace_logs[0].type == "message"
-        assert generated_answer.trace_logs[0].content == mock_content
+        # Verify trace logs (CLI_STDOUT_FULL + parsed message)
+        assert len(generated_answer.trace_logs) >= 1
+        # Find the message event
+        msg_event = next(e for e in generated_answer.trace_logs if e.type == "message")
+        assert msg_event.content == mock_content
 
         # Verify CLI invocation arguments
         mock_exec.assert_called_once()
@@ -213,7 +214,7 @@ async def test_gemini_answer_generator_multiple_choice_with_snippet():
                 return_value=mock_response
             )
             generator = GeminiAnswerGenerator()
-            generated_answer = await generator.generate_answer(case)
+            generated_answer = await generator.generate_answer(case, run_id="test_run")
 
             assert generated_answer.output.answer == "A"
 
@@ -280,13 +281,21 @@ async def test_adk_answer_generator(
         mock_agent = MagicMock(spec=Agent)
         mock_agent.name = "test_agent"
         generator = AdkAnswerGenerator(agent=mock_agent)
-        generated_answer = await generator.generate_answer(mock_api_case)
+        
+        # Inject mock api key manager
+        mock_key_manager = MagicMock()
+        mock_key_manager.get_key_for_run.return_value = ("test-key", "key-id")
+        generator.api_key_manager = mock_key_manager
+        
+        generated_answer = await generator.generate_answer(mock_api_case, run_id="test_run")
 
+        # DEBUG: Checking trace logs indices
         assert generated_answer.output.code == "adk class"
         assert generated_answer.output.fully_qualified_class_name == "adk.module"
-        assert len(generated_answer.trace_logs) > 0
-        assert generated_answer.trace_logs[0].type == "ADK_EVENT"
-        assert generated_answer.trace_logs[0].content["parts"][0]["text"] == (
+        assert len(generated_answer.trace_logs) > 1
+        # The first log is the prompt, the second should be the model response
+        assert generated_answer.trace_logs[1].type == "message"
+        assert generated_answer.trace_logs[1].content == (
             '{"code": "adk class",'
             ' "fully_qualified_class_name": "adk.module",'
             ' "rationale": "mocked rationale"}'

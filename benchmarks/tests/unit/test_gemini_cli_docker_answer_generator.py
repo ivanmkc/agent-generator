@@ -99,7 +99,7 @@ async def test_docker_command_construction_api_key():
             stdout_bytes = ndjson_output.encode()
             mock_proc.communicate = AsyncMock(return_value=(stdout_bytes, b""))
 
-            await generator.generate_answer(case)
+            await generator.generate_answer(case, run_id="test_run")
 
             # Verify arguments
             args, _ = mock_exec.call_args
@@ -121,7 +121,7 @@ async def test_docker_command_construction_api_key():
             assert "gemini-2.5-flash" in cmd
 
             # Verify trace logs
-            result = await generator.generate_answer(case)
+            result = await generator.generate_answer(case, run_id="test_run")
             assert len(result.trace_logs) == 2
 
             # First log entry (message type)
@@ -190,7 +190,7 @@ async def test_docker_command_construction_vertex_adc():
             )
 
             # Verify trace logs
-            result = await generator.generate_answer(case)
+            result = await generator.generate_answer(case, run_id="test_run")
             assert len(result.trace_logs) == 2
 
             # First log entry (message type)

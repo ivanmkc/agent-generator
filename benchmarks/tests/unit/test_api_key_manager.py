@@ -18,6 +18,18 @@ class TestApiKeyManager(unittest.TestCase):
             del os.environ["CONTEXT7_API_KEY"]
         if "CONTEXT7_API_KEYS_POOL" in os.environ:
             del os.environ["CONTEXT7_API_KEYS_POOL"]
+        
+        # Patch the stats file path to avoid persistence between tests
+        self.stats_patcher = patch("benchmarks.api_key_manager.ApiKeyManager._save_stats", autospec=True)
+        self.mock_save_stats = self.stats_patcher.start()
+        
+        # Also patch load_stats to do nothing
+        self.load_stats_patcher = patch("benchmarks.api_key_manager.ApiKeyManager._load_stats", autospec=True)
+        self.mock_load_stats = self.load_stats_patcher.start()
+
+    def tearDown(self):
+        self.stats_patcher.stop()
+        self.load_stats_patcher.stop()
 
     def test_single_gemini_key_fallback(self):
         os.environ["GEMINI_API_KEY"] = "single-gemini-key"

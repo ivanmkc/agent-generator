@@ -19,6 +19,7 @@ class MockGeminiCliAnswerGenerator(GeminiCliAnswerGenerator):
         super().__init__(model_name="test-model", cli_path="gemini")
         self.mcp_list_output = mcp_list_output_content
         self.extensions_list_output = extensions_list_output_content
+        self._setup_completed = True
 
     async def run_cli_command(
         self, command_parts: list[str]

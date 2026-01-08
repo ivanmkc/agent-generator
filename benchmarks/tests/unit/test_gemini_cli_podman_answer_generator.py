@@ -212,7 +212,7 @@ async def test_podman_generator_generate_answer():
         mock_resp.json = AsyncMock(return_value=mock_response_data)
         mock_post.return_value.__aenter__.return_value = mock_resp
 
-        result = await generator.generate_answer(case)
+        result = await generator.generate_answer(case, run_id="test_run")
 
         assert result.output.code == "print('hello')"
         assert result.output.rationale == "reason"
