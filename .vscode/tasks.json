@@ -62,6 +62,18 @@
             "detail": "Executes only the debug benchmark suite for ADK-based agents."
         },
         {
+            "label": "Regenerate Generator Internals Docs",
+            "type": "shell",
+            "command": "env/bin/python notebooks/report/update_generator_docs.py",
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            },
+            "problemMatcher": [],
+            "detail": "Updates benchmarks/generator_internals.md based on current code definitions."
+        },
+        {
             "label": "Run All Tests",
             "type": "shell",
             "command": "env/bin/python -m pytest -n auto -v benchmarks/ --import-mode=importlib",
