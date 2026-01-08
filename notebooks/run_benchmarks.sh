@@ -20,7 +20,7 @@ export BENCHMARK_OUTPUT_DIR="$OUTPUT_DIR"
 
 # 3. Run the Python benchmark script directly
 log "Running Python benchmark script..."
-env/bin/python -u notebooks/run_benchmarks.py 2>&1 | tee -a "$LOG_FILE"
+env/bin/python -u notebooks/run_benchmarks.py "$@" 2>&1 | tee -a "$LOG_FILE"
 
 # 4. Generate Visualization Report via Papermill
 log "Generating visualization report..."

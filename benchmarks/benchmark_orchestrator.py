@@ -58,12 +58,29 @@ async def _run_single_benchmark(
     max_wait: float,
     retry_on_validation_error: bool = True,
 ) -> BenchmarkRunResult:
-    """Helper coroutine to run one benchmark case and return its result."""
+    """Helper coroutine to run one benchmark case and return its result.
+
+    Args:
+        suite_file: Path to the benchmark suite file.
+        case: The benchmark case to run.
+        generator: The AnswerGenerator to use.
+        semaphore: Asyncio semaphore to limit the number of concurrent benchmark
+            executions for the current generator.
+        logger: BenchmarkLogger instance.
+        max_retries: Maximum number of retries.
+        min_wait: Minimum wait time between retries in seconds.
+        max_wait: Maximum wait time between retries in seconds.
+        retry_on_validation_error: Whether to retry if validation fails.
+
+    Returns:
+        The result of the benchmark run.
+    """
     async with semaphore:
         runner = case.runner
 
         generated_answer = None
         ground_truth = case.get_ground_truth()
+        unfixed_code = case.get_unfixed_code()
         attempts_history: List[GenerationAttempt] = []
 
         start_time = time.time()
@@ -222,6 +239,7 @@ async def _run_single_benchmark(
         benchmark_name=case.get_identifier(),
         benchmark_type=case.benchmark_type,
         answer_generator=generator.name,
+        generator_description=generator.description,
         status=result,
         result=1 if result == BenchmarkResultType.PASS else 0,
         answer=answer_str,
@@ -235,6 +253,7 @@ async def _run_single_benchmark(
         trace_logs=generated_answer.trace_logs if generated_answer else None,
         usage_metadata=generated_answer.usage_metadata if generated_answer else None,
         ground_truth=ground_truth,
+        unfixed_code=unfixed_code,
         generation_attempts=attempts_history,
     )
 
@@ -249,11 +268,27 @@ async def run_benchmarks(
     retry_on_validation_error: bool = True,
     logger: Optional[BenchmarkLogger] = None,
 ) -> List[BenchmarkRunResult]:
-    """
-    Runs all benchmark suites against all answer generators.
+    """Runs all benchmark suites against all answer generators.
 
-    Execution is serialized by AnswerGenerator to manage resources (e.g. one Podman image at a time),
-    but benchmarks *within* a single generator run in parallel up to `max_concurrency`.
+    Execution is serialized by AnswerGenerator to manage resources (e.g. one Podman
+    image at a time), but benchmarks *within* a single generator run in parallel
+    up to `max_concurrency`.
+
+    Args:
+        benchmark_suites: List of paths to benchmark suite YAML files.
+        answer_generators: List of AnswerGenerator instances to evaluate.
+        max_concurrency: Maximum number of concurrent benchmark runs per generator.
+        max_retries: Maximum number of retries for failed benchmark runs.
+        min_wait: Minimum wait time between retries in seconds.
+        max_wait: Maximum wait time between retries in seconds.
+        retry_on_validation_error: Whether to retry if validation fails.
+        logger: Optional BenchmarkLogger instance for progress reporting.
+
+    Returns:
+        A list of BenchmarkRunResult objects containing the results of all runs.
+
+    Raises:
+        ValueError: If duplicate answer generator names are detected.
     """
     # Check for duplicate generator names to prevent result collisions
     generator_names = [g.name for g in answer_generators]

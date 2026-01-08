@@ -5,40 +5,48 @@ import os
 from pathlib import Path
 import difflib
 import re
-from benchmarks.data_models import BenchmarkResultType
+from typing import List
+from pydantic import TypeAdapter
+from benchmarks.data_models import BenchmarkRunResult, BenchmarkResultType
+from benchmarks.benchmark_candidates import CANDIDATE_GENERATORS
 
 # --- Constants ---
 BENCHMARK_RUNS_DIR = Path("benchmark_runs")
+
 
 # --- Helper Functions ---
 
 
 def load_run_options():
-    """Returns a list of available benchmark run directories (timestamps), sorted newest first."""
+    """Returns a list of available benchmark run directories, sorted by modification time (newest first)."""
     if not BENCHMARK_RUNS_DIR.exists():
         return []
-    runs = [d.name for d in BENCHMARK_RUNS_DIR.iterdir() if d.is_dir()]
-    runs.sort(reverse=True)
-    return runs
+    
+    # Sort by modification time to ensure latest runs appear first regardless of naming
+    runs = sorted(
+        [d for d in BENCHMARK_RUNS_DIR.iterdir() if d.is_dir()],
+        key=os.path.getmtime,
+        reverse=True
+    )
+    
+    return [d.name for d in runs]
 
 
 @st.cache_data
-def load_results(run_id):
-    """Loads results.json for a given run ID into a DataFrame."""
+def load_results(run_id) -> List[BenchmarkRunResult]:
+    """Loads results.json for a given run ID into a list of BenchmarkRunResult objects."""
+    # Ensure fresh load
     path = BENCHMARK_RUNS_DIR / run_id / "results.json"
     if not path.exists():
-        return None
+        return []
 
     with open(path, "r") as f:
         data = json.load(f)
 
-    df = pd.DataFrame(data)
-    if "suite" in df.columns:
-        df["suite"] = df["suite"].apply(
-            lambda x: Path(x).parent.name if "/" in x else x
-        )
-
-    return df
+    # Validate and parse into objects
+    results = TypeAdapter(List[BenchmarkRunResult]).validate_python(data)
+    
+    return results
 
 
 @st.cache_data
@@ -93,6 +101,20 @@ def render_logs(logs):
     if not logs:
         st.info("No trace logs available.")
         return
+
+    # --- Tool Sequence Summary ---
+    tool_sequence = []
+    for event in logs:
+        if event.get("type") == "tool_use":
+            t_name = event.get("tool_name")
+            if t_name:
+                tool_sequence.append(t_name)
+    
+    if tool_sequence:
+        links = [f"[{t}](#tool-step-{i})" for i, t in enumerate(tool_sequence, 1)]
+        st.info(f"**Tool Execution Path:** {' → '.join(links)}")
+    else:
+        st.caption("No tools were called in this attempt.")
 
     # Work on a copy to avoid mutating cached data
     logs = list(logs)
@@ -170,6 +192,7 @@ def render_logs(logs):
             tool_name = use.get("tool_name", "Unknown Tool")
 
             with st.container(border=True):
+                st.markdown(f'<div id="tool-step-{step_count}"></div>', unsafe_allow_html=True)
                 st.markdown(f"**Step {step_count}: Tool Call - `{tool_name}`**")
 
                 c_in, c_out = st.columns(2)
@@ -220,8 +243,7 @@ def render_logs(logs):
                 st.json(event)
 
 
-# --- Main App ---
-
+# --- Error Helper ---
 
 def _get_concise_error_message(row, case_trace_logs) -> str:
     """Extracts a concise error message for display in the header."""
@@ -264,6 +286,174 @@ def _get_concise_error_message(row, case_trace_logs) -> str:
     return display_error
 
 
+def render_tool_analysis(df):
+    """Renders the Tool Usage & Impact Analysis section with breakdown options."""
+    st.divider()
+    st.subheader("🛠️ Tool Usage & Impact Analysis")
+    st.markdown("Analysis of tool usage and its correlation with success rates.")
+    
+    # Define helper early
+    def style_lift(v):
+        if pd.isna(v): return ""
+        if v > 0.0001: return "color: green; font-weight: bold"
+        if v < -0.0001: return "color: red; font-weight: bold"
+        return "color: gray"
+
+    with st.expander("ℹ️ Methodology & Metrics"):
+        st.markdown(
+            """
+            **1. P(Success | Used)**
+            Conditional probability: `Successes / Times Used`.
+            
+            **2. Baseline Rate (Complement)**
+            Probability of success when the specific tool was **NOT** used in the same segment (Generator/Suite).
+            `P(Success | NOT Used)`
+            This isolates the impact of adding the tool vs. not using it.
+            
+            **3. Lift**
+            `P(Success | Used) - Baseline Rate`.
+            - :green[**Positive**]: Tool correlates with higher success compared to non-usage.
+            - :red[**Negative**]: Tool correlates with lower success (or is used in hard cases).
+            
+            **4. Standard Error (SE)**
+            Wald interval approximation: `sqrt(p(1-p)/n)`.
+            - **High SE (>10%)**: Sample size is too small; estimates are unreliable.
+            
+            *Note: Each attempt is treated as an independent trial for these calculations.*
+            """
+        )
+
+    # Breakdown Selection
+    breakdown_options = {"Generator": "answer_generator", "Suite": "suite"}
+    selected_breakdowns = st.multiselect("Breakdown by", list(breakdown_options.keys()))
+    
+    group_cols = ["tool"]
+    for b in selected_breakdowns:
+        group_cols.append(breakdown_options[b])
+
+    tool_stats_data = []
+    
+    # We iterate over df
+    for idx, row in df.iterrows():
+        # trace_logs is a list of dicts (from model_dump)
+        logs = row.get("trace_logs") or []
+        
+        # Extract unique tools used in this run
+        tools_used = set()
+        for log in logs:
+            e_type = log.get("type")
+            if hasattr(e_type, "value"): e_type = e_type.value # Handle enum if present
+            
+            if e_type == "tool_use":
+                t_name = log.get("tool_name")
+                if t_name:
+                    tools_used.add(t_name)
+        
+        is_success = (row["result"] == 1)
+        
+        # Base entry with breakdown info
+        entry_base = {"success": is_success}
+        for b_label, b_col in breakdown_options.items():
+            entry_base[b_col] = row.get(b_col, "Unknown")
+
+        for tool in tools_used:
+            entry = entry_base.copy()
+            entry["tool"] = tool
+            tool_stats_data.append(entry)
+            
+    if tool_stats_data:
+        df_tools = pd.DataFrame(tool_stats_data)
+        
+        # 1. Calculate Segment Totals (for Complement Baseline)
+        segment_cols = [breakdown_options[b] for b in selected_breakdowns]
+        
+        if segment_cols:
+            segment_stats = df.groupby(segment_cols)["result"].agg(["count", "sum"]).reset_index()
+            segment_stats.rename(columns={"count": "segment_total", "sum": "segment_successes"}, inplace=True)
+        else:
+            # Global stats
+            segment_total = len(df)
+            segment_successes = df["result"].sum()
+        
+        # 2. Calculate Tool Stats
+        tool_agg = df_tools.groupby(group_cols).agg(
+            times_used=("success", "count"),
+            successes=("success", "sum")
+        ).reset_index()
+        
+        # 3. Merge Segment Stats
+        if segment_cols:
+            tool_agg = pd.merge(tool_agg, segment_stats, on=segment_cols, how="left")
+        else:
+            tool_agg["segment_total"] = segment_total
+            tool_agg["segment_successes"] = segment_successes
+            
+        # 4. Calculate Metrics (Complement Baseline)
+        # Complement Count = Total - Used
+        tool_agg["complement_count"] = tool_agg["segment_total"] - tool_agg["times_used"]
+        tool_agg["complement_successes"] = tool_agg["segment_successes"] - tool_agg["successes"]
+        
+        # Avoid division by zero
+        tool_agg["baseline_pass_rate"] = tool_agg.apply(
+            lambda x: x["complement_successes"] / x["complement_count"] if x["complement_count"] > 0 else 0.0, 
+            axis=1
+        )
+        
+        tool_agg["pass_rate_val"] = tool_agg["successes"] / tool_agg["times_used"]
+        tool_agg["lift_val"] = tool_agg["pass_rate_val"] - tool_agg["baseline_pass_rate"]
+        
+        # SE
+        p = tool_agg["pass_rate_val"]
+        n = tool_agg["times_used"]
+        tool_agg["se_val"] = (p * (1 - p) / n).pow(0.5)
+
+        # Sort by usage count desc
+        tool_agg = tool_agg.sort_values("times_used", ascending=False)
+        
+        # Rename for display
+        tool_agg.rename(columns={
+            "pass_rate_val": "Pass Rate",
+            "baseline_pass_rate": "Baseline",
+            "lift_val": "Lift",
+            "se_val": "SE"
+        }, inplace=True)
+        
+        # Select columns
+        display_cols = group_cols + ["times_used", "complement_count", "Pass Rate", "SE", "Baseline", "Lift"]
+        final_df = tool_agg[display_cols]
+        
+        col_config = {
+            "tool": "Tool Name",
+            "times_used": st.column_config.NumberColumn("Times Used", help="Number of benchmark cases where this tool was used at least once."),
+            "complement_count": st.column_config.NumberColumn("Baseline (N)", help="Number of runs where this tool was NOT used. Small values (<10) make the Baseline Rate unreliable."),
+            "Pass Rate": st.column_config.TextColumn("P(Success | Used)", help="Probability of success given the tool was used."),
+            "SE": st.column_config.TextColumn("Std. Error", help="Standard Error."),
+            "Baseline": st.column_config.TextColumn("Baseline Rate", help="Average pass rate for this segment (ignoring tool usage)."),
+            "Lift": st.column_config.TextColumn("Impact (Lift)", help="Difference vs Baseline."),
+        }
+        
+        for b in selected_breakdowns:
+            col_name = breakdown_options[b]
+            col_config[col_name] = b
+
+        styler = final_df.style.format({
+            "Pass Rate": "{:.1%}",
+            "Baseline": "{:.1%}",
+            "Lift": "{:+.1%}",
+            "SE": "± {:.1%}"
+        }).map(style_lift, subset=["Lift"])
+
+        st.dataframe(
+            styler,
+            use_container_width=True,
+            column_config=col_config,
+            hide_index=True
+        )
+    else:
+        st.info("No tool usage detected in the trace logs for the current selection.")
+
+
+
 # --- Main App ---
 
 
@@ -283,28 +473,43 @@ def main():
         return
 
     # 2. Load Data
-    df = load_results(selected_run)
-    if df is None:
-        st.error(f"Could not load results.json for {selected_run}")
+    results_list = load_results(selected_run)
+    if not results_list:
+        st.warning(f"No results found in {selected_run}/results.json. The benchmark run might have failed early or produced no output.")
         return
+
+    # Convert to DataFrame for UI logic
+    df = pd.DataFrame([r.model_dump(mode='json') for r in results_list])
+
+    if "suite" in df.columns:
+        df["suite"] = df["suite"].apply(
+            lambda x: Path(x).parent.name if "/" in x else x
+        )
 
     # 3. Sidebar Filters
     st.sidebar.subheader("Global Filters")
-    suites = ["All"] + sorted(df["suite"].unique().tolist())
+    
+    if "suite" in df.columns:
+        suites = ["All"] + sorted(df["suite"].unique().tolist())
+    else:
+        suites = ["All"]
     selected_suite = st.sidebar.selectbox("Filter Suite", suites)
 
-    statuses = ["All"] + sorted(df["status"].unique().tolist())
+    if "status" in df.columns:
+        statuses = ["All"] + sorted(df["status"].unique().tolist())
+    else:
+        statuses = ["All"]
     selected_status = st.sidebar.selectbox("Filter Status", statuses)
     
     exclude_system_failures = st.sidebar.checkbox("Exclude System Failures", value=False, help="Hides cases with FAIL_SETUP or FAIL_GENERATION status.")
 
     # 4. Filter Data (Preliminary)
     filtered_df = df.copy()
-    if selected_suite != "All":
+    if selected_suite != "All" and "suite" in filtered_df.columns:
         filtered_df = filtered_df[filtered_df["suite"] == selected_suite]
-    if selected_status != "All":
+    if selected_status != "All" and "status" in filtered_df.columns:
         filtered_df = filtered_df[filtered_df["status"] == selected_status]
-    if exclude_system_failures:
+    if exclude_system_failures and "status" in filtered_df.columns:
         filtered_df = filtered_df[~filtered_df["status"].isin([BenchmarkResultType.FAIL_SETUP.value, BenchmarkResultType.FAIL_GENERATION.value])]
 
     if filtered_df.empty:
@@ -325,6 +530,22 @@ def main():
         p_count = len(gen_df[gen_df["result"] == 1])
         rate = (p_count / len(gen_df) * 100) if len(gen_df) > 0 else 0
         gen_labels.append(f"{gen} ({rate:.0f}%)")
+
+    # --- Display Selected Generator Description in Sidebar (Above Radio) ---
+    # Peek at session state to determine what will likely be selected
+    current_idx = st.session_state.get("gen_radio", 0)
+    if current_idx >= len(available_generators):
+        current_idx = 0
+    
+    preview_gen = available_generators[current_idx] if available_generators else None
+
+    if preview_gen:
+        # Prioritize current runtime description from CANDIDATE_GENERATORS
+        gen_desc = next((g.description for g in CANDIDATE_GENERATORS if g.name == preview_gen), None)
+        
+        if gen_desc:
+            with st.sidebar.expander("📝 Generator Description", expanded=True):
+                st.markdown(gen_desc)
 
     selected_gen_index = st.sidebar.radio(
         "Select Generator",
@@ -381,6 +602,8 @@ def main():
                 )
     else:
         st.sidebar.info("Select a generator first.")
+
+
 
     # 7. Main Area - Dashboard & Details
 
@@ -532,9 +755,6 @@ def main():
         for _, row in filtered_df.iterrows():
             attempts = row.get("generation_attempts")
             if not isinstance(attempts, list):
-                # If no attempts recorded (legacy), try to infer from single result if we had key info there?
-                # Currently we don't have api_key_id in top level BenchmarkRunResult, only in GeneratedAnswer (which isn't preserved directly except via answer/logs)
-                # But wait, we added generation_attempts to BenchmarkRunResult, so it should be there.
                 continue
 
             for att in attempts:
@@ -582,7 +802,7 @@ def main():
                 failed_attempts = df_attempts[df_attempts["status"] == "failure"]
                 if not failed_attempts.empty:
                     st.dataframe(
-                        failed_attempts[["key_id", "suite", "generator", "error"]],
+                        failed_attempts[[ "key_id", "suite", "generator", "error"]],
                         use_container_width=True,
                     )
                 else:
@@ -590,162 +810,190 @@ def main():
         else:
             st.info("No generation attempt history found in this dataset.")
 
+    # 7. Tool Usage Analysis
+    if selected_case_id == "Overview" or selected_case_id is None:
+        render_tool_analysis(filtered_df)
+
+
     if selected_case_id is not None and selected_case_id != "Overview":
-        row = filtered_df.loc[selected_case_id]
-        case_trace_logs = row.get("trace_logs", []) or []
-        generation_attempts = row.get("generation_attempts", []) or []
-        
-        usage = row.get("usage_metadata") or {}
-        total_tokens = usage.get("total_tokens", "N/A")
+        # Use typed object for detail view
+        result_obj = results_list[selected_case_id]
+        generation_attempts = result_obj.generation_attempts or []
 
-        # Header Info
+        # Header Info (Global for the case)
         h1, h2, h3 = st.columns([3, 1, 1])
-        h1.markdown(f"#### {row['benchmark_name']}")
-        h2.caption(f"Latency: {row['latency']:.4f}s | Tokens: {total_tokens}")
+        h1.markdown(f"#### {result_obj.benchmark_name}")
+        
+        total_tokens = "N/A"
+        if result_obj.usage_metadata and result_obj.usage_metadata.total_tokens is not None:
+            total_tokens = result_obj.usage_metadata.total_tokens
+            
+        h2.caption(f"Latency: {result_obj.latency:.4f}s | Tokens: {total_tokens}")
         h3.caption(
-            f"Attempts: {len(generation_attempts) if generation_attempts else 'N/A'}"
+            f"Total Attempts: {len(generation_attempts)}"
         )
 
-        # Display explicit status
-        status_color = "green" if row["result"] == 1 else "red"
-        st.markdown(f"Status: :{status_color}[**{row['status'].upper()}**]")
+        # Prioritize current runtime description from CANDIDATE_GENERATORS
+        gen_desc = next((g.description for g in CANDIDATE_GENERATORS if g.name == result_obj.answer_generator), None)
+        if not gen_desc:
+            gen_desc = result_obj.generator_description
 
-        if row["validation_error"]:
-            if row["result"] == 1:
-                st.warning(f"**Validation Warning:** {row['validation_error']}")
+        if gen_desc:
+            with st.expander(f"Generator: {result_obj.answer_generator}", expanded=False):
+                st.markdown(gen_desc)
+
+        # Display explicit global case status
+        status_color = "green" if result_obj.result == 1 else "red"
+        st.markdown(f"Final Status: :{status_color}[**{result_obj.status.value.upper()}**]")
+
+        if result_obj.validation_error:
+            if result_obj.result == 1:
+                st.warning(f"**Validation Warning (Final):** {result_obj.validation_error}")
             else:
-                st.error(_get_concise_error_message(row, case_trace_logs))
-        elif row["result"] == 1:
-            st.success("**Passed**")
+                st.error(_get_concise_error_message(result_obj.model_dump(), [t.model_dump() for t in (result_obj.trace_logs or [])]))
+        elif result_obj.result == 1:
+            st.success("**Validation Passed (Final)**")
 
-        # Tabs for deep dive
-        tab_history, tab_answer, tab_logs, tab_raw_events, tab_error, tab_meta = st.tabs(
-            [
-                "Retry History",
-                "Diff & Code",
-                "Trace Logs",
-                "Raw Events",
-                "Validation Error",
-                "Metadata",
-            ]
-        )
+        st.divider()
 
-        with tab_history:
-            st.markdown("### Generation Attempts History")
+        # --- Tabs for Attempts (Overview + Individual Attempts) ---
+        tab_names = ["Run Overview"] + [f"Attempt {att.attempt_number}" for att in generation_attempts]
+        main_tabs = st.tabs(tab_names)
+
+        # Tab 0: Run Overview (Summary Table)
+        with main_tabs[0]:
+            st.subheader("Generation Attempts Overview")
             if generation_attempts:
+                history_data = []
                 for att in generation_attempts:
-                    # att is a dict if loaded from JSON
-                    is_success = att.get("status") == "success"
+                    is_success = att.status == "success"
                     icon = "✅" if is_success else "❌"
-                    with st.expander(
-                        f"{icon} Attempt {att.get('attempt_number')} (Key: {att.get('api_key_id', 'Unknown')})",
-                        expanded=not is_success,
-                    ):
-                        c1, c2 = st.columns(2)
-                        c1.metric("Duration", f"{att.get('duration', 0):.2f}s")
-                        c2.metric("Status", att.get("status"))
-                        if not is_success:
-                            st.error(f"Error: {att.get('error_message')}")
+                    status_display = "Completed" if is_success else "Failed"
+                    
+                    att_usage = att.usage_metadata
+                    tokens = att_usage.total_tokens if att_usage else "N/A"
+                    
+                    history_data.append({
+                        "Attempt": f"{icon} {att.attempt_number}",
+                        "Status": status_display,
+                        "Duration": f"{att.duration:.2f}s",
+                        "Tokens": str(tokens),
+                        "Error": att.error_message or "-"
+                    })
+                
+                df_history = pd.DataFrame(history_data)
+                st.dataframe(
+                    df_history, 
+                    hide_index=True, 
+                    use_container_width=True,
+                    column_config={
+                        "Error": st.column_config.TextColumn("Error", width="large"),
+                        "Tokens": st.column_config.TextColumn("Tokens", help="Token usage for this specific attempt. Includes cost of failed runs for debugging.")
+                    }
+                )
             else:
-                st.info("No detailed attempt history available for this run.")
+                st.info("No detailed attempt history available.")
 
-        with tab_answer:
-            st.markdown(
-                "This section compares the `Generated Answer` from the agent against the `Ground Truth` (expected answer) defined in the benchmark. You can toggle between a side-by-side view of the full code/text and a colored unified diff that highlights changes."
-            )
+        # Tab 1..N: Individual Attempts
+        for i, attempt in enumerate(generation_attempts):
+            with main_tabs[i+1]:
+                st.markdown(f"### Details for Attempt {attempt.attempt_number}")
+                
+                # Context variables for this attempt
+                active_trace_logs = attempt.trace_logs or []
+                active_answer = attempt.answer or ""
+                active_usage = attempt.usage_metadata
+                
+                total_tokens = active_usage.total_tokens if active_usage else "N/A"
+                # Safe access thanks to default_factory=dict
+                loop_exit = active_usage.extra_tags.get("loop_exit_reason") if active_usage else None
+                exit_str = f" | Exit: {loop_exit}" if loop_exit else ""
+                
+                st.caption(f"Generation Status: {attempt.status} | Duration: {attempt.duration:.2f}s | Tokens: {total_tokens}{exit_str}")
 
-            # Attempt Selection
-            selected_code = str(row["answer"])
-            diff_label = "Final Answer"
+                # Nested Tabs for deep dive
+                sub_tabs = st.tabs(["Diff & Code", "Trace Logs", "Raw Events", "Generation Error", "Validation Error", "Metadata"])
+                
+                # 1. Diff & Code
+                with sub_tabs[0]:
+                    st.markdown("#### Generated Code vs Ground Truth")
+                    st.markdown("Compares the generated answer against the ground truth.")
+                    selected_code = str(active_answer)
+                    view_mode = st.radio("Diff View", ["Side-by-Side", "Unified Diff", "Original (Unfixed)"], horizontal=True, key=f"diff_mode_{i}")
+                    
+                    if view_mode == "Side-by-Side":
+                        sc1, sc2 = st.columns(2)
+                        with sc1:
+                            st.caption("Generated Answer")
+                            if selected_code:
+                                st.code(selected_code, language="python")
+                            else:
+                                st.info("No answer produced for this attempt.")
+                        with sc2:
+                            st.caption("Ground Truth")
+                            st.code(result_obj.ground_truth or "", language="python")
+                    elif view_mode == "Unified Diff":
+                        st.caption(f"Unified Diff (Attempt {attempt.attempt_number} vs Ground Truth)")
+                        render_diff(selected_code, str(result_obj.ground_truth or ""))
+                    else:
+                        st.caption("Original (Unfixed) Code")
+                        if result_obj.unfixed_code:
+                            st.code(result_obj.unfixed_code, language="python")
+                        else:
+                            st.info("Original (unfixed) code is not available for this benchmark type or was not recorded.")
 
-            # Check for legacy extracted attempts from logs (fallback)
-            legacy_attempts = []
-            for i, event in enumerate(case_trace_logs):
-                if (
-                    event.get("type") == "tool_use"
-                    and event.get("tool_name") == "write_file"
-                ):
-                    content = event.get("tool_input", {}).get("content")
-                    if content:
-                        legacy_attempts.append(
-                            {
-                                "step": i + 1,
-                                "code": content,
-                                "label": f"Log Step {i + 1}",
-                            }
-                        )
+                # 2. Trace Logs
+                with sub_tabs[1]:
+                    st.markdown("#### Attempt Trace Logs")
+                    st.markdown("Chronological trace of tool calls, model responses, and CLI outputs.")
+                    if not active_trace_logs:
+                        st.warning("No trace logs available for this attempt. Logs are typically recorded only when the generation phase successfully produces an answer.")
+                    else:
+                        render_logs([t.model_dump() for t in active_trace_logs])
 
-            if legacy_attempts:
-                options = ["Final Result"] + [a["label"] for a in legacy_attempts]
-                selection = st.selectbox("Select Code Version", options)
+                # 3. Raw Events
+                with sub_tabs[2]:
+                    st.markdown("#### Raw ADK Events for Attempt")
+                    st.markdown("Raw JSON event objects captured from the runner.")
+                    if not active_trace_logs:
+                        st.warning("No raw events available for this attempt. Raw events are typically recorded only when the generation phase successfully produces an answer.")
+                    else:
+                        st.json([t.model_dump() for t in active_trace_logs])
 
-                if selection != "Final Result":
-                    for a in legacy_attempts:
-                        if a["label"] == selection:
-                            selected_code = a["code"]
-                            diff_label = selection
-                            break
+                # 4. Generation Error
+                with sub_tabs[3]:
+                    st.markdown("#### Generation Error Details")
+                    st.markdown("Error details if the attempt failed to produce an answer.")
+                    if attempt.status != "success":
+                        st.error(f"Generation of answer failed: {attempt.error_message}")
+                    else:
+                        st.info("Generation successful for this attempt.")
+                
+                # 5. Validation Error (Global for the case)
+                with sub_tabs[4]:
+                    st.markdown("#### Overall Case Validation Error")
+                    st.markdown("Global validation result for the benchmark case.")
+                    if result_obj.validation_error:
+                        st.error(f"Validation failed for the overall case: {result_obj.validation_error}")
+                    else:
+                        st.success("Overall case validation passed.")
 
-            view_mode = st.radio(
-                "Diff View", ["Side-by-Side", "Unified Diff"], horizontal=True
-            )
+                # 6. Metadata
+                with sub_tabs[5]:
+                    st.markdown("#### Attempt Metadata")
+                    st.markdown("Token usage and other execution metadata.")
+                    st.caption("Note: Top-level statistics (header) typically reflect the final successful attempt. Usage for failed attempts is visible in the 'Run Overview'.")
+                    if active_usage:
+                        st.json(active_usage.model_dump())
+                        if active_usage.extra_tags:
+                            st.write("**Extra Tags:**")
+                            st.json(active_usage.extra_tags)
+                    else:
+                        st.info("No usage metadata for this attempt.")
+                    
+                    with st.expander("Raw Result Data (Global Case Data)"):
+                        st.json(result_obj.model_dump())
 
-            if view_mode == "Side-by-Side":
-                c1, c2 = st.columns(2)
-                with c1:
-                    st.caption(f"Generated ({diff_label})")
-                    st.code(selected_code, language="python")
-                with c2:
-                    st.caption("Ground Truth")
-                    st.code(row.get("ground_truth", ""), language="python")
-            else:
-                st.caption(f"Unified Diff ({diff_label} vs Ground Truth)")
-                render_diff(selected_code, str(row.get("ground_truth") or ""))
-
-        with tab_logs:
-            st.markdown(
-                "This tab displays a chronological trace of events that occurred during the agent's execution for this benchmark case. It includes tool calls, their results, raw CLI outputs, and any captured errors, providing a detailed understanding of the agent's decision-making process."
-            )
-            if not case_trace_logs:
-                st.warning("Trace logs not found in results.json.")
-            render_logs(case_trace_logs)
-
-        with tab_raw_events:
-            st.markdown("### Raw ADK Events")
-            st.markdown(
-                "This tab displays the raw, untransformed event data captured from the ADK runner. "
-                "This is useful for debugging the exact structure and content of events as they were received."
-            )
-            if not case_trace_logs:
-                st.warning("No trace logs available.")
-            else:
-                st.json(case_trace_logs)
-
-        with tab_error:
-            if row["validation_error"]:
-                st.markdown("### Validation Error Details")
-                st.text(row["validation_error"])
-            else:
-                st.info("No validation errors recorded.")
-
-            # Debug: Show any GEMINI_CLIENT_ERROR found in logs
-            client_errors = [
-                e for e in case_trace_logs if e.get("type") == "GEMINI_CLIENT_ERROR"
-            ]
-            if client_errors:
-                st.divider()
-                st.markdown("### 🐞 Debug: Client Errors in Logs")
-                for i, err in enumerate(client_errors):
-                    st.markdown(f"**Error Event {i+1} Raw Content:**")
-                    st.json(err)
-
-        with tab_meta:
-            st.markdown(
-                "This section provides additional metadata about the benchmark case execution, including API usage, model details, latency, and raw result data from `results.json`."
-            )
-            st.json(row.get("usage_metadata"))
-            with st.expander("Raw Result Data"):
-                st.json(row.to_dict())
     elif selected_case_id is None:
         st.info("Select a case from the sidebar to view details.")
 
