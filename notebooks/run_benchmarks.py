@@ -46,7 +46,6 @@ from benchmarks.logger import (
 )
 import benchmarks.analysis as analysis
 from tools.log_analyzer import analyze_run_logs
-from tools.report_generator import save_run_metadata, generate_report
 
 # Set pandas display options (needed for analysis functions)
 pd.set_option("display.max_colwidth", None)
@@ -55,7 +54,6 @@ pd.set_option("display.max_rows", None)
 
 async def run_comparison(
     logger: CompositeLogger, 
-    run_output_dir: Path,
     selected_suite: Optional[str] = None,
     selected_generator_filter: Optional[str] = None,
     selected_model_filter: Optional[str] = None,
@@ -111,14 +109,6 @@ async def run_comparison(
 
     if not answer_generators:
          logger.log_message(f"Warning: No generators matched the provided filters (gen: {selected_generator_filter}, model: {selected_model_filter}).")
-
-    # Save Run Metadata
-    save_run_metadata(
-        run_id=run_output_dir.name,
-        output_dir=run_output_dir,
-        generators=answer_generators,
-        suites_paths=benchmark_suites
-    )
 
     logger.log_message(f"Executing benchmarks with {len(answer_generators)} generators on {len(benchmark_suites)} suites...")
 
@@ -249,7 +239,6 @@ async def main():
     # Execute the benchmarks
     benchmark_run_results = await run_comparison(
         logger=logger, 
-        run_output_dir=run_output_dir,
         selected_suite=args.suite_filter,
         selected_generator_filter=args.generator_filter,
         selected_model_filter=args.model_filter,
@@ -262,14 +251,6 @@ async def main():
     with open(results_json_path, "w", encoding="utf-8") as f:
         f.write(TypeAdapter.dump_json(benchmark_run_results, indent=2).decode("utf-8"))
     logger.log_message(f"Raw benchmark results saved to: {results_json_path}")
-
-    # Generate Markdown Report
-    try:
-        report_path = generate_report(run_output_dir)
-        if report_path:
-            logger.log_message(f"Report generated: {report_path}")
-    except Exception as e:
-        logger.log_message(f"Report generation failed: {e}")
 
     logger.finalize_run()
 
