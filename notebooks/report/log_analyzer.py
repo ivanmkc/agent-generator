@@ -141,8 +141,8 @@ class LogAnalyzer:
 
         stats_lines = ["### Quantitative Summary (Ground Truth)\n"]
         
-        # 1. Summary by Generator and Suite
-        stats_lines.append("#### Results by Generator & Suite\n")
+        # Calculate token stats from logs
+        token_df = get_token_usage_stats(results_list)
         
         # Group by generator and suite
         grouped = results_df.groupby(["answer_generator", "suite"])
@@ -164,8 +164,37 @@ class LogAnalyzer:
             successful_attempts = sum(1 for a in all_attempts if (a.get('status') if isinstance(a, dict) else getattr(a, 'status', '')) == 'success')
             attempt_pass_rate = (successful_attempts / total_attempts) * 100 if total_attempts > 0 else 0
             
-            avg_latency = group["latency"].mean()
+            # Calculate Avg Latency (Success Only)
+            success_latency = group[group["result"] == 1]["latency"].mean()
+            if pd.isna(success_latency): success_latency = 0.0
             
+            # Calculate Avg Tokens (Success Only)
+            avg_tokens = 0
+            if not token_df.empty:
+                # Filter for this generator
+                gen_token_df = token_df[token_df["Generator"] == gen_name]
+                # Filter for benchmarks in this suite that PASSED
+                successful_benchmarks = group[group["result"] == 1]["benchmark_name"].unique()
+                
+                if len(successful_benchmarks) > 0 and not gen_token_df.empty:
+                    # Sum tokens for these specific benchmark cases
+                    relevant_tokens = gen_token_df[gen_token_df["Benchmark"].isin(successful_benchmarks)]["Total Tokens"].sum()
+                    avg_tokens = relevant_tokens / len(successful_benchmarks)
+            
+            # Total Cost (All attempts)
+            total_tokens_all = 0
+            if not token_df.empty:
+                # Filter for this generator and suite benchmarks (all attempts)
+                suite_benchmarks = group["benchmark_name"].unique()
+                gen_suite_tokens = token_df[
+                    (token_df["Generator"] == gen_name) & 
+                    (token_df["Benchmark"].isin(suite_benchmarks))
+                ]
+                total_tokens_all = gen_suite_tokens["Total Tokens"].sum()
+            
+            # Cost Estimate: $0.10 per 1M tokens (Blended Input/Output for Gemini 2.5 Flash)
+            estimated_cost = (total_tokens_all / 1_000_000) * 0.10
+
             summary_data.append({
                 "Generator": gen_name,
                 "Suite": suite_name,
@@ -174,83 +203,17 @@ class LogAnalyzer:
                 "Case Pass Rate": f"{case_pass_rate:.1f}%",
                 "Total Attempts": total_attempts,
                 "Attempt Success Rate": f"{attempt_pass_rate:.1f}%",
-                "Avg Latency": f"{avg_latency:.2f}s"
+                "Avg Latency (Success)": f"{success_latency:.2f}s",
+                "Avg Tokens (Success)": f"{avg_tokens:.0f}",
+                "Est. Cost": f"${estimated_cost:.4f}"
             })
             
         summary_df = pd.DataFrame(summary_data)
         stats_lines.append(format_as_markdown(summary_df))
-
-        # 2. Token Usage & Cost (Aggregated)
-        stats_lines.append("\n#### Token Usage & Cost (Summary)\n")
         
-        # Calculate token stats from logs first to handle missing usage_metadata in results.json
-        token_df = get_token_usage_stats(results_list)
-        
-        token_data = []
-        gen_grouped = results_df.groupby("answer_generator")
-        for name, group in gen_grouped:
-            avg_tokens = 0
-            total_tokens = 0
-            
-            # Try to get stats from token_df (logs) first
-            if not token_df.empty:
-                gen_token_df = token_df[token_df["Generator"] == name]
-                if not gen_token_df.empty:
-                    # Sum tokens per benchmark case first to get case totals
-                    tokens_per_case = gen_token_df.groupby("Benchmark")["Total Tokens"].sum()
-                    avg_tokens = tokens_per_case.mean()
-                    total_tokens = gen_token_df["Total Tokens"].sum()
-            
-            # Use 0 if no logs found (do not rely on potentially broken results_df metadata)
-            if total_tokens == 0:
-                avg_tokens = 0
-                total_tokens = 0
+        stats_lines.append("\n*Note: 'Avg Latency' and 'Avg Tokens' are calculated per successful benchmark case. 'Est. Cost' includes all attempts (success + failure) assuming a blended rate of $0.10 per 1M tokens.*\n")
 
-            # Placeholder cost calculation (e.g. assume mostly input @ $0.10/1M for flash)
-            # This is just to show non-zero if tokens exist
-            total_cost = (total_tokens / 1_000_000) * 0.10
-            
-            token_data.append({
-                "Generator": name,
-                "Avg Tokens": f"{avg_tokens:.0f}",
-                "Total Cost": f"${total_cost:.4f}"
-            })
-            
-        token_summary_df = pd.DataFrame(token_data)
-        stats_lines.append(format_as_markdown(token_summary_df))
-
-        # 3. Detailed Token Usage (by Action)
-        stats_lines.append("\n#### Detailed Token Usage\n")
-        try:
-            token_df = get_token_usage_stats(results_list)
-            if not token_df.empty:
-                # 3a. Token Usage by Agent
-                stats_lines.append("**Token Usage by Agent:**\n")
-                agent_stats = token_df.groupby("Agent")[["Total Tokens"]].sum().sort_values("Total Tokens", ascending=False).reset_index()
-                stats_lines.append(format_as_markdown(agent_stats))
-                
-                # 3b. Token Usage by Action
-                stats_lines.append("\n**Token Usage by Action:**\n")
-                action_stats = token_df.groupby("Action")[["Total Tokens"]].sum().sort_values("Total Tokens", ascending=False).reset_index()
-                stats_lines.append(format_as_markdown(action_stats))
-                
-                # 3c. Detailed Breakdown (Agent + Action)
-                stats_lines.append("\n**Detailed Breakdown (Agent + Action):**\n")
-                detailed_stats = token_df.groupby(["Agent", "Action"])[["Total Tokens"]].sum().sort_values("Total Tokens", ascending=False).reset_index()
-                stats_lines.append(format_as_markdown(detailed_stats))
-                
-                # 3d. Top expensive steps
-                stats_lines.append("\n**Top 10 Most Expensive Single Steps:**\n")
-                top_steps = token_df.sort_values("Total Tokens", ascending=False).head(10)
-                # Select readable columns
-                top_steps_display = top_steps[["Benchmark", "Agent", "Action", "Total Tokens"]]
-                stats_lines.append(format_as_markdown(top_steps_display))
-            else:
-                 stats_lines.append("*No token usage details available.*")
-        except Exception as e:
-            stats_lines.append(f"Error calculating token details: {e}")
-
-        # 4. Tool Success Rates
+        # Tool Success Rates
         stats_lines.append("\n#### Tool Success Rates\n")
         try:
             tool_df = get_tool_success_stats(results_list)
@@ -382,6 +345,26 @@ class LogAnalyzer:
             print(f"Error generating final summary: {e}")
             return "Failed to generate final summary."
 
+    def _get_suite_context(self, results_df: pd.DataFrame) -> str:
+        """Generates a description of the benchmark suites present in the results."""
+        if results_df.empty:
+            return ""
+            
+        suites = results_df["suite"].unique()
+        suite_descs = []
+        
+        known_suites = {
+            "api_understanding": "Tests the model's ability to recall correct import paths and class signatures without hallucination. Requires strict adherence to the ADK library structure.",
+            "fix_errors": "Tests the model's ability to debug and fix broken code snippets using the ADK. Measures reasoning and self-correction.",
+            "multiple_choice": "Tests general reasoning or specific knowledge selection from provided options."
+        }
+        
+        for s in suites:
+            desc = known_suites.get(s, "Custom benchmark suite.")
+            suite_descs.append(f"### Suite: `{s}`\n*   **Objective:** {desc}")
+            
+        return "\n\n## Benchmark Suites\n" + "\n".join(suite_descs) + "\n"
+
     async def analyze_log_file(self, log_path: Path) -> str:
         """
         Analyzes the results and logs.
@@ -411,6 +394,11 @@ class LogAnalyzer:
             results_df = process_results(results_list)
             
             quantitative_context = self._calculate_quantitative_stats(results_df, results_list)
+            
+            # Append suite context to generator context
+            suite_context = self._get_suite_context(results_df)
+            generator_context += "\n" + suite_context
+            
         except Exception as e:
             print(f"Error loading/processing results.json: {e}")
             return f"Error analyzing results: {e}"
@@ -427,15 +415,19 @@ class LogAnalyzer:
             gen_results = [r for r in results_list if r.answer_generator == gen_name]
             
             # Format the logs/results for this generator
-            log_text = self._format_generator_logs(gen_name, gen_results)
+            log_text = self._format_generator_logs(generator_name=gen_name, results_list=gen_results)
             
             # Create analysis task
-            tasks.append(self._analyze_generator(gen_name, log_text))
+            tasks.append(self._analyze_generator(generator_name=gen_name, log_text=log_text))
         
         node_analyses = await asyncio.gather(*tasks)
 
         # 2. Reduce: Synthesize the final report
-        final_summary = await self._reduce_analyses(node_analyses, generator_context, quantitative_context)
+        final_summary = await self._reduce_analyses(
+            analyses=node_analyses, 
+            static_context=generator_context, 
+            quantitative_context=quantitative_context
+        )
         
         return final_summary
 
@@ -446,7 +438,7 @@ async def analyze_run_logs(run_dir: Path):
     log_path = run_dir / "trace.jsonl"
     analyzer = LogAnalyzer()
     print(f"\n--- Starting Log Analysis on {run_dir} ---")
-    summary = await analyzer.analyze_log_file(log_path)
+    summary = await analyzer.analyze_log_file(log_path=log_path)
     
     # Save the analysis
     analysis_path = run_dir / "log_analysis.md"
@@ -467,5 +459,5 @@ if __name__ == "__main__":
     # Test block for running this script directly
     import sys
     if len(sys.argv) > 1:
-        run_dir = Path(sys.argv[1])
-        asyncio.run(analyze_run_logs(run_dir))
+        run_dir_path = Path(sys.argv[1])
+        asyncio.run(analyze_run_logs(run_dir=run_dir_path))

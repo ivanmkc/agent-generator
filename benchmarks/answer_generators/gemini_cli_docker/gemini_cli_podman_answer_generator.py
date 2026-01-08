@@ -71,9 +71,9 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
 
     def __init__(
         self,
-        dockerfile_dir: str | Path,
         image_definitions: dict[str, ImageDefinition],
         image_name: str | None = None,
+        dockerfile_dir: str | Path | None = None,
         model_name: str = "gemini-2.5-pro",
         context_instruction: str | None = None,
         service_url: str | None = None,
@@ -83,22 +83,41 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
         Initializes the GeminiCliPodmanAnswerGenerator.
 
         Args:
-            dockerfile_dir: The path to the directory containing the Dockerfile
-                            for the image to be built/run.
             image_definitions: A dictionary containing definitions for managed images.
-            image_name: Optional. The name to use for the Docker image. If not provided,
-                        it will be dynamically generated as `gemini-cli:{dockerfile_dir.name}`.
+            image_name: The name of the Docker image to use. If provided, dockerfile_dir 
+                        can be inferred from image_definitions.
+            dockerfile_dir: Optional. The path to the directory containing the Dockerfile.
+                            If not provided, derived from image_name via image_definitions.
             model_name: The LLM model name to pass to the Gemini CLI.
             context_instruction: Optional additional context string to prepend to prompts.
             service_url: Optional. If provided, the generator acts as a proxy to an
                          already running service at this URL, skipping container management.
             api_key_manager: Optional. An instance of ApiKeyManager for managing API keys.
         """
-        # Store all arguments specific to this class
-        self.dockerfile_dir = Path(dockerfile_dir)
-        self.image_name = image_name or f"gemini-cli:{self.dockerfile_dir.name}"
         self._image_definitions = image_definitions
         self.context_instruction = context_instruction
+        
+        # Resolve image name and dockerfile dir
+        if image_name:
+            self.image_name = image_name
+            if dockerfile_dir:
+                self.dockerfile_dir = Path(dockerfile_dir)
+            elif image_name in image_definitions:
+                # Derive from definition
+                def_ = image_definitions[image_name]
+                # Source dir is relative to the definitions file (this package)
+                self.dockerfile_dir = Path(__file__).parent / def_.source_dir
+            else:
+                 # Fallback if image name not in definitions (e.g. custom image)
+                 # We need dockerfile_dir then? Or maybe it's a pulled image.
+                 # If no dockerfile_dir, we assume we don't need to build it or check hash.
+                 self.dockerfile_dir = None 
+        elif dockerfile_dir:
+            # Legacy behavior: derive image name from dir
+            self.dockerfile_dir = Path(dockerfile_dir)
+            self.image_name = f"gemini-cli:{self.dockerfile_dir.name}"
+        else:
+            raise ValueError("Either image_name or dockerfile_dir must be provided.")
 
         # Call the parent constructor with only the arguments it expects
         super().__init__(

@@ -7,19 +7,27 @@ Synthesize these into a cohesive, high-level report that respects the hierarchy 
 # 📊 Benchmark Run Analysis
 
 ## 1. Generator Internals & Configuration
-*   **Instruction:** Using the **Generator Context** provided below, describe the architecture of the generators used in *this specific run*.
-*   **Detail:** Replace any placeholders with the actual model names found in the context.
+*   **Instruction:** Describe the architecture of the generators used in *this specific run* using the **Generator Context** provided below.
+*   **CRITICAL REQUIREMENT:** You MUST preserve the high-fidelity technical details from the context for each generator. 
+*   **For each generator, you must include:**
+    1.  The **Environment** description.
+    2.  The full list of **Tools** (clearly distinguishing between **Built-in** and **Custom MCP** tools).
+    3.  The **Strategy** description (e.g., "Code -> Run -> Fix" vs "Research -> Code -> Run -> Fix").
+*   **Note:** Do NOT summarize these details into a single sentence. The performance differences in the report are explained by these specific toolsets, so they must be visible to the reader.
 
 ## 2. Executive Summary
 *   High-level overview of the session, organized by Generator and Suite.
 *   **Use the 'Quantitative Stats' provided below** to cite precise **Case Pass Rates** and **Attempt Success Rates**. Do NOT guess stats from the logs.
 
-## 3. Quantitative Analysis (Ground Truth)
+## 3. Benchmark Suites Overview
+*   Briefly describe the benchmark suites executed in this run (e.g., `api_understanding`, `fix_errors`).
+*   Explain the objective of each suite (e.g., "Tests the model's ability to recall correct import paths and class signatures without hallucination").
+
+## 4. Quantitative Analysis (Ground Truth)
 *   **Instruction:** Directly include the **Quantitative Stats** tables provided below in this section. Do NOT summarize them into oblivion; the raw tables are essential for the report.
 *   Ensure the following are present:
     *   Results by Generator & Suite
     *   Token Usage & Cost Summary
-    *   Detailed Token Usage by Action
     *   Tool Success Rates
 
 ## 4. Generator Analysis

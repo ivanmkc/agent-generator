@@ -30,13 +30,13 @@ api_key_manager = ApiKeyManager()
 agent_flash = create_default_adk_agent(model_name=ModelName.GEMINI_2_5_FLASH)
 agent_pro = create_default_adk_agent(model_name=ModelName.GEMINI_2_5_PRO)
 
-_podman_image_dirs = [
-    # Path("benchmarks/answer_generators/gemini_cli_docker/base"),
-    # Path("benchmarks/answer_generators/gemini_cli_docker/adk-python"),
-    Path("benchmarks/answer_generators/gemini_cli_docker/adk-docs-ext"),
-    Path("benchmarks/answer_generators/gemini_cli_docker/mcp_context7"),
-    Path("benchmarks/answer_generators/gemini_cli_docker/mcp_adk_agent_runner_basic"),
-    Path("benchmarks/answer_generators/gemini_cli_docker/mcp_adk_agent_runner_smart_search"),
+_selected_images = [
+    # "gemini-cli:base",
+    "gemini-cli:adk-python",
+    "gemini-cli:adk-docs-ext",
+    "gemini-cli:mcp_context7",
+    "gemini-cli:mcp_adk_agent_runner_basic",
+    "gemini-cli:mcp_adk_agent_runner_smart_search",
 ]
 
 CANDIDATE_GENERATORS = []
@@ -45,7 +45,7 @@ CANDIDATE_GENERATORS = []
 CANDIDATE_GENERATORS.extend(list(permute(
     GeminiCliPodmanAnswerGenerator,
     model_name=[ModelName.GEMINI_2_5_FLASH], #, ModelName.GEMINI_2_5_PRO],
-    dockerfile_dir=_podman_image_dirs,
+    image_name=_selected_images,
     image_definitions=[IMAGE_DEFINITIONS],
     api_key_manager=[api_key_manager]
 )))

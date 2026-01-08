@@ -31,7 +31,6 @@ def mock_subprocess():
 async def test_podman_generator_setup(mock_subprocess):
     """Test that setup starts the server container with correct args."""
     generator = GeminiCliPodmanAnswerGenerator(
-        dockerfile_dir=".",
         image_name="test-image",
         model_name="gemini-2.5-flash",
         image_definitions={},
@@ -74,7 +73,6 @@ async def test_podman_generator_setup(mock_subprocess):
 async def test_podman_generator_env_vars_setup(mock_subprocess):
     """Test that env vars are passed to the container at startup."""
     generator = GeminiCliPodmanAnswerGenerator(
-        dockerfile_dir=".",
         image_name="test-image",
         image_definitions={},
     )
@@ -114,7 +112,6 @@ async def test_podman_generator_env_vars_setup(mock_subprocess):
 async def test_podman_generator_run_cli_command():
     """Test run_cli_command sends correct HTTP request."""
     generator = GeminiCliPodmanAnswerGenerator(
-        dockerfile_dir=".",
         image_name="test-image",
         image_definitions={},
     )
@@ -166,7 +163,6 @@ async def test_podman_generator_run_cli_command():
 async def test_podman_generator_generate_answer():
     """Test full generate_answer flow."""
     generator = GeminiCliPodmanAnswerGenerator(
-        dockerfile_dir=".",
         image_name="test-image",
         image_definitions={},
     )
@@ -225,7 +221,6 @@ async def test_run_cli_command_error_report_capture(mock_subprocess):
     and added to trace logs using the /read_file API endpoint.
     """
     generator = GeminiCliPodmanAnswerGenerator(
-        dockerfile_dir=".",
         image_name="test-image",
         image_definitions={},
     )

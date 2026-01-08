@@ -588,14 +588,17 @@ def main():
             if not case_options:
                 st.info("No cases found.")
             else:
-                # Add explicit Overview option
+                # Add explicit Overview and AI Report options
+                case_options.insert(0, "AI Report")
                 case_options.insert(0, "Overview")
 
                 selected_case_id = st.radio(
                     "Select Case",
                     options=case_options,
                     format_func=lambda x: (
-                        "📊 Overview" if x == "Overview" else format_case_label(x)
+                        "📊 Overview" if x == "Overview" else 
+                        "🤖 AI Report" if x == "AI Report" else 
+                        format_case_label(x)
                     ),
                     key="case_radio",
                     label_visibility="collapsed",
@@ -810,12 +813,21 @@ def main():
         else:
             st.info("No generation attempt history found in this dataset.")
 
+    elif selected_case_id == "AI Report":
+        st.header("🤖 AI Analysis Report")
+        report_path = BENCHMARK_RUNS_DIR / selected_run / "log_analysis.md"
+        if report_path.exists():
+            with open(report_path, "r", encoding="utf-8") as f:
+                st.markdown(f.read())
+        else:
+            st.warning(f"No AI analysis report found for this run at `{report_path}`. Run the Log Analyzer to generate one.")
+
     # 7. Tool Usage Analysis
-    if selected_case_id == "Overview" or selected_case_id is None:
+    if selected_case_id == "Overview" or selected_case_id == "AI Report" or selected_case_id is None:
         render_tool_analysis(filtered_df)
 
 
-    if selected_case_id is not None and selected_case_id != "Overview":
+    if selected_case_id is not None and selected_case_id not in ["Overview", "AI Report"]:
         # Use typed object for detail view
         result_obj = results_list[selected_case_id]
         generation_attempts = result_obj.generation_attempts or []
