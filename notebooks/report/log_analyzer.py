@@ -150,26 +150,35 @@ class LogAnalyzer:
 
         print(f"Analyzing log file: {log_path}")
         
-        # Load Static Metadata if available
+        # Load Static Metadata
         run_dir = log_path.parent
-        metadata_path = run_dir / "run_metadata.json"
-        static_context = "No static configuration metadata available."
         
-        if metadata_path.exists():
+        # 1. Try to load pre-cached Markdown (Preferred)
+        internals_md_path = run_dir / "generator_internals.md"
+        generator_internals_context = ""
+        
+        if internals_md_path.exists():
             try:
-                with open(metadata_path, "r", encoding="utf-8") as f:
-                    meta = json.load(f)
-                    
-                # Format a nice summary string
-                gens = meta.get("generators", [])
-                suites = meta.get("suites", [])
-                
-                gen_text = "\n".join([f"- **{g['name']}** ({g.get('model_name')})\n  Description: {g.get('description')}" for g in gens])
-                suite_text = "\n".join([f"- **{s['name']}** (Path: {s['path']})" for s in suites])
-                
-                static_context = f"**Generators Configured:**\n{gen_text}\n\n**Benchmark Suites:**\n{suite_text}"
+                with open(internals_md_path, "r", encoding="utf-8") as f:
+                    generator_internals_context = f.read()
             except Exception as e:
-                print(f"Error loading run_metadata.json: {e}")
+                print(f"Error loading generator_internals.md: {e}")
+        
+        # 2. Fallback: Load JSON and reconstruct if MD is missing
+        if not generator_internals_context:
+            metadata_path = run_dir / "run_metadata.json"
+            if metadata_path.exists():
+                try:
+                    with open(metadata_path, "r", encoding="utf-8") as f:
+                        meta = json.load(f)
+                    
+                    gens = meta.get("generators", [])
+                    gen_text = "\n".join([f"- **{g['name']}** ({g.get('model_name')})\n  Description: {g.get('description')}" for g in gens])
+                    generator_internals_context = f"**Generators Configured (Fallback):**\n{gen_text}"
+                except Exception as e:
+                    print(f"Error loading run_metadata.json: {e}")
+            else:
+                generator_internals_context = "No static configuration metadata available."
 
         # 1. Parse Structure
         nodes = self._parse_log_file(log_path)
@@ -182,7 +191,7 @@ class LogAnalyzer:
         node_analyses = await self._analyze_nodes(nodes)
 
         # 3. Reduce: Synthesize the final report
-        final_summary = await self._reduce_analyses(node_analyses, static_context)
+        final_summary = await self._reduce_analyses(node_analyses, generator_internals_context)
         
         return final_summary
 

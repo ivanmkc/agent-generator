@@ -7,7 +7,7 @@ Synthesize these into a cohesive, high-level report.
 # 📊 Benchmark Run Analysis
 
 ## 1. Generator Internals & Configuration
-*   **Context:** Use the 'Configuration Context' provided below to describe the technical architecture (Single Agent vs Multi-Agent, Index vs Tool-based retrieval).
+{static_context}
 
 ## 2. Executive Summary
 *   High-level overview of the session (success/failure, major issues).
@@ -34,12 +34,7 @@ A detailed breakdown of failures for this generator:
 *   Logic errors, syntax errors, or timeouts.
 
 ## 6. Recommendations
-*   Actionable steps to fix identified issues.
-
----
-**Configuration Context:**
-{static_context}
----
+*   Actionable steps to fix errors or improve performance.
 
 --- COMPONENT ANALYSES START ---
 {combined_text}

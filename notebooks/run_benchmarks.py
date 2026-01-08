@@ -57,10 +57,12 @@ def save_static_metadata(
     generators: List[AnswerGenerator],
     suites_paths: List[str]
 ) -> None:
-    """Saves static metadata about generators and suites to a JSON file."""
+    """Saves static metadata about generators and suites to a JSON file and a Markdown file."""
     
     # Extract Generator Metadata
     gen_meta_list = []
+    gen_md_content = ["# Generator Internals\n"]
+    
     for g in generators:
         model_name = getattr(g, "model_name", "Unknown")
         desc = getattr(g, "description", "No description provided.")
@@ -72,6 +74,13 @@ def save_static_metadata(
             "description": desc,
             "image_name": image_name
         })
+        
+        # Append to Markdown content
+        gen_md_content.append(f"### {g.name}")
+        gen_md_content.append(f"- **Model:** `{model_name}`")
+        if image_name:
+            gen_md_content.append(f"- **Docker Image:** `{image_name}`")
+        gen_md_content.append(f"\n{desc}\n")
 
     # Extract Suite Metadata
     suite_meta_list = []
@@ -90,12 +99,21 @@ def save_static_metadata(
         "suites": suite_meta_list
     }
     
+    # Save JSON
     output_path = output_dir / "run_metadata.json"
     try:
         with open(output_path, "w", encoding="utf-8") as f:
             json.dump(metadata, f, indent=2)
     except Exception as e:
         print(f"Failed to save run metadata: {e}")
+
+    # Save Markdown Cache
+    md_output_path = output_dir / "generator_internals.md"
+    try:
+        with open(md_output_path, "w", encoding="utf-8") as f:
+            f.write("\n".join(gen_md_content))
+    except Exception as e:
+        print(f"Failed to save generator internals markdown: {e}")
 
 
 async def run_comparison(
