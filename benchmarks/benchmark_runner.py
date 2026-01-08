@@ -17,6 +17,7 @@
 import abc
 import ast
 import asyncio
+import importlib
 import os
 from pathlib import Path
 import re
@@ -331,6 +332,35 @@ class ApiUnderstandingRunner(BenchmarkRunner[ApiUnderstandingBenchmarkCase]):
         # Remove leading/trailing whitespace
         return code.strip()
 
+    def _import_symbol(self, path: str):
+        """Dynamically imports a symbol from a fully qualified name."""
+        if not path or not isinstance(path, str):
+            return None
+        
+        parts = path.split('.')
+        # Try different split points for module vs attribute
+        # We start from the full path down to the first component
+        for i in range(len(parts), 0, -1):
+            module_path = '.'.join(parts[:i])
+            symbol_name = '.'.join(parts[i:])
+            
+            try:
+                module = importlib.import_module(module_path)
+                if not symbol_name:
+                    return module
+                
+                # Traverse attributes
+                obj = module
+                try:
+                    for part in symbol_name.split('.'):
+                        obj = getattr(obj, part)
+                    return obj
+                except AttributeError:
+                    continue 
+            except ImportError:
+                continue
+        return None
+
     async def run_benchmark(
         self,
         benchmark_case: ApiUnderstandingBenchmarkCase,
@@ -352,10 +382,29 @@ class ApiUnderstandingRunner(BenchmarkRunner[ApiUnderstandingBenchmarkCase]):
                     raise validation_utils.ValidationError(
                         "Normalized code does not match normalized ground truth."
                     )
-                validation_utils.validate_module_path(
-                    fully_qualified_class_name=generated_answer.output.fully_qualified_class_name,
-                    expected_paths=ground_truth.fully_qualified_class_name,
-                )
+                
+                # ROBUST PATH VALIDATION
+                gen_path = generated_answer.output.fully_qualified_class_name
+                exp_paths = ground_truth.fully_qualified_class_name
+                
+                # 1. Try Object Identity Check (handles re-exports/aliases)
+                gen_obj = self._import_symbol(gen_path)
+                match_found = False
+                
+                if gen_obj is not None:
+                    for ep in exp_paths:
+                        exp_obj = self._import_symbol(ep)
+                        if exp_obj is not None and gen_obj == exp_obj:
+                            match_found = True
+                            break
+                
+                # 2. Fallback to strict String Check if Identity Check failed
+                if not match_found:
+                    validation_utils.validate_module_path(
+                        fully_qualified_class_name=gen_path,
+                        expected_paths=exp_paths,
+                    )
+                
                 return BenchmarkResultType.PASS, None, None, None
 
             except validation_utils.ValidationError as e:
