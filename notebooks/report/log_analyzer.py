@@ -141,6 +141,88 @@ class LogAnalyzer:
             
         return roots
 
+    def _parse_generator_internals(self, md_content: str) -> Dict[str, str]:
+        """Parses the generator_internals.md content into a dict of archetype -> description."""
+        archetypes = {}
+        current_key = None
+        current_lines = []
+        
+        for line in md_content.splitlines():
+            if line.startswith("### "):
+                if current_key:
+                    archetypes[current_key] = "\n".join(current_lines).strip()
+                current_key = line.strip().replace("### ", "")
+                current_lines = []
+            elif current_key:
+                current_lines.append(line)
+                
+        if current_key:
+            archetypes[current_key] = "\n".join(current_lines).strip()
+            
+        return archetypes
+
+    def _get_archetype_key_from_meta(self, gen_meta: Dict[str, Any]) -> str:
+        """Reconstructs the archetype key from generator metadata."""
+        image_name = gen_meta.get("image_name")
+        name = gen_meta.get("name", "")
+        
+        if image_name:
+            return f"GeminiCliPodman: {image_name}"
+        
+        # Fallback for ADK/Other: usually name prefix before parens
+        if "(" in name:
+            return name.split("(")[0]
+        return name
+
+    def _load_static_context(self, run_dir: Path) -> str:
+        """
+        Loads and merges run_metadata.json (runtime params) and generator_internals.md (static scaffolding).
+        """
+        metadata_path = run_dir / "run_metadata.json"
+        internals_path = run_dir / "generator_internals.md"
+        
+        if not metadata_path.exists():
+            return "No run metadata found."
+            
+        try:
+            with open(metadata_path, "r", encoding="utf-8") as f:
+                meta = json.load(f)
+        except Exception as e:
+            return f"Error loading run_metadata.json: {e}"
+
+        archetypes = {}
+        if internals_path.exists():
+            try:
+                with open(internals_path, "r", encoding="utf-8") as f:
+                    archetypes = self._parse_generator_internals(f.read())
+            except Exception as e:
+                print(f"Error loading generator_internals.md: {e}")
+
+        # Construct Context
+        context_parts = ["# Generator Internals (Runtime Actualized)\n"]
+        generators = meta.get("generators", [])
+        
+        for gen in generators:
+            name = gen.get("name", "Unknown")
+            model = gen.get("model_name", "Unknown")
+            key = self._get_archetype_key_from_meta(gen)
+            
+            context_parts.append(f"### {name}")
+            
+            # Inject Description from Archetype
+            if key in archetypes:
+                desc = archetypes[key]
+                # Replace placeholder
+                desc = desc.replace("[Injected at Runtime]", model)
+                context_parts.append(desc)
+            else:
+                context_parts.append(f"**Model:** `{model}`")
+                context_parts.append("\n(No detailed static description found for this generator archetype.)\n")
+            
+            context_parts.append("---\n")
+            
+        return "\n".join(context_parts)
+
     async def analyze_log_file(self, log_path: Path) -> str:
         """
         Analyzes the trace.jsonl file and returns a summary.
@@ -150,35 +232,9 @@ class LogAnalyzer:
 
         print(f"Analyzing log file: {log_path}")
         
-        # Load Static Metadata
+        # Load and Prepare Static Context
         run_dir = log_path.parent
-        
-        # 1. Try to load pre-cached Markdown (Preferred)
-        internals_md_path = run_dir / "generator_internals.md"
-        generator_internals_context = ""
-        
-        if internals_md_path.exists():
-            try:
-                with open(internals_md_path, "r", encoding="utf-8") as f:
-                    generator_internals_context = f.read()
-            except Exception as e:
-                print(f"Error loading generator_internals.md: {e}")
-        
-        # 2. Fallback: Load JSON and reconstruct if MD is missing
-        if not generator_internals_context:
-            metadata_path = run_dir / "run_metadata.json"
-            if metadata_path.exists():
-                try:
-                    with open(metadata_path, "r", encoding="utf-8") as f:
-                        meta = json.load(f)
-                    
-                    gens = meta.get("generators", [])
-                    gen_text = "\n".join([f"- **{g['name']}** ({g.get('model_name')})\n  Description: {g.get('description')}" for g in gens])
-                    generator_internals_context = f"**Generators Configured (Fallback):**\n{gen_text}"
-                except Exception as e:
-                    print(f"Error loading run_metadata.json: {e}")
-            else:
-                generator_internals_context = "No static configuration metadata available."
+        generator_context = self._load_static_context(run_dir)
 
         # 1. Parse Structure
         nodes = self._parse_log_file(log_path)
@@ -191,7 +247,7 @@ class LogAnalyzer:
         node_analyses = await self._analyze_nodes(nodes)
 
         # 3. Reduce: Synthesize the final report
-        final_summary = await self._reduce_analyses(node_analyses, generator_internals_context)
+        final_summary = await self._reduce_analyses(node_analyses, generator_context)
         
         return final_summary
 

@@ -7,7 +7,8 @@ Synthesize these into a cohesive, high-level report.
 # 📊 Benchmark Run Analysis
 
 ## 1. Generator Internals & Configuration
-{static_context}
+*   **Instruction:** Using the **Generator Context** provided below, describe the architecture of the generators used in *this specific run*.
+*   **Detail:** Replace any placeholders with the actual model names found in the context. Ensure the distinction between different runner types (e.g., Basic vs Smart Search) is clear.
 
 ## 2. Executive Summary
 *   High-level overview of the session (success/failure, major issues).
@@ -35,6 +36,11 @@ A detailed breakdown of failures for this generator:
 
 ## 6. Recommendations
 *   Actionable steps to fix errors or improve performance.
+
+---
+**Generator Context (Scaffold):**
+{static_context}
+---
 
 --- COMPONENT ANALYSES START ---
 {combined_text}
