@@ -1,15 +1,7 @@
 benchmarks:
-  - name: 'MCP ADK Runner Test'
+  - name: '22: Implement a custom LogicAgent from scratch.'
     benchmark_type: fix_error
-    test_file: benchmarks/benchmark_definitions/debug_suite/cases/mcp_adk_runner_case/test_agent.py
-    unfixed_file: benchmarks/benchmark_definitions/debug_suite/cases/mcp_adk_runner_case/unfixed.py
-    description: >
-      You must complete this task in two steps:
-      1. FIRST, use the `run_adk_agent` tool to execute the agent code and verify it returns 'Hello World'. Do not skip this step.
-      2. SECOND, after receiving the tool output, generate the final JSON object containing the code and rationale.
-      
-      The generated code must satisfy the following requirements:
-      - The agent must be implemented in a valid Python file.
-      - The agent must return 'Hello World' for input 'Hi'.
-      - The `run_adk_agent` tool must be used to verify the agent.
-      - You MUST import BaseAgent from `google.adk.agents.base_agent` (NOT `adk.agent`).
+    test_file: benchmarks/benchmark_definitions/fix_errors/cases/22_logic_error/test_agent.py
+    unfixed_file: benchmarks/benchmark_definitions/fix_errors/cases/22_logic_error/unfixed.py
+    fixed_file: benchmarks/benchmark_definitions/fix_errors/cases/22_logic_error/fixed.py
+    description: Implement a custom `LogicAgent` that uses deterministic logic to respond.

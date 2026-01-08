@@ -2,7 +2,7 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "Run Benchmarks",
+            "label": "Run All Benchmarks",
             "type": "shell",
             "command": "./notebooks/run_benchmarks.sh",
             "group": "test",
@@ -12,6 +12,54 @@
             },
             "problemMatcher": [],
             "detail": "Executes the full set of benchmarks and saves results to a timestamped directory."
+        },
+        {
+            "label": "Run Debug Benchmark",
+            "type": "shell",
+            "command": "./notebooks/run_benchmarks.sh --suite-filter debug",
+            "group": "test",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": [],
+            "detail": "Executes only the debug benchmark suite for rapid testing."
+        },
+        {
+            "label": "Run ADK Benchmarks: fix_error suite only",
+            "type": "shell",
+            "command": "./notebooks/run_benchmarks.sh --generator-filter ADK_ --suite-filter fix_error",
+            "group": "test",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": [],
+            "detail": "Executes benchmarks for all ADK-based agents."
+        },
+        {
+            "label": "Run GeminiCliPodman Benchmarks: All suites",
+            "type": "shell",
+            "command": "./notebooks/run_benchmarks.sh --generator-filter GeminiCliPodman",
+            "group": "test",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": [],
+            "detail": "Executes benchmarks for all ADK-based agents."
+        },
+        {
+            "label": "Run Debug ADK Benchmark",
+            "type": "shell",
+            "command": "./notebooks/run_benchmarks.sh --suite-filter debug --generator-filter ADK_",
+            "group": "test",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": [],
+            "detail": "Executes only the debug benchmark suite for ADK-based agents."
         },
         {
             "label": "Run All Tests",
@@ -47,7 +95,7 @@
                 "panel": "new"
             },
             "problemMatcher": [],
-            "detail": "Runs the specific integration test for unified generators.",
+            "detail": "Runs the specific integration test for unified generators."
         },
         {
             "label": "Integration Test: ADK-based Generators",

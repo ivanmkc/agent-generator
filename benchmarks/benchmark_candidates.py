@@ -42,23 +42,29 @@ _podman_image_dirs = [
 CANDIDATE_GENERATORS = []
 
 # Add Gemini CLI Podman-based generators
-# CANDIDATE_GENERATORS.extend(list(permute(
-#     GeminiCliPodmanAnswerGenerator,
-#     model_name=[ModelName.GEMINI_2_5_FLASH], #, ModelName.GEMINI_2_5_PRO],
-#     dockerfile_dir=_podman_image_dirs,
-#     image_definitions=[IMAGE_DEFINITIONS],
-#     api_key_manager=[api_key_manager]
-# )))
+CANDIDATE_GENERATORS.extend(list(permute(
+    GeminiCliPodmanAnswerGenerator,
+    model_name=[ModelName.GEMINI_2_5_FLASH], #, ModelName.GEMINI_2_5_PRO],
+    dockerfile_dir=_podman_image_dirs,
+    image_definitions=[IMAGE_DEFINITIONS],
+    api_key_manager=[api_key_manager]
+)))
 
 # Add Workflow ADK-based generators
 CANDIDATE_GENERATORS.extend([
-    # create_workflow_adk_generator(
-    #     model_name=ModelName.GEMINI_2_5_FLASH,
-    #     api_key_manager=api_key_manager
-    # ),
+    create_workflow_adk_generator(
+        model_name=ModelName.GEMINI_2_5_FLASH,
+        api_key_manager=api_key_manager
+    ),
     create_structured_workflow_adk_generator(
         model_name=ModelName.GEMINI_2_5_FLASH,
         api_key_manager=api_key_manager
+    ),
+    # Variant with history disabled
+    create_structured_workflow_adk_generator(
+        model_name=ModelName.GEMINI_2_5_FLASH,
+        api_key_manager=api_key_manager,
+        use_loop_history=False
     ),
     create_baseline_workflow_adk_generator(
         model_name=ModelName.GEMINI_2_5_FLASH,

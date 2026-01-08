@@ -48,15 +48,16 @@ async def test_create_agent_passes():
     )
     assert "age" in response_invalid.lower()
 
+    # TODO: Remove requirement that agent must be called worker
     worker_agent = next(
         (
             t.agent
             for t in root_agent.tools
-            if hasattr(t, "agent") and t.agent.name == "worker"
+            if hasattr(t, "agent") and hasattr(t.agent, "input_schema") and t.agent.input_schema is not None
         ),
         None,
     )
-    assert worker_agent is not None, "Worker agent tool not found."
+    assert worker_agent is not None, "Agent with input_schema tool not found."
     assert worker_agent.input_schema is not None, "Worker agent needs an input_schema."
 
     schema_fields = worker_agent.input_schema.model_fields
