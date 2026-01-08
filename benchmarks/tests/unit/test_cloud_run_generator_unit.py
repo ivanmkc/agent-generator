@@ -166,44 +166,55 @@ async def test_cloud_run_generator_setup_resolves_url():
     # Mock google.auth.default
     with patch("google.auth.default", return_value=(None, "test-project")):
 
-        # Mock google.cloud.storage.Client to prevent actual API calls
-        with patch("google.cloud.storage.Client") as MockStorageClient:
-            mock_storage_client_instance = MockStorageClient.return_value
-            mock_bucket = MagicMock()
-            mock_bucket.exists.return_value = True  # Simulate bucket exists
-            mock_storage_client_instance.bucket.return_value = mock_bucket
+        # Mock calculate_source_hash to match the remote version
+        with patch(
+            "benchmarks.answer_generators.gemini_cli_docker.gemini_cli_cloud_run_answer_generator.calculate_source_hash",
+            return_value="version-id",
+        ):
+            # Mock google.cloud.storage.Client to prevent actual API calls
+            with patch("google.cloud.storage.Client") as MockStorageClient:
+                mock_storage_client_instance = MockStorageClient.return_value
+                mock_bucket = MagicMock()
+                mock_bucket.exists.return_value = True  # Simulate bucket exists
+                mock_storage_client_instance.bucket.return_value = mock_bucket
 
-            # Mock ServicesAsyncClient
-            with patch(
-                "benchmarks.answer_generators.gemini_cli_docker.gemini_cli_cloud_run_answer_generator.ServicesAsyncClient"
-            ) as MockServicesClient:
-                mock_client = MockServicesClient.return_value
+                # Mock ServicesAsyncClient
+                with patch(
+                    "benchmarks.answer_generators.gemini_cli_docker.gemini_cli_cloud_run_answer_generator.ServicesAsyncClient"
+                ) as MockServicesClient:
+                    mock_client = MockServicesClient.return_value
 
-                # Mock get_service returning a service with URI
-            mock_service = MagicMock()
-            mock_service.uri = "https://resolved-url.run.app"
+                    # Mock get_service returning a service with URI
+                    mock_service = MagicMock()
+                    mock_service.uri = "https://resolved-url.run.app"
 
-            # get_service is now native async
-            mock_client.get_service = AsyncMock(return_value=mock_service)
+                    # get_service is now native async
+                    mock_client.get_service = AsyncMock(return_value=mock_service)
 
-            # Mock health check (aiohttp)
-            with patch("aiohttp.ClientSession") as MockSession:
-                mock_session = MockSession.return_value
-                mock_response = AsyncMock()
-                mock_response.status = 200
-                mock_response.text.return_value = "version-id"
+                    # Mock health check (aiohttp)
+                    with patch("aiohttp.ClientSession") as MockSession:
+                        mock_session = MockSession.return_value
+                        mock_response = AsyncMock()
+                        mock_response.status = 200
+                        mock_response.text.return_value = "version-id"
 
-                mock_get_cm = AsyncMock()
-                mock_get_cm.__aenter__.return_value = mock_response
-                mock_session.get.return_value = mock_get_cm
+                        mock_get_cm = AsyncMock()
+                        mock_get_cm.__aenter__.return_value = mock_response
+                        mock_session.get.return_value = mock_get_cm
 
-                MockSession.return_value.__aenter__.return_value = mock_session
+                        MockSession.return_value.__aenter__.return_value = mock_session
 
-                with patch.object(
-                    generator, "_get_id_token", new_callable=AsyncMock
-                ) as mock_get_token:
-                    mock_get_token.return_value = "mock-token"
-                    await generator.setup()
+                        with patch.object(
+                            generator, "_get_id_token", new_callable=AsyncMock
+                        ) as mock_get_token:
+                            mock_get_token.return_value = "mock-token"
+
+                            # Mock _deploy_from_source to avoid actual Cloud Build calls
+                            with patch.object(
+                                generator, "_deploy_from_source", new_callable=AsyncMock
+                            ) as mock_deploy:
+                                mock_deploy.return_value = "https://deployed-url.run.app"
+                                await generator.setup()
 
         assert generator.service_url == "https://resolved-url.run.app"
 

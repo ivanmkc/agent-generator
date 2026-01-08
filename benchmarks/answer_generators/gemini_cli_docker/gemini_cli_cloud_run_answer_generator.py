@@ -549,6 +549,7 @@ class GeminiCliCloudRunAnswerGenerator(GeminiCliAnswerGenerator):
         if extra_env:
             # Filter out GEMINI_API_KEY as it is handled via Secret Manager
             filtered_env = {k: v for k, v in extra_env.items() if k != "GEMINI_API_KEY"}
+            print(f"DEBUG: extra_env={extra_env}, filtered={filtered_env}")
             payload["env"].update(filtered_env)
 
         # Note: Passing credentials explicitly (like API Key) is done via payload env.

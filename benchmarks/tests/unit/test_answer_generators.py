@@ -288,6 +288,10 @@ async def test_adk_answer_generator(
         generator.api_key_manager = mock_key_manager
         
         generated_answer = await generator.generate_answer(mock_api_case, run_id="test_run")
+        
+        print(f"DEBUG: trace_logs length: {len(generated_answer.trace_logs)}")
+        for i, log in enumerate(generated_answer.trace_logs):
+            print(f"DEBUG: log[{i}] type={log.type} content={log.content}")
 
         # DEBUG: Checking trace logs indices
         assert generated_answer.output.code == "adk class"
