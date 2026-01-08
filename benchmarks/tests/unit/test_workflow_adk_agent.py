@@ -58,23 +58,25 @@ class TestAdkTools:
         listing = tools.list_directory(".")
         assert "test.txt" in listing
 
-    def test_shell_execution_cwd(self, tools, workspace):
+    @pytest.mark.asyncio
+    async def test_shell_execution_cwd(self, tools, workspace):
         """Test that shell commands run in the workspace."""
         # Check CWD
-        result = tools.run_shell_command("pwd")
+        result = await tools.run_shell_command("pwd")
         assert str(workspace) in result
 
-    def test_shell_execution_venv(self, workspace):
+    @pytest.mark.asyncio
+    async def test_shell_execution_venv(self, workspace):
         """Test that shell commands use the venv PATH."""
         venv_path = workspace / "venv"
         tools = AdkTools(workspace_root=workspace, venv_path=venv_path)
         
         # We expect the venv bin directory to be at the start of PATH
         venv_bin = str(venv_path / "bin")
-        result = tools.run_shell_command("echo $PATH")
+        result = await tools.run_shell_command("echo $PATH")
         
-        # The result string contains stdout: ...
+        # The result string contains Stdout: ...
         assert venv_bin in result
-        # Check it's near the start (ignoring "Stdout:\n")
-        stdout = result.split("Stdout:\n")[1].split("\n")[0]
+        # Check it's near the start (ignoring "Stdout: ")
+        stdout = result.split("Stdout: ")[1].split("\n")[0]
         assert stdout.startswith(venv_bin)

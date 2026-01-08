@@ -52,7 +52,7 @@ class AdkTools:
         
         return full_path
 
-    def read_file(self, file_path: str, offset: int = 0, limit: int = 200) -> str:
+    def read_file(self, file_path: str, offset: int = 0, limit: int = 1000) -> str:
         """
         Reads and returns the content of a specified file.
         
@@ -63,7 +63,7 @@ class AdkTools:
         Args:
             file_path: The path to the file to read, relative to the workspace root.
             offset: The 0-based line number to start reading from. Defaults to 0.
-            limit: Maximum number of lines to read. If -1, reads the rest of the file. Defaults to 200.
+            limit: Maximum number of lines to read. If -1, reads the rest of the file (up to a hard limit of 2000). Defaults to 1000.
 
         Returns:
             The content of the file, or a formatted string containing a truncation message and partial content.
@@ -99,31 +99,91 @@ class AdkTools:
             if offset >= total_lines and total_lines > 0:
                 return f"Error: Offset {offset} is beyond the end of the file (total lines: {total_lines})."
             
-            if limit == -1:
-                end_index = total_lines
-            else:
-                end_index = min(offset + limit, total_lines)
+            MAX_HARD_LIMIT = 2000
+            if limit == -1 or limit > MAX_HARD_LIMIT:
+                limit = MAX_HARD_LIMIT
+            
+            end_index = min(offset + limit, total_lines)
             
             selected_lines = lines[offset:end_index]
-            content = "".join(selected_lines)
+            
+            # Line width truncation
+            MAX_LINE_WIDTH = 1000
+            processed_lines = []
+            lines_width_truncated = False
+            
+            for line in selected_lines:
+                if len(line) > MAX_LINE_WIDTH:
+                    processed_lines.append(line[:MAX_LINE_WIDTH] + "... [line truncated]\n")
+                    lines_width_truncated = True
+                else:
+                    processed_lines.append(line)
+            
+            content = "".join(processed_lines)
 
-            # Check for truncation (either by explicit limit or if file is huge - though we read all lines above)
-            # In this simple implementation, 'limit' causes truncation.
-            is_truncated = (end_index < total_lines) or (offset > 0)
+            # Check for truncation (count or width)
+            lines_count_truncated = (end_index < total_lines) or (offset > 0)
+            is_truncated = lines_count_truncated or lines_width_truncated
             
             if is_truncated:
                 next_offset = end_index
-                return f"""IMPORTANT: The file content has been truncated.
-Status: Showing lines {offset}-{end_index - 1} of {total_lines} total lines.
-Action: To read more of the file, you can use the 'offset' and 'limit' parameters in a subsequent 'read_file' call. For example, to read the next section of the file, use offset: {next_offset}.
-
---- FILE CONTENT (truncated) ---
-{content}"""
+                msg = f"IMPORTANT: The file content has been truncated (showing {len(selected_lines)} lines).\n"
+                if lines_count_truncated:
+                    msg += f"Status: Showing lines {offset}-{end_index - 1} of {total_lines} total lines.\n"
+                if lines_width_truncated:
+                    msg += f"Status: Some lines exceeded {MAX_LINE_WIDTH} characters and were shortened.\n"
+                
+                msg += f"Action: To read more of the file, you can use the 'offset' and 'limit' parameters in a subsequent 'read_file' call. For example, to read the next section of the file, use offset: {next_offset}.\n"
+                msg += f"\n--- FILE CONTENT (truncated) ---\n{content}"
+                return msg
             else:
                 return content
 
         except Exception as e:
             return f"Error reading file {file_path}: {e}"
+
+    def replace_text(self, file_path: str, old_string: str, new_string: str, expected_replacements: Optional[int] = None) -> str:
+        """
+        Replaces text within a file.
+        
+        This tool requires providing significant context around the change to ensure precise targeting.
+        
+        Args:
+            file_path: The path to the file to modify, relative to the workspace root.
+            old_string: The exact literal text to replace.
+            new_string: The exact literal text to replace `old_string` with.
+            expected_replacements: Optional. Number of replacements expected. Defaults to 1 if not specified.
+
+        Returns:
+            Success message or error.
+        """
+        try:
+            full_path = self._resolve_path(file_path)
+            if not full_path.exists():
+                 return f"Error: File not found at {full_path}"
+            
+            with open(full_path, "r", encoding="utf-8") as f:
+                content = f.read()
+            
+            count = content.count(old_string)
+            
+            if count == 0:
+                return f"Error: `old_string` not found in file. Ensure exact match including whitespace. Use `read_file` to verify."
+            
+            expected = expected_replacements if expected_replacements is not None else 1
+            
+            if count != expected:
+                return f"Error: Expected {expected} occurrences of `old_string`, but found {count}. Please specify correct `expected_replacements` or refine `old_string` to be unique."
+            
+            new_content = content.replace(old_string, new_string)
+            
+            with open(full_path, "w", encoding="utf-8") as f:
+                f.write(new_content)
+                
+            return f"Successfully replaced {count} occurrence(s) in {file_path}."
+
+        except Exception as e:
+            return f"Error replacing text in {file_path}: {e}"
 
     def write_file(self, file_path: str, content: str) -> str:
         """
@@ -305,7 +365,7 @@ Action: To read more of the file, you can use the 'offset' and 'limit' parameter
         """
         Searches for files matching a specific pattern using `grep -r`.
         
-        Output is limited to 50 matches to prevent context explosion.
+        Output is limited to 20 matches and 500 characters per line to prevent context explosion.
 
         Args:
             pattern: The pattern to search for (passed to grep). Can be a literal string.
@@ -321,8 +381,8 @@ Action: To read more of the file, you can use the 'offset' and 'limit' parameter
         """
         # Escape single quotes in pattern to prevent shell injection/breaking
         safe_pattern = pattern.replace("'", "'\\''")
-        # Use head to limit output
-        cmd = f"grep -r '{safe_pattern}' '{path}' | head -n 50"
+        # Use head to limit output and cut to limit line length
+        cmd = f"grep -r '{safe_pattern}' '{path}' | head -n 20 | cut -c 1-500"
         return await self.run_shell_command(cmd)
 
     async def get_module_help(self, module_name: str) -> str:
@@ -348,11 +408,24 @@ import inspect
 import pkgutil
 import importlib
 
-def get_summary(obj):
+MAX_ITEMS = 20
+
+def get_summary(obj, max_len=300):
     doc = inspect.getdoc(obj)
-    if doc:
-        return doc.split('\n')[0]
-    return ""
+    if not doc:
+        return ""
+    
+    # Take up to the first double newline (paragraph break) to get the main summary
+    # and avoid listing all arguments if they are separated by blank lines.
+    parts = doc.split('\n\n')
+    summary = parts[0].strip()
+    
+    # Normalize whitespace (replace newlines in the paragraph with spaces)
+    summary = " ".join(summary.split())
+    
+    if len(summary) > max_len:
+        return summary[:max_len-3] + "..."
+    return summary
 
 def print_help(name):
     try:
@@ -372,7 +445,7 @@ def print_help(name):
                 if not subname.startswith("_"):
                     submodules.append(subname)
         except Exception:
-            pass # Ignore errors listing submodules
+            pass 
             
         if submodules:
             print("Public Submodules:")
@@ -382,27 +455,47 @@ def print_help(name):
 
     # Classes
     classes = []
-    # We want classes defined in this module, or exported by it.
-    # inspect.getmembers returns everything.
     for n, o in inspect.getmembers(mod, inspect.isclass):
         if not n.startswith("_"):
-            # Check if it's defined here or if the module exports it (e.g. via __all__ or import)
-            # For simplicity, we show everything present that isn't private
             classes.append((n, o))
     
     if classes:
         print("Public Classes:")
-        for n, o in sorted(classes, key=lambda x: x[0]):
+        sorted_classes = sorted(classes, key=lambda x: x[0])
+        display_classes = sorted_classes[:MAX_ITEMS]
+        
+        for n, o in display_classes:
             print(f"  class {n}: {get_summary(o)}")
+            
             # Show public methods
+            methods = []
             for mn, mo in inspect.getmembers(o):
                 if not mn.startswith("_") and (inspect.isfunction(mo) or inspect.ismethod(mo)):
-                     try:
-                         sig = inspect.signature(mo)
-                     except:
-                         sig = "(...)"
-                     print(f"    def {mn}{sig}")
-            print("")
+                     methods.append((mn, mo))
+            
+            # Sort methods: __init__ first, then alphabetical
+            methods.sort(key=lambda x: (0 if x[0] == "__init__" else 1, x[0]))
+            
+            display_methods = methods[:10]
+            
+            for mn, mo in display_methods:
+                 try:
+                     sig = inspect.signature(mo)
+                 except:
+                     sig = "(...)"
+                 print(f"    def {mn}{sig}")
+                 # Add docstring for methods!
+                 doc = get_summary(mo, max_len=150)
+                 if doc:
+                     print(f"      {doc}")
+            
+            if len(methods) > 10:
+                print(f"    ... and {len(methods) - 10} more methods")
+            print("") # Spacing between classes
+                
+        if len(classes) > MAX_ITEMS:
+            print(f"... and {len(classes) - MAX_ITEMS} more classes")
+        print("")
 
     # Functions
     funcs = []
@@ -412,12 +505,18 @@ def print_help(name):
     
     if funcs:
         print("Public Functions:")
-        for n, o in sorted(funcs, key=lambda x: x[0]):
+        sorted_funcs = sorted(funcs, key=lambda x: x[0])
+        display_funcs = sorted_funcs[:MAX_ITEMS]
+        
+        for n, o in display_funcs:
             try:
                 sig = inspect.signature(o)
             except:
                 sig = "(...)"
             print(f"  def {n}{sig}: {get_summary(o)}")
+            
+        if len(funcs) > MAX_ITEMS:
+            print(f"... and {len(funcs) - MAX_ITEMS} more functions")
 
 if __name__ == "__main__":
     print_help(sys.argv[1])
@@ -438,6 +537,13 @@ if __name__ == "__main__":
             
         return output
 
+    async def read_full_execution_logs(self) -> str:
+        """
+        Retrieves the full execution logs (Stdout/Stderr) from the most recent `run_adk_agent` call.
+        Use this if the summary provided by `run_adk_agent` is insufficient for debugging.
+        """
+        return self.read_file("_last_run.log", limit=-1)
+
     async def run_adk_agent(self, prompt: str, model_name: str, agent_code: Optional[str] = None, agent_file: Optional[str] = None, initial_state: Optional[str] = None, api_key: Optional[str] = None) -> str:
         """
         Executes a Python ADK agent.
@@ -445,8 +551,8 @@ if __name__ == "__main__":
         You must provide EITHER `agent_code` (the full source code string) OR `agent_file` (the path to an existing file).
         Passing `agent_file` is preferred to save tokens if the file already exists in the workspace.
         
-        This tool creates a temporary Python script to run the agent in the workspace's environment.
-        It is ESSENTIAL for verifying that an agent works correctly before considering a task complete.
+        This tool runs the agent and returns a **SUMMARY** of the execution logs to save tokens.
+        If the agent fails or you need more details, use `read_full_execution_logs` to see the complete output.
 
         Args:
             prompt: The user input prompt or task description to send to the created agent for execution.
@@ -458,7 +564,7 @@ if __name__ == "__main__":
             api_key: Optional API key to use for this execution. If provided, it sets GEMINI_API_KEY env var.
 
         Returns:
-            A string containing the agent's response, any execution logs (stdout/stderr), or error details if the execution failed.
+            A **summary** string containing the agent's response and partial execution logs.
         """
         
         if agent_code and agent_file:
@@ -640,6 +746,19 @@ if __name__ == "__main__":
         # Execute
         output = await self.run_shell_command(cmd, extra_env=extra_env)
         
+        # Save full logs for on-demand retrieval
+        self.write_file("_last_run.log", output)
+        
+        # Create summary
+        if len(output) > 2000:
+            summary = (
+                output[:1000] 
+                + f"\n... [Logs Truncated. {len(output)-2000} chars hidden. Use `read_full_execution_logs` to see all.] ...\n" 
+                + output[-1000:]
+            )
+        else:
+            summary = output
+
         # Cleanup
         try:
             for fname in files_to_clean:
@@ -653,4 +772,4 @@ if __name__ == "__main__":
         except Exception:
             pass # Ignore cleanup errors
             
-        return output
+        return summary

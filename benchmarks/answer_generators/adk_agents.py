@@ -48,6 +48,8 @@ from benchmarks.answer_generators.adk_schemas import (
     PlanningResult,
 )
 
+DEFAULT_MODEL_NAME = "gemini-2.5-pro"
+
 
 class RotatingKeyGemini(Gemini):
     """
@@ -115,7 +117,7 @@ def uuid4() -> str:
     return str(uuid.uuid4())
 
 
-def create_default_adk_agent(model_name: str = "gemini-2.5-pro") -> LlmAgent:
+def create_default_adk_agent(model_name: str = DEFAULT_MODEL_NAME) -> LlmAgent:
     """Creates the default LlmAgent used for ADK benchmarking."""
 
     return LlmAgent(
@@ -159,6 +161,10 @@ class SetupAgentCodeBased(Agent):
         # 3. Save the workspace directory to session state
         save_workspace_dir(str(workspace_dir), ctx)
         ctx.session.state["user_request"] = user_request
+        
+        # Initialize loop variables to prevent missing key errors in first iteration if history is off
+        ctx.session.state["agent_code"] = ""
+        ctx.session.state["analysis_feedback"] = ""
 
         # 4. Output SetupContext
         setup_context = SetupContext(
@@ -390,12 +396,72 @@ class CodeBasedFinalVerifier(Agent):
             )
         )
 
+class DocstringFetcherAgent(Agent):
+    """Fetches help for selected modules using captured tools_helper."""
+    def __init__(self, tools_helper: AdkTools, **kwargs):
+        super().__init__(**kwargs)
+        self._tools_helper = tools_helper
+
+    async def _run_async_impl(self, ctx: InvocationContext) -> AsyncGenerator[Event, None]:
+        # 1. Retrieve selected modules from session state
+        relevant_modules_json = ctx.session.state.get("relevant_modules_json", "{}")
+        
+        try:
+            if isinstance(relevant_modules_json, str):
+                if "```json" in relevant_modules_json:
+                    relevant_modules_json = relevant_modules_json.split("```json", 1)[1].split("```", 1)[0].strip()
+                elif "```" in relevant_modules_json:
+                    relevant_modules_json = relevant_modules_json.split("```", 1)[1].split("```", 1)[0].strip()
+                relevant_modules = RelevantModules.model_validate_json(relevant_modules_json)
+            elif isinstance(relevant_modules_json, dict):
+                    relevant_modules = RelevantModules.model_validate(relevant_modules_json)
+            else:
+                    # Assume it's already a model object
+                    relevant_modules = relevant_modules_json
+
+        except Exception as e:
+            # print(f"[WARNING] Failed to parse RelevantModules: {e}. Skipping knowledge retrieval.")
+            ctx.session.state["knowledge_context"] = f"Error retrieving knowledge context: {e}"
+            yield Event(
+                invocation_id=ctx.invocation_id,
+                author=self.name,
+                content=types.Content(
+                    role="model",
+                    parts=[types.Part(text=f"Error parsing relevant modules: {e}")]
+                )
+            )
+            return
+
+        # 2. Fetch help for each module using captured tools_helper
+        knowledge_context_parts = []
+        for module_name in relevant_modules.modules:
+            try:
+                help_text = await self._tools_helper.get_module_help(module_name)
+                knowledge_context_parts.append(f"--- Help for {module_name} ---\n{help_text}\n")
+            except Exception as e:
+                knowledge_context_parts.append(f"Error fetching help for {module_name}: {e}\n")
+
+        full_context = "\n".join(knowledge_context_parts)
+        
+        # 3. Save to session state
+        ctx.session.state["knowledge_context"] = full_context
+        
+        # 4. Yield output
+        yield Event(
+            invocation_id=ctx.invocation_id,
+            author=self.name,
+            content=types.Content(
+                role="model",
+                parts=[types.Part(text=f"Fetched knowledge context for {len(relevant_modules.modules)} modules.")]
+            )
+        )
+
 def create_structured_adk_agent(
-    workspace_root: Path,
-    model_name: str = "gemini-2.5-pro",
-    venv_path: Path | None = None,
+    tools_helper: AdkTools,
+    model_name: str = DEFAULT_MODEL_NAME,
     api_key_manager: ApiKeyManager | None = None,
-    use_index_retrieval: bool = True,
+    retrieval_agents: list[Agent] = [],
+    use_loop_history: bool = True,
 ) -> SequentialAgent:
     """
     Creates a structured ADK agent with setup, planning, verification, implementation loop, final output, and teardown.
@@ -403,7 +469,7 @@ def create_structured_adk_agent(
 
     Refactored to store the agent implementation code in session state to reduce token usage from disk I/O.
     """
-    tools_helper = AdkTools(workspace_root, venv_path=venv_path)
+    # tools_helper is passed in
 
     # --- State Management Tools ---
     def save_final_response(response_json: str, tool_context: ToolContext) -> str:
@@ -447,7 +513,7 @@ def create_structured_adk_agent(
             return "Error: No agent code provided and none found in session state. Provide `agent_code`, `agent_file`, or use `save_agent_code` first."
 
         # Use provided model_name or fallback to the default for this generator
-        effective_model_name = model_name if model_name else "gemini-2.5-pro"
+        effective_model_name = model_name if model_name else DEFAULT_MODEL_NAME
 
         # Get a fresh API key for this execution if manager is available
         api_key = None
@@ -467,10 +533,12 @@ def create_structured_adk_agent(
     # Common tools
     read_tool = FunctionTool(tools_helper.read_file)
     write_tool = FunctionTool(tools_helper.write_file)
+    replace_tool = FunctionTool(tools_helper.replace_text)
     list_tool = FunctionTool(tools_helper.list_directory)
     search_tool = FunctionTool(tools_helper.search_files)
     get_help_tool = FunctionTool(tools_helper.get_module_help)
     exit_loop_tool = FunctionTool(exit_loop)
+    read_logs_tool = FunctionTool(tools_helper.read_full_execution_logs)
 
     # New state tools
     # save_final_response_tool = FunctionTool(save_final_response)
@@ -486,7 +554,7 @@ def create_structured_adk_agent(
 
     # 0. Setup Agent
     setup_agent = SetupAgentCodeBased(
-        name="setup_agent", workspace_root=workspace_root, tools_helper=tools_helper
+        name="setup_agent", workspace_root=tools_helper.workspace_root, tools_helper=tools_helper
     )
 
     # 0.2 Prompt Sanitizer
@@ -496,116 +564,11 @@ def create_structured_adk_agent(
         output_key="sanitized_user_request",
     )
 
-    # Knowledge Retrieval Strategy
-    retrieval_agents = []
-    
-    # Define DocstringFetcherAgent locally to capture tools_helper
-    class DocstringFetcherAgent(Agent):
-        """Fetches help for selected modules using captured tools_helper."""
-        async def _run_async_impl(self, ctx: InvocationContext) -> AsyncGenerator[Event, None]:
-            # 1. Retrieve selected modules from session state
-            relevant_modules_json = ctx.session.state.get("relevant_modules_json", "{}")
-            
-            try:
-                if isinstance(relevant_modules_json, str):
-                    if "```json" in relevant_modules_json:
-                        relevant_modules_json = relevant_modules_json.split("```json", 1)[1].split("```", 1)[0].strip()
-                    elif "```" in relevant_modules_json:
-                        relevant_modules_json = relevant_modules_json.split("```", 1)[1].split("```", 1)[0].strip()
-                    relevant_modules = RelevantModules.model_validate_json(relevant_modules_json)
-                elif isinstance(relevant_modules_json, dict):
-                     relevant_modules = RelevantModules.model_validate(relevant_modules_json)
-                else:
-                     # Assume it's already a model object
-                     relevant_modules = relevant_modules_json
-
-            except Exception as e:
-                # print(f"[WARNING] Failed to parse RelevantModules: {e}. Skipping knowledge retrieval.")
-                ctx.session.state["knowledge_context"] = f"Error retrieving knowledge context: {e}"
-                yield Event(
-                    invocation_id=ctx.invocation_id,
-                    author=self.name,
-                    content=types.Content(
-                        role="model",
-                        parts=[types.Part(text=f"Error parsing relevant modules: {e}")]
-                    )
-                )
-                return
-
-            # 2. Fetch help for each module using captured tools_helper
-            knowledge_context_parts = []
-            for module_name in relevant_modules.modules:
-                try:
-                    help_text = await tools_helper.get_module_help(module_name)
-                    knowledge_context_parts.append(f"--- Help for {module_name} ---\n{help_text}\n")
-                except Exception as e:
-                    knowledge_context_parts.append(f"Error fetching help for {module_name}: {e}\n")
-
-            full_context = "\n".join(knowledge_context_parts)
-            
-            # 3. Save to session state
-            ctx.session.state["knowledge_context"] = full_context
-            
-            # 4. Yield output
-            yield Event(
-                invocation_id=ctx.invocation_id,
-                author=self.name,
-                content=types.Content(
-                    role="model",
-                    parts=[types.Part(text=f"Fetched knowledge context for {len(relevant_modules.modules)} modules.")]
-                )
-            )
-
-    if use_index_retrieval:
-        # Load index content
-        index_path = Path("benchmarks/adk_index.yaml")
-        if index_path.exists():
-            with open(index_path, "r") as f:
-                adk_index_content = f.read()
-        else:
-            adk_index_content = "Error: adk_index.yaml not found."
-
-        module_selector_agent = LlmAgent(
-            name="module_selector_agent",
-            model=model,
-            tools=[save_modules_tool], 
-            # output_schema=RelevantModules, # REMOVED
-            # output_key="relevant_modules_json", # REMOVED
-            include_contents='none',
-            instruction=(
-                f"You are the Module Selector Agent. Use the provided index to select relevant modules.\n"
-                f"Index:\n{adk_index_content}\n"
-                "Request: {sanitized_user_request}\n"
-                "Analyze the request and select the modules that are most likely to contain the APIs needed."
-                "CRITICAL: Use the `save_relevant_modules` tool to save the list of modules that are most likely to contain the APIs needed."
-            )
-        )
-        docstring_fetcher_agent = DocstringFetcherAgent(name="docstring_fetcher_agent")
-        retrieval_agents = [module_selector_agent, docstring_fetcher_agent]
-    else:
-        # Baseline: Tool-based retrieval
-        module_selector_agent = LlmAgent(
-            name="module_selector_agent",
-            model=model,
-            tools=[read_tool, list_tool, search_tool, get_help_tool],
-            include_contents='none',
-            output_key="knowledge_context",
-            instruction=(
-                "You are the Module Selector Agent (Tool-Based Baseline). "
-                "Request: {sanitized_user_request}\\n"
-                "Your goal is to find relevant information about the ADK codebase to help answer the request. "
-                "Use the available tools (`list_directory`, `search_files`, `get_module_help`) to explore. "
-                "Once you have gathered enough information, summarize the key findings and API definitions relevant to the request. "
-                "Output this summary as natural text. It will be used as the 'Context' for the Planner."
-            )
-        )
-        retrieval_agents = [module_selector_agent]
-
     # 1. Implementation Planner
     implementation_planner = LlmAgent(
         name="implementation_planner",
         model=model,
-        tools=[read_tool, list_tool, search_tool, get_help_tool],
+        tools=[],
         include_contents='none',
         output_key="implementation_plan",
         instruction=(
@@ -628,7 +591,7 @@ def create_structured_adk_agent(
     verification_planner = LlmAgent(
         name="verification_planner",
         model=model,
-        tools=[read_tool, list_tool, search_tool, get_help_tool],
+        tools=[],
         include_contents='none',
         output_key="verification_plan",
         instruction=(
@@ -645,27 +608,43 @@ def create_structured_adk_agent(
     )
 
     # 3. Loop: Implementation & Verification
+    candidate_creator_instruction = (
+        "You are the Candidate Creator. Your goal is to implement or fix the agent code. "
+        "Plan: {implementation_plan}\n"
+        "Context: {knowledge_context}\n"
+    )
+    
+    candidate_include_contents = 'default'
+
+    if not use_loop_history:
+        candidate_include_contents = 'none'
+        candidate_creator_instruction += (
+            "Previous Code: {agent_code}\n"
+            "Feedback: {analysis_feedback}\n"
+        )
+    
+    candidate_creator_instruction += (
+        "1. Analyze the given Plan and Context. If there is feedback from 'Run Analyst' in the history (or provided Feedback), address the reported failures. "
+        "2. IMPLEMENT/FIX the agent code. "
+        "   - Output your rationale as natural text first. "
+        "   - Then, provide the complete, corrected Python file content within a markdown code block (```python...```). "
+        "     Ensure all necessary imports are included and the code is syntactically valid."
+        "CRITICAL: Your ONLY allowed tools are for file reading, writing, and replacing text. "
+        "Prefer using `replace_text` for small edits to existing files to save tokens. Use `write_file` for creating new files or major rewrites. "
+        "DO NOT call any tools for code submission or execution. The system will extract your code from the markdown block and handle execution."
+    )
+
     candidate_creator = LlmAgent(
         name="candidate_creator",
         model=model,
         tools=[
             read_tool,
             write_tool,
+            replace_tool,
         ],
         output_key="candidate_response",
-        # output_schema=CandidateSolution, # REMOVED
-        instruction=(
-            "You are the Candidate Creator. Your goal is to implement or fix the agent code. "
-            "Plan: {implementation_plan}\n"
-            "Context: {knowledge_context}\n"
-            "1. Analyze the given Plan and Context. If there is feedback from 'Run Analyst' in the history, address the reported failures. "
-            "2. IMPLEMENT/FIX the agent code. "
-            "   - Output your rationale as natural text first. "
-            "   - Then, provide the complete, corrected Python file content within a markdown code block (```python...```). "
-            "     Ensure all necessary imports are included and the code is syntactically valid."
-            "CRITICAL: Your ONLY allowed tools are: `read_file`, `write_file`. "
-            "DO NOT call any tools for code submission or execution. The system will extract your code from the markdown block and handle execution."
-        ),
+        include_contents=candidate_include_contents,
+        instruction=candidate_creator_instruction,
     )
 
 
@@ -678,19 +657,21 @@ def create_structured_adk_agent(
     run_analysis_agent = LlmAgent(
         name="run_analysis_agent",
         model=model,
-        tools=[exit_loop_tool, read_tool, get_help_tool, search_tool, list_tool],
+        tools=[exit_loop_tool, read_tool, get_help_tool, search_tool, list_tool, read_logs_tool],
         include_contents='none',
+        output_key="analysis_feedback",
         instruction=(
             "You are the Run Analyst. "
             "Verification Plan: {verification_plan}\n"
-            "Logs: {run_output}\n"
+            "Logs Summary: {run_output}\n"
+            "Note: The 'Logs Summary' may be truncated. If you need the full output to debug an error, call `read_full_execution_logs`."
             "1. Analyze the 'Execution Logs' based on the 'Verification Plan'. The agent was run with a `Test Prompt` as defined in the plan. "
             "2. Determine if the agent successfully satisfied the requirements by checking its `Stdout` and `Stderr` against the `Expected Runtime Behavior` in the plan. "
             "   - Look for a coherent response from the agent in `Stdout` that matches the `Expected Runtime Behavior`. "
             "   - Check for any errors in `Stderr`. A clean `Stderr` is usually desired. "
             "3. INVESTIGATE FAILURES: "
-            "   - If there is an error (e.g., ImportError, AttributeError, TypeError) or unexpected behavior, "
-            "     use tools like `get_module_help`, `search_files`, or `read_file` to understand the root cause. "
+            "   - If there is an error or unexpected behavior, use available exploration tools to understand the root cause. "
+            "   - Call `read_full_execution_logs` if the summary is insufficient."
             "   - Verify the correct API usage if you see an API-related error. "
             "4. Action: "
             "   - If SUCCESS: Call `exit_loop` immediately. "
@@ -715,7 +696,7 @@ def create_structured_adk_agent(
     # 5. Teardown Agent
     teardown_agent = CodeBasedTeardownAgent(
         name="teardown_agent", 
-        workspace_root=workspace_root, 
+        workspace_root=tools_helper.workspace_root, 
         tools_helper=tools_helper
     )
 
@@ -737,7 +718,7 @@ def create_structured_adk_agent(
 
 def create_workflow_agent(
     workspace_root: Path,
-    model_name: str = "gemini-2.5-pro",
+    model_name: str = DEFAULT_MODEL_NAME,
     venv_path: Path | None = None,
 ) -> LlmAgent:
     """
@@ -772,10 +753,10 @@ def create_workflow_agent(
             "\n\n"
             "**Workflow:**\n"
             "1.  **Analyze:** Read the benchmark requirements and explore the codebase. "
-            "Use `list_directory` (supports ignore patterns) and `read_file` (supports offset/limit for large files) to understand the environment.\n"
+            "Use available exploration tools to understand the environment.\n"
             "2.  **Plan:** Determine what code needs to be written or fixed.\n"
-            "3.  **Implement:** Use `write_file` to create or modify the necessary Python files.\n"
-            "4.  **Verify:** Use `run_adk_agent` to execute and verify the agent you created. Use `run_shell_command` for other tests (e.g., `pytest`).\n"
+            "3.  **Implement:** Use file manipulation tools to create or modify the necessary Python files.\n"
+            "4.  **Verify:** Use agent execution tools to verify your created agent. Use shell tools for other tests (e.g., `pytest`).\n"
             "5.  **Iterate:** If verification fails, analyze the error, fix the code, and verify again.\n"
             "6.  **Final Output:** Once satisfied, output the final JSON as requested by the user prompt."
         ),
@@ -842,9 +823,12 @@ def create_workflow_adk_generator(
 
             # 3. Install Dependencies
             print(f"[WorkflowAdk] Installing dependencies...")
-            subprocess.run(pip_cmd + ["--upgrade", "pip"], check=True, timeout=300)
             subprocess.run(
-                pip_cmd + ["pytest", "--index-url", "https://pypi.org/simple"],
+                pip_cmd + ["--upgrade", "--quiet", "pip"], check=True, timeout=300
+            )
+            subprocess.run(
+                pip_cmd
+                + ["--quiet", "pytest", "--index-url", "https://pypi.org/simple"],
                 check=True,
                 timeout=300,
             )  # Install pytest from PyPI
@@ -856,10 +840,8 @@ def create_workflow_adk_generator(
             print(f"[WorkflowAdk] Installing local adk-python...")
             subprocess.run(
                 pip_cmd
-                +
-                [
-                    "--no-cache-dir",
-                    "--force-reinstall",
+                + [
+                    "--quiet",
                     "-e",
                     str(adk_repo_dir),
                     "--index-url",
@@ -877,7 +859,7 @@ def create_workflow_adk_generator(
 
     return AdkAnswerGenerator(
         agent=agent,
-        name=f"WorkflowAdk({model_name})",
+        name=f"ADK_Single_Agent_Generalist({model_name})",
         setup_hook=setup_hook,
         teardown_hook=teardown_hook,
         api_key_manager=api_key_manager,
@@ -888,78 +870,214 @@ def create_structured_workflow_adk_generator(
     model_name: str,
     api_key_manager: ApiKeyManager | None = None,
     adk_branch: str = "v1.20.0",
+    use_loop_history: bool = True,
 ) -> AdkAnswerGenerator:
     """
     Factory to create an AdkAnswerGenerator with a fully managed STRUCTURED workflow agent.
     Handles workspace creation, venv setup, agent instantiation, and lifecycle hooks.
     """
     return _create_managed_adk_generator(
-        model_name, api_key_manager, adk_branch, 
-        use_index_retrieval=True, 
-        name_prefix="StructuredWorkflowAdk", 
-        folder_prefix="adk_struct_workflow_"
+        model_name,
+        api_key_manager,
+        adk_branch,
+        retrieval_agents_factory=_create_index_retrieval_agents,
+        name_prefix="ADK_Multi_Agent_Index_Retrieval",
+        folder_prefix="adk_struct_workflow_",
+        use_loop_history=use_loop_history,
     )
 
 
-# Helper to avoid duplication
+def create_baseline_workflow_adk_generator(
+    model_name: str,
+    api_key_manager: ApiKeyManager | None = None,
+    adk_branch: str = "v1.20.0",
+    use_loop_history: bool = True,
+) -> AdkAnswerGenerator:
+    """
+    Factory to create a BASELINE structured workflow agent.
+    This version uses TOOL-BASED knowledge retrieval (search, read_file) instead of the optimized index.
+    """
+    return _create_managed_adk_generator(
+        model_name,
+        api_key_manager,
+        adk_branch,
+        retrieval_agents_factory=_create_tool_retrieval_agents,
+        name_prefix="ADK_Multi_Agent_Tool_Retrieval",
+        folder_prefix="adk_base_workflow_",
+        use_loop_history=use_loop_history,
+    )
+
+
+def _create_index_retrieval_agents(
+    tools_helper: AdkTools, model: str | Gemini
+) -> list[Agent]:
+    """Creates index-based retrieval agents."""
+    # Load index content
+    index_path = Path("benchmarks/adk_index.yaml")
+    if index_path.exists():
+        with open(index_path, "r") as f:
+            adk_index_content = f.read()
+    else:
+        adk_index_content = "Error: adk_index.yaml not found."
+
+    def save_relevant_modules(modules: list[str], tool_context: ToolContext) -> str:
+        """Saves the list of relevant modules to session state."""
+        tool_context.session.state["relevant_modules_json"] = json.dumps(
+            {"modules": modules}
+        )
+        return f"Saved {len(modules)} modules."
+
+    save_modules_tool = FunctionTool(save_relevant_modules)
+
+    module_selector_agent = LlmAgent(
+        name="module_selector_agent",
+        model=model,
+        tools=[save_modules_tool],
+        include_contents="none",
+        instruction=(
+            f"You are the Module Selector Agent. Use the provided index to select relevant modules.\n"
+            f"Index:\n{adk_index_content}\n"
+            "Request: {sanitized_user_request}\n"
+            "Analyze the request and select the modules that are most likely to contain the APIs needed."
+            "CRITICAL: Use the `save_relevant_modules` tool to save the list of modules that are most likely to contain the APIs needed."
+        ),
+    )
+    docstring_fetcher_agent = DocstringFetcherAgent(
+        name="docstring_fetcher_agent", tools_helper=tools_helper
+    )
+    return [module_selector_agent, docstring_fetcher_agent]
+
+
+def _create_tool_retrieval_agents(
+    tools_helper: AdkTools, model: str | Gemini
+) -> list[Agent]:
+    """Creates tool-based retrieval agents."""
+    read_tool = FunctionTool(tools_helper.read_file)
+    list_tool = FunctionTool(tools_helper.list_directory)
+    search_tool = FunctionTool(tools_helper.search_files)
+    get_help_tool = FunctionTool(tools_helper.get_module_help)
+
+    module_selector_agent = LlmAgent(
+        name="module_selector_agent",
+        model=model,
+        tools=[read_tool, list_tool, search_tool, get_help_tool],
+        include_contents="none",
+        output_key="knowledge_context",
+        instruction=(
+            "You are the Module Selector Agent. "
+            "Request: {sanitized_user_request}\n"
+            "Your goal is to find relevant information about the ADK codebase to help answer the request. "
+            "Use the available tools (`list_directory`, `search_files`, `get_module_help`) to explore. "
+            "Once you have gathered enough information, summarize the key findings and API definitions relevant to the request. "
+            "Output this summary as natural text. It will be used as the 'Context' for the Planner."
+        ),
+    )
+    return [module_selector_agent]
+
+
 def _create_managed_adk_generator(
     model_name: str,
     api_key_manager: ApiKeyManager | None,
     adk_branch: str,
-    use_index_retrieval: bool,
+    retrieval_agents_factory: Any,
     name_prefix: str,
-    folder_prefix: str
+    folder_prefix: str,
+    use_loop_history: bool = True,
 ) -> AdkAnswerGenerator:
     """
     Internal helper to create a managed ADK generator with environment setup/teardown.
-
-    Args:
-        model_name: The Gemini model to use.
-        api_key_manager: Optional API key manager.
-        adk_branch: Git branch of ADK Python to clone.
-        use_index_retrieval: Whether to use the optimized index-based retrieval (True) or tool-based (False).
-        name_prefix: Prefix for the generator name (e.g., "StructuredWorkflowAdk").
-        folder_prefix: Prefix for the temporary workspace folder.
     """
-    
+
     if not can_use_output_schema_with_tools(model_name):
-        print(f"[WARNING] Native output schema with tools is NOT supported for model '{model_name}'.")
+        print(
+            f"[WARNING] Native output schema with tools is NOT supported for model '{model_name}'."
+        )
 
     workspace_root = Path(tempfile.mkdtemp(prefix=folder_prefix))
     venv_path = workspace_root / "venv"
 
+    # Initialize Tools Helper
+    tools_helper = AdkTools(workspace_root, venv_path=venv_path)
+
+    # Initialize Model
+    if api_key_manager:
+        model = RotatingKeyGemini(model=model_name, api_key_manager=api_key_manager)
+    else:
+        model = model_name
+
+    # Create Retrieval Agents
+    retrieval_agents = retrieval_agents_factory(tools_helper, model)
+
     agent = create_structured_adk_agent(
-        workspace_root, model_name, venv_path=venv_path, api_key_manager=api_key_manager,
-        use_index_retrieval=use_index_retrieval
+        tools_helper=tools_helper,
+        model_name=model_name,
+        api_key_manager=api_key_manager,
+        retrieval_agents=retrieval_agents,
+        use_loop_history=use_loop_history,
     )
 
+    final_name_prefix = name_prefix
+    if not use_loop_history:
+        final_name_prefix += "_No_History"
+
     async def setup_hook():
-        print(f"[{name_prefix}] Setting up workspace at {workspace_root}")
+        print(f"[{final_name_prefix}] Setting up workspace at {workspace_root}")
         workspace_root.mkdir(parents=True, exist_ok=True)
         repos_dir = workspace_root / "repos"
         adk_repo_dir = repos_dir / "adk-python"
         repos_dir.mkdir(exist_ok=True)
 
         if not adk_repo_dir.exists():
-            print(f"[{name_prefix}] Cloning adk-python...")
+            print(f"[{final_name_prefix}] Cloning adk-python...")
             try:
                 subprocess.run(
-                    ["git", "clone", "--branch", adk_branch, "https://github.com/google/adk-python.git", str(adk_repo_dir)],
-                    check=True, capture_output=True, timeout=300
+                    [
+                        "git",
+                        "clone",
+                        "--branch",
+                        adk_branch,
+                        "https://github.com/google/adk-python.git",
+                        str(adk_repo_dir),
+                    ],
+                    check=True,
+                    capture_output=True,
+                    timeout=300,
                 )
             except Exception as e:
                 raise RuntimeError(f"Failed to clone adk-python: {e}")
 
         if not venv_path.exists():
-            print(f"[{name_prefix}] Creating virtual environment...")
-            subprocess.run([os.sys.executable, "-m", "venv", str(venv_path)], check=True, timeout=300)
-            
-            pip_cmd = [str(venv_path / "bin" / "pip"), "install"]
-            subprocess.run(pip_cmd + ["--upgrade", "--quiet", "pip"], check=True, timeout=300)
-            subprocess.run(pip_cmd + ["--quiet", "pytest", "--index-url", "https://pypi.org/simple"], check=True, timeout=300)
-            subprocess.run(pip_cmd + ["--quiet", "-e", str(adk_repo_dir), "--index-url", "https://pypi.org/simple"], check=True, timeout=300)
+            print(f"[{final_name_prefix}] Creating virtual environment...")
+            subprocess.run(
+                [os.sys.executable, "-m", "venv", str(venv_path)],
+                check=True,
+                timeout=300,
+            )
 
-        print(f"[{name_prefix}] Setup complete.")
+            pip_cmd = [str(venv_path / "bin" / "pip"), "install"]
+            subprocess.run(
+                pip_cmd + ["--upgrade", "--quiet", "pip"], check=True, timeout=300
+            )
+            subprocess.run(
+                pip_cmd
+                + ["--quiet", "pytest", "--index-url", "https://pypi.org/simple"],
+                check=True,
+                timeout=300,
+            )
+            subprocess.run(
+                pip_cmd
+                + [
+                    "--quiet",
+                    "-e",
+                    str(adk_repo_dir),
+                    "--index-url",
+                    "https://pypi.org/simple",
+                ],
+                check=True,
+                timeout=300,
+            )
+
+        print(f"[{final_name_prefix}] Setup complete.")
 
     async def teardown_hook():
         if workspace_root.exists() and folder_prefix in str(workspace_root):
@@ -967,26 +1085,9 @@ def _create_managed_adk_generator(
 
     return AdkAnswerGenerator(
         agent=agent,
-        name=f"{name_prefix}({model_name})",
+        name=f"{final_name_prefix}({model_name})",
         setup_hook=setup_hook,
         teardown_hook=teardown_hook,
         api_key_manager=api_key_manager,
     )
 
-def create_baseline_workflow_adk_generator(
-    model_name: str,
-    api_key_manager: ApiKeyManager | None = None,
-    adk_branch: str = "v1.20.0",
-) -> AdkAnswerGenerator:
-    """
-    Factory to create a BASELINE structured workflow agent.
-    This version uses TOOL-BASED knowledge retrieval (search, read_file) instead of the optimized index.
-    It is slower but produces more concise, summarized context for the Planner.
-    Useful for benchmarking against the optimized StructuredWorkflowAdk.
-    """
-    return _create_managed_adk_generator(
-        model_name, api_key_manager, adk_branch, 
-        use_index_retrieval=False, 
-        name_prefix="BaselineWorkflowAdk", 
-        folder_prefix="adk_base_workflow_"
-    )
