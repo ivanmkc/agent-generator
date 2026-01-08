@@ -152,7 +152,7 @@ async def _run_single_benchmark(
                 should_retry = attempt_idx < max_retries
                 
                 # Check for validation error logic
-                is_validation_error = isinstance(original_exception, pydantic.ValidationError)
+                is_validation_error = isinstance(original_exception, (pydantic.ValidationError, ValueError))
                 if is_validation_error and not retry_on_validation_error:
                     should_retry = False
 

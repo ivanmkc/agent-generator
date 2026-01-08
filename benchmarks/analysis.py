@@ -432,6 +432,10 @@ def get_token_usage_stats(results: List[BenchmarkRunResult]) -> pd.DataFrame:
 
             usage = details.get("usage_metadata")
             if not usage:
+                # Fallback: check for "stats" in details (Gemini CLI stream-json format)
+                usage = details.get("stats")
+
+            if not usage:
                 continue
 
             # normalize usage to dict
@@ -442,7 +446,7 @@ def get_token_usage_stats(results: List[BenchmarkRunResult]) -> pd.DataFrame:
                     "total_token_count": getattr(usage, "total_token_count", 0)
                 }
             
-            total = usage.get("total_token_count", 0)
+            total = usage.get("total_token_count") or usage.get("total_tokens") or 0
             if total == 0:
                 continue
 
@@ -460,8 +464,8 @@ def get_token_usage_stats(results: List[BenchmarkRunResult]) -> pd.DataFrame:
                     "benchmark": r.benchmark_name,
                     "generator": r.answer_generator,
                     "author": author,
-                    "prompt_tokens": usage.get("prompt_token_count", 0),
-                    "completion_tokens": usage.get("candidates_token_count", 0),
+                    "prompt_tokens": usage.get("prompt_token_count") or usage.get("input_tokens") or 0,
+                    "completion_tokens": usage.get("candidates_token_count") or usage.get("output_tokens") or 0,
                     "total_tokens": total,
                     "tool_names": set(),
                     "has_text": False

@@ -6,7 +6,9 @@
 - **Model:** `[Injected at Runtime]`
 - **Docker Image:** `gemini-cli:adk-docs-ext`
 
-**Environment:** ADK Python development environment with documentation tools and extensions.
+**Environment:** **Documentation-Augmented Environment:** This environment is pre-configured with the `adk-docs-mcp` extension. 
+*   **Tools:** Provides specialized tools (`fetch_docs`, `list_doc_sources`) via the **custom `adk-docs-mcp` server**. 
+*   **Strategy:** RAG (Retrieval-Augmented Generation) against a static documentation index. It allows the model to look up API details before generating code but does not natively execute agent code for verification.
 
 ---
 
@@ -14,7 +16,8 @@
 - **Model:** `[Injected at Runtime]`
 - **Docker Image:** `gemini-cli:mcp_context7`
 
-**Environment:** Gemini CLI configured with Context7 (semantic search) MCP server.
+**Environment:** **Context7 Semantic Search:** A specialized environment configured with the **`Context7` MCP server**. 
+*   **Tools:** Relies on semantic retrieval tools provided by the `Context7` server to fetch relevant code snippets and documentation chunks based on query intent.
 
 ---
 
@@ -22,7 +25,11 @@
 - **Model:** `[Injected at Runtime]`
 - **Docker Image:** `gemini-cli:mcp_adk_agent_runner_basic`
 
-**Environment:** **Baseline Runner:** A minimal execution environment for ADK agents. It can load and run provided agent code but lacks intrinsic tools for code exploration or documentation lookup. It relies entirely on the model's pre-trained knowledge for API usage.
+**Environment:** **Baseline Agent Runner (Execution-Capable):** A streamlined execution environment designed to *run* ADK agents. 
+*   **Tools:**
+    *   **Built-in (gemini-cli):** `read_file`, `write_file`, `list_directory`.
+    *   **Custom MCP:** `run_adk_agent` (provided by the **`mcp_adk_agent_runner` server**).
+*   **Strategy:** "Code -> Run -> Fix". The model relies on its pre-trained knowledge to generate initial code, then uses the execution tool to verify behavior. It lacks specific tools for code exploration, making it dependent on internal knowledge for API correctness.
 
 ---
 
@@ -30,7 +37,11 @@
 - **Model:** `[Injected at Runtime]`
 - **Docker Image:** `gemini-cli:mcp_adk_agent_runner_smart_search`
 
-**Environment:** **Smart Discovery Runner:** An enhanced environment equipped with active research tools (`pydoc_search`, `source_browser`). It enables the agent to dynamically look up library documentation and inspect source code *during* the generation loop, allowing it to correct hallucinations and find the right imports.
+**Environment:** **Smart Discovery Runner (Research & Execution):** An advanced environment that combines execution capabilities with deep code exploration tools.
+*   **Tools:**
+    *   **Built-in (gemini-cli):** `read_file`, `write_file`, `list_directory`.
+    *   **Custom MCP:** `run_adk_agent`, `get_module_help` (pydoc), and `search_file_content` (grep) — all provided by the **enhanced `mcp_adk_agent_runner` server**.
+*   **Strategy:** "Research -> Code -> Run -> Fix". Before generating code, the model is explicitly instructed (via system prompt) to use the custom research tools to verify import paths and class signatures. This "Mandatory Research Phase" grounds the model in the actual codebase state before execution attempts.
 
 ---
 

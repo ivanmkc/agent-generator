@@ -174,9 +174,9 @@ class GeminiCliAnswerGenerator(GeminiAnswerGenerator):
         if "stats" in cli_response_dict:
             stats = cli_response_dict["stats"]
             usage_metadata = UsageMetadata(
-                total_tokens=stats.get("total_token_count"),
-                prompt_tokens=stats.get("prompt_token_count"),
-                completion_tokens=stats.get("candidates_token_count"),
+                total_tokens=stats.get("total_token_count") or stats.get("total_tokens"),
+                prompt_tokens=stats.get("prompt_token_count") or stats.get("input_tokens"),
+                completion_tokens=stats.get("candidates_token_count") or stats.get("output_tokens"),
             )
 
         # Use our managed key ID if available, otherwise what CLI returned (if any)

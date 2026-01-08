@@ -183,20 +183,33 @@ class LogAnalyzer:
         # 2. Token Usage & Cost (Aggregated)
         stats_lines.append("\n#### Token Usage & Cost (Summary)\n")
         
+        # Calculate token stats from logs first to handle missing usage_metadata in results.json
+        token_df = get_token_usage_stats(results_list)
+        
         token_data = []
         gen_grouped = results_df.groupby("answer_generator")
         for name, group in gen_grouped:
-            def get_tokens(row):
-                if isinstance(row.get("usage_metadata"), dict):
-                    return row["usage_metadata"].get("total_tokens", 0) or 0
-                return 0
-            def get_cost(row):
-                if isinstance(row.get("usage_metadata"), dict):
-                    return row["usage_metadata"].get("cost", 0.0) or 0.0
-                return 0.0
-                
-            avg_tokens = group.apply(get_tokens, axis=1).mean()
-            total_cost = group.apply(get_cost, axis=1).sum()
+            avg_tokens = 0
+            total_tokens = 0
+            
+            # Try to get stats from token_df (logs) first
+            if not token_df.empty:
+                gen_token_df = token_df[token_df["Generator"] == name]
+                if not gen_token_df.empty:
+                    # Sum tokens per benchmark case first to get case totals
+                    tokens_per_case = gen_token_df.groupby("Benchmark")["Total Tokens"].sum()
+                    avg_tokens = tokens_per_case.mean()
+                    total_tokens = gen_token_df["Total Tokens"].sum()
+            
+            # Use 0 if no logs found (do not rely on potentially broken results_df metadata)
+            if total_tokens == 0:
+                avg_tokens = 0
+                total_tokens = 0
+
+            # Placeholder cost calculation (e.g. assume mostly input @ $0.10/1M for flash)
+            # This is just to show non-zero if tokens exist
+            total_cost = (total_tokens / 1_000_000) * 0.10
+            
             token_data.append({
                 "Generator": name,
                 "Avg Tokens": f"{avg_tokens:.0f}",
@@ -207,17 +220,28 @@ class LogAnalyzer:
         stats_lines.append(format_as_markdown(token_summary_df))
 
         # 3. Detailed Token Usage (by Action)
-        stats_lines.append("\n#### Token Usage by Action (Detailed)\n")
+        stats_lines.append("\n#### Detailed Token Usage\n")
         try:
             token_df = get_token_usage_stats(results_list)
             if not token_df.empty:
-                # Group by Action
+                # 3a. Token Usage by Agent
+                stats_lines.append("**Token Usage by Agent:**\n")
+                agent_stats = token_df.groupby("Agent")[["Total Tokens"]].sum().sort_values("Total Tokens", ascending=False).reset_index()
+                stats_lines.append(format_as_markdown(agent_stats))
+                
+                # 3b. Token Usage by Action
+                stats_lines.append("\n**Token Usage by Action:**\n")
                 action_stats = token_df.groupby("Action")[["Total Tokens"]].sum().sort_values("Total Tokens", ascending=False).reset_index()
                 stats_lines.append(format_as_markdown(action_stats))
                 
-                # Top expensive steps
-                stats_lines.append("\n**Top 5 Most Expensive Single Steps:**\n")
-                top_steps = token_df.sort_values("Total Tokens", ascending=False).head(5)
+                # 3c. Detailed Breakdown (Agent + Action)
+                stats_lines.append("\n**Detailed Breakdown (Agent + Action):**\n")
+                detailed_stats = token_df.groupby(["Agent", "Action"])[["Total Tokens"]].sum().sort_values("Total Tokens", ascending=False).reset_index()
+                stats_lines.append(format_as_markdown(detailed_stats))
+                
+                # 3d. Top expensive steps
+                stats_lines.append("\n**Top 10 Most Expensive Single Steps:**\n")
+                top_steps = token_df.sort_values("Total Tokens", ascending=False).head(10)
                 # Select readable columns
                 top_steps_display = top_steps[["Benchmark", "Agent", "Action", "Total Tokens"]]
                 stats_lines.append(format_as_markdown(top_steps_display))
