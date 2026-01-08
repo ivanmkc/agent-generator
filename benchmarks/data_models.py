@@ -94,6 +94,11 @@ class BaseBenchmarkCase(pydantic.BaseModel, abc.ABC):
         """Returns the ground truth answer for the benchmark case, if applicable."""
         raise NotImplementedError
 
+    @abc.abstractmethod
+    def get_unfixed_code(self) -> Optional[str]:
+        """Returns the original, unfixed code for the benchmark case, if applicable."""
+        raise NotImplementedError
+
 
 class FixErrorBenchmarkCase(BaseBenchmarkCase):
     """Represents a single fix_error benchmark case, where the model needs to correct or complete a Python code snippet."""
@@ -127,6 +132,11 @@ class FixErrorBenchmarkCase(BaseBenchmarkCase):
     def get_ground_truth(self) -> Optional[str]:
         if self.fixed_file and self.fixed_file.exists():
             return self.fixed_file.read_text(encoding="utf-8")
+        return None
+
+    def get_unfixed_code(self) -> Optional[str]:
+        if self.unfixed_file and self.unfixed_file.exists():
+            return self.unfixed_file.read_text(encoding="utf-8")
         return None
 
 
@@ -216,6 +226,9 @@ class ApiUnderstandingBenchmarkCase(BaseBenchmarkCase):
             return self.answers[0].answer
         return None
 
+    def get_unfixed_code(self) -> Optional[str]:
+        return None
+
 
 class MultipleChoiceBenchmarkCase(BaseBenchmarkCase):
     """Represents a single multiple choice benchmark case, where the model selects the correct option from a list."""
@@ -249,6 +262,9 @@ class MultipleChoiceBenchmarkCase(BaseBenchmarkCase):
 
     def get_ground_truth(self) -> Optional[str]:
         return self.correct_answer
+
+    def get_unfixed_code(self) -> Optional[str]:
+        return None
 
 
 BenchmarkCase = Annotated[
@@ -332,6 +348,14 @@ class UsageMetadata(pydantic.BaseModel):
     completion_tokens: Optional[int] = None
     cost: Optional[float] = None
     total_time: Optional[float] = None
+    extra_tags: dict[str, Any] = Field(
+        default_factory=dict, description="Additional metadata key-value pairs (e.g., loop exit reason)."
+    )
+
+    @pydantic.field_validator("extra_tags", mode="before")
+    @classmethod
+    def default_none_to_dict(cls, v: Any) -> dict[str, Any]:
+        return v or {}
 
 
 class TraceLogEvent(pydantic.BaseModel):
@@ -492,6 +516,18 @@ class GenerationAttempt(pydantic.BaseModel):
     api_key_id: Optional[str] = Field(
         None, description="ID of the API key used, if known."
     )
+    trace_logs: Optional[list[TraceLogEvent]] = Field(
+        None, description="Detailed trace logs for this specific attempt."
+    )
+    answer: Optional[str] = Field(
+        None, description="The answer produced in this attempt (if any)."
+    )
+    rationale: Optional[str] = Field(
+        None, description="The rationale produced in this attempt (if any)."
+    )
+    usage_metadata: Optional[UsageMetadata] = Field(
+        None, description="Resource usage for this attempt."
+    )
 
 
 class BenchmarkGenerationError(Exception):
@@ -507,11 +543,22 @@ class BenchmarkGenerationError(Exception):
         message (str): A human-readable message describing the error.
         original_exception (Exception): The underlying exception that caused this error.
         api_key_id (Optional[str]): The ID of the API key that was being used when the failure occurred.
+        trace_logs (Optional[list[TraceLogEvent]]): Partial trace logs captured before failure.
+        usage_metadata (Optional[UsageMetadata]): Resource usage captured before failure.
     """
-    def __init__(self, message: str, original_exception: Exception, api_key_id: Optional[str] = None):
+    def __init__(
+        self, 
+        message: str, 
+        original_exception: Exception, 
+        api_key_id: Optional[str] = None,
+        trace_logs: Optional[list["TraceLogEvent"]] = None,
+        usage_metadata: Optional["UsageMetadata"] = None
+    ):
         super().__init__(message)
         self.original_exception = original_exception
         self.api_key_id = api_key_id
+        self.trace_logs = trace_logs
+        self.usage_metadata = usage_metadata
 
 
 class BenchmarkRunResult(pydantic.BaseModel):
@@ -537,6 +584,10 @@ class BenchmarkRunResult(pydantic.BaseModel):
         description=(
             "The name or identifier of the generator that produced the answer."
         ),
+    )
+    generator_description: Optional[str] = Field(
+        None,
+        description="A detailed description of the generator's configuration and purpose.",
     )
     status: BenchmarkResultType = Field(
         ..., description="The detailed classification of the result."
@@ -586,9 +637,11 @@ class BenchmarkRunResult(pydantic.BaseModel):
         None, description="Statistics about token usage and cost for the run."
     )
     ground_truth: Optional[str] = Field(
-        None,
-        description=("The expected correct answer or code (e.g. content of fixed.py)."),
+        None, description="The ground truth answer used for verification."
+    )
+    unfixed_code: Optional[str] = Field(
+        None, description="The original, unfixed code for the benchmark case (if applicable)."
     )
     generation_attempts: Optional[list[GenerationAttempt]] = Field(
-        None, description="History of all answer generation attempts."
+        None, description="History of generation attempts for this benchmark."
     )

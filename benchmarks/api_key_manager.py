@@ -55,10 +55,24 @@ class ApiKeyManager:
     Persists key health statistics to disk to optimize usage across runs.
     """
 
-    def __init__(self):
+    def __init__(
+        self,
+        quota_cooldown_base: float = 5.0,
+        quota_cooldown_max: float = 300.0,
+        generic_cooldown: float = 5.0,
+    ):
         """
         Initializes the ApiKeyManager and loads all configured API key pools.
+
+        Args:
+            quota_cooldown_base: Base seconds for quota error backoff.
+            quota_cooldown_max: Maximum seconds for quota error backoff.
+            generic_cooldown: Seconds for generic error cooldown.
         """
+        self.quota_cooldown_base = quota_cooldown_base
+        self.quota_cooldown_max = quota_cooldown_max
+        self.generic_cooldown = generic_cooldown
+
         self._key_stats: Dict[KeyType, Dict[str, KeyStats]] = {}
         # We keep a simple cycle iterator as a fallback/baseline for round-robin
         self._pools: Dict[KeyType, itertools.cycle] = {}
@@ -303,10 +317,9 @@ class ApiKeyManager:
                         f"{Fore.RED}[ApiKeyManager] Key {key_id} marked DEAD (Auth error).{Style.RESET_ALL}"
                     )
                 elif is_quota:
-                    # Exponential backoff: 5s, 10s, 20s...
-                    # Default to 5s for first quota hit
-                    penalty = 5 * (2 ** max(0, key_stat.consecutive_failures - 1))
-                    penalty = min(penalty, 300)  # Max 5 minutes
+                    # Exponential backoff: base, base*2, base*4...
+                    penalty = self.quota_cooldown_base * (2 ** max(0, key_stat.consecutive_failures - 1))
+                    penalty = min(penalty, self.quota_cooldown_max)
                     key_stat.status = KeyStatus.COOLDOWN
                     key_stat.cooldown_until = now + penalty
                     print(
@@ -316,9 +329,9 @@ class ApiKeyManager:
                     # Generic error (timeout, 500)
                     # Short cooldown
                     key_stat.status = KeyStatus.COOLDOWN
-                    key_stat.cooldown_until = now + 5  # 5s pause
+                    key_stat.cooldown_until = now + self.generic_cooldown
                     print(
-                        f"{Fore.YELLOW}[ApiKeyManager] Key {key_id} short cooldown (Generic Error).{Style.RESET_ALL}"
+                        f"{Fore.YELLOW}[ApiKeyManager] Key {key_id} short cooldown (Generic Error): {error_message}{Style.RESET_ALL}"
                     )
 
             self._save_stats()
