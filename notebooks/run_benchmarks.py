@@ -52,8 +52,55 @@ pd.set_option("display.max_colwidth", None)
 pd.set_option("display.max_rows", None)
 
 
+def save_static_metadata(
+    output_dir: Path,
+    generators: List[AnswerGenerator],
+    suites_paths: List[str]
+) -> None:
+    """Saves static metadata about generators and suites to a JSON file."""
+    
+    # Extract Generator Metadata
+    gen_meta_list = []
+    for g in generators:
+        model_name = getattr(g, "model_name", "Unknown")
+        desc = getattr(g, "description", "No description provided.")
+        image_name = getattr(g, "image_name", None)
+        
+        gen_meta_list.append({
+            "name": g.name,
+            "model_name": model_name,
+            "description": desc,
+            "image_name": image_name
+        })
+
+    # Extract Suite Metadata
+    suite_meta_list = []
+    for s_path in suites_paths:
+        path_obj = Path(s_path)
+        name = path_obj.parent.name
+        
+        suite_meta_list.append({
+            "name": name,
+            "path": s_path
+        })
+
+    metadata = {
+        "timestamp": datetime.now().isoformat(),
+        "generators": gen_meta_list,
+        "suites": suite_meta_list
+    }
+    
+    output_path = output_dir / "run_metadata.json"
+    try:
+        with open(output_path, "w", encoding="utf-8") as f:
+            json.dump(metadata, f, indent=2)
+    except Exception as e:
+        print(f"Failed to save run metadata: {e}")
+
+
 async def run_comparison(
     logger: CompositeLogger, 
+    run_output_dir: Path,
     selected_suite: Optional[str] = None,
     selected_generator_filter: Optional[str] = None,
     selected_model_filter: Optional[str] = None,
@@ -109,6 +156,9 @@ async def run_comparison(
 
     if not answer_generators:
          logger.log_message(f"Warning: No generators matched the provided filters (gen: {selected_generator_filter}, model: {selected_model_filter}).")
+
+    # Save Static Metadata
+    save_static_metadata(run_output_dir, answer_generators, benchmark_suites)
 
     logger.log_message(f"Executing benchmarks with {len(answer_generators)} generators on {len(benchmark_suites)} suites...")
 
@@ -239,6 +289,7 @@ async def main():
     # Execute the benchmarks
     benchmark_run_results = await run_comparison(
         logger=logger, 
+        run_output_dir=run_output_dir,
         selected_suite=args.suite_filter,
         selected_generator_filter=args.generator_filter,
         selected_model_filter=args.model_filter,

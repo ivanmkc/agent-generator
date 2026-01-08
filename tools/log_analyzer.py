@@ -150,6 +150,27 @@ class LogAnalyzer:
 
         print(f"Analyzing log file: {log_path}")
         
+        # Load Static Metadata if available
+        run_dir = log_path.parent
+        metadata_path = run_dir / "run_metadata.json"
+        static_context = "No static configuration metadata available."
+        
+        if metadata_path.exists():
+            try:
+                with open(metadata_path, "r", encoding="utf-8") as f:
+                    meta = json.load(f)
+                    
+                # Format a nice summary string
+                gens = meta.get("generators", [])
+                suites = meta.get("suites", [])
+                
+                gen_text = "\n".join([f"- **{g['name']}** ({g.get('model_name')})\n  Description: {g.get('description')}" for g in gens])
+                suite_text = "\n".join([f"- **{s['name']}** (Path: {s['path']})" for s in suites])
+                
+                static_context = f"**Generators Configured:**\n{gen_text}\n\n**Benchmark Suites:**\n{suite_text}"
+            except Exception as e:
+                print(f"Error loading run_metadata.json: {e}")
+
         # 1. Parse Structure
         nodes = self._parse_log_file(log_path)
         if not nodes:
@@ -161,7 +182,7 @@ class LogAnalyzer:
         node_analyses = await self._analyze_nodes(nodes)
 
         # 3. Reduce: Synthesize the final report
-        final_summary = await self._reduce_analyses(node_analyses)
+        final_summary = await self._reduce_analyses(node_analyses, static_context)
         
         return final_summary
 
@@ -209,7 +230,7 @@ class LogAnalyzer:
             print(f"Error analyzing node {node.name}: {e}")
             return f"Error analyzing node {node.name}: {e}"
 
-    async def _reduce_analyses(self, analyses: List[str]) -> str:
+    async def _reduce_analyses(self, analyses: List[str], static_context: str = "") -> str:
         """
         Aggregates per-node analyses into a final report.
         """
@@ -222,9 +243,9 @@ class LogAnalyzer:
                 prompt_template = f.read()
         else:
              # Fallback
-             prompt_template = "Synthesize these analyses into a report: {combined_text}"
+             prompt_template = "Synthesize these analyses into a report: {combined_text}\nContext: {static_context}"
 
-        prompt = prompt_template.format(combined_text=combined_text)
+        prompt = prompt_template.format(combined_text=combined_text, static_context=static_context)
 
         try:
             client = self._get_client()

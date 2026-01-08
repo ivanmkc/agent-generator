@@ -29,6 +29,9 @@ For each generator found in the logs, provide a dedicated sub-section:
 ## 5. Recommendations
 *   Actionable steps to fix errors or improve performance.
 
+**Configuration Context:**
+{static_context}
+
 --- COMPONENT ANALYSES START ---
 {combined_text}
 --- COMPONENT ANALYSES END ---
