@@ -375,7 +375,7 @@ class LogAnalyzer:
         Focus on:
         1. Performance summary (Stability, patterns).
         2. Effectiveness of context/docs provided.
-        3. Tool usage (effective vs errors). Use the 'Computed Tool Usage Stats' above as a ground truth for quantitative counts.
+        3. Tool usage (effective vs errors). Use the 'Computed Tool Usage Stats' above as the authoritative reference for quantitative counts.
         4. General error types.
         
         Logs:
