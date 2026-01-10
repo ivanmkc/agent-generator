@@ -148,40 +148,47 @@ async def run_comparison(
         "benchmarks/benchmark_definitions/predict_runtime_behavior_mc/benchmark.yaml",
     ]
 
+    # Helper for multi-value filtering
+    def matches_filter(target: str, filter_str: Optional[str]) -> bool:
+        if not filter_str:
+            return True
+        filters = [f.strip() for f in filter_str.split(",") if f.strip()]
+        return any(f in target for f in filters)
+
     if selected_suite == "debug":
         benchmark_suites = [debug_suite]
-    elif selected_suite:
-        # Allow filtering by name from all available suites
-        all_suites = standard_suites + [debug_suite]
-        benchmark_suites = [s for s in all_suites if selected_suite in s]
-        if not benchmark_suites:
-            raise ValueError(f"Specified suite filter '{selected_suite}' matched no suites.")
     else:
         # Default: Run all standard suites (exclude debug)
-        benchmark_suites = standard_suites
+        all_suites = standard_suites + [debug_suite]
+        # Apply filter if present
+        if selected_suite:
+             benchmark_suites = [s for s in all_suites if matches_filter(s, selected_suite)]
+             if not benchmark_suites:
+                raise ValueError(f"Specified suite filter '{selected_suite}' matched no suites.")
+        else:
+             benchmark_suites = standard_suites
 
     # Filter generators
     answer_generators: list[AnswerGenerator] = []
     
     # Start with all candidates
-    answer_generators = CANDIDATE_GENERATORS
+    all_candidates = CANDIDATE_GENERATORS
     
-    # Filter by generator name
-    if selected_generator_filter:
-        answer_generators = [
-            g for g in answer_generators 
-            if selected_generator_filter in g.name
-        ]
+    for g in all_candidates:
+        # Check Generator Name Filter
+        if not matches_filter(g.name, selected_generator_filter):
+            continue
+            
+        # Check Model Name Filter
+        g_model = getattr(g, "model_name", "Unknown")
+        # Handle enum or string
+        if hasattr(g_model, "value"): 
+            g_model = g_model.value
         
-    # Filter by model name (if implemented on the generator)
-    if selected_model_filter:
-        filtered_by_model = []
-        for g in answer_generators:
-             # Most generators have a model_name attribute
-             g_model = getattr(g, "model_name", "").lower()
-             if selected_model_filter.lower() in g_model:
-                 filtered_by_model.append(g)
-        answer_generators = filtered_by_model
+        if not matches_filter(str(g_model), selected_model_filter):
+            continue
+            
+        answer_generators.append(g)
 
     if not answer_generators:
          logger.log_message(f"Warning: No generators matched the provided filters (gen: {selected_generator_filter}, model: {selected_model_filter}).")

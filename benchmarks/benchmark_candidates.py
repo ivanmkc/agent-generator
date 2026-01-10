@@ -8,6 +8,7 @@ from benchmarks.answer_generators.adk_agents import (
     create_structured_workflow_adk_generator,
     create_baseline_workflow_adk_generator
 )
+from benchmarks.answer_generators.debug_adk_agents import create_react_workflow_adk_generator
 from benchmarks.answer_generators.gemini_cli_docker import (
     GeminiCliPodmanAnswerGenerator,
 )
@@ -56,10 +57,12 @@ CANDIDATE_GENERATORS.extend([
         model_name=ModelName.GEMINI_2_5_FLASH,
         api_key_manager=api_key_manager
     ),
+    
     create_structured_workflow_adk_generator(
         model_name=ModelName.GEMINI_2_5_FLASH,
         api_key_manager=api_key_manager
     ),
+
     # Variant with history disabled
     create_structured_workflow_adk_generator(
         model_name=ModelName.GEMINI_2_5_FLASH,
@@ -67,6 +70,11 @@ CANDIDATE_GENERATORS.extend([
         use_loop_history=False
     ),
     create_baseline_workflow_adk_generator(
+        model_name=ModelName.GEMINI_2_5_FLASH,
+        api_key_manager=api_key_manager
+    ),
+    # ReAct Workflow (Statistical - Exp 20)
+    create_react_workflow_adk_generator(
         model_name=ModelName.GEMINI_2_5_FLASH,
         api_key_manager=api_key_manager
     )

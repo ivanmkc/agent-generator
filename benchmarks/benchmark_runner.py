@@ -31,7 +31,7 @@ from typing import TypeVar
 from benchmarks.data_models import (
     ApiUnderstandingBenchmarkCase,
     MultipleChoiceBenchmarkCase,
-)  # Moved from within runner properties
+)
 from benchmarks.data_models import BaseBenchmarkCase
 from benchmarks.data_models import BenchmarkResultType
 from benchmarks.data_models import FixErrorBenchmarkCase
