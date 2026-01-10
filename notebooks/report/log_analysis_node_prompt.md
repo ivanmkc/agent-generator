@@ -11,6 +11,7 @@ Block Name: {node_name}
 
 Focus on extracting the following details for Root Cause Analysis:
 1. **Execution Summary**: 
+   - **Breakdown by Suite**: Provide a distinct summary for EACH suite (e.g., 'api_understanding', 'fix_errors'). Do not lump them together.
    - Observe the ratio of Case-level passes vs. Attempt-level successes.
    - Note if many cases required multiple attempts to pass.
    - General assessment of output quality.

@@ -7,6 +7,8 @@ from typing import List, Dict, Any, Optional
 
 import pandas as pd
 import pydantic
+from pydantic import BaseModel, Field
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 
 # Add project root to sys.path to allow imports from benchmarks when running directly
 project_root = str(Path(__file__).resolve().parent.parent.parent)
@@ -15,7 +17,7 @@ if project_root not in sys.path:
 
 from google.genai import Client, types
 from benchmarks.api_key_manager import API_KEY_MANAGER, KeyType
-from benchmarks.data_models import BenchmarkRunResult
+from benchmarks.data_models import BenchmarkRunResult, TraceEventType
 from benchmarks.analysis import (
     process_results,
     get_token_usage_stats,
@@ -23,13 +25,29 @@ from benchmarks.analysis import (
     format_as_markdown
 )
 
+# --- Pydantic Models for Structured Report ---
+
+class GeneratorAnalysisSection(BaseModel):
+    generator_name: str = Field(..., description="Name of the generator.")
+    performance_summary: str = Field(..., description="Summary of performance (Stability, Retry patterns, etc.).")
+    docs_context_analysis: str = Field(..., description="Analysis of Docs/Context injection effectiveness.")
+    tool_usage_analysis: str = Field(..., description="Analysis of tool usage effectiveness and errors.")
+    general_error_analysis: str = Field(..., description="Analysis of general errors (logic, syntax, etc.) with embedded examples.")
+
+class HighLevelInsights(BaseModel):
+    executive_summary: str = Field(..., description="High-level overview of the session, organized by Generator and Suite.")
+    cross_generator_comparison: str = Field(..., description="Comparison on Quality, Efficiency, Latency, and Stability.")
+    recommendations: List[str] = Field(..., description="List of actionable recommendations.")
+
+# ---------------------------------------------
+
 class LogAnalyzer:
     """
     Analyzes benchmark logs using Gemini to provide insights and summaries.
     Uses pandas to group results by Generator -> Suite -> Case -> Attempt.
     """
 
-    def __init__(self, model_name: str = "gemini-3-pro-preview"):
+    def __init__(self, model_name: str = "gemini-2.0-flash-lite"):
         self.model_name = model_name
 
     def _get_client(self):
@@ -39,13 +57,36 @@ class LogAnalyzer:
             raise ValueError("No API key available for LogAnalyzer.")
         return Client(api_key=api_key)
 
-    async def _generate_content(self, prompt: str) -> str:
-        """Generates content using the Gemini API."""
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=2, min=4, max=20),
+        retry=retry_if_exception_type(Exception) # The SDK usually raises generic Exception or specific APIError
+    )
+    async def _generate_content(self, prompt: str, schema: Any = None) -> Any:
+        """Generates content using the Gemini API, optionally enforcing a schema."""
         client = self._get_client()
+        
+        config = {}
+        if schema:
+            config = types.GenerateContentConfig(
+                response_mime_type="application/json",
+                response_schema=schema
+            )
+
         response = await client.aio.models.generate_content(
             model=self.model_name,
-            contents=[types.Content(parts=[types.Part(text=prompt)])]
+            contents=[types.Content(parts=[types.Part(text=prompt)])],
+            config=config
         )
+        
+        if schema:
+             # If schema is used, parse the JSON response
+             try:
+                 return schema.model_validate_json(response.text)
+             except Exception as e:
+                 print(f"Error parsing JSON response: {e}")
+                 raise e
+        
         return response.text
 
     def _parse_generator_internals(self, md_content: str) -> Dict[str, str]:
@@ -76,7 +117,6 @@ class LogAnalyzer:
         if image_name:
             return f"GeminiCliPodman: {image_name}"
         
-        # Fallback for ADK/Other: usually name prefix before parens
         if "(" in name:
             return name.split("(")[0]
         return name
@@ -86,10 +126,8 @@ class LogAnalyzer:
         Loads and merges run_metadata.json (runtime params) and generator_internals.md (static scaffolding).
         """
         metadata_path = run_dir / "run_metadata.json"
-        # Look for the file in the run directory first, then fallback to the report directory
         internals_path = run_dir / "generator_internals.md"
         if not internals_path.exists():
-             # Fallback to the source location if not copied to run dir yet (e.g. during dev)
              internals_path = Path("notebooks/report/generator_internals.md")
         
         if not metadata_path.exists():
@@ -109,7 +147,6 @@ class LogAnalyzer:
             except Exception as e:
                 print(f"Error loading generator_internals.md: {e}")
 
-        # Construct Context
         context_parts = ["# Generator Internals (Runtime Actualized)\n"]
         generators = meta.get("generators", [])
         
@@ -120,17 +157,16 @@ class LogAnalyzer:
             
             context_parts.append(f"### {name}")
             
-            # Inject Description from Archetype
             if key in archetypes:
                 desc = archetypes[key]
-                # Replace placeholder
                 desc = desc.replace("[Injected at Runtime]", model)
                 context_parts.append(desc)
             else:
                 context_parts.append(f"**Model:** `{model}`")
+                context_parts.append(f"**Archetype Key:** `{key}`")
                 context_parts.append("\n(No detailed static description found for this generator archetype.)\n")
             
-            context_parts.append("---\n")
+            context_parts.append("\n")
             
         return "\n".join(context_parts)
 
@@ -139,82 +175,62 @@ class LogAnalyzer:
         if results_df.empty:
             return "No quantitative results available."
 
-        stats_lines = ["### Quantitative Summary (Ground Truth)\n"]
+        stats_lines = ["### 4. Quantitative Analysis\n"]
         
-        # Calculate token stats from logs
+        stats_lines.append("#### Metric Definitions & Methodology\n")
+        stats_lines.append("| Metric | Definition | Calculation |")
+        stats_lines.append("| :--- | :--- | :--- |")
+        stats_lines.append("| **Overall Pass Rate** | Percentage of benchmark cases where the generator produced a correct, passing answer (Score = 1). | `(Passed Cases / Total Cases) * 100` |")
+        stats_lines.append("| **Avg Latency** | Average execution time for *passing* cases only. | `Mean(Duration)` of successful runs. |")
+        stats_lines.append("| **Est. Cost** | Estimated total cost based on token usage across all attempts (success + fail). | `(Total Tokens / 1,000,000) * $0.10` (Blended Input/Output Rate for Gemini 2.5 Flash). |")
+        stats_lines.append("\n")
+
         token_df = get_token_usage_stats(results_list)
+        all_suites = sorted(results_df["suite"].unique())
         
-        # Group by generator and suite
-        grouped = results_df.groupby(["answer_generator", "suite"])
-        
-        summary_data = []
-        
-        for (gen_name, suite_name), group in grouped:
+        leaderboard_data = []
+        for gen_name, group in results_df.groupby("answer_generator"):
             total_cases = len(group)
             passed_cases = group["result"].sum()
-            case_pass_rate = (passed_cases / total_cases) * 100 if total_cases > 0 else 0
+            pass_rate = (passed_cases / total_cases) * 100 if total_cases > 0 else 0
             
-            # Calculate attempt-level stats
-            all_attempts = []
-            for att_list in group["generation_attempts"]:
-                if isinstance(att_list, list):
-                    all_attempts.extend(att_list)
-            
-            total_attempts = len(all_attempts)
-            successful_attempts = sum(1 for a in all_attempts if (a.get('status') if isinstance(a, dict) else getattr(a, 'status', '')) == 'success')
-            attempt_pass_rate = (successful_attempts / total_attempts) * 100 if total_attempts > 0 else 0
-            
-            # Calculate Avg Latency (Success Only)
             success_latency = group[group["result"] == 1]["latency"].mean()
             if pd.isna(success_latency): success_latency = 0.0
             
-            # Calculate Avg Tokens (Success Only)
-            avg_tokens = 0
+            total_tokens = 0
             if not token_df.empty:
-                # Filter for this generator
-                gen_token_df = token_df[token_df["Generator"] == gen_name]
-                # Filter for benchmarks in this suite that PASSED
-                successful_benchmarks = group[group["result"] == 1]["benchmark_name"].unique()
-                
-                if len(successful_benchmarks) > 0 and not gen_token_df.empty:
-                    # Sum tokens for these specific benchmark cases
-                    relevant_tokens = gen_token_df[gen_token_df["Benchmark"].isin(successful_benchmarks)]["Total Tokens"].sum()
-                    avg_tokens = relevant_tokens / len(successful_benchmarks)
+                gen_tokens = token_df[token_df["Generator"] == gen_name]
+                total_tokens = gen_tokens["Total Tokens"].sum()
             
-            # Total Cost (All attempts)
-            total_tokens_all = 0
-            if not token_df.empty:
-                # Filter for this generator and suite benchmarks (all attempts)
-                suite_benchmarks = group["benchmark_name"].unique()
-                gen_suite_tokens = token_df[
-                    (token_df["Generator"] == gen_name) & 
-                    (token_df["Benchmark"].isin(suite_benchmarks))
-                ]
-                total_tokens_all = gen_suite_tokens["Total Tokens"].sum()
+            cost = (total_tokens / 1_000_000) * 0.10
             
-            # Cost Estimate: $0.10 per 1M tokens (Blended Input/Output for Gemini 2.5 Flash)
-            estimated_cost = (total_tokens_all / 1_000_000) * 0.10
-
-            summary_data.append({
+            entry = {
                 "Generator": gen_name,
-                "Suite": suite_name,
-                "Cases": total_cases,
-                "Passed": passed_cases,
-                "Case Pass Rate": f"{case_pass_rate:.1f}%",
-                "Total Attempts": total_attempts,
-                "Attempt Success Rate": f"{attempt_pass_rate:.1f}%",
-                "Avg Latency (Success)": f"{success_latency:.2f}s",
-                "Avg Tokens (Success)": f"{avg_tokens:.0f}",
-                "Est. Cost": f"${estimated_cost:.4f}"
-            })
+                "Overall Pass Rate": f"{pass_rate:.1f}%",
+                "Avg Latency": f"{success_latency:.2f}s",
+                "Est. Cost": f"${cost:.3f}"
+            }
             
-        summary_df = pd.DataFrame(summary_data)
-        stats_lines.append(format_as_markdown(summary_df))
-        
-        stats_lines.append("\n*Note: 'Avg Latency' and 'Avg Tokens' are calculated per successful benchmark case. 'Est. Cost' includes all attempts (success + failure) assuming a blended rate of $0.10 per 1M tokens.*\n")
+            for suite in all_suites:
+                suite_group = group[group["suite"] == suite]
+                if not suite_group.empty:
+                    s_passed = suite_group["result"].sum()
+                    s_total = len(suite_group)
+                    s_rate = (s_passed / s_total) * 100
+                    entry[suite] = f"{s_rate:.1f}%"
+                else:
+                    entry[suite] = "-"
+            
+            leaderboard_data.append(entry)
+            
+        leaderboard_df = pd.DataFrame(leaderboard_data).sort_values("Overall Pass Rate", ascending=False)
+        stats_lines.append(format_as_markdown(leaderboard_df))
+        stats_lines.append("\n")
 
-        # Tool Success Rates
-        stats_lines.append("\n#### Tool Success Rates\n")
+        # 3. Tool Success & Impact
+        stats_lines.append("#### Tool Success & Impact\n")
+        stats_lines.append("Methodology: 'Success Rate' is the % of tool calls without exceptions. 'Lift' compares case pass rates with vs. without tool usage.\n")
+        
         try:
             tool_df = get_tool_success_stats(results_list)
             if not tool_df.empty:
@@ -229,52 +245,78 @@ class LogAnalyzer:
                     "success_rate": "Success Rate",
                     "lift": "Lift"
                 })
-                stats_lines.append(format_as_markdown(tool_df))
+                # Select relevant columns
+                display_cols = ["Tool", "Times Used", "Success Rate", "Lift"]
+                stats_lines.append(format_as_markdown(tool_df[display_cols]))
             else:
                 stats_lines.append("No tool usage detected.")
         except Exception as e:
             stats_lines.append(f"Error calculating tool stats: {e}")
-        
+        stats_lines.append("\n")
+
         return "\n".join(stats_lines)
 
     def _format_generator_logs(self, generator_name: str, results_list: List[BenchmarkRunResult]) -> str:
         """
         Formats the execution logs for a specific generator into a structured text block for the LLM.
-        Groups by Suite -> Case -> Attempts.
         """
-        lines = [f"GENERATOR: {generator_name}"]
+        MAX_TOTAL_CHARS = 50_000
+        MAX_ERROR_CHARS = 2000
         
-        # Convert to DF for easier grouping
+        lines = [f"GENERATOR: {generator_name}"]
+        current_chars = len(lines[0])
+        
         df = pd.DataFrame([r.model_dump() for r in results_list])
         
         if df.empty:
             return f"No results found for generator: {generator_name}"
 
-        # Clean suite names
         if "suite" in df.columns:
             df["suite"] = df["suite"].apply(lambda x: Path(x).parent.name)
         else:
             df["suite"] = "unknown_suite"
 
         for suite_name, suite_group in df.groupby("suite"):
-            lines.append(f"\nSUITE: {suite_name}")
+            if current_chars > MAX_TOTAL_CHARS:
+                lines.append(f"\n[TRUNCATED REMAINING LOGS DUE TO SIZE LIMIT ({MAX_TOTAL_CHARS} chars)]")
+                break
+                
+            total = len(suite_group)
+            passed = suite_group["result"].sum()
+            rate = (passed / total) * 100 if total > 0 else 0
+            
+            suite_header = f"\nSUITE: {suite_name} (Pass Rate: {rate:.1f}% - {passed}/{total})"
+            lines.append(suite_header)
+            current_chars += len(suite_header)
             
             for _, row in suite_group.iterrows():
+                if current_chars > MAX_TOTAL_CHARS:
+                    break
+                    
                 case_name = row["benchmark_name"]
                 result = "PASS" if row["result"] == 1 else "FAIL"
                 icon = "✅" if row["result"] == 1 else "❌"
                 
-                lines.append(f"\n  CASE: {case_name} -> {icon} {result}")
+                case_line = f"\n  CASE: {case_name} -> {icon} {result}"
+                lines.append(case_line)
+                current_chars += len(case_line)
+
+                if row["result"] == 0:
+                    gt = f"    Ground Truth: {row['ground_truth']}"
+                    ans = f"    Model Answer: {str(row['answer'])[:200]}..."
+                    lines.append(gt)
+                    lines.append(ans)
+                    current_chars += len(gt) + len(ans)
                 
                 if row["validation_error"]:
-                    lines.append(f"    Validation Error: {row['validation_error']}")
+                    val_err = f"    Validation Error: {row['validation_error']}"
+                    lines.append(val_err)
+                    current_chars += len(val_err)
                 
-                # Attempts
                 attempts = row.get("generation_attempts", [])
                 if attempts:
                     lines.append("    Attempts:")
                     for att in attempts:
-                        # Handle attempt being dict (from model_dump) or object
                         if isinstance(att, dict):
                             a_num = att.get("attempt_number")
                             a_status = att.get("status")
@@ -286,72 +328,117 @@ class LogAnalyzer:
                             a_dur = att.duration
                             a_err = att.error_message
                             
-                        lines.append(f"      Attempt {a_num}: {a_status.upper()} ({a_dur:.2f}s)")
+                        att_line = f"      Attempt {a_num}: {a_status.upper()} ({a_dur:.2f}s)"
+                        lines.append(att_line)
+                        current_chars += len(att_line)
+                        
+                        # Add tool usage summary
+                        # Handle trace_logs access safely (dict vs object)
+                        logs = att.get("trace_logs", []) if isinstance(att, dict) else (att.trace_logs or [])
+                        
+                        # print(f"[DEBUG] Attempt {a_num}: {len(logs)} logs")
+                        
+                        if logs:
+                            tools_used = []
+                            for log in logs:
+                                # Check for tool usage (handle dict vs object)
+                                t_type = log.get("type") if isinstance(log, dict) else log.type
+                                t_name = log.get("tool_name") if isinstance(log, dict) else log.tool_name
+                                
+                                # Robust check for tool_use event
+                                if str(t_type) == "tool_use" and t_name:
+                                    tools_used.append(t_name)
+                            
+                            if tools_used:
+                                tool_line = f"        Tools Used: {', '.join(tools_used)}"
+                                lines.append(tool_line)
+                                current_chars += len(tool_line)
+                            
+                            if tools_used:
+                                tool_line = f"        Tools Used: {', '.join(tools_used)}"
+                                lines.append(tool_line)
+                                current_chars += len(tool_line)
+                        
                         if a_err:
-                            lines.append(f"        Error: {a_err}")
+                            if len(a_err) > MAX_ERROR_CHARS:
+                                a_err = a_err[:MAX_ERROR_CHARS] + f" ... [TRUNCATED {len(a_err) - MAX_ERROR_CHARS} chars]"
+                            
+                            err_line = f"        Error: {a_err}"
+                            lines.append(err_line)
+                            current_chars += len(err_line)
                             
         return "\n".join(lines)
 
-    async def _analyze_generator(self, generator_name: str, log_text: str) -> str:
+    async def _analyze_generator(self, generator_name: str, log_text: str) -> GeneratorAnalysisSection:
         """
-        Analyzes the logs for a single generator.
+        Analyzes the logs for a single generator and returns a structured object.
         """
-        prompt_path = Path("notebooks/report/log_analysis_node_prompt.md")
-        if prompt_path.exists():
-            with open(prompt_path, "r", encoding="utf-8") as f:
-                prompt_template = f.read()
-        else:
-             prompt_template = "Analyze this generator execution: {log_text}"
-
-        prompt = prompt_template.format(node_name=generator_name, log_text=log_text)
+        
+        prompt = f"""
+        Analyze the logs for generator: {generator_name}
+        
+        Focus on:
+        1. Performance summary (Stability, patterns).
+        2. Effectiveness of context/docs provided.
+        3. Tool usage (effective vs errors).
+        4. General error types.
+        
+        Logs:
+        {log_text}
+        """
 
         try:
-            text = await self._generate_content(prompt)
-            return f"### Analysis of '{generator_name}'\n\n{text}"
+            return await self._generate_content(prompt, schema=GeneratorAnalysisSection)
         except Exception as e:
             print(f"Error analyzing generator {generator_name}: {e}")
-            return f"Error analyzing generator {generator_name}: {e}"
+            # Return a placeholder object on failure to avoid crashing the pipeline
+            return GeneratorAnalysisSection(
+                generator_name=generator_name,
+                performance_summary="Analysis Failed.",
+                docs_context_analysis="Analysis Failed.",
+                tool_usage_analysis="Analysis Failed.",
+                general_error_analysis=f"Analysis Failed: {str(e)}"
+            )
 
-    async def _reduce_analyses(self, analyses: List[str], static_context: str = "", quantitative_context: str = "") -> str:
+    async def _generate_high_level_insights(self, generator_summaries: str, quantitative_context: str) -> HighLevelInsights:
         """
-        Aggregates per-node analyses into a final report.
+        Generates the Executive Summary, Cross-Generator Comparison, and Recommendations based on 
+        the aggregated quantitative stats and per-generator summaries.
         """
-        combined_text = "\n\n".join(analyses)
         
-        # Load prompt from external file
-        prompt_path = Path("notebooks/report/log_analysis_reduce_prompt.md")
-        if prompt_path.exists():
-            with open(prompt_path, "r", encoding="utf-8") as f:
-                prompt_template = f.read()
-        else:
-             prompt_template = "Synthesize these analyses: {combined_text}"
+        prompt = f"""
+        You are a Lead AI Engineer creating a final Benchmark Execution Report.
+        
+        Based on the quantitative data and generator summaries provided below, generate the high-level insights for the report.
+        
+        **Quantitative Stats:**
+        {quantitative_context}
 
-        # If the template doesn't have the placeholder, append context manually
-        if "{quantitative_context}" not in prompt_template:
-             static_context += "\n\n" + quantitative_context
-             formatted_quantitative = ""
-        else:
-             formatted_quantitative = quantitative_context
-
-        prompt = prompt_template.format(
-            combined_text=combined_text, 
-            static_context=static_context,
-            quantitative_context=formatted_quantitative
-        )
+        **Generator Summaries:**
+        {generator_summaries}
+        
+        Produce a structured output containing:
+        1. Executive Summary
+        2. Cross-Generator Comparison
+        3. Recommendations
+        """
 
         try:
-            return await self._generate_content(prompt)
+            return await self._generate_content(prompt, schema=HighLevelInsights)
         except Exception as e:
-            print(f"Error generating final summary: {e}")
-            return "Failed to generate final summary."
+            print(f"Error generating high-level insights: {e}")
+            return HighLevelInsights(
+                executive_summary="Failed to generate.",
+                cross_generator_comparison="Failed to generate.",
+                recommendations=["Failed to generate."]
+            )
 
     def _get_suite_context(self, results_df: pd.DataFrame) -> str:
-        """Generates a description of the benchmark suites present in the results."""
+        """Generates a table of benchmark suites and their objectives."""
         if results_df.empty:
             return ""
             
         suites = results_df["suite"].unique()
-        suite_descs = []
         
         known_suites = {
             "api_understanding": "Tests the model's ability to recall correct import paths and class signatures without hallucination. Requires strict adherence to the ADK library structure.",
@@ -359,11 +446,75 @@ class LogAnalyzer:
             "multiple_choice": "Tests general reasoning or specific knowledge selection from provided options."
         }
         
+        suite_data = []
         for s in suites:
-            desc = known_suites.get(s, "Custom benchmark suite.")
-            suite_descs.append(f"### Suite: `{s}`\n*   **Objective:** {desc}")
+            desc = "Custom benchmark suite."
+            if "api_understanding" in s: desc = known_suites["api_understanding"]
+            elif "fix_errors" in s: desc = known_suites["fix_errors"]
+            elif "_mc" in s: desc = known_suites["multiple_choice"]
             
-        return "\n\n## Benchmark Suites\n" + "\n".join(suite_descs) + "\n"
+            suite_data.append({
+                "Suite": f"`{s}`",
+                "Objective": desc
+            })
+            
+        suite_df = pd.DataFrame(suite_data)
+            
+        return "\n\n## Benchmark Suites Overview\n" + format_as_markdown(suite_df) + "\n"
+
+    def _assemble_report(self, 
+                         insights: HighLevelInsights, 
+                         generator_analyses: List[GeneratorAnalysisSection], 
+                         static_context: str, 
+                         quantitative_context: str,
+                         suite_context: str) -> str:
+        """
+        Programmatically assembles the final Markdown report from all components.
+        """
+        md = ["# 📊 Benchmark Run Analysis\n"]
+        
+        # 1. Generator Internals
+        md.append("## 1. Generator Internals & Configuration")
+        md.append(static_context)
+        md.append("\n")
+
+        # 2. Executive Summary
+        md.append("## 2. Executive Summary")
+        md.append(insights.executive_summary)
+        md.append("\n")
+
+        # 3. Benchmark Suites
+        md.append("## 3. Benchmark Suites Overview")
+        # suite_context already has the table
+        md.append(suite_context.replace("## Benchmark Suites Overview", "").strip())
+        md.append("\n")
+        
+        # 4. Quantitative Analysis
+        md.append(quantitative_context)
+        md.append("\n")
+
+        # 5. Generator Analysis
+        md.append("## 5. Generator Analysis")
+        for gen in generator_analyses:
+            md.append(f"### {gen.generator_name}")
+            md.append(f"**Performance:** {gen.performance_summary}\n")
+            md.append(f"#### Docs/Context Injection\n{gen.docs_context_analysis}\n")
+            md.append(f"#### Tool Usage\n{gen.tool_usage_analysis}\n")
+            md.append(f"#### General Errors\n{gen.general_error_analysis}\n")
+            md.append("---\n")
+
+        # 6. Cross-Generator Comparison
+        md.append("## 6. Cross-Generator Comparison")
+        md.append(insights.cross_generator_comparison)
+        md.append("\n")
+
+        # 7. Recommendations
+        md.append("## 7. Recommendations")
+        for rec in insights.recommendations:
+            md.append(f"*   {rec}")
+        md.append("\n")
+
+        return "\n".join(md)
 
     async def analyze_log_file(self, log_path: Path) -> str:
         """
@@ -374,62 +525,66 @@ class LogAnalyzer:
 
         print(f"Analyzing run directory: {log_path.parent}")
         
-        # Load Static Metadata
         run_dir = log_path.parent
         generator_context = self._load_static_context(run_dir)
-
-        # Load Quantitative Results (results.json)
+        
         results_path = run_dir / "results.json"
         
         if not results_path.exists():
-            return "No results.json found. Cannot proceed with analysis."
+            return "No results.json found."
 
         try:
             with open(results_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
             
-            # Parse into objects then dataframe
             TypeAdapter = pydantic.TypeAdapter(List[BenchmarkRunResult])
             results_list = TypeAdapter.validate_python(data)
             results_df = process_results(results_list)
             
+            # Pre-calculate contexts
             quantitative_context = self._calculate_quantitative_stats(results_df, results_list)
-            
-            # Append suite context to generator context
             suite_context = self._get_suite_context(results_df)
-            generator_context += "\n" + suite_context
             
         except Exception as e:
             print(f"Error loading/processing results.json: {e}")
             return f"Error analyzing results: {e}"
 
-        # 1. Map: Analyze each Generator
-        tasks = []
-        # Group by generator
-        grouped = results_df.groupby("answer_generator")
+        # 1. Map: Analyze each Generator Independently
+        generator_analyses: List[GeneratorAnalysisSection] = []
+        generator_summaries_text = [] # For the high-level insights prompt
         
-        print(f"Identified {len(grouped)} generators. Starting parallel analysis...")
+        grouped = results_df.groupby("answer_generator")
+        print(f"Identified {len(grouped)} generators.")
         
         for gen_name, _ in grouped:
-            # Filter the list for this generator
             gen_results = [r for r in results_list if r.answer_generator == gen_name]
-            
-            # Format the logs/results for this generator
             log_text = self._format_generator_logs(generator_name=gen_name, results_list=gen_results)
             
-            # Create analysis task
-            tasks.append(self._analyze_generator(generator_name=gen_name, log_text=log_text))
+            print(f"Analyzing {gen_name}...")
+            analysis = await self._analyze_generator(generator_name=gen_name, log_text=log_text)
+            generator_analyses.append(analysis)
+            
+            # Create a brief summary text for the high-level prompt
+            generator_summaries_text.append(f"Generator: {gen_name}\nSummary: {analysis.performance_summary}")
         
-        node_analyses = await asyncio.gather(*tasks)
-
-        # 2. Reduce: Synthesize the final report
-        final_summary = await self._reduce_analyses(
-            analyses=node_analyses, 
-            static_context=generator_context, 
+        # 2. Reduce: Generate High-Level Insights
+        print("Generating high-level insights...")
+        insights = await self._generate_high_level_insights(
+            generator_summaries="\n\n".join(generator_summaries_text),
             quantitative_context=quantitative_context
         )
         
-        return final_summary
+        # 3. Assemble Final Report
+        print("Assembling final report...")
+        final_markdown = self._assemble_report(
+            insights=insights,
+            generator_analyses=generator_analyses,
+            static_context=generator_context,
+            quantitative_context=quantitative_context,
+            suite_context=suite_context
+        )
+        
+        return final_markdown
 
 async def analyze_run_logs(run_dir: Path):
     """
@@ -440,7 +595,6 @@ async def analyze_run_logs(run_dir: Path):
     print(f"\n--- Starting Log Analysis on {run_dir} ---")
     summary = await analyzer.analyze_log_file(log_path=log_path)
     
-    # Save the analysis
     analysis_path = run_dir / "log_analysis.md"
     with open(analysis_path, "w", encoding="utf-8") as f:
         f.write(summary)
@@ -448,15 +602,11 @@ async def analyze_run_logs(run_dir: Path):
     print(f"\n--- Log Analysis Complete ---")
     print(f"Report saved to: {analysis_path}")
     
-    # Print a preview
     lines = summary.splitlines()
-    preview = "\n".join(lines[:20])
     print("\nSummary Preview:")
-    print(preview)
-    print("...")
+    print("\n".join(lines[:20]))
 
 if __name__ == "__main__":
-    # Test block for running this script directly
     import sys
     if len(sys.argv) > 1:
         run_dir_path = Path(sys.argv[1])

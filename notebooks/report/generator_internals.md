@@ -2,6 +2,29 @@
 
 > This file describes the static architectures of the available generators. Runtime parameters (like Model) are injected during execution.
 
+### GeminiCliPodman: gemini-cli:base
+- **Model:** `[Injected at Runtime]`
+- **Docker Image:** `gemini-cli:base`
+
+**Environment:** **Minimal CLI Environment:** A basic container providing standard system tools.
+*   **Tools:**
+    *   **Built-in (gemini-cli):** `read_file`, `write_file`, `list_directory`, `run_shell_command`.
+*   **Strategy:** "Direct Implementation". The model relies on its pre-trained knowledge and basic file operations to solve tasks. It lacks specialized ADK-aware tools or pre-indexed documentation.
+
+---
+
+### GeminiCliPodman: gemini-cli:adk-python
+- **Model:** `[Injected at Runtime]`
+- **Docker Image:** `gemini-cli:adk-python`
+
+**Environment:** **Source-Code Augmented Environment:** This environment contains the full `google-adk` python repository checked out in the workspace.
+*   **Tools:**
+    *   **Built-in (gemini-cli):** `read_file`, `write_file`, `list_directory`.
+    *   **Search:** `search_file_content` (optimized grep) allows the model to explore the actual ADK source code to verify signatures and logic.
+*   **Strategy:** "Source Code Inspection". Instead of relying on RAG or external docs, the model is expected to search the local codebase to ground its answers in ground-truth implementation details.
+
+---
+
 ### GeminiCliPodman: gemini-cli:adk-docs-ext
 - **Model:** `[Injected at Runtime]`
 - **Docker Image:** `gemini-cli:adk-docs-ext`
