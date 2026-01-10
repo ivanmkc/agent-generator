@@ -35,7 +35,7 @@
                 "panel": "new"
             },
             "problemMatcher": [],
-            "detail": "Executes benchmarks for all ADK-based agents."
+            "detail": "Executes benchmarks for pure Python ADK-based agents (ADK_ prefix)."
         },
         {
             "label": "Run GeminiCliPodman Benchmarks: All suites",

@@ -168,19 +168,10 @@ async def run_comparison(
     
     # Filter by generator name
     if selected_generator_filter:
-        # Smart Case: If filter has uppercase, treat as case-sensitive. Otherwise, ignore case.
-        is_case_sensitive = not selected_generator_filter.islower() and not selected_generator_filter.isdigit()
-        
-        if is_case_sensitive:
-             answer_generators = [
-                g for g in answer_generators 
-                if selected_generator_filter in g.name
-            ]
-        else:
-             answer_generators = [
-                g for g in answer_generators 
-                if selected_generator_filter.lower() in g.name.lower()
-            ]
+        answer_generators = [
+            g for g in answer_generators 
+            if selected_generator_filter in g.name
+        ]
         
     # Filter by model name (if implemented on the generator)
     if selected_model_filter:
