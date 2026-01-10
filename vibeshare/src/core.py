@@ -2,10 +2,10 @@ from typing import Dict, Optional
 from asyncio import Semaphore
 from tenacity import retry, stop_after_attempt, wait_exponential
 
-from vibeshare.models.model import Model
-from vibeshare.data_models import VibeshareResult
+from models.model import Model
+from data_models import VibeshareResult
 from benchmarks.api_key_manager import API_KEY_MANAGER, KeyType
-from vibeshare.cache import CACHE_MANAGER
+from cache import CACHE_MANAGER
 
 def get_key_type_for_model(model_name: str) -> Optional[KeyType]:
     """

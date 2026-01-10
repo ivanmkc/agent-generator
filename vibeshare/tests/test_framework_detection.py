@@ -1,5 +1,5 @@
 import pytest
-from vibeshare.data_models import VibeshareResult
+from data_models import VibeshareResult
 
 class TestFrameworkDetection:
     

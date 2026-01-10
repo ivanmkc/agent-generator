@@ -12,10 +12,10 @@ Usage:
 import asyncio
 import json
 from asyncio import Semaphore
-from vibeshare.config import MODELS, MAX_CONCURRENCY
-from vibeshare.utils import load_prompts
-from vibeshare.core import run_inference_task, create_vibeshare_result
-from vibeshare.verify_models import run_verification
+from config import MODELS, MAX_CONCURRENCY
+from utils import load_prompts
+from core import run_inference_task, create_vibeshare_result
+from verify_models import run_verification
 
 async def run_analysis():
     # Verify models first

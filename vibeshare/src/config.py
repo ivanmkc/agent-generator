@@ -5,9 +5,10 @@ This module defines the models to be evaluated, concurrency limits, and other
 global settings for the VibeShare analysis.
 """
 
-from vibeshare.models.litellm_model import LiteLLMModel
+from models.litellm_model import LiteLLMModel
+from models.podman_model import PodmanModel
 
-MAX_CONCURRENCY = 10
+MAX_CONCURRENCY = 4
 
 MODELS = [
     # --- Google Gemini (Updated Jan 2026) ---
@@ -18,7 +19,11 @@ MODELS = [
     LiteLLMModel(model_name="gemini/gemini-2.5-pro"),
     LiteLLMModel(model_name="gemini/gemini-3-flash-preview"),
     LiteLLMModel(model_name="gemini/gemini-3-pro-preview"),
-    # TODO: Add gemini-cli base and adk-python
+    
+    # --- Gemini CLI (Podman) ---
+    PodmanModel(model_name="gemini-cli-podman/base", image_name="localhost/gemini-cli:base"),
+    PodmanModel(model_name="gemini-cli-podman/adk-python", image_name="localhost/gemini-cli:adk-python"),
+
     # TODO: Add Gemma
 
     # --- Anthropic Claude (Updated Jan 2026) ---

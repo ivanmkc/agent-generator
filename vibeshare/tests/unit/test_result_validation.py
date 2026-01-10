@@ -1,5 +1,5 @@
 import pytest
-from vibeshare.models.analyze_vibeshare import VibeshareResult
+from data_models import VibeshareResult
 
 def test_was_adk_mentioned_basic():
     # Direct mention

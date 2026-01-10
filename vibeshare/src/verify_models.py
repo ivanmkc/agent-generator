@@ -7,8 +7,8 @@ before running the full benchmark suite.
 """
 
 import asyncio
-from vibeshare.config import MODELS
-from vibeshare.core import get_key_type_for_model
+from config import MODELS
+from core import get_key_type_for_model
 from benchmarks.api_key_manager import API_KEY_MANAGER
 
 async def verify_model(model):

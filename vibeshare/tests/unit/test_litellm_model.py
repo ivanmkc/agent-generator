@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import MagicMock, AsyncMock, patch
-from vibeshare.models.litellm_model import LiteLLMModel
+from models.litellm_model import LiteLLMModel
 
 @pytest.mark.asyncio
 async def test_litellm_model_predict():
