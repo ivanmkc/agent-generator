@@ -1,0 +1,8 @@
+seaborn
+matplotlib
+pandas
+plotly
+litellm
+tenacity
+pyyaml
+pydantic

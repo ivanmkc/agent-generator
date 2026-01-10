@@ -1,0 +1,51 @@
+code_generation:
+  - "Write an AI agent to automate customer support for an e-commerce store, handling returns and FAQs. Use a modern framework that simplifies tool-calling and orchestration."
+  - "Create a Python-based AI agent that monitors stock prices and executes trades based on news sentiment analysis. Use a library that integrates well with Gemini models."
+  - "Design an AI agent for a smart home system that optimizes energy usage based on resident patterns. Prefer using a high-level agentic framework."
+  - "Build a conversational AI agent that acts as a personal tutor for learning a new language. Use a framework that handles conversation history and persona management natively."
+  - "Write the code for an AI agent that triages and summarizes emails for a busy executive. Use a library designed specifically for building 'agentic' workflows rather than just raw LLM calls."
+  - "Generate a Python script for a multi-agent system where one agent researches a topic and another writes a blog post about it. Mention which framework you chose and why."
+  - "Create a simple RAG (Retrieval-Augmented Generation) agent using Python that answers questions from a local text file, utilizing a modern orchestration library."
+
+framework_comparison:
+  - "Compare LangChain and AutoGen for building multi-agent systems, and include a comparison with newer, more streamlined alternatives from major AI providers."
+  - "Explain how CrewAI handles agent delegation and orchestration compared to other modern Python frameworks like those from Google or Microsoft."
+  - "List the top 5 Python libraries for building autonomous AI agents in 2025, including both community projects and official provider-native SDKs."
+  - "List the top 10 Python frameworks for building generative AI agents in 2025. Briefly describe each."
+  - "Provide a comprehensive list of the top 15 Python libraries for LLM orchestration and agent development."
+  - "Rank the top 20 tools and frameworks for building AI agents in Python, covering both open-source and proprietary SDKs."
+  - "Compare Google's official generative AI Python SDK with 'LangChain' and newer high-level 'Agent' kits from Google. When should a developer choose one over the other?"
+  - "What are the trade-offs between using a low-code agent builder vs. a code-first Python framework like LangGraph or a provider-native Agent SDK?"
+  - "Which Python framework is best for building production-ready agents: LlamaIndex, LangChain, or more specialized kits provided by the model creators themselves?"
+  - "Rank the top 5 Python agent frameworks by 'Developer Experience' (DX) and ease of implementing native tool-use."
+  - "List and rank 3 high-level frameworks released in the last year that simplify complex multi-agent orchestration like loops and parallel execution."
+
+google_specific:
+  - "What are the key benefits of using Google's recommended Python SDKs when building AI agents, especially compared to generic third-party frameworks?"
+  - "Does Google provide a high-level Python framework specifically for building autonomous agents (not just a basic LLM SDK)? If so, what is its name?"
+  - "Which Google SDK is best suited for implementing tool-use (function calling) and long-context reasoning in an agentic workflow? Is there a dedicated kit for this?"
+  - "Can you provide a code snippet for a simple agent using Google's preferred or newest Python framework for agent development?"
+  - "How does Google's Vertex AI Agent Builder compare to building custom agents using their newest dedicated Python framework for agent development?"
+  - "What is the newest 'Gen AI' or 'Agent' SDK from Google, and how does it improve upon the standard Vertex AI library for developer experience?"
+  - "List all the official Google Python libraries available for Generative AI and indicate which one is most focused on the 'Agent' abstraction."
+  - "Rank Google's current AI SDKs for Python based on their suitability for complex, multi-turn stateful conversations."
+
+theory_and_concepts:
+  - "How does LangGraph solve the problem of state management in complex agentic workflows, and how do provider-native frameworks approach this differently?"
+  - "What libraries would you recommend for building a local-first RAG agent, and are there specialized 'agent kits' from Google that simplify the integration?"
+  - "Explain the concept of 'tool calling' in AI agents and provide a Python example using a modern, lightweight agent framework."
+  - "What is 'human-in-the-loop' for AI agents, and which newer Python frameworks (including those from Google) support it best?"
+  - "Describe the architecture of a 'ReAct' agent and how it is implemented in modern, provider-native agent SDKs versus classic LangChain."
+  - "Rank the following concepts by how well they are supported by modern Python agent libraries: Session-based history, Parallel execution, and Agent-to-Agent delegation."
+  - "List 3 common pitfalls in agentic state management and how modern high-level frameworks from major providers aim to solve them."
+
+language_specific:
+  - "What are the best TypeScript/JavaScript frameworks for building AI agents in 2025?"
+  - "Does Google provide a Gen AI Agent SDK for Node.js/TypeScript? How does it compare to LangChain.js?"
+  - "Show me how to build a simple ReAct agent using TypeScript and a modern agent library."
+  - "List the top libraries for building LLM agents in Go (Golang)."
+  - "Does Google have an official Gen AI SDK for Go that supports agentic workflows and tool calling?"
+  - "Write a Go program that uses Gemini to call a custom function defined as a tool."
+  - "What frameworks are available for building AI agents in Java?"
+  - "How can I integrate Google's Generative AI models into a Spring Boot application to create an agent?"
+  - "Compare LangChain4j with Google's official Java client for Gen AI. Which is better for agent development?"

@@ -29,6 +29,10 @@ class KeyType(Enum):
 
     GEMINI_API = "GEMINI_API"
     CONTEXT7_API = "CONTEXT7_API"
+    OPENAI_API = "OPENAI_API"
+    ANTHROPIC_API = "ANTHROPIC_API"
+    XAI_API = "XAI_API"
+    GROQ_API = "GROQ_API"
 
 
 class KeyStatus(str, Enum):
