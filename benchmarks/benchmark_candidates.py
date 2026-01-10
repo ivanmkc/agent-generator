@@ -31,7 +31,7 @@ agent_flash = create_default_adk_agent(model_name=ModelName.GEMINI_2_5_FLASH)
 agent_pro = create_default_adk_agent(model_name=ModelName.GEMINI_2_5_PRO)
 
 _selected_images = [
-    # "gemini-cli:base",
+    "gemini-cli:base",
     "gemini-cli:adk-python",
     "gemini-cli:adk-docs-ext",
     "gemini-cli:mcp_context7",

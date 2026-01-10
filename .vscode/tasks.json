@@ -170,6 +170,18 @@
             },
             "problemMatcher": [],
             "detail": "Starts the Streamlit app to view benchmark results and history."
+        },
+        {
+            "label": "Run VibeShare Analysis & Visualization",
+            "type": "shell",
+            "command": "env/bin/python -m vibeshare.analyze_vibeshare && env/bin/python -m papermill vibeshare/visualization.ipynb vibeshare/visualization.ipynb",
+            "group": "test",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": [],
+            "detail": "Runs VibeShare analysis and updates the visualization notebook in-place."
         }
     ]
 }
