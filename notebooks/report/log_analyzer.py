@@ -260,8 +260,8 @@ class LogAnalyzer:
         """
         Formats the execution logs for a specific generator into a structured text block for the LLM.
         """
-        MAX_TOTAL_CHARS = 50_000
-        MAX_ERROR_CHARS = 2000
+        MAX_TOTAL_CHARS = 1_000_000
+        MAX_ERROR_CHARS = 10_000
         
         lines = [f"GENERATOR: {generator_name}"]
         current_chars = len(lines[0])
@@ -333,19 +333,13 @@ class LogAnalyzer:
                         current_chars += len(att_line)
                         
                         # Add tool usage summary
-                        # Handle trace_logs access safely (dict vs object)
                         logs = att.get("trace_logs", []) if isinstance(att, dict) else (att.trace_logs or [])
-                        
-                        # print(f"[DEBUG] Attempt {a_num}: {len(logs)} logs")
                         
                         if logs:
                             tools_used = []
                             for log in logs:
-                                # Check for tool usage (handle dict vs object)
                                 t_type = log.get("type") if isinstance(log, dict) else log.type
                                 t_name = log.get("tool_name") if isinstance(log, dict) else log.tool_name
-                                
-                                # Robust check for tool_use event
                                 if str(t_type) == "tool_use" and t_name:
                                     tools_used.append(t_name)
                             
@@ -353,34 +347,35 @@ class LogAnalyzer:
                                 tool_line = f"        Tools Used: {', '.join(tools_used)}"
                                 lines.append(tool_line)
                                 current_chars += len(tool_line)
-                            
-                            if tools_used:
-                                tool_line = f"        Tools Used: {', '.join(tools_used)}"
-                                lines.append(tool_line)
-                                current_chars += len(tool_line)
                         
                         if a_err:
+                            # Filter out noisy [DEBUG] lines from logs
+                            filtered_err_lines = [l for l in a_err.splitlines() if "[DEBUG]" not in l]
+                            a_err = "\n".join(filtered_err_lines)
+
                             if len(a_err) > MAX_ERROR_CHARS:
                                 a_err = a_err[:MAX_ERROR_CHARS] + f" ... [TRUNCATED {len(a_err) - MAX_ERROR_CHARS} chars]"
                             
-                            err_line = f"        Error: {a_err}"
+                            err_line = f"        Error Output:\n{a_err}"
                             lines.append(err_line)
                             current_chars += len(err_line)
                             
         return "\n".join(lines)
 
-    async def _analyze_generator(self, generator_name: str, log_text: str) -> GeneratorAnalysisSection:
+    async def _analyze_generator(self, generator_name: str, log_text: str, tool_stats_text: str = "") -> GeneratorAnalysisSection:
         """
         Analyzes the logs for a single generator and returns a structured object.
         """
         
+        tool_context = f"\nComputed Tool Usage Stats for this Generator:\n{tool_stats_text}\n" if tool_stats_text else ""
+
         prompt = f"""
         Analyze the logs for generator: {generator_name}
-        
+        {tool_context}
         Focus on:
         1. Performance summary (Stability, patterns).
         2. Effectiveness of context/docs provided.
-        3. Tool usage (effective vs errors).
+        3. Tool usage (effective vs errors). Use the 'Computed Tool Usage Stats' above as a ground truth for quantitative counts.
         4. General error types.
         
         Logs:
@@ -553,6 +548,12 @@ class LogAnalyzer:
         generator_analyses: List[GeneratorAnalysisSection] = []
         generator_summaries_text = [] # For the high-level insights prompt
         
+        # Calculate tool stats globally first to filter by generator later
+        try:
+            tool_df_all = get_tool_success_stats(results_list)
+        except Exception:
+            tool_df_all = pd.DataFrame()
+
         grouped = results_df.groupby("answer_generator")
         print(f"Identified {len(grouped)} generators.")
         
@@ -560,8 +561,17 @@ class LogAnalyzer:
             gen_results = [r for r in results_list if r.answer_generator == gen_name]
             log_text = self._format_generator_logs(generator_name=gen_name, results_list=gen_results)
             
+            # Filter tool stats for this specific generator
+            gen_tool_stats = ""
+            try:
+                gen_tool_df = get_tool_success_stats(gen_results)
+                if not gen_tool_df.empty:
+                    gen_tool_stats = format_as_markdown(gen_tool_df)
+            except Exception as e:
+                print(f"Error calculating tool stats for {gen_name}: {e}")
+
             print(f"Analyzing {gen_name}...")
-            analysis = await self._analyze_generator(generator_name=gen_name, log_text=log_text)
+            analysis = await self._analyze_generator(generator_name=gen_name, log_text=log_text, tool_stats_text=gen_tool_stats)
             generator_analyses.append(analysis)
             
             # Create a brief summary text for the high-level prompt
