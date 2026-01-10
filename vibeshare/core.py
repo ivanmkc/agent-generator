@@ -9,7 +9,13 @@ from vibeshare.cache import CACHE_MANAGER
 
 def get_key_type_for_model(model_name: str) -> Optional[KeyType]:
     """
-    Determines the KeyType based on the model name.
+    Determines the appropriate API KeyType based on the model name substring.
+    
+    Args:
+        model_name (str): The full model name (e.g., 'gemini/gemini-2.5-flash').
+
+    Returns:
+        Optional[KeyType]: The matching KeyType enum or None if not found.
     """
     model_lower = model_name.lower()
     if "gemini" in model_lower:
@@ -84,7 +90,14 @@ async def run_inference_task(model: Model, prompt_data: Dict[str, str], semaphor
 
 def create_vibeshare_result(model_name: str, prompt_data: Dict[str, str]) -> VibeshareResult:
     """
-    Reads from cache and constructs the result object.
+    Constructs a VibeshareResult object by retrieving the raw response from the cache.
+
+    Args:
+        model_name (str): The name of the model.
+        prompt_data (Dict[str, str]): The prompt dictionary containing 'prompt' and 'category'.
+
+    Returns:
+        VibeshareResult: The structured result object.
     """
     prompt = prompt_data.get("prompt", "")
     category = prompt_data.get("category", "unknown")

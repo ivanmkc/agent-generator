@@ -1,4 +1,12 @@
 
+"""
+Utility to list available models for the Google Gen AI SDK.
+
+This script attempts to authenticate using the configured GEMINI_API key
+and print the list of models available to the account. Useful for debugging
+model name changes or deprecations.
+"""
+
 import os
 import sys
 from pathlib import Path
@@ -12,6 +20,9 @@ from google.genai import Client
 from benchmarks.api_key_manager import API_KEY_MANAGER, KeyType
 
 def list_models():
+    """
+    Authenticates with the Gemini API and lists all available models.
+    """
     api_key = API_KEY_MANAGER.get_next_key(KeyType.GEMINI_API)
     if not api_key:
         print("No API key available.")

@@ -1,9 +1,21 @@
+"""
+Utility tool to discover potential new AI frameworks from VibeShare results.
+
+This script scans the `vibeshare_results.json` output file for proper nouns
+that are not yet in the known `FRAMEWORKS_TO_DETECT` list. It helps in maintaining
+an up-to-date list of competing or complementary frameworks mentioned by models.
+"""
+
 import json
 import re
 from collections import Counter
 from vibeshare.data_models import FRAMEWORKS_TO_DETECT
 
 def extract_candidates():
+    """
+    Reads vibeshare_results.json and prints frequent proper noun phrases 
+    that might be undetected frameworks.
+    """
     try:
         with open('vibeshare_results.json', 'r') as f:
             data = json.load(f)

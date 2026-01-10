@@ -1,3 +1,11 @@
+"""
+Data models and schemas for the VibeShare evaluation suite.
+
+This module defines the Pydantic models used to structure the results of
+model inference and analysis, including the logic for detecting specific
+framework mentions in model responses.
+"""
+
 from typing import Optional, List, Dict
 from pydantic import BaseModel
 import re

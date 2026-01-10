@@ -1,3 +1,14 @@
+"""
+Main entry point for the VibeShare analysis pipeline.
+
+This script orchestrates the two-phase analysis process:
+1. Inference Phase: Runs prompts against models (cached).
+2. Analysis Phase: Processes cached results to generate a structured JSON report.
+
+Usage:
+    python -m vibeshare.analyze_vibeshare
+"""
+
 import asyncio
 import json
 from asyncio import Semaphore

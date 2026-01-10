@@ -1,3 +1,11 @@
+"""
+Persistent caching mechanism for VibeShare model responses.
+
+This module provides a simple JSON-based file cache to store raw model outputs.
+This prevents redundant API calls during development and analysis iterations,
+saving costs and time.
+"""
+
 import json
 import os
 import hashlib
@@ -6,6 +14,11 @@ from typing import Optional, Dict, Any
 CACHE_FILE = "vibeshare_cache.json"
 
 class CacheManager:
+    """
+    Manages a persistent JSON cache for model responses.
+    
+    The cache uses a composite key of (model_name, md5(prompt)) to store results.
+    """
     def __init__(self, cache_file: str = CACHE_FILE):
         self.cache_file = cache_file
         self.cache = self._load_cache()

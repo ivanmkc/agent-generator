@@ -1,3 +1,10 @@
+"""
+Configuration for the VibeShare evaluation suite.
+
+This module defines the models to be evaluated, concurrency limits, and other
+global settings for the VibeShare analysis.
+"""
+
 from vibeshare.models.litellm_model import LiteLLMModel
 
 MAX_CONCURRENCY = 10

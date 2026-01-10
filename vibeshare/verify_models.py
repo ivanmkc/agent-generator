@@ -1,3 +1,11 @@
+"""
+Verification script for VibeShare models.
+
+This module checks the health of all configured models in `vibeshare.config.MODELS`
+by sending a simple "Hello" prompt. It validates API keys and model availability
+before running the full benchmark suite.
+"""
+
 import asyncio
 from vibeshare.config import MODELS
 from vibeshare.core import get_key_type_for_model
