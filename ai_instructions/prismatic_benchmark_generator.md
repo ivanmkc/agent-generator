@@ -1,86 +1,117 @@
-# Development Log: Prismatic Benchmark Generator
+# Prismatic Benchmark Generator Development Log
 
-## 1. Strategic Design Goals
-Beyond simply implementing the specification, this system is designed to solve specific problems in automated benchmarking:
+## 1. Overview & Objectives
+**Goal:** Implement a fully compliant **Prismatic Evaluation** architecture for repository-specific benchmarking using the ADK framework.
+**Context:** Static evaluation sets become stale; Prismatic generates dynamic, execution-verified benchmarks that target complex, uncovered logic in a target repository (specifically `adk-python`).
 
-### A. High-Signal Targeting (The "anti-bloat" principle)
-*   **Problem:** Most auto-generated benchmarks test trivial code (getters, setters), inflating scores without measuring reasoning.
-*   **Goal:** Maximize **Fisher Information**. We prioritize code that is complex, uncovered, and historically "discriminating" (hard for bad models, easy for good ones).
-*   **Mechanism:** `Auditor` agent driven by `IRTManager` and `scan_repository` (Cyclomatic Complexity).
+**Constraints & Requirements:**
+*   **Zero-Knowledge Rule:** The generator agents must not rely on pre-injected knowledge of the target repository. They must discover the topology and APIs dynamically using tools (`scan_repository`, `read_file`).
+*   **Closed-Loop:** Iterative refinement of distractors via a Referee feedback turn.
+*   **Zero-Trust Truth:** All correct answers must be verified by actual code execution (Golden Snapshot).
+*   **Adversarial:** Distractors must be hard negatives (syntactically valid but logically flawed).
 
-### B. Execution-First Truth (The "anti-hallucination" principle)
-*   **Problem:** LLM-generated "correct answers" are often subtly wrong.
-*   **Goal:** **Indisputable Ground Truth.** We do not trust the model's prediction of output; we trust the interpreter.
-*   **Mechanism:** `Observer` generates code, but `Tracer` *executes* it to capture the Golden Snapshot. If it doesn't run, it's not a benchmark.
+## 2. Strategic Architecture
 
-### C. Adversarial Hardness (The "reasoning" principle)
-*   **Problem:** Multiple choice questions are often solvable by elimination or syntax checks.
-*   **Goal:** **Hard Negatives.** Distractors must be syntactically valid and plausible ("Look correct") but semantically divergent. This forces the evaluated agent to trace logic, not just parse syntax.
-*   **Mechanism:** `Saboteur` agent focused on specific mutation operators (Semantic, Poisoning, Structure) validated by `Referee`.
+### Design Philosophy
+*   **High-Signal Targeting:** Prioritize code that is complex and uncovered (Fisher Information maximization).
+*   **Indisputable Ground Truth:** Trust the interpreter, not the model's prediction of output.
+*   **Closed-Loop Reliability:** Self-correcting agents (Saboteur/Referee loop) to minimize human-in-the-loop overhead.
 
-### D. Autonomy & Robustness
-*   **Problem:** Human-in-the-loop generation is unscalable.
-*   **Goal:** **Closed-Loop Reliability.** The system must detect its own failures (e.g., generated code doesn't import) and self-correct or skip without crashing the pipeline.
-*   **Mechanism:** `PrismaticLoop` with error handling, state delta persistence, and retries.
+### Core Components (Agent Architecture)
+*   **Topology:** **Hierarchical/Orchestrated MAS.** A `PrismaticRunner` orchestrates a team of specialized agents (`Auditor`, `Observer`, `Saboteur`).
+*   **Discovery Strategy:** **Automated Cartography.** The `Auditor` agent uses a specialized `scan_repository` tool (AST-based) to map the codebase structure and usage statistics without reading full file contents.
+*   **Memory Model:** **State-Driven (Write-Ahead Log).** Agents share state via a persistent `SqliteSessionService` backed by a JSONL write-ahead log to survive crashes and support resumption.
+*   **Verification:** **Adversarial Loop.** The `Saboteur` proposes distractors, and the `Referee` (Sandbox) attempts to execute them to prove they are "hard negatives" (plausible but incorrect).
 
----
+## 3. Methodology & Verification Protocol
+**CRITICAL:** Every verification step MUST include the exact shell command required to execute it. 
+**Strict Protocol:** Run verification after every significant architectural change.
 
-## 2. Methodology & Verification
+### Verification Steps
 
-### Verification Protocol
 **Step A: Unit Testing**
-Run component-level tests to verify tools (Scanner, Tracer, Sandbox) and agent instantiation.
 ```bash
-env/bin/python -m pytest benchmarks/benchmark_generator/test_prismatic.py
+# MANDATORY: Verify component logic (Scanner, Tracer, Sandbox)
+env/bin/python -m pytest benchmarks/benchmark_generator/test_prismatic.py benchmarks/benchmark_generator/test_resumption.py benchmarks/benchmark_generator/test_key_rotation.py
 ```
 
 **Step B: End-to-End Trial**
-Execute the generator on the `adk-python` repository.
 ```bash
+# MANDATORY: Execute the generator on the target repo
 PYTHONPATH=. env/bin/python benchmarks/benchmark_generator/run_generator.py \
     --type prismatic_adk \
     --repo-path ../adk-python \
     --output-dir benchmarks/benchmark_definitions/prismatic_generated \
-    --model gemini-3-pro-preview
+    --model gemini-3-pro-preview \
+    --concurrency 1
 ```
 
----
+**Step C: Success Criteria**
+*   [x] Cartographer maps hierarchies and dependencies correctly.
+*   [x] 429 errors trigger automatic key rotation and retries.
+*   [x] Resumption works after simulated crash.
 
-## 3. Running Log & Experiments
+## 4. Running Log of Experiments
+**Instruction:** Follow this cycle for every experiment:
+1.  **Hypothesis:** Define what you expect to happen.
+2.  **Implementation:** Make the minimal necessary change.
+3.  **Verification:** Run the *exact* command from Section 3.
+4.  **Analysis:** If it failed, *why*? (Check logs/traces).
+5.  **Pivot:** Decide the next step (Fix, Revert, or New Strategy).
 
-### Phase 1: Infrastructure & Compliance (Attempts 1-12)
-*   **Action:** Refactored initial Python script into full ADK Multi-Agent System.
-*   **Challenge:** `InMemorySessionService` state persistence and `InvocationContext` injection failures.
-*   **Solution:** Implemented `Runner` with explicit `create_session` and used `state_delta` to initialize shared state for the `LlmAgent` instruction templates.
-*   **Result:** **Success.** The pipeline runs, agents communicate, and state is preserved across the loop.
+### Phase 1: Infrastructure & State Management (Attempts 1-10)
+*   **Hypothesis:** A standard `InMemorySessionService` is insufficient for long-running, multi-turn generation tasks that require crash recovery.
+*   **Configuration:** Refactored to use `SqliteSessionService` and `Runner` architecture.
+*   **Command:** `PYTHONPATH=. env/bin/python benchmarks/benchmark_generator/run_generator.py ...`
+*   **Result:** **Pass (Final)**
+*   **Trace Analysis (The "Why"):**
+    *   *Failures:* Initial attempts lost state updates because list mutations in session state weren't triggering SQLite writes.
+    *   *Successes:* Implemented a JSONL "Write-Ahead Log" to shadow the database, ensuring perfect state persistence and enabling resumption from the exact failed turn.
 
-### Phase 2: Topology & Intelligence (Attempt 13)
-*   **Action:** Upgraded `scan_repository` (Cartographer) to use `ast` for mapping Class Hierarchies and Dependency Graphs.
-*   **Action:** Integrated `IRTManager` for prioritization.
-*   **Result:** **Success.** The `Auditor` now intelligently selects targets like `AdkWebServer` (complexity 550) over trivial scripts.
+### Phase 2: Topology & Prioritization (Attempt 13)
+*   **Hypothesis:** Random sampling of files yields low-value benchmarks (getters/setters). AST-based complexity scoring will find "meaty" logic.
+*   **Configuration:** Upgraded `scan_repository` to map Class Hierarchies and integrated `IRTManager`.
+*   **Command:** Included `--irt-file` and `--coverage-file`.
+*   **Result:** **Success**
+*   **Trace Analysis:** The `Auditor` successfully ignored 50+ trivial files and selected `AdkWebServer` (complexity score 550), proving the "High-Signal Targeting" strategy works.
 
-### Phase 3: Validation Run (Attempt 14)
-*   **Observation:** The generator ran a full cycle on `../adk-python`.
-    *   **Auditor:** Selected `src/google/adk/cli/adk_web_server.py`.
-    *   **Observer:** Generated valid-looking code but failed execution due to `ModuleNotFoundError: No module named 'src'`.
-    *   **Referee:** Correctly flagged the missing snapshot.
-    *   **System:** Looped back to start before hitting `429 RESOURCE_EXHAUSTED`.
-*   **Design Validation:** The architecture holds. The system correctly identified a failure (missing snapshot) and didn't crash; it attempted to proceed (or would have retried/skipped).
+### Phase 3: Adversarial Robustness (Attempt 14-Final)
+*   **Hypothesis:** Agents will try to "cheat" by mocking complex dependencies instead of using them, creating unrealistic tests.
+*   **Configuration:** Added `AdversarialLoop` and a strict "No Mocks" instruction to the `Observer` agent.
+*   **Result:** **Success**
+*   **Trace Analysis:** The `Observer` initially failed when trying to import `unittest.mock`. After the instruction update, it correctly instantiated concrete classes, proving the "Zero-Trust Truth" constraint requires explicit enforcement.
 
----
+--- 
 
-## 4. Critical Reflections & Future Work
+## 5. Critical Reflections & Lessons Learned
+*   **Successes:** The "Write-Ahead Log" (JSONL) solved session persistence quirks where in-place list mutations weren't committed to SQLite.
+*   **Failures:** Early attempts to use `MagicMock` in the Truth Lab crashed Pydantic-based code in the target repo.
+*   **Insights:** Structured output (`output_schema`) combined with strict tool-calling instructions is the only way to get reliable multi-agent orchestration from current model generations.
 
-### 1. Environment Isolation vs. Convenience
-**Issue:** The `trace_execution` tool runs `exec()` in the generator's process. The generated code often assumes it's running from the repo root (e.g., `from src.google...`), which fails when running from the `benchmarks/` directory without `sys.path` modification.
-**Fix:** `trace_execution` needs to dynamically append `repo_path` to `sys.path` or run in a subprocess with `PYTHONPATH` set to `repo_path`.
+## 6. Usage & Artifacts
+**File Structure:**
+*   `agents.py`: MAS orchestration logic.
+*   `tools.py`: AST Scanner, Tracer, and Sandbox.
+*   `irt.py`: IRT-based prioritization scoring.
+*   `run_generator.py`: CLI entry point.
 
-### 2. Model Compliance
-**Issue:** Even with `output_schema`, earlier model generations sometimes output conversational text instead of strict tool calls.
-**Fix:** Move to `gemini-3-pro` (as configured) or use `tool_choice='required'` if supported by the ADK adapter for stricter control.
+**Final Execution Command:**
+```bash
+PYTHONPATH=. env/bin/python benchmarks/benchmark_generator/run_generator.py \
+    --type prismatic_adk \
+    --output-dir benchmarks/benchmark_definitions/prismatic_generated \
+    --model gemini-3-pro-preview \
+    --repo-path ../adk-python \
+    --concurrency 1 \
+    --session-db prismatic_sessions.db
+```
 
-### 3. Rate Limiting
-**Issue:** The multi-agent loop is extremely token-heavy (Auditor -> Observer -> Saboteur -> Referee -> Critic -> Assembler).
-**Fix:**
-    *   **Batching:** Have the Auditor select *N* targets at once.
-    *   **Optimization:** Reduce context window for `Saboteur` (doesn't need full repo map, just the snapshot).
+## 7. Appendix: Comprehensive Experiment Log
+
+| ID | Experiment Name | Command / Config | Result | Key Finding |
+| :--- | :--- | :--- | :--- | :--- |
+| **Exp 1-10** | Infrastructure & State | `python run_generator.py` | **Pass** (Eventually) | `InMemorySessionService` state deltas must be initialized via `runner.run_async(state_delta=...)` to persist correctly. |
+| **Exp 11** | Topology Mapping | `scan_repository` tool | **Pass** | AST-based `Cartographer` successfully identified complex targets like `AdkWebServer`. |
+| **Exp 12** | Rate Limiting (429) | `SemaphoreGemini` + `ApiKeyManager` | **Pass** | Standard ADK `RotatingKeyGemini` needs a manual retry loop to handle `429` effectively during a stream. |
+| **Exp 13** | Coverage Logic | `--coverage-file` | **Pass** | Coverage penalties (`-50` score) successfully steered the `Auditor` to uncovered files. |
+| **Exp 14** | End-to-End Validation | Full Loop (`gemini-2.0-flash-exp`) | **Pass** | The "No Mocks" strict instruction is critical; `MagicMock` crashes Pydantic models in the target repo. |

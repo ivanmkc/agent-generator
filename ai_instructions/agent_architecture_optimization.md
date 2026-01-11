@@ -115,7 +115,8 @@ If the agent fails or uses too many tokens, you need to see *why*. Use the built
     *   *Logic Errors?* → Mutate **Topology**.
 4.  **Mutate ONE Variable:** Change code in your agent class.
 6.  **Document & Commit:**
-    *   **Record findings:** Create a new entry in `ai_instructions/experiments/` using the standard template (`ai_instructions/experiments/TEMPLATE.md`).
+    *   **Standardized Location:** Create a new entry in `ai_instructions/experiments/` using the standard template (`ai_instructions/experiments/TEMPLATE.md`).
+    *   **Naming Convention:** `ai_instructions/experiments/exp_NN_[name].md` (e.g., `exp_22_statistical_v2.md`).
     *   **Log the details:** Note the action, the result, and *why* it happened (referencing your trace analysis).
     *   **Keep the history:** We learn more from recorded failures than from unrecorded successes.
     *   **Commit:** Once verified, commit the new agent class and the updated report.
@@ -131,11 +132,11 @@ Stop optimizing and "ship" the agent when:
 
 Before starting a new experiment, review the detailed post-mortems of past failures to avoid repeating them.
 
-*   **Token Reduction Journey:** See `ai_instructions/experiments/adk_agent_debugging_report.md` for the full phase-by-phase log of experiments 1-15.
-*   **Structured vs. Baseline Analysis:** See `ai_instructions/experiments/structured_vs_baseline_report.md` for a comparison of MAS (Multi-Agent Systems) vs. Single-Agent performance.
-*   **Tool Calling Optimization:** See `ai_instructions/experiments/fix_report_tool_calling.md` for insights on how tool definition changes impacted pass rates.
-*   **Structured Workflow Integration:** See `ai_instructions/experiments/structured_workflow_report.md` for details on workspace isolation and structured outputs.
-*   **Progressive Debugging Log:** See `ai_instructions/experiments/report.md` for early architectural pivots.
+*   **Token Reduction Journey:** See `ai_instructions/experiments/agent_optimization/adk_agent_debugging_report.md` for the full phase-by-phase log of experiments 1-15.
+*   **Structured vs. Baseline Analysis:** See `ai_instructions/experiments/agent_optimization/structured_vs_baseline_report.md` for a comparison of MAS (Multi-Agent Systems) vs. Single-Agent performance.
+*   **Tool Calling Optimization:** See `ai_instructions/experiments/agent_optimization/fix_report_tool_calling.md` for insights on how tool definition changes impacted pass rates.
+*   **Structured Workflow Integration:** See `ai_instructions/experiments/agent_optimization/structured_workflow_report.md` for details on workspace isolation and structured outputs.
+*   **Progressive Debugging Log:** See `ai_instructions/experiments/agent_optimization/report.md` for early architectural pivots.
 
 ## 6. The Toolbelt: Debugging & Analysis Resources
 

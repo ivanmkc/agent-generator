@@ -1,0 +1,378 @@
+[WARNING] Native output schema with tools is NOT supported for model 'gemini-2.5-flash'.
+App name mismatch detected. The runner is configured with app name "AdkBenchmarkApp_structured_solver_66961b289f5343569c17eacd4fc6f05c", but the root agent was loaded from "/Users/ivanmkc/Documents/code/agent-generator/env/lib/python3.13/site-packages/google/adk/agents", which implies app name "agents".
+[WARNING] Native output schema with tools is NOT supported for model 'gemini-2.5-flash'.
+App name mismatch detected. The runner is configured with app name "AdkBenchmarkApp_structured_solver_a62f4bdd29fc4e6f8afdb3afdec54b35", but the root agent was loaded from "/Users/ivanmkc/Documents/code/agent-generator/env/lib/python3.13/site-packages/google/adk/agents", which implies app name "agents".
+JSON trace log will be written to benchmark_runs/2025-12-30_14-29-38/trace.jsonl
+Configuring benchmark run...
+Executing benchmarks with 2 generators...
+
+--- Starting Generator: StructuredWorkflowAdk(gemini-2.5-flash) ---
+[StructuredWorkflowAdk(gemini-2.5-flash)] Setting up...
+[StructuredWorkflowAdk] Setting up workspace at /var/folders/nh/n7l064rj4wx0z7jsyr5q4wtc00rmmq/T/adk_struct_workflow_w17zjsp0
+[StructuredWorkflowAdk] Cloning adk-python...
+[StructuredWorkflowAdk] Creating virtual environment...
+[StructuredWorkflowAdk] Setup complete.
+[StructuredWorkflowAdk(gemini-2.5-flash)] High-token generator detected. Reducing concurrency to 3.
+
+=== Processing Answer Generator: StructuredWorkflowAdk(gemini-2.5-flash) ===
+  - Setting up answer generator: StructuredWorkflowAdk(gemini-2.5-flash)...
+[StructuredWorkflowAdk] Setting up workspace at /var/folders/nh/n7l064rj4wx0z7jsyr5q4wtc00rmmq/T/adk_struct_workflow_w17zjsp0
+[StructuredWorkflowAdk] Setup complete.
+  - Loading benchmark suite: benchmarks/benchmark_definitions/api_understanding/benchmark.yaml
+  - Loading benchmark suite: benchmarks/benchmark_definitions/fix_errors/benchmark.yaml
+  - Loading benchmark suite: benchmarks/benchmark_definitions/debug_suite/benchmark.yaml
+  - Running 65 benchmarks in parallel for StructuredWorkflowAdk(gemini-2.5-flash) (max_concurrency=3)...
+Warning: there are non-text parts in the response: ['function_call'], returning concatenated text result from text parts. Check the full candidates.content.parts accessor to get the full model response.
+
+--- Agent Timing & Token Report [benchmark_session_f6fa960a-74bf-472c-8e45-90fe41e12a9b] ---
+setup_agent: 0.07s
+prompt_sanitizer_agent: 5.71s [Tokens: 1130 prompt + 832 completion]
+knowledge_retrieval_agent: 2.82s [Tokens: 7002 prompt + 120 completion]
+knowledge_context_fetcher: 2.02s
+planner: 4.54s [Tokens: 25838 prompt + 137 completion]
+Implementation Loop (Total: 1.87s, Tokens: 4375P + 0C, Iterations: 1, Avg: 1.87s/iter):
+  - candidate_creator: 1.01s [Tokens: 4375P + 0C]
+  - verifier: 0.87s
+final_verifier: 0.00s
+teardown_agent: 0.03s
+-------------------------------------------
+
+Traceback (most recent call last):
+  File "/Users/ivanmkc/Documents/code/agent-generator/benchmarks/benchmark_orchestrator.py", line 66, in _run_single_benchmark
+    generated_answer = await generator.generate_answer(case)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ivanmkc/Documents/code/agent-generator/benchmarks/answer_generators/adk_answer_generator.py", line 85, in generate_answer
+    output = output_schema_class.model_validate_json(json_str)
+  File "/Users/ivanmkc/Documents/code/agent-generator/env/lib/python3.13/site-packages/pydantic/main.py", line 766, in model_validate_json
+    return cls.__pydantic_validator__.validate_json(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        json_data, strict=strict, extra=extra, context=context, by_alias=by_alias, by_name=by_name
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+pydantic_core._pydantic_core.ValidationError: 1 validation error for ApiUnderstandingAnswerOutput
+fully_qualified_class_name
+  Field required [type=missing, input_value={'code': '# Error: No age...sisted to my_agent.py.'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.12/v/missing
+
+--- Agent Timing & Token Report [benchmark_session_e75495fa-a279-43d2-bd29-108f8e3133da] ---
+setup_agent: 0.06s
+prompt_sanitizer_agent: 2.68s [Tokens: 872 prompt + 337 completion]
+knowledge_retrieval_agent: 8.54s [Tokens: 4988 prompt + 782 completion]
+knowledge_context_fetcher: 2.42s
+planner: 9.27s [Tokens: 71677 prompt + 990 completion]
+Implementation Loop (Total: 4.79s, Tokens: 4941P + 633C, Iterations: 1, Avg: 4.79s/iter):
+  - candidate_creator: 4.03s [Tokens: 4941P + 633C]
+  - verifier: 0.77s
+final_verifier: 0.00s
+teardown_agent: 0.03s
+-------------------------------------------
+
+
+--- Agent Timing & Token Report [benchmark_session_485441ae-e8b8-4cc1-8136-968cf67ba558] ---
+setup_agent: 0.04s
+prompt_sanitizer_agent: 5.05s [Tokens: 973 prompt + 589 completion]
+knowledge_retrieval_agent: 7.83s [Tokens: 5858 prompt + 684 completion]
+knowledge_context_fetcher: 1.58s
+planner: 4.03s [Tokens: 35005 prompt + 569 completion]
+Implementation Loop (Total: 12.59s, Tokens: 48982P + 731C, Iterations: 1, Avg: 12.59s/iter):
+  - candidate_creator: 11.75s [Tokens: 48982P + 731C]
+  - verifier: 0.84s
+final_verifier: 0.00s
+teardown_agent: 0.03s
+-------------------------------------------
+
+
+--- Agent Timing & Token Report [benchmark_session_4a781742-1dd9-4537-a25f-cef24f627437] ---
+setup_agent: 0.03s
+prompt_sanitizer_agent: 7.98s [Tokens: 1127 prompt + 838 completion]
+knowledge_retrieval_agent: 2.96s [Tokens: 7008 prompt + 126 completion]
+knowledge_context_fetcher: 0.79s
+planner: 2.34s [Tokens: 25847 prompt + 152 completion]
+Implementation Loop (Total: 5.68s, Tokens: 33860P + 187C, Iterations: 1, Avg: 5.68s/iter):
+  - candidate_creator: 4.84s [Tokens: 33860P + 187C]
+  - verifier: 0.84s
+final_verifier: 0.00s
+teardown_agent: 0.03s
+-------------------------------------------
+
+Traceback (most recent call last):
+  File "/Users/ivanmkc/Documents/code/agent-generator/benchmarks/benchmark_orchestrator.py", line 66, in _run_single_benchmark
+    generated_answer = await generator.generate_answer(case)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ivanmkc/Documents/code/agent-generator/benchmarks/answer_generators/adk_answer_generator.py", line 85, in generate_answer
+    output = output_schema_class.model_validate_json(json_str)
+  File "/Users/ivanmkc/Documents/code/agent-generator/env/lib/python3.13/site-packages/pydantic/main.py", line 766, in model_validate_json
+    return cls.__pydantic_validator__.validate_json(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        json_data, strict=strict, extra=extra, context=context, by_alias=by_alias, by_name=by_name
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+pydantic_core._pydantic_core.ValidationError: 1 validation error for ApiUnderstandingAnswerOutput
+fully_qualified_class_name
+  Field required [type=missing, input_value={'code': '# Error: No age...sisted to my_agent.py.'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.12/v/missing
+
+--- Agent Timing & Token Report [benchmark_session_2f27dec6-46ce-451a-a274-9a02f9e285d3] ---
+setup_agent: 0.03s
+prompt_sanitizer_agent: 9.77s [Tokens: 1123 prompt + 653 completion]
+knowledge_retrieval_agent: 6.60s [Tokens: 6598 prompt + 835 completion]
+knowledge_context_fetcher: 3.81s
+planner: 9.66s [Tokens: 137578 prompt + 709 completion]
+Implementation Loop (Total: 2.28s, Tokens: 5481P + 0C, Iterations: 1, Avg: 2.28s/iter):
+  - candidate_creator: 1.50s [Tokens: 5481P + 0C]
+  - verifier: 0.78s
+final_verifier: 0.00s
+teardown_agent: 0.03s
+-------------------------------------------
+
+
+--- Agent Timing & Token Report [benchmark_session_67d8e574-440c-44dd-8d68-6aedd59f49dd] ---
+setup_agent: 0.03s
+prompt_sanitizer_agent: 6.51s [Tokens: 1125 prompt + 57 completion]
+knowledge_retrieval_agent: 4.56s [Tokens: 5435 prompt + 123 completion]
+knowledge_context_fetcher: 0.79s
+planner: 1.88s [Tokens: 22833 prompt + 32 completion]
+Implementation Loop (Total: 5.51s, Tokens: 7328P + 375C, Iterations: 1, Avg: 5.51s/iter):
+  - candidate_creator: 4.72s [Tokens: 7328P + 375C]
+  - verifier: 0.79s
+final_verifier: 0.00s
+teardown_agent: 0.03s
+-------------------------------------------
+
+Traceback (most recent call last):
+  File "/Users/ivanmkc/Documents/code/agent-generator/benchmarks/benchmark_orchestrator.py", line 66, in _run_single_benchmark
+    generated_answer = await generator.generate_answer(case)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ivanmkc/Documents/code/agent-generator/benchmarks/answer_generators/adk_answer_generator.py", line 85, in generate_answer
+    output = output_schema_class.model_validate_json(json_str)
+  File "/Users/ivanmkc/Documents/code/agent-generator/env/lib/python3.13/site-packages/pydantic/main.py", line 766, in model_validate_json
+    return cls.__pydantic_validator__.validate_json(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        json_data, strict=strict, extra=extra, context=context, by_alias=by_alias, by_name=by_name
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+pydantic_core._pydantic_core.ValidationError: 1 validation error for ApiUnderstandingAnswerOutput
+fully_qualified_class_name
+  Field required [type=missing, input_value={'code': 'import json\n\n...sisted to my_agent.py.'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.12/v/missing
+
+--- Agent Timing & Token Report [benchmark_session_79ea37d5-0915-47a3-9c60-0af9912eef5f] ---
+setup_agent: 0.03s
+prompt_sanitizer_agent: 6.07s [Tokens: 1123 prompt + 56 completion]
+knowledge_retrieval_agent: 38.19s [Tokens: 5427 prompt + 221 completion]
+knowledge_context_fetcher: 0.78s
+planner: 1.46s [Tokens: 21576 prompt + 3 completion]
+Implementation Loop (Total: 6.90s, Tokens: 15728P + 188C, Iterations: 1, Avg: 6.90s/iter):
+  - candidate_creator: 6.15s [Tokens: 15728P + 188C]
+  - verifier: 0.75s
+final_verifier: 0.00s
+teardown_agent: 0.03s
+-------------------------------------------
+
+Traceback (most recent call last):
+  File "/Users/ivanmkc/Documents/code/agent-generator/benchmarks/benchmark_orchestrator.py", line 66, in _run_single_benchmark
+    generated_answer = await generator.generate_answer(case)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ivanmkc/Documents/code/agent-generator/benchmarks/answer_generators/adk_answer_generator.py", line 85, in generate_answer
+    output = output_schema_class.model_validate_json(json_str)
+  File "/Users/ivanmkc/Documents/code/agent-generator/env/lib/python3.13/site-packages/pydantic/main.py", line 766, in model_validate_json
+    return cls.__pydantic_validator__.validate_json(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        json_data, strict=strict, extra=extra, context=context, by_alias=by_alias, by_name=by_name
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+pydantic_core._pydantic_core.ValidationError: 1 validation error for ApiUnderstandingAnswerOutput
+fully_qualified_class_name
+  Field required [type=missing, input_value={'code': '# Error: No age...sisted to my_agent.py.'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.12/v/missing
+
+--- Agent Timing & Token Report [benchmark_session_ca7d3227-1359-4f2a-8652-2f9ff682f0b7] ---
+setup_agent: 0.03s
+prompt_sanitizer_agent: 12.08s [Tokens: 1131 prompt + 838 completion]
+knowledge_retrieval_agent: 2.73s [Tokens: 7016 prompt + 129 completion]
+knowledge_context_fetcher: 0.85s
+planner: 19.37s [Tokens: 25846 prompt + 170 completion]
+Implementation Loop (Total: 3.51s, Tokens: 4424P + 170C, Iterations: 1, Avg: 3.51s/iter):
+  - candidate_creator: 2.76s [Tokens: 4424P + 170C]
+  - verifier: 0.75s
+final_verifier: 0.00s
+teardown_agent: 0.03s
+-------------------------------------------
+
+Traceback (most recent call last):
+  File "/Users/ivanmkc/Documents/code/agent-generator/benchmarks/benchmark_orchestrator.py", line 66, in _run_single_benchmark
+    generated_answer = await generator.generate_answer(case)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ivanmkc/Documents/code/agent-generator/benchmarks/answer_generators/adk_answer_generator.py", line 85, in generate_answer
+    output = output_schema_class.model_validate_json(json_str)
+  File "/Users/ivanmkc/Documents/code/agent-generator/env/lib/python3.13/site-packages/pydantic/main.py", line 766, in model_validate_json
+    return cls.__pydantic_validator__.validate_json(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        json_data, strict=strict, extra=extra, context=context, by_alias=by_alias, by_name=by_name
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+pydantic_core._pydantic_core.ValidationError: 1 validation error for ApiUnderstandingAnswerOutput
+fully_qualified_class_name
+  Field required [type=missing, input_value={'code': '# Error: No age...sisted to my_agent.py.'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.12/v/missing
+  - StructuredWorkflowAdk(gemini-2.5-flash): 4/65 tasks completed in 1.5 minutes.
+
+--- Agent Timing & Token Report [benchmark_session_01ccca13-5d61-4b8d-bb6d-17a3ece50e5b] ---
+setup_agent: 0.04s
+prompt_sanitizer_agent: 4.22s [Tokens: 1127 prompt + 814 completion]
+knowledge_retrieval_agent: 2.04s [Tokens: 6953 prompt + 113 completion]
+knowledge_context_fetcher: 0.79s
+planner: 1.68s [Tokens: 12148 prompt + 101 completion]
+Implementation Loop (Total: 3.63s, Tokens: 8788P + 189C, Iterations: 1, Avg: 3.63s/iter):
+  - candidate_creator: 2.81s [Tokens: 8788P + 189C]
+  - verifier: 0.82s
+final_verifier: 0.00s
+teardown_agent: 0.02s
+-------------------------------------------
+
+Traceback (most recent call last):
+  File "/Users/ivanmkc/Documents/code/agent-generator/benchmarks/benchmark_orchestrator.py", line 66, in _run_single_benchmark
+    generated_answer = await generator.generate_answer(case)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ivanmkc/Documents/code/agent-generator/benchmarks/answer_generators/adk_answer_generator.py", line 85, in generate_answer
+    output = output_schema_class.model_validate_json(json_str)
+  File "/Users/ivanmkc/Documents/code/agent-generator/env/lib/python3.13/site-packages/pydantic/main.py", line 766, in model_validate_json
+    return cls.__pydantic_validator__.validate_json(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        json_data, strict=strict, extra=extra, context=context, by_alias=by_alias, by_name=by_name
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+pydantic_core._pydantic_core.ValidationError: 1 validation error for ApiUnderstandingAnswerOutput
+fully_qualified_class_name
+  Field required [type=missing, input_value={'code': '\nimport json\n...sisted to my_agent.py.'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.12/v/missing
+
+--- Agent Timing & Token Report [benchmark_session_3adeb323-2bbd-4039-9efb-dcdd5706b111] ---
+setup_agent: 0.02s
+prompt_sanitizer_agent: 6.76s [Tokens: 1130 prompt + 838 completion]
+knowledge_retrieval_agent: 3.33s [Tokens: 7009 prompt + 108 completion]
+knowledge_context_fetcher: 0.79s
+planner: 3.57s [Tokens: 27852 prompt + 120 completion]
+Implementation Loop (Total: 6.99s, Tokens: 35925P + 169C, Iterations: 1, Avg: 6.99s/iter):
+  - candidate_creator: 6.24s [Tokens: 35925P + 169C]
+  - verifier: 0.75s
+final_verifier: 0.00s
+teardown_agent: 0.03s
+-------------------------------------------
+
+Traceback (most recent call last):
+  File "/Users/ivanmkc/Documents/code/agent-generator/benchmarks/benchmark_orchestrator.py", line 66, in _run_single_benchmark
+    generated_answer = await generator.generate_answer(case)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ivanmkc/Documents/code/agent-generator/benchmarks/answer_generators/adk_answer_generator.py", line 85, in generate_answer
+    output = output_schema_class.model_validate_json(json_str)
+  File "/Users/ivanmkc/Documents/code/agent-generator/env/lib/python3.13/site-packages/pydantic/main.py", line 766, in model_validate_json
+    return cls.__pydantic_validator__.validate_json(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        json_data, strict=strict, extra=extra, context=context, by_alias=by_alias, by_name=by_name
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+pydantic_core._pydantic_core.ValidationError: 1 validation error for ApiUnderstandingAnswerOutput
+fully_qualified_class_name
+  Field required [type=missing, input_value={'code': '# Error: No age...sisted to my_agent.py.'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.12/v/missing
+
+--- Agent Timing & Token Report [benchmark_session_1410ec6f-0963-4bdb-a49c-83af5e4f8569] ---
+setup_agent: 0.05s
+prompt_sanitizer_agent: 3.76s [Tokens: 1127 prompt + 834 completion]
+knowledge_retrieval_agent: 15.53s [Tokens: 6991 prompt + 159 completion]
+knowledge_context_fetcher: 0.81s
+planner: 2.27s [Tokens: 22353 prompt + 124 completion]
+Implementation Loop (Total: 4.61s, Tokens: 30179P + 156C, Iterations: 1, Avg: 4.61s/iter):
+  - candidate_creator: 3.86s [Tokens: 30179P + 156C]
+  - verifier: 0.75s
+final_verifier: 0.00s
+teardown_agent: 0.03s
+-------------------------------------------
+
+Traceback (most recent call last):
+  File "/Users/ivanmkc/Documents/code/agent-generator/benchmarks/benchmark_orchestrator.py", line 66, in _run_single_benchmark
+    generated_answer = await generator.generate_answer(case)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ivanmkc/Documents/code/agent-generator/benchmarks/answer_generators/adk_answer_generator.py", line 85, in generate_answer
+    output = output_schema_class.model_validate_json(json_str)
+  File "/Users/ivanmkc/Documents/code/agent-generator/env/lib/python3.13/site-packages/pydantic/main.py", line 766, in model_validate_json
+    return cls.__pydantic_validator__.validate_json(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        json_data, strict=strict, extra=extra, context=context, by_alias=by_alias, by_name=by_name
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+pydantic_core._pydantic_core.ValidationError: 1 validation error for ApiUnderstandingAnswerOutput
+fully_qualified_class_name
+  Field required [type=missing, input_value={'code': '# Error: No age...sisted to my_agent.py.'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.12/v/missing
+
+--- Agent Timing & Token Report [benchmark_session_47905180-097e-47f9-aee7-3feb4b29c119] ---
+setup_agent: 0.03s
+prompt_sanitizer_agent: 11.75s [Tokens: 1125 prompt + 824 completion]
+knowledge_retrieval_agent: 3.01s [Tokens: 6969 prompt + 112 completion]
+knowledge_context_fetcher: 0.81s
+planner: 2.38s [Tokens: 12159 prompt + 85 completion]
+Implementation Loop (Total: 1.72s, Tokens: 4306P + 77C, Iterations: 1, Avg: 1.72s/iter):
+  - candidate_creator: 0.93s [Tokens: 4306P + 77C]
+  - verifier: 0.79s
+final_verifier: 0.00s
+teardown_agent: 0.03s
+-------------------------------------------
+
+Traceback (most recent call last):
+  File "/Users/ivanmkc/Documents/code/agent-generator/benchmarks/benchmark_orchestrator.py", line 66, in _run_single_benchmark
+    generated_answer = await generator.generate_answer(case)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ivanmkc/Documents/code/agent-generator/benchmarks/answer_generators/adk_answer_generator.py", line 85, in generate_answer
+    output = output_schema_class.model_validate_json(json_str)
+  File "/Users/ivanmkc/Documents/code/agent-generator/env/lib/python3.13/site-packages/pydantic/main.py", line 766, in model_validate_json
+    return cls.__pydantic_validator__.validate_json(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        json_data, strict=strict, extra=extra, context=context, by_alias=by_alias, by_name=by_name
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+pydantic_core._pydantic_core.ValidationError: 1 validation error for ApiUnderstandingAnswerOutput
+fully_qualified_class_name
+  Field required [type=missing, input_value={'code': '# Error: No age...sisted to my_agent.py.'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.12/v/missing
+
+--- Agent Timing & Token Report [benchmark_session_3f8c24f1-f252-45f3-8030-5db9498cb6ae] ---
+setup_agent: 0.03s
+prompt_sanitizer_agent: 5.93s [Tokens: 1127 prompt + 603 completion]
+knowledge_retrieval_agent: 4.07s [Tokens: 6594 prompt + 164 completion]
+knowledge_context_fetcher: 4.72s
+planner: 3.82s [Tokens: 99334 prompt + 111 completion]
+Implementation Loop (Total: 4.97s, Tokens: 35548P + 135C, Iterations: 1, Avg: 4.97s/iter):
+  - candidate_creator: 4.20s [Tokens: 35548P + 135C]
+  - verifier: 0.77s
+final_verifier: 0.00s
+teardown_agent: 0.02s
+-------------------------------------------
+
+Traceback (most recent call last):
+  File "/Users/ivanmkc/Documents/code/agent-generator/benchmarks/benchmark_orchestrator.py", line 66, in _run_single_benchmark
+    generated_answer = await generator.generate_answer(case)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ivanmkc/Documents/code/agent-generator/benchmarks/answer_generators/adk_answer_generator.py", line 85, in generate_answer
+    output = output_schema_class.model_validate_json(json_str)
+  File "/Users/ivanmkc/Documents/code/agent-generator/env/lib/python3.13/site-packages/pydantic/main.py", line 766, in model_validate_json
+    return cls.__pydantic_validator__.validate_json(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        json_data, strict=strict, extra=extra, context=context, by_alias=by_alias, by_name=by_name
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+pydantic_core._pydantic_core.ValidationError: 1 validation error for ApiUnderstandingAnswerOutput
+fully_qualified_class_name
+  Field required [type=missing, input_value={'code': '# Error: No age...sisted to my_agent.py.'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.12/v/missing

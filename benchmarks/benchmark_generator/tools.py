@@ -23,10 +23,62 @@ import json
 import traceback
 from pathlib import Path
 from typing import List, Dict, Any, Optional
+from collections import defaultdict, Counter
 
 from google.adk.tools import ToolContext
-from benchmarks.benchmark_generator.models import TargetMethod, GoldenSnapshot, DistractorOption, ValidationStatus
+from benchmarks.benchmark_generator.models import TargetMethod, GoldenSnapshot, DistractorOption, ValidationStatus, TargetParameter, TargetType
 from benchmarks.benchmark_generator.irt import IRTManager
+
+# --- Usage Analysis ---
+
+class UsageVisitor(ast.NodeVisitor):
+    """AST Visitor to count function calls and argument usage."""
+    def __init__(self):
+        # Maps FQN -> {"call_count": int, "arg_usage": Counter}
+        self.stats = defaultdict(lambda: {"call_count": 0, "arg_usage": Counter()})
+        self.imports = {}
+
+    def visit_Import(self, node):
+        for alias in node.names:
+            self.imports[alias.asname or alias.name] = alias.name
+        self.generic_visit(node)
+
+    def visit_ImportFrom(self, node):
+        module = node.module or ""
+        for alias in node.names:
+            name = alias.name
+            asname = alias.asname or name
+            if name == "*": continue
+            full_name = f"{module}.{name}" if module else name
+            self.imports[asname] = full_name
+        self.generic_visit(node)
+
+    def visit_Call(self, node):
+        func_name = self._get_func_name(node.func)
+        if func_name:
+            resolved = self._resolve_name(func_name)
+            self.stats[resolved]["call_count"] += 1
+            for keyword in node.keywords:
+                if keyword.arg:
+                    self.stats[resolved]["arg_usage"][keyword.arg] += 1
+        self.generic_visit(node)
+
+    def _get_func_name(self, node):
+        if isinstance(node, ast.Name):
+            return node.id
+        elif isinstance(node, ast.Attribute):
+            base = self._get_func_name(node.value)
+            return f"{base}.{node.attr}" if base else node.attr
+        return None
+
+    def _resolve_name(self, name):
+        if not name: return name
+        parts = name.split('.')
+        root = parts[0]
+        if root in self.imports:
+            resolved_root = self.imports[root]
+            return f"{resolved_root}.{'.'.join(parts[1:])}" if len(parts) > 1 else resolved_root
+        return name
 
 # --- Scanner (Cartographer) Logic ---
 
@@ -37,6 +89,7 @@ def scan_repository(repo_path: str, tool_context: ToolContext, coverage_file: Op
     - Class hierarchies
     - API surfaces
     - Dependency graphs (imports)
+    - Usage statistics (call counts)
     """
     root_dir = Path(repo_path).resolve()
     if not root_dir.exists():
@@ -57,86 +110,130 @@ def scan_repository(repo_path: str, tool_context: ToolContext, coverage_file: Op
                 pass
 
     targets = []
+    all_files = []
     ignored_dirs = {".git", ".vscode", ".gemini", "__pycache__", "env", "venv", "node_modules", "dist", "build"}
     
+    # 1. Collect all python files
     for root, dirs, files in os.walk(root_dir):
         dirs[:] = [d for d in dirs if d not in ignored_dirs]
-        
         for file in files:
             if file.endswith(".py") and not file.startswith("test_") and not file.startswith("."):
-                full_path = Path(root) / file
-                try:
-                    relative_path = full_path.relative_to(root_dir)
-                    with open(full_path, "r", encoding="utf-8") as f:
-                        content = f.read()
+                all_files.append(Path(root) / file)
+
+    # 2. Usage Analysis Pass
+    usage_visitor = UsageVisitor()
+    for file_path in all_files:
+        try:
+            with open(file_path, "r", encoding="utf-8") as f:
+                tree = ast.parse(f.read())
+            usage_visitor.visit(tree)
+        except Exception:
+            pass
+            
+    usage_stats = usage_visitor.stats
+
+    # 3. Definition Pass
+    for full_path in all_files:
+        try:
+            relative_path = full_path.relative_to(root_dir)
+            
+            # Construct module name from path (naive)
+            module_parts = list(relative_path.parts)
+            if module_parts[-1] == "__init__.py":
+                module_parts.pop()
+            else:
+                module_parts[-1] = module_parts[-1][:-3] # remove .py
+            module_name = ".".join(module_parts)
+
+            with open(full_path, "r", encoding="utf-8") as f:
+                content = f.read()
+            
+            tree = ast.parse(content)
+            
+            # Map Dependencies (Imports)
+            dependencies = []
+            for node in ast.walk(tree):
+                if isinstance(node, ast.Import):
+                    for alias in node.names:
+                        dependencies.append(alias.name)
+                elif isinstance(node, ast.ImportFrom):
+                    if node.module:
+                        dependencies.append(node.module)
+
+            # Map Hierarchy and Methods
+            class Visitor(ast.NodeVisitor):
+                def __init__(self):
+                    self.current_class = None
+                    self.current_parents = []
+
+                def visit_ClassDef(self, node):
+                    old_class = self.current_class
+                    old_parents = self.current_parents
                     
-                    tree = ast.parse(content)
+                    self.current_class = node.name
+                    self.current_parents = [
+                        ast.unparse(base) if hasattr(ast, "unparse") else str(base) 
+                        for base in node.bases
+                    ]
                     
-                    # 1. Map Dependencies (Imports)
-                    dependencies = []
-                    for node in ast.walk(tree):
-                        if isinstance(node, ast.Import):
-                            for alias in node.names:
-                                dependencies.append(alias.name)
-                        elif isinstance(node, ast.ImportFrom):
-                            if node.module:
-                                dependencies.append(node.module)
+                    self.generic_visit(node)
+                    
+                    self.current_class = old_class
+                    self.current_parents = old_parents
 
-                    # 2. Map Hierarchy and Methods
-                    class Visitor(ast.NodeVisitor):
-                        def __init__(self):
-                            self.current_class = None
-                            self.current_parents = []
+                def visit_FunctionDef(self, node):
+                    if node.name.startswith("_") and not node.name.startswith("__"):
+                        return
+                    
+                    docstring = ast.get_docstring(node)
+                    complexity = node.end_lineno - node.lineno if hasattr(node, "end_lineno") else 0
+                    
+                    if complexity < 3:
+                        return
+                    
+                    # Construct FQN for usage lookup
+                    if self.current_class:
+                        fqn = f"{module_name}.{self.current_class}.{node.name}"
+                    else:
+                        fqn = f"{module_name}.{node.name}"
+                    
+                    # Lookup usage
+                    stats = usage_stats.get(fqn, {})
+                    call_count = stats.get("call_count", 0)
+                    arg_usage = stats.get("arg_usage", {})
+                    
+                    # Construct parameters list
+                    params = []
+                    for arg in node.args.args:
+                        p_name = arg.arg
+                        p_count = arg_usage.get(p_name, 0)
+                        params.append(TargetParameter(name=p_name, usage_count=p_count))
 
-                        def visit_ClassDef(self, node):
-                            old_class = self.current_class
-                            old_parents = self.current_parents
-                            
-                            self.current_class = node.name
-                            # Extract parent class names
-                            self.current_parents = [
-                                ast.unparse(base) if hasattr(ast, "unparse") else str(base) 
-                                for base in node.bases
-                            ]
-                            
-                            self.generic_visit(node)
-                            
-                            self.current_class = old_class
-                            self.current_parents = old_parents
+                    targets.append({
+                        "file_path": str(relative_path),
+                        "class_name": self.current_class,
+                        "parent_classes": self.current_parents,
+                        "method_name": node.name,
+                        "code_signature": f"def {node.name}(...):", 
+                        "docstring": docstring,
+                        "complexity_score": float(complexity),
+                        "usage_score": call_count,
+                        "dependencies": dependencies,
+                        "parameters": params,
+                        "type": TargetType.METHOD
+                    })
 
-                        def visit_FunctionDef(self, node):
-                            # Focus on API Surface: skip private unless it looks like an entry point
-                            if node.name.startswith("_") and not node.name.startswith("__"):
-                                return
-                            
-                            docstring = ast.get_docstring(node)
-                            complexity = node.end_lineno - node.lineno if hasattr(node, "end_lineno") else 0
-                            
-                            if complexity < 3:
-                                return
-
-                            targets.append({
-                                "file_path": str(relative_path),
-                                "class_name": self.current_class,
-                                "parent_classes": self.current_parents,
-                                "method_name": node.name,
-                                "code_signature": f"def {node.name}(...):", 
-                                "docstring": docstring,
-                                "complexity_score": float(complexity),
-                                "dependencies": dependencies
-                            })
-
-                    Visitor().visit(tree)
-                except Exception as e:
-                    pass
+            Visitor().visit(tree)
+        except Exception as e:
+            pass
     
     tool_context.session.state["scanned_targets"] = targets
     tool_context.session.state["coverage_data"] = coverage_data
-    return f"Cartographer scan complete: {len(targets)} targets mapped with hierarchy and dependencies."
+    return f"Cartographer scan complete: {len(targets)} targets mapped with usage stats."
 
 def get_prioritized_target(tool_context: ToolContext) -> str:
     """
-    Retrieves the next best target from the scanned list, prioritized by IRT and Coverage.
+    Retrieves the next best target from the scanned list, prioritized by Usage, IRT and Coverage.
     Returns the target JSON or 'DONE'.
     """
     targets = tool_context.session.state.get("scanned_targets", [])
@@ -156,10 +253,18 @@ def get_prioritized_target(tool_context: ToolContext) -> str:
     coverage_data = tool_context.session.state.get("coverage_data")
 
     def score(t):
-        return irt_manager.calculate_priority(t, coverage_data)
+        # Base score from IRT/Coverage/Complexity
+        base = irt_manager.calculate_priority(t, coverage_data)
+        # Add Usage Score (weighted heavily)
+        usage = t.get("usage_score", 0) * 20 # High weight for usage
+        return base + usage
         
     candidates.sort(key=score, reverse=True)
     best = candidates[0]
+    
+    # Sort parameters by usage for the agent's reference
+    if "parameters" in best:
+        best["parameters"].sort(key=lambda p: p["usage_count"], reverse=True)
     
     processed_list.append(best["file_path"] + "::" + best["method_name"])
     tool_context.session.state["processed_targets_list"] = processed_list

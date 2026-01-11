@@ -39,37 +39,49 @@ def mock_context():
     return ctx
 
 def test_scan_repository(mock_context, tmp_path):
-    """Verifies that the Cartographer scan correctly identifies testable methods in a repo."""
-    # Create a dummy python file
+    """Verifies that the Cartographer scan correctly identifies testable methods and counts usage."""
+    # Create a dummy python file defining the API
     p = tmp_path / "my_module.py"
     p.write_text("class Foo:\n  def bar(self):\n    '''Docstring'''\n    x=1\n    y=2\n    return x+y")
     
+    # Create a caller file to test usage counting
+    caller = tmp_path / "caller.py"
+    # Use explicit FQN style to ensure naive static analysis catches it
+    caller.write_text("import my_module\nmy_module.Foo.bar(None)")
+    
     result = scan_repository(str(tmp_path), mock_context)
     
-    assert "Cartographer scan complete: 1 targets" in result
+    assert "Cartographer scan complete" in result
     targets = mock_context.session.state["scanned_targets"]
-    assert len(targets) == 1
-    assert targets[0]["method_name"] == "bar"
-    assert targets[0]["class_name"] == "Foo"
+    
+    # Verify bar was found
+    bar_target = next((t for t in targets if t["method_name"] == "bar"), None)
+    assert bar_target is not None
+    assert bar_target["class_name"] == "Foo"
+    
+    # Verify usage was counted (1 call in caller.py)
+    # UsageVisitor logic: f.bar() -> call to bar.
+    # Note: UsageVisitor resolves types loosely. 
+    assert bar_target["usage_score"] >= 1
 
 def test_get_prioritized_target(mock_context):
-    """Verifies that the Auditor prioritizes complex methods and handles processed state."""
+    """Verifies that the Auditor prioritizes based on Usage > Complexity."""
     targets = [
-        {"file_path": "a.py", "method_name": "trivial", "complexity_score": 1, "docstring": None},
-        {"file_path": "b.py", "method_name": "complex", "complexity_score": 10, "docstring": "Yes"},
+        {"file_path": "unused.py", "method_name": "unused", "complexity_score": 50, "docstring": "Yes", "usage_score": 0},
+        {"file_path": "popular.py", "method_name": "popular", "complexity_score": 5, "docstring": "Yes", "usage_score": 10},
     ]
     mock_context.session.state["scanned_targets"] = targets
     
-    # First call - should get 'complex' due to higher complexity and docstring
+    # First call - should get 'popular' due to usage weight (10 * 20 = 200) vs unused (50 + 10 = 60)
     res1 = get_prioritized_target(mock_context)
     data1 = json.loads(res1)
-    assert data1["method_name"] == "complex"
-    assert "b.py::complex" in mock_context.session.state["processed_targets_list"]
+    assert data1["method_name"] == "popular"
+    assert "popular.py::popular" in mock_context.session.state["processed_targets_list"]
     
-    # Second call - should get 'trivial'
+    # Second call - should get 'unused'
     res2 = get_prioritized_target(mock_context)
     data2 = json.loads(res2)
-    assert data2["method_name"] == "trivial"
+    assert data2["method_name"] == "unused"
     
     # Third call - should return DONE
     res3 = get_prioritized_target(mock_context)
@@ -84,7 +96,9 @@ def test_trace_execution(mock_context):
         "class_name": None,
         "code_signature": "def test():",
         "docstring": None,
-        "complexity_score": 1
+        "complexity_score": 1,
+        "usage_score": 0,
+        "type": "method"
     }
     code = "result = 1 + 1\nprint('Hello')"
     
@@ -152,8 +166,8 @@ def test_prismatic_agent_creation_with_manager():
 def test_get_prioritized_target_with_coverage(mock_context):
     """Verifies that targets not present in coverage data are prioritized."""
     targets = [
-        {"file_path": "covered.py", "method_name": "foo", "complexity_score": 10, "docstring": None},
-        {"file_path": "uncovered.py", "method_name": "bar", "complexity_score": 10, "docstring": None},
+        {"file_path": "covered.py", "method_name": "foo", "complexity_score": 10, "docstring": None, "usage_score": 0},
+        {"file_path": "uncovered.py", "method_name": "bar", "complexity_score": 10, "docstring": None, "usage_score": 0},
     ]
     mock_context.session.state["scanned_targets"] = targets
     

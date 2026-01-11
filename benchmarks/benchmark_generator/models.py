@@ -24,8 +24,20 @@ class ValidationStatus(str, Enum):
     FAIL_ASSERTION = "FAIL_ASSERTION"
     FAIL_TIMEOUT = "FAIL_TIMEOUT"
 
+class TargetType(str, Enum):
+    MODULE = "module"
+    CLASS = "class"
+    METHOD = "method"
+    PROPERTY = "property"
+
+class TargetParameter(pydantic.BaseModel):
+    name: str
+    usage_count: int = 0
+    type_hint: Optional[str] = None
+
 class TargetMethod(pydantic.BaseModel):
     """Represents a method or function identified by the Scanner."""
+    type: TargetType = TargetType.METHOD
     file_path: str
     class_name: Optional[str] = None
     parent_classes: List[str] = [] # For hierarchy mapping
@@ -33,7 +45,9 @@ class TargetMethod(pydantic.BaseModel):
     code_signature: str
     docstring: Optional[str] = None
     complexity_score: float = 0.0
+    usage_score: int = 0
     dependencies: List[str] = [] # Files imported by this file
+    parameters: List[TargetParameter] = []
 
 class GoldenSnapshot(pydantic.BaseModel):
     """The 'ground truth' capture from the Tracer."""

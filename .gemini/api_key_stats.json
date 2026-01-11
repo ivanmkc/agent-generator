@@ -1,0 +1,164 @@
+{
+  "GEMINI_API": {
+    "0": {
+      "key": "AIzaSyDky3t0Fm0LnsONOLvU_Vj9yH1ZD-bGqyU",
+      "id": "0",
+      "status": "active",
+      "success_count": 1544,
+      "failure_count": 304,
+      "last_used": 1768089939.512977,
+      "cooldown_until": 0.0,
+      "consecutive_failures": 0
+    },
+    "1": {
+      "key": "AIzaSyBrVdTpMNM_GSWSgy29da3gSNS5beQM4v8",
+      "id": "1",
+      "status": "active",
+      "success_count": 0,
+      "failure_count": 0,
+      "last_used": 1768088848.263177,
+      "cooldown_until": 0.0,
+      "consecutive_failures": 0
+    },
+    "2": {
+      "key": "AIzaSyCWouhUQrUTvBKhJ61UP7zGErZCR3XTDf0",
+      "id": "2",
+      "status": "active",
+      "success_count": 0,
+      "failure_count": 0,
+      "last_used": 1768088963.912214,
+      "cooldown_until": 0.0,
+      "consecutive_failures": 0
+    },
+    "3": {
+      "key": "AIzaSyD0e90CazLkCoZ9ik-DYspYudQORJBg-Wk",
+      "id": "3",
+      "status": "active",
+      "success_count": 0,
+      "failure_count": 0,
+      "last_used": 1768088968.03005,
+      "cooldown_until": 0.0,
+      "consecutive_failures": 0
+    },
+    "4": {
+      "key": "AIzaSyD6i8FCnka6y-dQCA3J8mcIzNRQ-lqOSj8",
+      "id": "4",
+      "status": "active",
+      "success_count": 0,
+      "failure_count": 0,
+      "last_used": 1768088970.6056561,
+      "cooldown_until": 0.0,
+      "consecutive_failures": 0
+    },
+    "5": {
+      "key": "AIzaSyBLA4Q96S_nw1DjiVBHjVI_nrRxl8F19BY",
+      "id": "5",
+      "status": "active",
+      "success_count": 0,
+      "failure_count": 0,
+      "last_used": 1768089076.359603,
+      "cooldown_until": 0.0,
+      "consecutive_failures": 0
+    },
+    "6": {
+      "key": "AIzaSyCEN20hvFdDJ2p0ot1iG_s28yn89HoBXlc",
+      "id": "6",
+      "status": "active",
+      "success_count": 0,
+      "failure_count": 0,
+      "last_used": 1768089079.024096,
+      "cooldown_until": 0.0,
+      "consecutive_failures": 0
+    },
+    "7": {
+      "key": "AIzaSyAUlrTaOtVCgtXsXRyyQMtHaJHGWi8fsSE",
+      "id": "7",
+      "status": "active",
+      "success_count": 0,
+      "failure_count": 0,
+      "last_used": 1768089207.0229352,
+      "cooldown_until": 0.0,
+      "consecutive_failures": 0
+    },
+    "8": {
+      "key": "AIzaSyDPu2VODXTfP6xVHJmhYICXhyiacgnINL4",
+      "id": "8",
+      "status": "active",
+      "success_count": 0,
+      "failure_count": 0,
+      "last_used": 1768089209.6491961,
+      "cooldown_until": 0.0,
+      "consecutive_failures": 0
+    },
+    "9": {
+      "key": "AIzaSyBTGiDzah44goZ80Ur-5Z2IV9t3BqKHNN8",
+      "id": "9",
+      "status": "active",
+      "success_count": 0,
+      "failure_count": 0,
+      "last_used": 1768089936.5850308,
+      "cooldown_until": 0.0,
+      "consecutive_failures": 0
+    }
+  },
+  "CONTEXT7_API": {
+    "0": {
+      "key": "ctx7sk-f780d645-582b-4c5b-be7b-0de96d1a792f",
+      "id": "0",
+      "status": "active",
+      "success_count": 0,
+      "failure_count": 0,
+      "last_used": 0.0,
+      "cooldown_until": 0.0,
+      "consecutive_failures": 0
+    }
+  },
+  "OPENAI_API": {
+    "0": {
+      "key": "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",
+      "id": "0",
+      "status": "active",
+      "success_count": 0,
+      "failure_count": 0,
+      "last_used": 0.0,
+      "cooldown_until": 0.0,
+      "consecutive_failures": 0
+    }
+  },
+  "ANTHROPIC_API": {
+    "0": {
+      "key": "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",
+      "id": "0",
+      "status": "active",
+      "success_count": 0,
+      "failure_count": 0,
+      "last_used": 0.0,
+      "cooldown_until": 0.0,
+      "consecutive_failures": 0
+    }
+  },
+  "XAI_API": {
+    "0": {
+      "key": "xai-cA78Qj0DOUAloijHEe9xyiNoAI0TVDmOKfRxpjCXWlUW7mc48weiJu87sUFz93XtiM9QIfsK965Qiv6V",
+      "id": "0",
+      "status": "active",
+      "success_count": 0,
+      "failure_count": 0,
+      "last_used": 0.0,
+      "cooldown_until": 0.0,
+      "consecutive_failures": 0
+    }
+  },
+  "GROQ_API": {
+    "0": {
+      "key": "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",
+      "id": "0",
+      "status": "active",
+      "success_count": 0,
+      "failure_count": 0,
+      "last_used": 0.0,
+      "cooldown_until": 0.0,
+      "consecutive_failures": 0
+    }
+  }
+}

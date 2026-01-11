@@ -83,10 +83,10 @@ def create_auditor_agent(model: str | RotatingKeyGemini, repo_path: str) -> LlmA
         output_key="current_target_json",
         output_schema=TargetMethod,
         instruction=(
-            f"You are the Auditor (The Strategist). Your goal is to map the repository's topology and select high-value targets.\n"
-            f"1. If 'scanned_targets' is empty, call `scan_repository` with `repo_path='{repo_path}'` to act as the Cartographer.\n"
-            "2. Call `get_prioritized_target` to retrieve targets prioritized by IRT Fisher Information and Code Coverage.\n"
-            "3. Analyze the target's topology (Class Hierarchies, Dependency Graph) to ensure it represents a critical API surface.\n"
+            f"You are the Auditor (The Strategist). Your goal is to map the repository's topology and select high-value targets based on USAGE frequency.\n"
+            f"1. If 'scanned_targets' is empty, call `scan_repository` with `repo_path='{repo_path}'`.\n"
+            "2. Call `get_prioritized_target` to retrieve the next best target (prioritized by Usage Count, IRT, and Coverage).\n"
+            "3. Analyze the target's usage patterns. If it has high usage, it is a critical API surface.\n"
             "4. If it returns 'DONE' or 'EMPTY', call `exit_loop`.\n"
             "5. Otherwise, output the target strictly adhering to the TargetMethod schema."
         )

@@ -1,0 +1,6 @@
+sources:
+  - url: https://github.com/google/adk-python
+    branch: main
+  - url: https://github.com/google/adk-samples
+    branch: main
+    include_paths: ["python"]
