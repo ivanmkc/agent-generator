@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Co-occurrence Indexer.
-Analyzes Python repositories to calculate conditional probabilities of module usage.
+Analyzes Python repositories to calculate conditional probabilities of module/class/property usage.
 P(B | A) = Count(A and B) / Count(A)
 """
 
@@ -21,27 +21,58 @@ from typing import Dict, Set, List, Tuple
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-class ImportVisitor(ast.NodeVisitor):
+class GranularUsageVisitor(ast.NodeVisitor):
     def __init__(self):
-        self.imports = set()
+        self.used_entities = set()
+        self.imports = {} # alias -> canonical
 
     def visit_Import(self, node):
         for alias in node.names:
-            self.imports.add(alias.name)
+            self.imports[alias.asname or alias.name] = alias.name
+            self.used_entities.add(alias.name)
         self.generic_visit(node)
 
     def visit_ImportFrom(self, node):
         module = node.module or ""
-        # We track the module being imported from
-        if module:
-            self.imports.add(module)
-        # Optionally track specific members if needed, but module-level is usually better for 'context'
-        # for alias in node.names:
-        #     if module:
-        #         self.imports.add(f"{module}.{alias.name}")
-        #     else:
-        #         self.imports.add(alias.name)
+        if module: self.used_entities.add(module)
+        for alias in node.names:
+            name = alias.name
+            if name == "*": continue
+            full_name = f"{module}.{name}" if module else name
+            self.imports[alias.asname or alias.name] = full_name
+            self.used_entities.add(full_name)
         self.generic_visit(node)
+
+    def visit_Call(self, node):
+        name = self._get_full_name(node.func)
+        if name:
+            resolved = self._resolve_name(name)
+            self.used_entities.add(resolved)
+        self.generic_visit(node)
+
+    def visit_Attribute(self, node):
+        name = self._get_full_name(node)
+        if name:
+            resolved = self._resolve_name(name)
+            self.used_entities.add(resolved)
+        self.generic_visit(node)
+
+    def _get_full_name(self, node):
+        if isinstance(node, ast.Name):
+            return node.id
+        elif isinstance(node, ast.Attribute):
+            base = self._get_full_name(node.value)
+            return f"{base}.{node.attr}" if base else node.attr
+        return None
+
+    def _resolve_name(self, name):
+        if not name: return name
+        parts = name.split('.')
+        root = parts[0]
+        if root in self.imports:
+            resolved_root = self.imports[root]
+            return f"{resolved_root}.{'.'.join(parts[1:])}" if len(parts) > 1 else resolved_root
+        return name
 
 def analyze_repo(repo_path: Path) -> Tuple[Counter, Dict[str, Counter]]:
     file_counts = Counter()
@@ -56,31 +87,30 @@ def analyze_repo(repo_path: Path) -> Tuple[Counter, Dict[str, Counter]]:
             if file.endswith(".py") and not file.startswith("test_"):
                 python_files.append(Path(root) / file)
 
-    logger.info(f"Scanning {len(python_files)} files in {repo_path}...")
+    logger.info(f"Scanning {len(python_files)} files in {repo_path} for granular usage...")
 
     for file_path in python_files:
         try:
             with open(file_path, "r", encoding="utf-8") as f:
                 tree = ast.parse(f.read())
             
-            visitor = ImportVisitor()
+            visitor = GranularUsageVisitor()
             visitor.visit(tree)
             
-            # Filter for google.adk modules to keep it relevant
-            relevant_imports = {imp for imp in visitor.imports if imp.startswith("google.adk")}
+            # Filter for google.adk entities
+            relevant = {ent for ent in visitor.used_entities if ent.startswith("google.adk")}
             
-            if not relevant_imports:
+            if not relevant:
                 continue
 
-            # Update counts
-            for imp in relevant_imports:
-                file_counts[imp] += 1
-                for other in relevant_imports:
-                    if imp != other:
-                        co_occurrences[imp][other] += 1
+            for ent in relevant:
+                file_counts[ent] += 1
+                for other in relevant:
+                    if ent != other:
+                        co_occurrences[ent][other] += 1
                         
         except Exception:
-            pass # Ignore parse errors
+            pass 
 
     return file_counts, co_occurrences
 
@@ -98,56 +128,43 @@ def clone_repo(url: str, branch: str = "main") -> Path:
         return None
 
 def main():
-    parser = argparse.ArgumentParser(description="Calculate Module Co-occurrence Probabilities")
+    parser = argparse.ArgumentParser(description="Calculate Granular Co-occurrence Probabilities")
     parser.add_argument("--repo", type=str, default="https://github.com/google/adk-samples", help="Repo URL")
     parser.add_argument("--path", type=str, default="python", help="Subpath")
     parser.add_argument("--output", type=str, default="benchmarks/adk_cooccurrence.json", help="Output JSON path")
-    parser.add_argument("--top", type=int, default=20, help="Show top N associations")
     
     args = parser.parse_args()
     
     repo_dir = clone_repo(args.repo)
-    if not repo_dir:
-        sys.exit(1)
+    if not repo_dir: sys.exit(1)
         
     try:
         target_dir = repo_dir / args.path
         counts, co_matrix = analyze_repo(target_dir)
         
-        # Calculate Probabilities
         results = []
-        for context_module, count in counts.items():
-            if count < 2: continue # Ignore rare modules
+        for context, count in counts.items():
+            if count < 2: continue 
             
-            associations = co_matrix[context_module]
-            for target_module, co_count in associations.items():
+            associations = co_matrix[context]
+            for target, co_count in associations.items():
                 prob = co_count / count
                 results.append({
-                    "context": context_module,
-                    "target": target_module,
+                    "context": context,
+                    "target": target,
                     "probability": round(prob, 3),
-                    "support": co_count,
-                    "confidence": round(prob * 100, 1)
+                    "support": co_count
                 })
         
-        # Sort by Probability desc, then Support desc
         results.sort(key=lambda x: (x["probability"], x["support"]), reverse=True)
         
-        print(f"\nTop {args.top} Strongest Module Associations (P(Target | Context)):")
-        print(f"{ 'Context (If you use...)':<50} | { 'Target (You likely also use...)':<50} | {'Prob':<6} | {'Count'}")
-        print("-" * 120)
-        
-        for r in results[:args.top]:
-            print(f"{r['context']:<50} | {r['target']:<50} | {r['probability']:<6.2f} | {r['support']}")
-            
-        # Save to JSON
         with open(args.output, "w") as f:
             json.dump({
                 "meta": {"repo": args.repo, "path": args.path},
                 "associations": results
             }, f, indent=2)
             
-        logger.info(f"Saved {len(results)} associations to {args.output}")
+        logger.info(f"Saved {len(results)} granular associations to {args.output}")
         
     finally:
         shutil.rmtree(repo_dir, ignore_errors=True)
