@@ -37,7 +37,9 @@ class AdkTools:
         self.workspace_root = workspace_root
         self.venv_path = venv_path
         self._stats_index = None
+        self._coocc_index = None
         self._load_stats_index()
+        self._load_coocc_index()
 
     def _load_stats_index(self):
         """Loads the pre-calculated API usage statistics from benchmarks/adk_stats.yaml."""
@@ -46,6 +48,16 @@ class AdkTools:
             try:
                 with open(stats_path, "r", encoding="utf-8") as f:
                     self._stats_index = yaml.safe_load(f)
+            except Exception:
+                pass
+
+    def _load_coocc_index(self):
+        """Loads the co-occurrence matrix from benchmarks/adk_cooccurrence.json."""
+        coocc_path = Path("benchmarks/adk_cooccurrence.json")
+        if coocc_path.exists():
+            try:
+                with open(coocc_path, "r", encoding="utf-8") as f:
+                    self._coocc_index = json.load(f)
             except Exception:
                 pass
 
@@ -186,6 +198,28 @@ class AdkTools:
         safe_pattern = pattern.replace("'", "'\\''")
         cmd = f"grep -r '{safe_pattern}' '{path}' | head -n 20 | cut -c 1-500"
         return await self.run_shell_command(cmd)
+
+    def get_api_associations(self, entity_name: str, threshold: float = 0.1) -> str:
+        """Returns modules/classes statistically likely to be used with the given entity."""
+        if not self._coocc_index:
+            return "Error: Co-occurrence index not loaded."
+        
+        associations = self._coocc_index.get("associations", [])
+        # Find associations where 'context' is the entity
+        related = [a for a in associations if a["context"] == entity_name and a["probability"] >= threshold]
+        
+        if not related:
+            # Try fuzzy match (prefix)
+            related = [a for a in associations if entity_name.startswith(a["context"]) and a["probability"] >= threshold]
+
+        if not related:
+            return f"No associations found for '{entity_name}' above threshold {threshold}."
+
+        output = [f"# Statistical Associations for: {entity_name}"]
+        for a in related[:10]:
+            output.append(f"- {a['target']} (Prob: {a['probability']:.2f}, Support: {a['support']})")
+        
+        return "\n".join(output)
 
     async def get_module_help(self, module_name: str, depth: int = 0) -> str:
         """Retrieves a summary of the public API for a Python module with statistical prioritization."""
