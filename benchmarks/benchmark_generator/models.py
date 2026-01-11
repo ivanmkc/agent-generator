@@ -44,6 +44,8 @@ class TargetEntity(pydantic.BaseModel):
     # Specific metadata for agents
     signature: Optional[str] = None
     source_code: Optional[str] = None
+    # Context Expansion
+    associated_modules: List[str] = [] # Modules likely to be used with this entity
 
 class GoldenSnapshot(pydantic.BaseModel):
     """The 'ground truth' capture from the Tracer."""

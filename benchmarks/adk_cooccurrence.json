@@ -1,0 +1,1576 @@
+{
+  "meta": {
+    "repo": "https://github.com/google/adk-samples",
+    "path": "python"
+  },
+  "associations": [
+    {
+      "context": "google.adk.events",
+      "target": "google.adk.agents",
+      "probability": 1.0,
+      "support": 5,
+      "confidence": 100.0
+    },
+    {
+      "context": "google.adk.tools.bigquery.config",
+      "target": "google.adk.tools.bigquery",
+      "probability": 1.0,
+      "support": 4,
+      "confidence": 100.0
+    },
+    {
+      "context": "google.adk.tools.bigquery",
+      "target": "google.adk.tools.bigquery.config",
+      "probability": 1.0,
+      "support": 4,
+      "confidence": 100.0
+    },
+    {
+      "context": "google.adk.planners",
+      "target": "google.adk.agents",
+      "probability": 1.0,
+      "support": 4,
+      "confidence": 100.0
+    },
+    {
+      "context": "google.adk.tools.mcp_tool",
+      "target": "google.adk.agents",
+      "probability": 1.0,
+      "support": 3,
+      "confidence": 100.0
+    },
+    {
+      "context": "google.adk.tools.google_search_tool",
+      "target": "google.adk.agents",
+      "probability": 1.0,
+      "support": 3,
+      "confidence": 100.0
+    },
+    {
+      "context": "google.adk.plugins",
+      "target": "google.adk.agents",
+      "probability": 1.0,
+      "support": 3,
+      "confidence": 100.0
+    },
+    {
+      "context": "google.adk.plugins",
+      "target": "google.adk",
+      "probability": 1.0,
+      "support": 3,
+      "confidence": 100.0
+    },
+    {
+      "context": "google.adk.plugins",
+      "target": "google.adk.tools",
+      "probability": 1.0,
+      "support": 3,
+      "confidence": 100.0
+    },
+    {
+      "context": "google.adk.tools.mcp_tool.mcp_session_manager",
+      "target": "google.adk.tools.mcp_tool.mcp_toolset",
+      "probability": 1.0,
+      "support": 2,
+      "confidence": 100.0
+    },
+    {
+      "context": "google.adk.code_executors",
+      "target": "google.adk.agents",
+      "probability": 1.0,
+      "support": 2,
+      "confidence": 100.0
+    },
+    {
+      "context": "google.adk.sessions.state",
+      "target": "google.adk.agents.callback_context",
+      "probability": 1.0,
+      "support": 2,
+      "confidence": 100.0
+    },
+    {
+      "context": "google.adk.sessions.state",
+      "target": "google.adk.tools",
+      "probability": 1.0,
+      "support": 2,
+      "confidence": 100.0
+    },
+    {
+      "context": "google.adk.agents.run_config",
+      "target": "google.adk.runners",
+      "probability": 1.0,
+      "support": 2,
+      "confidence": 100.0
+    },
+    {
+      "context": "google.adk.tools.agent_tool",
+      "target": "google.adk.agents",
+      "probability": 0.882,
+      "support": 15,
+      "confidence": 88.2
+    },
+    {
+      "context": "google.adk.tools.bigquery.config",
+      "target": "google.adk.tools",
+      "probability": 0.75,
+      "support": 3,
+      "confidence": 75.0
+    },
+    {
+      "context": "google.adk.tools.bigquery",
+      "target": "google.adk.tools",
+      "probability": 0.75,
+      "support": 3,
+      "confidence": 75.0
+    },
+    {
+      "context": "google.adk.models",
+      "target": "google.adk",
+      "probability": 0.667,
+      "support": 10,
+      "confidence": 66.7
+    },
+    {
+      "context": "google.adk.tools.mcp_tool",
+      "target": "google.adk.tools",
+      "probability": 0.667,
+      "support": 2,
+      "confidence": 66.7
+    },
+    {
+      "context": "google.adk.tools.mcp_tool.mcp_toolset",
+      "target": "google.adk.tools.mcp_tool.mcp_session_manager",
+      "probability": 0.667,
+      "support": 2,
+      "confidence": 66.7
+    },
+    {
+      "context": "google.adk.agents.invocation_context",
+      "target": "google.adk.agents.callback_context",
+      "probability": 0.667,
+      "support": 2,
+      "confidence": 66.7
+    },
+    {
+      "context": "google.adk.agents.invocation_context",
+      "target": "google.adk.tools",
+      "probability": 0.667,
+      "support": 2,
+      "confidence": 66.7
+    },
+    {
+      "context": "google.adk.agents.invocation_context",
+      "target": "google.adk.events",
+      "probability": 0.667,
+      "support": 2,
+      "confidence": 66.7
+    },
+    {
+      "context": "google.adk.agents.invocation_context",
+      "target": "google.adk.agents",
+      "probability": 0.667,
+      "support": 2,
+      "confidence": 66.7
+    },
+    {
+      "context": "google.adk.tools.google_search_tool",
+      "target": "google.adk",
+      "probability": 0.667,
+      "support": 2,
+      "confidence": 66.7
+    },
+    {
+      "context": "google.adk.tools.google_search_tool",
+      "target": "google.adk.models",
+      "probability": 0.667,
+      "support": 2,
+      "confidence": 66.7
+    },
+    {
+      "context": "google.adk.plugins",
+      "target": "google.adk.events",
+      "probability": 0.667,
+      "support": 2,
+      "confidence": 66.7
+    },
+    {
+      "context": "google.adk.plugins",
+      "target": "google.adk.models",
+      "probability": 0.667,
+      "support": 2,
+      "confidence": 66.7
+    },
+    {
+      "context": "google.adk.models",
+      "target": "google.adk.agents",
+      "probability": 0.6,
+      "support": 9,
+      "confidence": 60.0
+    },
+    {
+      "context": "google.adk.events",
+      "target": "google.adk",
+      "probability": 0.6,
+      "support": 3,
+      "confidence": 60.0
+    },
+    {
+      "context": "google.adk.events",
+      "target": "google.adk.models",
+      "probability": 0.6,
+      "support": 3,
+      "confidence": 60.0
+    },
+    {
+      "context": "google.adk.events",
+      "target": "google.adk.tools",
+      "probability": 0.6,
+      "support": 3,
+      "confidence": 60.0
+    },
+    {
+      "context": "google.adk.sessions",
+      "target": "google.adk.runners",
+      "probability": 0.6,
+      "support": 3,
+      "confidence": 60.0
+    },
+    {
+      "context": "google.adk.runners",
+      "target": "google.adk.agents",
+      "probability": 0.6,
+      "support": 3,
+      "confidence": 60.0
+    },
+    {
+      "context": "google.adk.runners",
+      "target": "google.adk.sessions",
+      "probability": 0.6,
+      "support": 3,
+      "confidence": 60.0
+    },
+    {
+      "context": "google.adk.tools.bigquery.config",
+      "target": "google.adk.agents",
+      "probability": 0.5,
+      "support": 2,
+      "confidence": 50.0
+    },
+    {
+      "context": "google.adk.tools.bigquery.config",
+      "target": "google.adk.agents.callback_context",
+      "probability": 0.5,
+      "support": 2,
+      "confidence": 50.0
+    },
+    {
+      "context": "google.adk.tools.bigquery",
+      "target": "google.adk.agents",
+      "probability": 0.5,
+      "support": 2,
+      "confidence": 50.0
+    },
+    {
+      "context": "google.adk.tools.bigquery",
+      "target": "google.adk.agents.callback_context",
+      "probability": 0.5,
+      "support": 2,
+      "confidence": 50.0
+    },
+    {
+      "context": "google.adk.planners",
+      "target": "google.adk",
+      "probability": 0.5,
+      "support": 2,
+      "confidence": 50.0
+    },
+    {
+      "context": "google.adk.planners",
+      "target": "google.adk.tools",
+      "probability": 0.5,
+      "support": 2,
+      "confidence": 50.0
+    },
+    {
+      "context": "google.adk.tools.application_integration_tool.application_integration_toolset",
+      "target": "google.adk.auth",
+      "probability": 0.5,
+      "support": 1,
+      "confidence": 50.0
+    },
+    {
+      "context": "google.adk.tools.mcp_tool.mcp_session_manager",
+      "target": "google.adk.tools.tool_context",
+      "probability": 0.5,
+      "support": 1,
+      "confidence": 50.0
+    },
+    {
+      "context": "google.adk.sessions.state",
+      "target": "google.adk.models",
+      "probability": 0.5,
+      "support": 1,
+      "confidence": 50.0
+    },
+    {
+      "context": "google.adk.sessions.state",
+      "target": "google.adk.agents.invocation_context",
+      "probability": 0.5,
+      "support": 1,
+      "confidence": 50.0
+    },
+    {
+      "context": "google.adk.sessions.state",
+      "target": "google.adk.tools.tool_context",
+      "probability": 0.5,
+      "support": 1,
+      "confidence": 50.0
+    },
+    {
+      "context": "google.adk.agents.run_config",
+      "target": "google.adk.sessions",
+      "probability": 0.5,
+      "support": 1,
+      "confidence": 50.0
+    },
+    {
+      "context": "google.adk.agents.run_config",
+      "target": "google.adk.agents.live_request_queue",
+      "probability": 0.5,
+      "support": 1,
+      "confidence": 50.0
+    },
+    {
+      "context": "google.adk.agents.run_config",
+      "target": "google.adk.agents",
+      "probability": 0.5,
+      "support": 1,
+      "confidence": 50.0
+    },
+    {
+      "context": "google.adk.agents.callback_context",
+      "target": "google.adk.agents",
+      "probability": 0.467,
+      "support": 7,
+      "confidence": 46.7
+    },
+    {
+      "context": "google.adk",
+      "target": "google.adk.agents",
+      "probability": 0.448,
+      "support": 13,
+      "confidence": 44.8
+    },
+    {
+      "context": "google.adk.agents.callback_context",
+      "target": "google.adk.tools",
+      "probability": 0.4,
+      "support": 6,
+      "confidence": 40.0
+    },
+    {
+      "context": "google.adk.events",
+      "target": "google.adk.agents.invocation_context",
+      "probability": 0.4,
+      "support": 2,
+      "confidence": 40.0
+    },
+    {
+      "context": "google.adk.events",
+      "target": "google.adk.plugins",
+      "probability": 0.4,
+      "support": 2,
+      "confidence": 40.0
+    },
+    {
+      "context": "google.adk.runners",
+      "target": "google.adk.agents.run_config",
+      "probability": 0.4,
+      "support": 2,
+      "confidence": 40.0
+    },
+    {
+      "context": "google.adk",
+      "target": "google.adk.models",
+      "probability": 0.345,
+      "support": 10,
+      "confidence": 34.5
+    },
+    {
+      "context": "google.adk.tools",
+      "target": "google.adk.agents",
+      "probability": 0.333,
+      "support": 18,
+      "confidence": 33.3
+    },
+    {
+      "context": "google.adk.agents.callback_context",
+      "target": "google.adk.models",
+      "probability": 0.333,
+      "support": 5,
+      "confidence": 33.3
+    },
+    {
+      "context": "google.adk.models",
+      "target": "google.adk.agents.callback_context",
+      "probability": 0.333,
+      "support": 5,
+      "confidence": 33.3
+    },
+    {
+      "context": "google.adk.tools.mcp_tool",
+      "target": "google.adk.tools.langchain_tool",
+      "probability": 0.333,
+      "support": 1,
+      "confidence": 33.3
+    },
+    {
+      "context": "google.adk.tools.mcp_tool",
+      "target": "google.adk.tools.agent_tool",
+      "probability": 0.333,
+      "support": 1,
+      "confidence": 33.3
+    },
+    {
+      "context": "google.adk.tools.mcp_tool",
+      "target": "google.adk.a2a.utils.agent_to_a2a",
+      "probability": 0.333,
+      "support": 1,
+      "confidence": 33.3
+    },
+    {
+      "context": "google.adk.tools.mcp_tool.mcp_toolset",
+      "target": "google.adk.tools.tool_context",
+      "probability": 0.333,
+      "support": 1,
+      "confidence": 33.3
+    },
+    {
+      "context": "google.adk.tools.mcp_tool.mcp_toolset",
+      "target": "google.adk.artifacts.in_memory_artifact_service",
+      "probability": 0.333,
+      "support": 1,
+      "confidence": 33.3
+    },
+    {
+      "context": "google.adk.tools.mcp_tool.mcp_toolset",
+      "target": "google.adk.runners",
+      "probability": 0.333,
+      "support": 1,
+      "confidence": 33.3
+    },
+    {
+      "context": "google.adk.tools.mcp_tool.mcp_toolset",
+      "target": "google.adk.sessions",
+      "probability": 0.333,
+      "support": 1,
+      "confidence": 33.3
+    },
+    {
+      "context": "google.adk.tools.mcp_tool.mcp_toolset",
+      "target": "google.adk.tools.agent_tool",
+      "probability": 0.333,
+      "support": 1,
+      "confidence": 33.3
+    },
+    {
+      "context": "google.adk.agents.invocation_context",
+      "target": "google.adk.sessions.state",
+      "probability": 0.333,
+      "support": 1,
+      "confidence": 33.3
+    },
+    {
+      "context": "google.adk.agents.invocation_context",
+      "target": "google.adk.models",
+      "probability": 0.333,
+      "support": 1,
+      "confidence": 33.3
+    },
+    {
+      "context": "google.adk.agents.invocation_context",
+      "target": "google.adk.tools.tool_context",
+      "probability": 0.333,
+      "support": 1,
+      "confidence": 33.3
+    },
+    {
+      "context": "google.adk.agents.invocation_context",
+      "target": "google.adk.apps.app",
+      "probability": 0.333,
+      "support": 1,
+      "confidence": 33.3
+    },
+    {
+      "context": "google.adk.agents.invocation_context",
+      "target": "google.adk.tools.agent_tool",
+      "probability": 0.333,
+      "support": 1,
+      "confidence": 33.3
+    },
+    {
+      "context": "google.adk.agents.invocation_context",
+      "target": "google.adk.planners",
+      "probability": 0.333,
+      "support": 1,
+      "confidence": 33.3
+    },
+    {
+      "context": "google.adk.tools.google_search_tool",
+      "target": "google.adk.tools.agent_tool",
+      "probability": 0.333,
+      "support": 1,
+      "confidence": 33.3
+    },
+    {
+      "context": "google.adk.plugins",
+      "target": "google.adk.models.base_llm",
+      "probability": 0.333,
+      "support": 1,
+      "confidence": 33.3
+    },
+    {
+      "context": "google.adk.plugins",
+      "target": "google.adk.runners",
+      "probability": 0.333,
+      "support": 1,
+      "confidence": 33.3
+    },
+    {
+      "context": "google.adk.plugins",
+      "target": "google.adk.planners",
+      "probability": 0.333,
+      "support": 1,
+      "confidence": 33.3
+    },
+    {
+      "context": "google.adk",
+      "target": "google.adk.tools",
+      "probability": 0.31,
+      "support": 9,
+      "confidence": 31.0
+    },
+    {
+      "context": "google.adk.models",
+      "target": "google.adk.tools",
+      "probability": 0.267,
+      "support": 4,
+      "confidence": 26.7
+    },
+    {
+      "context": "google.adk.tools.bigquery.config",
+      "target": "google.adk.tools.agent_tool",
+      "probability": 0.25,
+      "support": 1,
+      "confidence": 25.0
+    },
+    {
+      "context": "google.adk.tools.bigquery.config",
+      "target": "google.adk.tools.tool_context",
+      "probability": 0.25,
+      "support": 1,
+      "confidence": 25.0
+    },
+    {
+      "context": "google.adk.tools.bigquery.config",
+      "target": "google.adk",
+      "probability": 0.25,
+      "support": 1,
+      "confidence": 25.0
+    },
+    {
+      "context": "google.adk.tools.bigquery",
+      "target": "google.adk.tools.agent_tool",
+      "probability": 0.25,
+      "support": 1,
+      "confidence": 25.0
+    },
+    {
+      "context": "google.adk.tools.bigquery",
+      "target": "google.adk.tools.tool_context",
+      "probability": 0.25,
+      "support": 1,
+      "confidence": 25.0
+    },
+    {
+      "context": "google.adk.tools.bigquery",
+      "target": "google.adk",
+      "probability": 0.25,
+      "support": 1,
+      "confidence": 25.0
+    },
+    {
+      "context": "google.adk.planners",
+      "target": "google.adk.models.base_llm",
+      "probability": 0.25,
+      "support": 1,
+      "confidence": 25.0
+    },
+    {
+      "context": "google.adk.planners",
+      "target": "google.adk.runners",
+      "probability": 0.25,
+      "support": 1,
+      "confidence": 25.0
+    },
+    {
+      "context": "google.adk.planners",
+      "target": "google.adk.plugins",
+      "probability": 0.25,
+      "support": 1,
+      "confidence": 25.0
+    },
+    {
+      "context": "google.adk.planners",
+      "target": "google.adk.events",
+      "probability": 0.25,
+      "support": 1,
+      "confidence": 25.0
+    },
+    {
+      "context": "google.adk.planners",
+      "target": "google.adk.apps.app",
+      "probability": 0.25,
+      "support": 1,
+      "confidence": 25.0
+    },
+    {
+      "context": "google.adk.planners",
+      "target": "google.adk.agents.invocation_context",
+      "probability": 0.25,
+      "support": 1,
+      "confidence": 25.0
+    },
+    {
+      "context": "google.adk.planners",
+      "target": "google.adk.agents.callback_context",
+      "probability": 0.25,
+      "support": 1,
+      "confidence": 25.0
+    },
+    {
+      "context": "google.adk.planners",
+      "target": "google.adk.tools.agent_tool",
+      "probability": 0.25,
+      "support": 1,
+      "confidence": 25.0
+    },
+    {
+      "context": "google.adk.planners",
+      "target": "google.adk.models.google_llm",
+      "probability": 0.25,
+      "support": 1,
+      "confidence": 25.0
+    },
+    {
+      "context": "google.adk.planners",
+      "target": "google.adk.sessions.session",
+      "probability": 0.25,
+      "support": 1,
+      "confidence": 25.0
+    },
+    {
+      "context": "google.adk.tools.agent_tool",
+      "target": "google.adk.tools",
+      "probability": 0.235,
+      "support": 4,
+      "confidence": 23.5
+    },
+    {
+      "context": "google.adk.models",
+      "target": "google.adk.events",
+      "probability": 0.2,
+      "support": 3,
+      "confidence": 20.0
+    },
+    {
+      "context": "google.adk.tools.tool_context",
+      "target": "google.adk.sessions.state",
+      "probability": 0.2,
+      "support": 1,
+      "confidence": 20.0
+    },
+    {
+      "context": "google.adk.tools.tool_context",
+      "target": "google.adk.models",
+      "probability": 0.2,
+      "support": 1,
+      "confidence": 20.0
+    },
+    {
+      "context": "google.adk.tools.tool_context",
+      "target": "google.adk.agents.invocation_context",
+      "probability": 0.2,
+      "support": 1,
+      "confidence": 20.0
+    },
+    {
+      "context": "google.adk.tools.tool_context",
+      "target": "google.adk.agents.callback_context",
+      "probability": 0.2,
+      "support": 1,
+      "confidence": 20.0
+    },
+    {
+      "context": "google.adk.tools.tool_context",
+      "target": "google.adk.tools",
+      "probability": 0.2,
+      "support": 1,
+      "confidence": 20.0
+    },
+    {
+      "context": "google.adk.tools.tool_context",
+      "target": "google.adk.tools.mcp_tool.mcp_session_manager",
+      "probability": 0.2,
+      "support": 1,
+      "confidence": 20.0
+    },
+    {
+      "context": "google.adk.tools.tool_context",
+      "target": "google.adk.tools.mcp_tool.mcp_toolset",
+      "probability": 0.2,
+      "support": 1,
+      "confidence": 20.0
+    },
+    {
+      "context": "google.adk.tools.tool_context",
+      "target": "google.adk",
+      "probability": 0.2,
+      "support": 1,
+      "confidence": 20.0
+    },
+    {
+      "context": "google.adk.tools.tool_context",
+      "target": "google.adk.agents",
+      "probability": 0.2,
+      "support": 1,
+      "confidence": 20.0
+    },
+    {
+      "context": "google.adk.tools.tool_context",
+      "target": "google.adk.tools.bigquery.config",
+      "probability": 0.2,
+      "support": 1,
+      "confidence": 20.0
+    },
+    {
+      "context": "google.adk.tools.tool_context",
+      "target": "google.adk.tools.bigquery",
+      "probability": 0.2,
+      "support": 1,
+      "confidence": 20.0
+    },
+    {
+      "context": "google.adk.tools.tool_context",
+      "target": "google.adk.tools.load_artifacts_tool",
+      "probability": 0.2,
+      "support": 1,
+      "confidence": 20.0
+    },
+    {
+      "context": "google.adk.tools.tool_context",
+      "target": "google.adk.agents.llm_agent",
+      "probability": 0.2,
+      "support": 1,
+      "confidence": 20.0
+    },
+    {
+      "context": "google.adk.agents.llm_agent",
+      "target": "google.adk.tools.agent_tool",
+      "probability": 0.2,
+      "support": 1,
+      "confidence": 20.0
+    },
+    {
+      "context": "google.adk.agents.llm_agent",
+      "target": "google.adk.agents",
+      "probability": 0.2,
+      "support": 1,
+      "confidence": 20.0
+    },
+    {
+      "context": "google.adk.agents.llm_agent",
+      "target": "google.adk.tools.tool_context",
+      "probability": 0.2,
+      "support": 1,
+      "confidence": 20.0
+    },
+    {
+      "context": "google.adk.agents.llm_agent",
+      "target": "google.adk.tools.load_artifacts_tool",
+      "probability": 0.2,
+      "support": 1,
+      "confidence": 20.0
+    },
+    {
+      "context": "google.adk.events",
+      "target": "google.adk.apps.app",
+      "probability": 0.2,
+      "support": 1,
+      "confidence": 20.0
+    },
+    {
+      "context": "google.adk.events",
+      "target": "google.adk.agents.callback_context",
+      "probability": 0.2,
+      "support": 1,
+      "confidence": 20.0
+    },
+    {
+      "context": "google.adk.events",
+      "target": "google.adk.tools.agent_tool",
+      "probability": 0.2,
+      "support": 1,
+      "confidence": 20.0
+    },
+    {
+      "context": "google.adk.events",
+      "target": "google.adk.planners",
+      "probability": 0.2,
+      "support": 1,
+      "confidence": 20.0
+    },
+    {
+      "context": "google.adk.sessions",
+      "target": "google.adk.artifacts.in_memory_artifact_service",
+      "probability": 0.2,
+      "support": 1,
+      "confidence": 20.0
+    },
+    {
+      "context": "google.adk.sessions",
+      "target": "google.adk.tools.mcp_tool.mcp_toolset",
+      "probability": 0.2,
+      "support": 1,
+      "confidence": 20.0
+    },
+    {
+      "context": "google.adk.sessions",
+      "target": "google.adk.tools.agent_tool",
+      "probability": 0.2,
+      "support": 1,
+      "confidence": 20.0
+    },
+    {
+      "context": "google.adk.sessions",
+      "target": "google.adk.agents.run_config",
+      "probability": 0.2,
+      "support": 1,
+      "confidence": 20.0
+    },
+    {
+      "context": "google.adk.sessions",
+      "target": "google.adk.agents.live_request_queue",
+      "probability": 0.2,
+      "support": 1,
+      "confidence": 20.0
+    },
+    {
+      "context": "google.adk.sessions",
+      "target": "google.adk.agents",
+      "probability": 0.2,
+      "support": 1,
+      "confidence": 20.0
+    },
+    {
+      "context": "google.adk.runners",
+      "target": "google.adk",
+      "probability": 0.2,
+      "support": 1,
+      "confidence": 20.0
+    },
+    {
+      "context": "google.adk.runners",
+      "target": "google.adk.models.base_llm",
+      "probability": 0.2,
+      "support": 1,
+      "confidence": 20.0
+    },
+    {
+      "context": "google.adk.runners",
+      "target": "google.adk.planners",
+      "probability": 0.2,
+      "support": 1,
+      "confidence": 20.0
+    },
+    {
+      "context": "google.adk.runners",
+      "target": "google.adk.tools",
+      "probability": 0.2,
+      "support": 1,
+      "confidence": 20.0
+    },
+    {
+      "context": "google.adk.runners",
+      "target": "google.adk.plugins",
+      "probability": 0.2,
+      "support": 1,
+      "confidence": 20.0
+    },
+    {
+      "context": "google.adk.runners",
+      "target": "google.adk.artifacts.in_memory_artifact_service",
+      "probability": 0.2,
+      "support": 1,
+      "confidence": 20.0
+    },
+    {
+      "context": "google.adk.runners",
+      "target": "google.adk.tools.mcp_tool.mcp_toolset",
+      "probability": 0.2,
+      "support": 1,
+      "confidence": 20.0
+    },
+    {
+      "context": "google.adk.runners",
+      "target": "google.adk.tools.agent_tool",
+      "probability": 0.2,
+      "support": 1,
+      "confidence": 20.0
+    },
+    {
+      "context": "google.adk.runners",
+      "target": "google.adk.agents.live_request_queue",
+      "probability": 0.2,
+      "support": 1,
+      "confidence": 20.0
+    },
+    {
+      "context": "google.adk.agents",
+      "target": "google.adk.tools",
+      "probability": 0.186,
+      "support": 18,
+      "confidence": 18.6
+    },
+    {
+      "context": "google.adk.tools",
+      "target": "google.adk",
+      "probability": 0.167,
+      "support": 9,
+      "confidence": 16.7
+    },
+    {
+      "context": "google.adk.agents",
+      "target": "google.adk.tools.agent_tool",
+      "probability": 0.155,
+      "support": 15,
+      "confidence": 15.5
+    },
+    {
+      "context": "google.adk.agents",
+      "target": "google.adk",
+      "probability": 0.134,
+      "support": 13,
+      "confidence": 13.4
+    },
+    {
+      "context": "google.adk.agents.callback_context",
+      "target": "google.adk.tools.bigquery.config",
+      "probability": 0.133,
+      "support": 2,
+      "confidence": 13.3
+    },
+    {
+      "context": "google.adk.agents.callback_context",
+      "target": "google.adk.tools.bigquery",
+      "probability": 0.133,
+      "support": 2,
+      "confidence": 13.3
+    },
+    {
+      "context": "google.adk.agents.callback_context",
+      "target": "google.adk.tools.agent_tool",
+      "probability": 0.133,
+      "support": 2,
+      "confidence": 13.3
+    },
+    {
+      "context": "google.adk.agents.callback_context",
+      "target": "google.adk.sessions.state",
+      "probability": 0.133,
+      "support": 2,
+      "confidence": 13.3
+    },
+    {
+      "context": "google.adk.agents.callback_context",
+      "target": "google.adk.agents.invocation_context",
+      "probability": 0.133,
+      "support": 2,
+      "confidence": 13.3
+    },
+    {
+      "context": "google.adk.agents.callback_context",
+      "target": "google.adk",
+      "probability": 0.133,
+      "support": 2,
+      "confidence": 13.3
+    },
+    {
+      "context": "google.adk.models",
+      "target": "google.adk.tools.google_search_tool",
+      "probability": 0.133,
+      "support": 2,
+      "confidence": 13.3
+    },
+    {
+      "context": "google.adk.models",
+      "target": "google.adk.plugins",
+      "probability": 0.133,
+      "support": 2,
+      "confidence": 13.3
+    },
+    {
+      "context": "google.adk.tools.agent_tool",
+      "target": "google.adk.agents.callback_context",
+      "probability": 0.118,
+      "support": 2,
+      "confidence": 11.8
+    },
+    {
+      "context": "google.adk.tools",
+      "target": "google.adk.agents.callback_context",
+      "probability": 0.111,
+      "support": 6,
+      "confidence": 11.1
+    },
+    {
+      "context": "google.adk",
+      "target": "google.adk.events",
+      "probability": 0.103,
+      "support": 3,
+      "confidence": 10.3
+    },
+    {
+      "context": "google.adk",
+      "target": "google.adk.plugins",
+      "probability": 0.103,
+      "support": 3,
+      "confidence": 10.3
+    },
+    {
+      "context": "google.adk.agents",
+      "target": "google.adk.models",
+      "probability": 0.093,
+      "support": 9,
+      "confidence": 9.3
+    },
+    {
+      "context": "google.adk.tools",
+      "target": "google.adk.tools.agent_tool",
+      "probability": 0.074,
+      "support": 4,
+      "confidence": 7.4
+    },
+    {
+      "context": "google.adk.tools",
+      "target": "google.adk.models",
+      "probability": 0.074,
+      "support": 4,
+      "confidence": 7.4
+    },
+    {
+      "context": "google.adk.agents",
+      "target": "google.adk.agents.callback_context",
+      "probability": 0.072,
+      "support": 7,
+      "confidence": 7.2
+    },
+    {
+      "context": "google.adk",
+      "target": "google.adk.agents.callback_context",
+      "probability": 0.069,
+      "support": 2,
+      "confidence": 6.9
+    },
+    {
+      "context": "google.adk",
+      "target": "google.adk.tools.google_search_tool",
+      "probability": 0.069,
+      "support": 2,
+      "confidence": 6.9
+    },
+    {
+      "context": "google.adk",
+      "target": "google.adk.planners",
+      "probability": 0.069,
+      "support": 2,
+      "confidence": 6.9
+    },
+    {
+      "context": "google.adk.agents.callback_context",
+      "target": "google.adk.tools.tool_context",
+      "probability": 0.067,
+      "support": 1,
+      "confidence": 6.7
+    },
+    {
+      "context": "google.adk.agents.callback_context",
+      "target": "google.adk.events",
+      "probability": 0.067,
+      "support": 1,
+      "confidence": 6.7
+    },
+    {
+      "context": "google.adk.agents.callback_context",
+      "target": "google.adk.apps.app",
+      "probability": 0.067,
+      "support": 1,
+      "confidence": 6.7
+    },
+    {
+      "context": "google.adk.agents.callback_context",
+      "target": "google.adk.planners",
+      "probability": 0.067,
+      "support": 1,
+      "confidence": 6.7
+    },
+    {
+      "context": "google.adk.models",
+      "target": "google.adk.sessions.state",
+      "probability": 0.067,
+      "support": 1,
+      "confidence": 6.7
+    },
+    {
+      "context": "google.adk.models",
+      "target": "google.adk.agents.invocation_context",
+      "probability": 0.067,
+      "support": 1,
+      "confidence": 6.7
+    },
+    {
+      "context": "google.adk.models",
+      "target": "google.adk.tools.tool_context",
+      "probability": 0.067,
+      "support": 1,
+      "confidence": 6.7
+    },
+    {
+      "context": "google.adk.tools.agent_tool",
+      "target": "google.adk.tools.bigquery.config",
+      "probability": 0.059,
+      "support": 1,
+      "confidence": 5.9
+    },
+    {
+      "context": "google.adk.tools.agent_tool",
+      "target": "google.adk.tools.bigquery",
+      "probability": 0.059,
+      "support": 1,
+      "confidence": 5.9
+    },
+    {
+      "context": "google.adk.tools.agent_tool",
+      "target": "google.adk.agents.llm_agent",
+      "probability": 0.059,
+      "support": 1,
+      "confidence": 5.9
+    },
+    {
+      "context": "google.adk.tools.agent_tool",
+      "target": "google.adk.tools.langchain_tool",
+      "probability": 0.059,
+      "support": 1,
+      "confidence": 5.9
+    },
+    {
+      "context": "google.adk.tools.agent_tool",
+      "target": "google.adk.tools.mcp_tool",
+      "probability": 0.059,
+      "support": 1,
+      "confidence": 5.9
+    },
+    {
+      "context": "google.adk.tools.agent_tool",
+      "target": "google.adk.artifacts.in_memory_artifact_service",
+      "probability": 0.059,
+      "support": 1,
+      "confidence": 5.9
+    },
+    {
+      "context": "google.adk.tools.agent_tool",
+      "target": "google.adk.tools.mcp_tool.mcp_toolset",
+      "probability": 0.059,
+      "support": 1,
+      "confidence": 5.9
+    },
+    {
+      "context": "google.adk.tools.agent_tool",
+      "target": "google.adk.runners",
+      "probability": 0.059,
+      "support": 1,
+      "confidence": 5.9
+    },
+    {
+      "context": "google.adk.tools.agent_tool",
+      "target": "google.adk.sessions",
+      "probability": 0.059,
+      "support": 1,
+      "confidence": 5.9
+    },
+    {
+      "context": "google.adk.tools.agent_tool",
+      "target": "google.adk.tools.google_search_tool",
+      "probability": 0.059,
+      "support": 1,
+      "confidence": 5.9
+    },
+    {
+      "context": "google.adk.tools.agent_tool",
+      "target": "google.adk.events",
+      "probability": 0.059,
+      "support": 1,
+      "confidence": 5.9
+    },
+    {
+      "context": "google.adk.tools.agent_tool",
+      "target": "google.adk.apps.app",
+      "probability": 0.059,
+      "support": 1,
+      "confidence": 5.9
+    },
+    {
+      "context": "google.adk.tools.agent_tool",
+      "target": "google.adk.agents.invocation_context",
+      "probability": 0.059,
+      "support": 1,
+      "confidence": 5.9
+    },
+    {
+      "context": "google.adk.tools.agent_tool",
+      "target": "google.adk.planners",
+      "probability": 0.059,
+      "support": 1,
+      "confidence": 5.9
+    },
+    {
+      "context": "google.adk.tools",
+      "target": "google.adk.tools.bigquery.config",
+      "probability": 0.056,
+      "support": 3,
+      "confidence": 5.6
+    },
+    {
+      "context": "google.adk.tools",
+      "target": "google.adk.tools.bigquery",
+      "probability": 0.056,
+      "support": 3,
+      "confidence": 5.6
+    },
+    {
+      "context": "google.adk.tools",
+      "target": "google.adk.plugins",
+      "probability": 0.056,
+      "support": 3,
+      "confidence": 5.6
+    },
+    {
+      "context": "google.adk.tools",
+      "target": "google.adk.events",
+      "probability": 0.056,
+      "support": 3,
+      "confidence": 5.6
+    },
+    {
+      "context": "google.adk.agents",
+      "target": "google.adk.events",
+      "probability": 0.052,
+      "support": 5,
+      "confidence": 5.2
+    },
+    {
+      "context": "google.adk.agents",
+      "target": "google.adk.planners",
+      "probability": 0.041,
+      "support": 4,
+      "confidence": 4.1
+    },
+    {
+      "context": "google.adk.tools",
+      "target": "google.adk.tools.mcp_tool",
+      "probability": 0.037,
+      "support": 2,
+      "confidence": 3.7
+    },
+    {
+      "context": "google.adk.tools",
+      "target": "google.adk.sessions.state",
+      "probability": 0.037,
+      "support": 2,
+      "confidence": 3.7
+    },
+    {
+      "context": "google.adk.tools",
+      "target": "google.adk.agents.invocation_context",
+      "probability": 0.037,
+      "support": 2,
+      "confidence": 3.7
+    },
+    {
+      "context": "google.adk.tools",
+      "target": "google.adk.planners",
+      "probability": 0.037,
+      "support": 2,
+      "confidence": 3.7
+    },
+    {
+      "context": "google.adk",
+      "target": "google.adk.tools.tool_context",
+      "probability": 0.034,
+      "support": 1,
+      "confidence": 3.4
+    },
+    {
+      "context": "google.adk",
+      "target": "google.adk.models.base_llm",
+      "probability": 0.034,
+      "support": 1,
+      "confidence": 3.4
+    },
+    {
+      "context": "google.adk",
+      "target": "google.adk.runners",
+      "probability": 0.034,
+      "support": 1,
+      "confidence": 3.4
+    },
+    {
+      "context": "google.adk",
+      "target": "google.adk.tools.bigquery.config",
+      "probability": 0.034,
+      "support": 1,
+      "confidence": 3.4
+    },
+    {
+      "context": "google.adk",
+      "target": "google.adk.tools.bigquery",
+      "probability": 0.034,
+      "support": 1,
+      "confidence": 3.4
+    },
+    {
+      "context": "google.adk",
+      "target": "google.adk.models.google_llm",
+      "probability": 0.034,
+      "support": 1,
+      "confidence": 3.4
+    },
+    {
+      "context": "google.adk",
+      "target": "google.adk.sessions.session",
+      "probability": 0.034,
+      "support": 1,
+      "confidence": 3.4
+    },
+    {
+      "context": "google.adk.agents",
+      "target": "google.adk.tools.mcp_tool",
+      "probability": 0.031,
+      "support": 3,
+      "confidence": 3.1
+    },
+    {
+      "context": "google.adk.agents",
+      "target": "google.adk.tools.google_search_tool",
+      "probability": 0.031,
+      "support": 3,
+      "confidence": 3.1
+    },
+    {
+      "context": "google.adk.agents",
+      "target": "google.adk.runners",
+      "probability": 0.031,
+      "support": 3,
+      "confidence": 3.1
+    },
+    {
+      "context": "google.adk.agents",
+      "target": "google.adk.plugins",
+      "probability": 0.031,
+      "support": 3,
+      "confidence": 3.1
+    },
+    {
+      "context": "google.adk.agents",
+      "target": "google.adk.tools.bigquery.config",
+      "probability": 0.021,
+      "support": 2,
+      "confidence": 2.1
+    },
+    {
+      "context": "google.adk.agents",
+      "target": "google.adk.tools.bigquery",
+      "probability": 0.021,
+      "support": 2,
+      "confidence": 2.1
+    },
+    {
+      "context": "google.adk.agents",
+      "target": "google.adk.code_executors",
+      "probability": 0.021,
+      "support": 2,
+      "confidence": 2.1
+    },
+    {
+      "context": "google.adk.agents",
+      "target": "google.adk.agents.invocation_context",
+      "probability": 0.021,
+      "support": 2,
+      "confidence": 2.1
+    },
+    {
+      "context": "google.adk.tools",
+      "target": "google.adk.tools.bigquery.client",
+      "probability": 0.019,
+      "support": 1,
+      "confidence": 1.9
+    },
+    {
+      "context": "google.adk.tools",
+      "target": "google.adk.tools.tool_context",
+      "probability": 0.019,
+      "support": 1,
+      "confidence": 1.9
+    },
+    {
+      "context": "google.adk.tools",
+      "target": "google.adk.tools.langchain_tool",
+      "probability": 0.019,
+      "support": 1,
+      "confidence": 1.9
+    },
+    {
+      "context": "google.adk.tools",
+      "target": "google.adk.models.base_llm",
+      "probability": 0.019,
+      "support": 1,
+      "confidence": 1.9
+    },
+    {
+      "context": "google.adk.tools",
+      "target": "google.adk.runners",
+      "probability": 0.019,
+      "support": 1,
+      "confidence": 1.9
+    },
+    {
+      "context": "google.adk.tools",
+      "target": "google.adk.apps",
+      "probability": 0.019,
+      "support": 1,
+      "confidence": 1.9
+    },
+    {
+      "context": "google.adk.tools",
+      "target": "google.adk.plugins.save_files_as_artifacts_plugin",
+      "probability": 0.019,
+      "support": 1,
+      "confidence": 1.9
+    },
+    {
+      "context": "google.adk.tools",
+      "target": "google.adk.apps.app",
+      "probability": 0.019,
+      "support": 1,
+      "confidence": 1.9
+    },
+    {
+      "context": "google.adk.agents",
+      "target": "google.adk.tools.preload_memory_tool",
+      "probability": 0.01,
+      "support": 1,
+      "confidence": 1.0
+    },
+    {
+      "context": "google.adk.agents",
+      "target": "google.adk.agents.llm_agent",
+      "probability": 0.01,
+      "support": 1,
+      "confidence": 1.0
+    },
+    {
+      "context": "google.adk.agents",
+      "target": "google.adk.tools.langchain_tool",
+      "probability": 0.01,
+      "support": 1,
+      "confidence": 1.0
+    },
+    {
+      "context": "google.adk.agents",
+      "target": "google.adk.a2a.utils.agent_to_a2a",
+      "probability": 0.01,
+      "support": 1,
+      "confidence": 1.0
+    },
+    {
+      "context": "google.adk.agents",
+      "target": "google.adk.tools.retrieval.vertex_ai_rag_retrieval",
+      "probability": 0.01,
+      "support": 1,
+      "confidence": 1.0
+    },
+    {
+      "context": "google.adk.agents",
+      "target": "google.adk.tools.tool_context",
+      "probability": 0.01,
+      "support": 1,
+      "confidence": 1.0
+    },
+    {
+      "context": "google.adk.agents",
+      "target": "google.adk.models.base_llm",
+      "probability": 0.01,
+      "support": 1,
+      "confidence": 1.0
+    },
+    {
+      "context": "google.adk.agents",
+      "target": "google.adk.apps",
+      "probability": 0.01,
+      "support": 1,
+      "confidence": 1.0
+    },
+    {
+      "context": "google.adk.agents",
+      "target": "google.adk.plugins.save_files_as_artifacts_plugin",
+      "probability": 0.01,
+      "support": 1,
+      "confidence": 1.0
+    },
+    {
+      "context": "google.adk.agents",
+      "target": "google.adk.apps.app",
+      "probability": 0.01,
+      "support": 1,
+      "confidence": 1.0
+    },
+    {
+      "context": "google.adk.agents",
+      "target": "google.adk.models.google_llm",
+      "probability": 0.01,
+      "support": 1,
+      "confidence": 1.0
+    },
+    {
+      "context": "google.adk.agents",
+      "target": "google.adk.sessions.session",
+      "probability": 0.01,
+      "support": 1,
+      "confidence": 1.0
+    },
+    {
+      "context": "google.adk.agents",
+      "target": "google.adk.sessions",
+      "probability": 0.01,
+      "support": 1,
+      "confidence": 1.0
+    },
+    {
+      "context": "google.adk.agents",
+      "target": "google.adk.agents.run_config",
+      "probability": 0.01,
+      "support": 1,
+      "confidence": 1.0
+    }
+  ]
+}

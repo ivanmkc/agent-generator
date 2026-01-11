@@ -34,36 +34,40 @@ from benchmarks.benchmark_generator.irt import IRTManager
 
 def scan_repository(repo_path: str, tool_context: ToolContext, coverage_file: Optional[str] = None) -> str:
     """
-    Scans the repository to build a hierarchical map of entities (Modules, Classes, Methods, Properties, Parameters).
-    Acts as the 'Cartographer' and 'Strategist' by calculating usage-based priority from external statistics.
+    Scans the repository to build a hierarchical map of entities.
+    Acts as the 'Cartographer' and 'Strategist' by calculating usage-based priority.
     """
     root_dir = Path(repo_path).resolve()
     if not root_dir.exists():
         return json.dumps({"error": f"Path {repo_path} (resolved to {root_dir}) does not exist."})
 
-    # Load coverage data if provided
+    # Load coverage data
     if not coverage_file:
         coverage_file = tool_context.session.state.get("coverage_file_path")
-
     coverage_data = None
-    if coverage_file:
-        cov_path = Path(coverage_file)
-        if cov_path.exists():
-            try:
-                coverage_json = json.loads(cov_path.read_text())
-                coverage_data = coverage_json.get("files", {})
-            except Exception: pass
+    if coverage_file and Path(coverage_file).exists():
+        try:
+            coverage_json = json.loads(Path(coverage_file).read_text())
+            coverage_data = coverage_json.get("files", {})
+        except Exception: pass
 
     # Load Usage Stats (adk_stats.yaml)
-    # This file contains the 'truth' about what is important, derived from adk-samples.
     stats_path = Path("benchmarks/adk_stats.yaml")
     usage_stats = {}
     if stats_path.exists():
         try:
             with open(stats_path, "r") as f:
                 usage_stats = yaml.safe_load(f)
-        except Exception:
-            pass
+        except Exception: pass
+
+    # Load Co-occurrence Data (adk_cooccurrence.json) for Context Expansion
+    coocc_path = Path("benchmarks/adk_cooccurrence.json")
+    cooccurrence_data = {}
+    if coocc_path.exists():
+        try:
+            with open(coocc_path, "r") as f:
+                cooccurrence_data = json.load(f)
+        except Exception: pass
 
     entities: List[TargetEntity] = []
     all_python_files = []
@@ -84,14 +88,11 @@ def scan_repository(repo_path: str, tool_context: ToolContext, coverage_file: Op
             else: module_parts[-1] = module_parts[-1][:-3]
             module_fqn = ".".join(module_parts)
 
-            # Map src.google.adk -> google.adk for stat lookup if needed
-            # Assuming stats use the same package structure as repo
-            
+            # Map src.google.adk -> google.adk
             with open(full_path, "r", encoding="utf-8") as f:
                 content = f.read()
             tree = ast.parse(content)
 
-            # Module Entity
             mod_stats = usage_stats.get(module_fqn, {})
             entities.append(TargetEntity(
                 id=module_fqn,
@@ -110,7 +111,6 @@ def scan_repository(repo_path: str, tool_context: ToolContext, coverage_file: Op
 
                 def visit_ClassDef(self, node):
                     if node.name.startswith("_"): return
-                    
                     class_fqn = f"{self.mod_fqn}.{node.name}"
                     cls_stats = usage_stats.get(class_fqn, {})
                     entities.append(TargetEntity(
@@ -122,25 +122,18 @@ def scan_repository(repo_path: str, tool_context: ToolContext, coverage_file: Op
                         docstring=ast.get_docstring(node),
                         parent_id=self.mod_fqn
                     ))
-                    
                     old_class = self.current_class_fqn
                     self.current_class_fqn = class_fqn
                     self.generic_visit(node)
                     self.current_class_fqn = old_class
 
                 def visit_FunctionDef(self, node):
-                    if node.name.startswith("_") and not node.name.startswith("__"):
-                        return
-                    
+                    if node.name.startswith("_") and not node.name.startswith("__"): return
                     parent_id = self.current_class_fqn or self.mod_fqn
                     func_fqn = f"{parent_id}.{node.name}"
-                    
                     complexity = node.end_lineno - node.lineno if hasattr(node, "end_lineno") else 0
                     if complexity < 3: return
-
                     func_stats = usage_stats.get(func_fqn, {})
-                    
-                    # Method Entity
                     entities.append(TargetEntity(
                         id=func_fqn,
                         type=TargetType.METHOD,
@@ -152,14 +145,12 @@ def scan_repository(repo_path: str, tool_context: ToolContext, coverage_file: Op
                         parent_id=parent_id,
                         signature=f"def {node.name}(...):" 
                     ))
-
                     # Parameter Entities
                     arg_stats = func_stats.get("args", {})
                     for arg in node.args.args:
                         if arg.arg == "self": continue
                         param_id = f"{func_fqn}.args.{arg.arg}"
                         p_usage = arg_stats.get(arg.arg, {}).get("count", 0)
-                        
                         entities.append(TargetEntity(
                             id=param_id,
                             type=TargetType.PARAMETER,
@@ -174,11 +165,13 @@ def scan_repository(repo_path: str, tool_context: ToolContext, coverage_file: Op
     
     tool_context.session.state["scanned_targets"] = [e.model_dump() for e in entities]
     tool_context.session.state["coverage_data"] = coverage_data
+    tool_context.session.state["cooccurrence_data"] = cooccurrence_data
     return f"Cartographer scan complete: {len(entities)} hierarchical entities mapped with external usage scores."
 
 def get_prioritized_target(tool_context: ToolContext, target_type: Optional[str] = None, parent_id: Optional[str] = None) -> str:
     """
-    Retrieves the next best target, prioritizing by Usage and Hierarchy.
+    Retrieves the next best target using Usage-based prioritization and performs 
+    BFS-based Context Expansion to find associated modules.
     """
     targets_data = tool_context.session.state.get("scanned_targets", [])
     if not targets_data: return json.dumps({"status": "EMPTY"})
@@ -186,7 +179,7 @@ def get_prioritized_target(tool_context: ToolContext, target_type: Optional[str]
     processed_list = tool_context.session.state.get("processed_targets_list", [])
     processed_set = set(processed_list)
     
-    # Convert back to objects for easier handling
+    # Convert back to objects
     targets = [TargetEntity.model_validate(t) for t in targets_data]
     
     # Filter
@@ -205,20 +198,61 @@ def get_prioritized_target(tool_context: ToolContext, target_type: Optional[str]
 
     def score(t: TargetEntity):
         # Priority = Usage Only (plus IRT/Coverage/Doc bonus)
-        # Disregard Complexity as requested.
-        u_score = t.usage_score * 100 # Maximum weight on usage
-        
-        # Doc bonus to prefer documented methods if usage is tied
+        u_score = t.usage_score * 100 
         doc_bonus = 10 if t.docstring else 0
-        
-        # IRT/Coverage weighting
         irt_p = irt_manager.calculate_priority(t.model_dump(), coverage_data)
-        
         return u_score + doc_bonus + irt_p
         
     candidates.sort(key=score, reverse=True)
     best = candidates[0]
     
+    # --- Context Expansion (BFS) ---
+    cooccurrence_data = tool_context.session.state.get("cooccurrence_data", {})
+    associations = cooccurrence_data.get("associations", [])
+    
+    if associations:
+        # Build Graph: Module -> List[(Neighbor, Prob)]
+        graph = defaultdict(list)
+        for assoc in associations:
+            graph[assoc["context"]].append((assoc["target"], assoc["probability"]))
+        
+        # Determine Start Node (Module FQN)
+        # FQN structure: module.class.method or module
+        parts = best.id.split(".")
+        # Heuristic: Find longest prefix that exists in graph
+        start_node = None
+        for i in range(len(parts), 0, -1):
+            sub = ".".join(parts[:i])
+            if sub in graph or any(a["target"] == sub for a in associations):
+                start_node = sub
+                break
+        
+        if start_node:
+            # BFS
+            related_modules = set()
+            visited = {start_node}
+            bfs_queue = [start_node]
+            
+            # BFS Limiters
+            MAX_RELATED = 5
+            PROB_THRESHOLD = 0.05
+            
+            while bfs_queue and len(related_modules) < MAX_RELATED:
+                curr = bfs_queue.pop(0)
+                neighbors = graph.get(curr, [])
+                
+                # Sort neighbors by probability to prioritize strong links
+                neighbors.sort(key=lambda x: x[1], reverse=True)
+                
+                for neighbor, prob in neighbors:
+                    if neighbor not in visited and prob > PROB_THRESHOLD:
+                        visited.add(neighbor)
+                        related_modules.add(neighbor)
+                        bfs_queue.append(neighbor)
+                        if len(related_modules) >= MAX_RELATED: break
+            
+            best.associated_modules = list(related_modules)
+
     # Mark as processed
     processed_list.append(best.id)
     tool_context.session.state["processed_targets_list"] = processed_list

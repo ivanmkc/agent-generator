@@ -90,7 +90,8 @@ def create_auditor_agent(model: str | RotatingKeyGemini, repo_path: str) -> LlmA
             "   - **Modules**: Evaluate overall integration.\n"
             "   - **Methods/Properties**: Evaluate specific functionality.\n"
             "   - **Parameters**: Evaluate edge cases of specific arguments (prioritize parameters with high historical usage).\n"
-            "4. Output the target metadata strictly adhering to the TargetEntity schema."
+            "4. **Context Expansion**: The target entity will include a list of `associated_modules`. These are modules frequently used alongside the target in real-world samples. Instruct the Observer to incorporate logic from these associated modules into the usage example to create a realistic integration test.\n"
+            "5. Output the target metadata strictly adhering to the TargetEntity schema."
         )
     )
 
