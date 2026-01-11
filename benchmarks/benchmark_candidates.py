@@ -36,6 +36,7 @@ from benchmarks.answer_generators.experiment_46 import create_statistical_v26_ge
 from benchmarks.answer_generators.experiment_47 import create_statistical_v27_generator
 from benchmarks.answer_generators.experiment_48 import create_statistical_v28_generator
 from benchmarks.answer_generators.experiment_49 import create_statistical_v29_generator
+from benchmarks.answer_generators.experiment_52 import create_statistical_v32_generator
 from benchmarks.answer_generators.gemini_cli_docker import (
     GeminiCliPodmanAnswerGenerator,
 )
@@ -237,6 +238,11 @@ CANDIDATE_GENERATORS.extend([
     ),
     # Statistical V29 (Exp 49 - Association-Aware Retrieval)
     create_statistical_v29_generator(
+        model_name=ModelName.GEMINI_2_5_FLASH,
+        api_key_manager=api_key_manager
+    ),
+    # Statistical V32 (Exp 52 - V29 wrapped in AgentTool)
+    create_statistical_v32_generator(
         model_name=ModelName.GEMINI_2_5_FLASH,
         api_key_manager=api_key_manager
     )
