@@ -34,6 +34,29 @@ from benchmarks.api_key_manager import ApiKeyManager
 
 from google.adk.agents.callback_context import CallbackContext
 
+# --- Guard Implementation ---
+def input_guard_callback(callback_context: CallbackContext):
+    """Prevents the solver from running if input state is corrupted."""
+    # Dynamic context attribute resolution to handle different ADK versions/mocks
+    ctx = getattr(callback_context, 'invocation_context', None) or \
+          getattr(callback_context, 'context', None) or \
+          getattr(callback_context, '_invocation_context', None)
+    
+    if not ctx:
+        raise RuntimeError("CRITICAL: Could not resolve InvocationContext from CallbackContext.")
+
+    sanitized_request = ctx.session.state.get("sanitized_user_request")
+    
+    if not sanitized_request or sanitized_request == "null":
+        # Log heavily so it shows up in trace
+        msg = (
+            "CRITICAL GUARD FAILURE: 'sanitized_user_request' is missing or null. "
+            "This indicates an upstream failure (e.g., PromptSanitizer failed or Quota Limit hit). "
+            "Aborting chain to prevent hallucination."
+        )
+        print(msg) # Print to stdout for log capture
+        raise ValueError(msg)
+
 def create_debug_structured_adk_agent(
     tools_helper: AdkTools,
     model_name: str = DEFAULT_MODEL_NAME,
@@ -44,29 +67,6 @@ def create_debug_structured_adk_agent(
     """
     Experiment 20: Single-Agent Solver with Statistical Discovery.
     """
-
-    # --- Guard Implementation ---
-    def input_guard_callback(callback_context: CallbackContext):
-        """Prevents the solver from running if input state is corrupted."""
-        # Dynamic context attribute resolution to handle different ADK versions/mocks
-        ctx = getattr(callback_context, 'invocation_context', None) or \
-              getattr(callback_context, 'context', None) or \
-              getattr(callback_context, '_invocation_context', None)
-        
-        if not ctx:
-            raise RuntimeError("CRITICAL: Could not resolve InvocationContext from CallbackContext.")
-
-        sanitized_request = ctx.session.state.get("sanitized_user_request")
-        
-        if not sanitized_request or sanitized_request == "null":
-            # Log heavily so it shows up in trace
-            msg = (
-                "CRITICAL GUARD FAILURE: 'sanitized_user_request' is missing or null. "
-                "This indicates an upstream failure (e.g., PromptSanitizer failed or Quota Limit hit). "
-                "Aborting chain to prevent hallucination."
-            )
-            print(msg) # Print to stdout for log capture
-            raise ValueError(msg)
 
     # Bespoke Tools
     get_help_tool = FunctionTool(tools_helper.get_module_help)
@@ -147,6 +147,105 @@ Output reasoning then code."""
 
     agent_obj = SequentialAgent(
         name="debug_single_solver",
+        sub_agents=[
+            setup_agent,
+            prompt_sanitizer_agent,
+            solver_agent,
+            code_based_runner,
+            final_verifier,
+            teardown_agent,
+        ],
+    )
+
+    return agent_obj
+
+def create_debug_structured_adk_agent_v3(
+    tools_helper: AdkTools,
+    model_name: str = DEFAULT_MODEL_NAME,
+    api_key_manager: ApiKeyManager | None = None,
+    retrieval_agents: list[Agent] = [],
+    use_loop_history: bool = True,
+) -> SequentialAgent:
+    """
+    Experiment 23: Statistical Solver with Semantic Data Mapping.
+    """
+
+    # Bespoke Tools
+    get_help_tool = FunctionTool(tools_helper.get_module_help)
+    search_tool = FunctionTool(tools_helper.search_files)
+    
+    # Standard tools
+    write_tool = FunctionTool(tools_helper.write_file)
+    replace_tool = FunctionTool(tools_helper.replace_text)
+    exit_loop_tool = FunctionTool(exit_loop)
+    read_logs_tool = FunctionTool(tools_helper.read_full_execution_logs)
+
+    # Determine Model
+    if api_key_manager:
+        model = RotatingKeyGemini(model=model_name, api_key_manager=api_key_manager)
+    else:
+        model = model_name
+
+    # 0. Setup Agent
+    setup_agent = SetupAgentCodeBased(
+        name="setup_agent", workspace_root=tools_helper.workspace_root, tools_helper=tools_helper
+    )
+
+    # 0.2 Prompt Sanitizer
+    prompt_sanitizer_agent = PromptSanitizerAgent(
+        model=model,
+        include_contents='none',
+        output_key="sanitized_user_request",
+    )
+
+    # 1. The Solver (Statistical Discovery)
+    solver_agent = LlmAgent(
+        name="solver_agent",
+        model=model,
+        tools=[get_help_tool, search_tool, write_tool, replace_tool],
+        include_contents='default',
+        output_key="candidate_response",
+        before_agent_callback=input_guard_callback, # Attach Guard
+        instruction=(
+            """You are the Expert Codebase Solver. 
+Input Check: If the following request is empty or 'null', stop and ask for clarification.
+Request: {sanitized_user_request}
+
+**STRICT PROTOCOL:**
+1. **Locate:** You must find the correct import paths for any classes you need.
+   - Use `search_files(pattern)` to find where classes (e.g., 'LogicAgent') are defined.
+   - **IMPORT VERIFICATION:** If `get_module_help` fails for a specific module (e.g. `google.adk.agents.events`), use `search_files` to find where the class (e.g. `Event`) is actually defined. Do NOT assume the module structure based on the class name.
+   - **CRITICAL:** If `search_files` returns NO results and `get_module_help` does not list the class, **YOU MUST DEFINE THE CLASS YOURSELF**. Do NOT try to import a class that you cannot find.
+2. **Discovery:** Use `get_module_help(module_name)` to inspect APIs.
+   - **VERIFY PARENTS & TYPES:** If you inherit from a class (e.g. `BaseAgent`), check its `__init__` signature AND its methods (e.g. `_run_async_impl`) using `get_module_help`.
+   - **DATA MAPPING:** When inspecting a class (like `InvocationContext`), if you don't see standard field names (like `input` or `request`), look for semantically similar fields (e.g., `user_content`, `message`). Check the type hints of these fields to confirm they hold the data you need. Do NOT guess names like `.input` or `.request`.
+   - Pay attention to arguments marked as 'REQUIRED'.
+3. **Implement:** Write the code. 
+   - Use the high-frequency verified signatures.
+
+Output reasoning then code."""
+        ),
+    )
+
+    code_based_runner = CodeBasedRunner(
+        name="code_based_runner",
+        tools_helper=tools_helper,
+        model_name=model_name
+    )
+
+    final_verifier = CodeBasedFinalVerifier(
+        name="final_verifier",
+        tools_helper=tools_helper
+    )
+
+    teardown_agent = CodeBasedTeardownAgent(
+        name="teardown_agent", 
+        workspace_root=tools_helper.workspace_root, 
+        tools_helper=tools_helper
+    )
+
+    agent_obj = SequentialAgent(
+        name="debug_single_solver_v3",
         sub_agents=[
             setup_agent,
             prompt_sanitizer_agent,
