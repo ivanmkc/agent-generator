@@ -36,6 +36,7 @@ from benchmarks.answer_generators.experiment_46 import create_statistical_v26_ge
 from benchmarks.answer_generators.experiment_47 import create_statistical_v27_generator
 from benchmarks.answer_generators.experiment_48 import create_statistical_v28_generator
 from benchmarks.answer_generators.experiment_49 import create_statistical_v29_generator
+from benchmarks.answer_generators.experiment_50 import create_statistical_v30_generator
 from benchmarks.answer_generators.gemini_cli_docker import (
     GeminiCliPodmanAnswerGenerator,
 )
@@ -239,13 +240,18 @@ CANDIDATE_GENERATORS.extend([
     create_statistical_v29_generator(
         model_name=ModelName.GEMINI_2_5_FLASH,
         api_key_manager=api_key_manager
-    )
+    ),
+    # Statistical V30 (Exp 50 - Task Delegation)
+    # create_statistical_v30_generator(
+    #     model_name=ModelName.GEMINI_2_5_FLASH,
+    #     api_key_manager=api_key_manager
+    # )
 ]
 )
 
 # Add trivial and ground truth generators
-# CANDIDATE_GENERATORS.extend([
-#     # Control generators
-#     GroundTruthAnswerGenerator(),
-#     TrivialAnswerGenerator(),
-# ])
+CANDIDATE_GENERATORS.extend([
+    # Control generators
+    GroundTruthAnswerGenerator(),
+    TrivialAnswerGenerator(),
+])
