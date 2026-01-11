@@ -29,6 +29,7 @@ from google.adk.sessions import Session
 from benchmarks.benchmark_generator.tools import scan_repository, trace_execution, validate_mutant, save_benchmark_case, get_prioritized_target
 from benchmarks.benchmark_generator.agents import create_prismatic_agent, SemaphoreGemini
 from benchmarks.api_key_manager import ApiKeyManager
+from benchmarks.benchmark_generator.models import TargetType
 
 @pytest.fixture
 def mock_context():
@@ -54,34 +55,43 @@ def test_scan_repository(mock_context, tmp_path):
     assert "Cartographer scan complete" in result
     targets = mock_context.session.state["scanned_targets"]
     
-    # Verify bar was found
-    bar_target = next((t for t in targets if t["method_name"] == "bar"), None)
+    # Verify bar was found. TargetEntity uses 'id' (FQN) and 'name'.
+    # FQN logic in tools.py: module_name.ClassName.MethodName
+    # module_name is 'my_module'
+    bar_target = next((t for t in targets if t["name"] == "bar" and t["type"] == "method"), None)
     assert bar_target is not None
-    assert bar_target["class_name"] == "Foo"
+    assert bar_target["id"] == "my_module.Foo.bar"
     
-    # Verify usage was counted (1 call in caller.py)
-    # UsageVisitor logic: f.bar() -> call to bar.
-    # Note: UsageVisitor resolves types loosely. 
+    # Verify usage was counted
     assert bar_target["usage_score"] >= 1
 
 def test_get_prioritized_target(mock_context):
     """Verifies that the Auditor prioritizes based on Usage > Complexity."""
     targets = [
-        {"file_path": "unused.py", "method_name": "unused", "complexity_score": 50, "docstring": "Yes", "usage_score": 0},
-        {"file_path": "popular.py", "method_name": "popular", "complexity_score": 5, "docstring": "Yes", "usage_score": 10},
+        {
+            "id": "unused.unused", "type": "method", "name": "unused", 
+            "file_path": "unused.py", "complexity_score": 50.0, "docstring": "Yes", "usage_score": 0
+        },
+        {
+            "id": "popular.popular", "type": "method", "name": "popular", 
+            "file_path": "popular.py", "complexity_score": 5.0, "docstring": "Yes", "usage_score": 10
+        },
     ]
     mock_context.session.state["scanned_targets"] = targets
     
     # First call - should get 'popular' due to usage weight (10 * 20 = 200) vs unused (50 + 10 = 60)
     res1 = get_prioritized_target(mock_context)
     data1 = json.loads(res1)
-    assert data1["method_name"] == "popular"
-    assert "popular.py::popular" in mock_context.session.state["processed_targets_list"]
+    assert data1["name"] == "popular"
+    
+    # Verify state update
+    processed_list = mock_context.session.state["processed_targets_list"]
+    assert "popular.popular" in processed_list
     
     # Second call - should get 'unused'
     res2 = get_prioritized_target(mock_context)
     data2 = json.loads(res2)
-    assert data2["method_name"] == "unused"
+    assert data2["name"] == "unused"
     
     # Third call - should return DONE
     res3 = get_prioritized_target(mock_context)
@@ -91,14 +101,12 @@ def test_get_prioritized_target(mock_context):
 def test_trace_execution(mock_context):
     """Ensures that code execution correctly captures stdout and return values."""
     target = {
+        "id": "dummy.test",
+        "type": "method",
+        "name": "test",
         "file_path": "dummy.py",
-        "method_name": "test",
-        "class_name": None,
-        "code_signature": "def test():",
-        "docstring": None,
-        "complexity_score": 1,
-        "usage_score": 0,
-        "type": "method"
+        "complexity_score": 1.0,
+        "usage_score": 0
     }
     code = "result = 1 + 1\nprint('Hello')"
     
@@ -113,11 +121,19 @@ def test_trace_execution(mock_context):
 def test_validate_mutant(mock_context):
     """Verifies that the Sandbox correctly identifies valid (divergent) distractors."""
     # Setup snapshot
+    target = {
+        "id": "dummy.test",
+        "type": "method",
+        "name": "test",
+        "file_path": "dummy.py",
+        "complexity_score": 1.0,
+        "usage_score": 0
+    }
     snapshot = {
         "stdout": "Hello\n",
         "return_value": "2",
         "valid_usage_code": "print('Hello')",
-        "target": {"file_path": "x", "method_name": "x", "code_signature": "x", "complexity_score": 1},
+        "target": target,
         "local_vars": {},
         "execution_time": 0.1
     }
@@ -166,8 +182,14 @@ def test_prismatic_agent_creation_with_manager():
 def test_get_prioritized_target_with_coverage(mock_context):
     """Verifies that targets not present in coverage data are prioritized."""
     targets = [
-        {"file_path": "covered.py", "method_name": "foo", "complexity_score": 10, "docstring": None, "usage_score": 0},
-        {"file_path": "uncovered.py", "method_name": "bar", "complexity_score": 10, "docstring": None, "usage_score": 0},
+        {
+            "id": "covered.foo", "type": "method", "name": "foo",
+            "file_path": "covered.py", "complexity_score": 10.0, "docstring": None, "usage_score": 0
+        },
+        {
+            "id": "uncovered.bar", "type": "method", "name": "bar",
+            "file_path": "uncovered.py", "complexity_score": 10.0, "docstring": None, "usage_score": 0
+        },
     ]
     mock_context.session.state["scanned_targets"] = targets
     
@@ -180,5 +202,5 @@ def test_get_prioritized_target_with_coverage(mock_context):
     res = get_prioritized_target(mock_context)
     data = json.loads(res)
     
-    # Should pick 'uncovered.py' due to the coverage penalty on 'covered.py'
+    # Should pick 'uncovered.bar' due to the coverage penalty on 'covered.py'
     assert data["file_path"] == "uncovered.py"

@@ -29,29 +29,25 @@ class TargetType(str, Enum):
     CLASS = "class"
     METHOD = "method"
     PROPERTY = "property"
+    PARAMETER = "parameter"
 
-class TargetParameter(pydantic.BaseModel):
+class TargetEntity(pydantic.BaseModel):
+    """A hierarchical entity in the codebase targeted for benchmarking."""
+    id: str  # Fully Qualified Name (FQN)
+    type: TargetType
     name: str
-    usage_count: int = 0
-    type_hint: Optional[str] = None
-
-class TargetMethod(pydantic.BaseModel):
-    """Represents a method or function identified by the Scanner."""
-    type: TargetType = TargetType.METHOD
     file_path: str
-    class_name: Optional[str] = None
-    parent_classes: List[str] = [] # For hierarchy mapping
-    method_name: str
-    code_signature: str
-    docstring: Optional[str] = None
-    complexity_score: float = 0.0
     usage_score: int = 0
-    dependencies: List[str] = [] # Files imported by this file
-    parameters: List[TargetParameter] = []
+    complexity_score: float = 0.0
+    docstring: Optional[str] = None
+    parent_id: Optional[str] = None
+    # Specific metadata for agents
+    signature: Optional[str] = None
+    source_code: Optional[str] = None
 
 class GoldenSnapshot(pydantic.BaseModel):
     """The 'ground truth' capture from the Tracer."""
-    target: TargetMethod
+    target: TargetEntity
     valid_usage_code: str  # Option A (The correct code)
     stdout: str
     return_value: str  # String representation

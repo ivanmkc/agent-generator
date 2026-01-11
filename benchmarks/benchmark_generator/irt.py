@@ -62,7 +62,7 @@ class IRTManager:
         # Fisher Information ~ Discrimination^2 / Variance (roughly, for selection)
         # Actually we want targets that maximize information about Ability.
         # For generation, we prioritize targets that are 'hard' or 'discriminating'.
-        target_id = f"{target['file_path']}::{target['method_name']}"
+        target_id = target.get("id") or f"{target['file_path']}::{target.get('name')}"
         irt_params = self.get_target_info(target_id)
         irt_score = irt_params["discrimination"] * 10 + irt_params["difficulty"] * 5
 

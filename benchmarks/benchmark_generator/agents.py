@@ -26,13 +26,13 @@ from google.adk.events import Event
 from benchmarks.benchmark_generator.tools import (
     scan_repository, trace_execution, validate_mutant, save_benchmark_case, get_prioritized_target, check_uniqueness
 )
-from benchmarks.benchmark_generator.models import TargetMethod, ObserverOutput, SaboteurOutput
+from benchmarks.benchmark_generator.models import TargetEntity, TargetType, ObserverOutput, SaboteurOutput
 from benchmarks.data_models import MultipleChoiceBenchmarkCase
 from benchmarks.answer_generators.adk_agents import RotatingKeyGemini
 from benchmarks.api_key_manager import ApiKeyManager
 
 class SemaphoreGemini(RotatingKeyGemini):
-    """A Gemini model that limits concurrency using a semaphore."""
+    """A Gemini model that limits concurrency using a semaphore and retries on 429."""
     _semaphore: asyncio.Semaphore = PrivateAttr()
 
     def __init__(self, semaphore: asyncio.Semaphore, **kwargs):
@@ -63,7 +63,7 @@ class SemaphoreGemini(RotatingKeyGemini):
                     is_429 = "429" in str(e) or "RESOURCE_EXHAUSTED" in str(e)
                     if is_429 and attempt < max_retries:
                         attempt += 1
-                        print(f"Hit 429. Rotating key and retrying (Attempt {attempt}/{max_retries})...")
+                        # Wait time increases with each attempt
                         await asyncio.sleep(2 * attempt)
                         continue
                     else:
@@ -74,28 +74,28 @@ class SemaphoreGemini(RotatingKeyGemini):
 # --- Agents ---
 
 def create_auditor_agent(model: str | RotatingKeyGemini, repo_path: str) -> LlmAgent:
-    """Creates the Auditor agent responsible for selecting benchmark targets."""
+    """Creates the Auditor agent responsible for selecting hierarchical targets based on usage."""
     return LlmAgent(
         name="Auditor",
         model=model,
         tools=[FunctionTool(scan_repository), FunctionTool(get_prioritized_target), FunctionTool(exit_loop)],
         include_contents='none', # State-based
         output_key="current_target_json",
-        output_schema=TargetMethod,
+        output_schema=TargetEntity,
         instruction=(
-            f"You are the Auditor (The Strategist). Your goal is to map the repository's topology and select high-value targets based on USAGE frequency.\n"
-            f"1. If 'scanned_targets' is empty, call `scan_repository` with `repo_path='{repo_path}'`.\n"
-            "2. Call `get_prioritized_target` to retrieve the next best target (prioritized by Usage Count, IRT, and Coverage).\n"
-            "3. Analyze the target's usage patterns. If it has high usage, it is a critical API surface.\n"
-            "4. If it returns 'DONE' or 'EMPTY', call `exit_loop`.\n"
-            "5. Otherwise, output the target strictly adhering to the TargetMethod schema."
+            f"You are the Auditor (The Strategist). Your goal is to select the most impactful evaluation targets based on USAGE density.\n"
+            f"1. If 'scanned_targets' is empty, call `scan_repository` with `repo_path='{repo_path}'` to map the full hierarchy (Modules, Classes, Methods, Parameters).\n"
+            "2. Use `get_prioritized_target` to find the most used entities. Priority is strictly based on call count (usage).\n"
+            "3. You can target different categories: \n"
+            "   - **Modules**: Evaluate overall integration.\n"
+            "   - **Methods/Properties**: Evaluate specific functionality.\n"
+            "   - **Parameters**: Evaluate edge cases of specific arguments (prioritize parameters with high historical usage).\n"
+            "4. Output the target metadata strictly adhering to the TargetEntity schema."
         )
     )
 
 def create_observer_agent(model: str | RotatingKeyGemini) -> LlmAgent:
     """Creates the Observer agent responsible for generating ground truth code."""
-    # Observer uses a tool to perform the action. Output schema might conflict if tool calling is primary.
-    # However, we can use output_schema to force a structured status report AFTER the tool call.
     return LlmAgent(
         name="Observer",
         model=model,
@@ -104,15 +104,14 @@ def create_observer_agent(model: str | RotatingKeyGemini) -> LlmAgent:
         output_key="observer_status",
         output_schema=ObserverOutput,
         instruction=(
-            "You are the Observer. Your goal is to generate a VALID usage example for the target method.\n"
-            "Target Method Metadata: {current_target_json}\n"
+            "You are the Observer. Your goal is to generate a VALID usage example for the target entity."
+            "\nTarget Entity Metadata: {current_target_json}"
             "CRITICAL: Do NOT use `unittest.mock.MagicMock` or similar mocking libraries. "
-            "Pydantic-based components in the target repo fail to validate mock objects. "
-            "Instead, use real constructors with minimal valid arguments or define simple concrete stub classes.\n"
-            "1. Analyze the target method.\n"
-            "2. Call `trace_execution` with two arguments:\n"
-            "   - `code`: a self-contained Python script that imports and calls this method correctly without using mocks.\n"
-            "   - `target_method`: The EXACT dictionary provided in `{current_target_json}`.\n"
+            "Use real constructors with minimal valid arguments or define simple concrete stub classes."
+            "1. Analyze the target (Type: {current_target_json})."
+            "2. Call `trace_execution` with two arguments:"
+            "   - `code`: a self-contained Python script that imports and uses this entity correctly without mocks."
+            "   - `target_method`: The EXACT dictionary provided in `{current_target_json}`."
             "3. After the tool call, output a structured ObserverOutput indicating success or failure."
         )
     )
@@ -122,17 +121,17 @@ def create_saboteur_agent(model: str | RotatingKeyGemini) -> LlmAgent:
     return LlmAgent(
         name="Saboteur",
         model=model,
-        tools=[], # No tools, purely generative now. Validation is done by Referee.
+        tools=[], 
         include_contents='none',
         output_key="saboteur_output",
         output_schema=SaboteurOutput,
         instruction=(
-            "You are the Saboteur. Your goal is to create 3 valid distractors (Hard Negatives).\n"
-            "Golden Snapshot: {current_snapshot}\n"
-            "Previous Feedback (if any): {saboteur_feedback}\n"
-            "CRITICAL: Do NOT use `unittest.mock.MagicMock`. Use real objects or simple concrete stubs.\n"
-            "1. Generate 3 distinct mutants of the valid code (Semantic, Poisoning, Structure).\n"
-            "   - If there is feedback, FIX the issues mentioned (e.g. fix syntax error, make it diverge if equivalent).\n"
+            "You are the Saboteur. Your goal is to create 3 valid distractors (Hard Negatives)."
+            "\nGolden Snapshot: {current_snapshot}"
+            "Previous Feedback (if any): {saboteur_feedback}"
+            "CRITICAL: Do NOT use `unittest.mock.MagicMock`. "
+            "1. Generate 3 distinct mutants of the valid code (Semantic, Poisoning, Structure)."
+            "   - If there is feedback, FIX the issues mentioned."
             "2. Output a structured SaboteurOutput containing the list of mutants."
         )
     )
@@ -146,16 +145,15 @@ def create_referee_agent(model: str | RotatingKeyGemini) -> LlmAgent:
         include_contents='none',
         output_key="saboteur_feedback",
         instruction=(
-            "You are the Referee. Validate the mutants produced by the Saboteur.\n"
-            "Mutants (Saboteur Output): {saboteur_output}\n"
-            "CRITICAL: When providing feedback, NEVER suggest using `MagicMock`. "
-            "Suggest using real class constructors or defining minimal concrete stub classes instead.\n"
-            "1. Iterate through the mutants in the output.\n"
-            "2. For EACH mutant, call `validate_mutant`.\n"
-            "3. Analyze results:\n"
-            "   - If ALL 3 mutants are VALID (divergent output, no unexpected crashes unless intended), call `exit_loop` to finish the Adversarial Phase.\n"
-            "   - If ANY mutant is invalid (e.g. Equivalent Mutant, unintended Syntax Error), construct constructive feedback for the Saboteur.\n"
-            "4. Output the feedback text. This will trigger the Saboteur to run again."
+            "You are the Referee. Validate the mutants produced by the Saboteur."
+            "\nMutants (Saboteur Output): {saboteur_output}"
+            "CRITICAL: NEVER suggest using `MagicMock`. "
+            "1. Iterate through the mutants in the output."
+            "2. For EACH mutant, call `validate_mutant`."
+            "3. Analyze results:"
+            "   - If ALL 3 mutants are VALID, call `exit_loop` to finish the Adversarial Phase."
+            "   - If ANY mutant is invalid, construct constructive feedback for the Saboteur."
+            "4. Output the feedback text."
         )
     )
 
@@ -168,11 +166,11 @@ def create_critic_agent(model: str | RotatingKeyGemini) -> LlmAgent:
         include_contents='none',
         output_key="critic_verdict",
         instruction=(
-            "You are the Critic. Ensure the benchmark is unique.\n"
-            "Proposed Question Context: {current_target_json}\n"
-            "1. Formulate a draft question string based on the target.\n"
-            "2. Call `check_uniqueness(question_text=...)`.\n"
-            "3. If unique, output 'APPROVED'.\n"
+            "You are the Critic. Ensure the benchmark is unique."
+            "\nProposed Question Context: {current_target_json}"
+            "1. Formulate a draft question string based on the target."
+            "2. Call `check_uniqueness(question_text=...)`."
+            "3. If unique, output 'APPROVED'."
             "4. If not unique, output 'REJECTED'."
         )
     )
@@ -186,25 +184,24 @@ def create_assembler_agent(model: str | RotatingKeyGemini) -> LlmAgent:
         include_contents='none',
         output_key="assembler_status",
         instruction=(
-            "You are the Assembler.\n"
-            "Critic Verdict: {critic_verdict}\n"
-            "Target: {current_target_json}\n"
-            "Snapshot: {current_snapshot}\n"
-            "Mutants: {saboteur_output}\n"
-            "1. If Critic Verdict is 'REJECTED', do nothing and output 'SKIPPED'.\n"
-            "2. Otherwise, formulate the final Multiple Choice Question.\n"
-            "3. CRITICAL: Do not output the JSON as text. You MUST call `save_benchmark_case` with the JSON string.\n"
+            "You are the Assembler."
+            "\nCritic Verdict: {critic_verdict}"
+            "Target: {current_target_json}"
+            "Snapshot: {current_snapshot}"
+            "Mutants: {saboteur_output}"
+            "1. If Critic Verdict is 'REJECTED', do nothing and output 'SKIPPED'."
+            "2. Otherwise, formulate the final Multiple Choice Question."
+            "3. CRITICAL: Do not output the JSON as text. You MUST call `save_benchmark_case` with the JSON string."
             "4. Output 'SAVED'."
         )
     )
 
 class PrismaticCoordinator(Agent):
-    """Coordinates the loop logic (checking monitor, etc.)."""
+    """Coordinates the loop logic and target count."""
     
     async def _run_async_impl(self, ctx: InvocationContext):
-        # Check if we should exit
         benchmarks = ctx.session.state.get("generated_benchmarks", [])
-        if len(benchmarks) >= 100: # Target 100 benchmarks
+        if len(benchmarks) >= 100:
             yield Event(
                 invocation_id=ctx.invocation_id,
                 author=self.name,
@@ -217,7 +214,7 @@ class PrismaticCoordinator(Agent):
                 content=types.Content(role="model", parts=[types.Part(text=f"Continuing loop... ({len(benchmarks)}/100 generated)")])
             )
 
-def create_prismatic_agent(model_name: str = "gemini-3-pro-preview", api_key_manager: Optional[ApiKeyManager] = None, repo_path: str = ".", concurrency: int = 1) -> Agent:
+def create_prismatic_agent(model_name: str = "gemini-3-pro-preview", api_key_manager: Optional[ApiKeyManager] = None, repo_path: str = "../adk-samples/python", concurrency: int = 1) -> Agent:
     """Creates the full Prismatic Generation Agent."""
     
     if api_key_manager:
@@ -229,13 +226,12 @@ def create_prismatic_agent(model_name: str = "gemini-3-pro-preview", api_key_man
     auditor = create_auditor_agent(model, repo_path)
     observer = create_observer_agent(model)
     
-    # Adversarial Loop: Saboteur <-> Referee
     saboteur = create_saboteur_agent(model)
     referee = create_referee_agent(model)
     adversarial_loop = LoopAgent(
         name="AdversarialLoop",
         sub_agents=[saboteur, referee],
-        max_iterations=3 # Limit retries
+        max_iterations=3
     )
     
     critic = create_critic_agent(model)
