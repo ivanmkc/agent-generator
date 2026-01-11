@@ -9,6 +9,7 @@ from benchmarks.answer_generators.adk_agents import (
     create_baseline_workflow_adk_generator
 )
 from benchmarks.answer_generators.debug_adk_agents import create_react_workflow_adk_generator
+from benchmarks.answer_generators.experiment_22 import create_statistical_v2_generator
 from benchmarks.answer_generators.gemini_cli_docker import (
     GeminiCliPodmanAnswerGenerator,
 )
@@ -75,6 +76,11 @@ CANDIDATE_GENERATORS.extend([
     ),
     # ReAct Workflow (Statistical - Exp 20)
     create_react_workflow_adk_generator(
+        model_name=ModelName.GEMINI_2_5_FLASH,
+        api_key_manager=api_key_manager
+    ),
+    # Statistical V2 (Exp 22 - Guide Check)
+    create_statistical_v2_generator(
         model_name=ModelName.GEMINI_2_5_FLASH,
         api_key_manager=api_key_manager
     )

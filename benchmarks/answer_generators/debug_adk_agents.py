@@ -70,6 +70,7 @@ def create_debug_structured_adk_agent(
 
     # Bespoke Tools
     get_help_tool = FunctionTool(tools_helper.get_module_help)
+    search_tool = FunctionTool(tools_helper.search_files)
     
     # Standard tools
     write_tool = FunctionTool(tools_helper.write_file)
@@ -99,7 +100,7 @@ def create_debug_structured_adk_agent(
     solver_agent = LlmAgent(
         name="solver_agent",
         model=model,
-        tools=[get_help_tool, write_tool, replace_tool],
+        tools=[get_help_tool, search_tool, write_tool, replace_tool],
         include_contents='default',
         output_key="candidate_response",
         before_agent_callback=input_guard_callback, # Attach Guard
@@ -109,10 +110,16 @@ Input Check: If the following request is empty or 'null', stop and ask for clari
 Request: {sanitized_user_request}
 
 **STRICT PROTOCOL:**
-1. **Discovery:** Use `get_module_help(module_name)` to inspect APIs. 
+1. **Locate:** You must find the correct import paths for any classes you need.
+   - Use `search_files(pattern)` to find where classes (e.g., 'LogicAgent') are defined.
+   - Do NOT guess import paths. For example, do not assume `google.adk.agents.logic` exists unless you verify it.
+   - **CRITICAL:** If `search_files` returns NO results and `get_module_help` does not list the class, **YOU MUST DEFINE THE CLASS YOURSELF**. Do NOT try to import a class that you cannot find.
+2. **Discovery:** Use `get_module_help(module_name)` to inspect APIs once you know the correct module. 
+   - **VERIFY PARENTS & TYPES:** If you inherit from a class (e.g. `BaseAgent`), check its `__init__` signature AND its methods (e.g. `_run_async_impl`) using `get_module_help` BEFORE writing code. 
+   - **STRICT TYPES & FIELDS:** Observe the types in the signatures (e.g., `InvocationContext`, `AsyncGenerator[Event, None]`). If you use these types, check their fields using `get_module_help(type_name)` before accessing attributes. Do NOT hallucinate your own types (like `Input` or `Output`) or field names (like `.input`) if they are not verified by tools.
+   - Do NOT pass arguments (like `model`) if the parent does not accept them, and ensure you override the CORRECT methods with CORRECT signatures.
    - Pay attention to arguments marked as 'REQUIRED' or having high usage percentages (e.g., 'Used 95%').
-2. **Implement:** Write the code. 
-   - REQUIREMENT: Include `def create_agent(model_name: str) -> BaseAgent:` wrapper.
+3. **Implement:** Write the code. 
    - Use the high-frequency verified signatures.
 
 Output reasoning then code."""

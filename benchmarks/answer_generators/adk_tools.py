@@ -258,9 +258,16 @@ def print_help(name, current_depth=0, max_depth=0):
     print(f"{indent}Module: {name}\n{indent}Doc: {get_summary(mod)}\n")
     for n, o in inspect.getmembers(mod, inspect.isclass):
         if n.startswith("_"): continue
+        # Pydantic support
+        fields_str = ""
+        if hasattr(o, "model_fields"):
+            req = [fn for fn, f in o.model_fields.items() if f.is_required()]
+            opt = [fn for fn, f in o.model_fields.items() if not f.is_required()]
+            fields_str = f" [Pydantic Model - Required: {req}, Optional: {opt}]"
+        
         try: sig = inspect.signature(o)
         except: sig = "(...)"
-        print(f"{indent}  class {n}{sig}: {get_summary(o)}")
+        print(f"{indent}  class {n}{sig}{fields_str}: {get_summary(o)}")
         methods = [(mn, mo) for mn, mo in inspect.getmembers(o) if not mn.startswith("_") and (inspect.isfunction(mo) or inspect.ismethod(mo))]
         for mn, mo in sorted(methods, key=lambda x: (0 if x[0] == "__init__" else 1, x[0]))[:5]:
             try: msig = inspect.signature(mo)
