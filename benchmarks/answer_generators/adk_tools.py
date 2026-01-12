@@ -311,6 +311,11 @@ def print_help(name, current_depth=0, max_depth=0):
             try: msig = inspect.signature(mo)
             except: msig = "(...)"
             print(f"{indent}    def {mn}{msig}")
+        
+        # Add Properties
+        props = [(pn, po) for pn, po in inspect.getmembers(o) if isinstance(po, property) and not pn.startswith("_")]
+        for pn, po in sorted(props)[:5]:
+            print(f"{indent}    @property {pn}")
     if current_depth < max_depth and hasattr(mod, "__path__"):
         for _, subname, _ in pkgutil.iter_modules(mod.__path__):
             if not subname.startswith("_"): print_help(f"{name}.{subname}", current_depth + 1, max_depth)
