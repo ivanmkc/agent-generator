@@ -184,16 +184,28 @@
             "detail": "Runs VibeShare analysis and updates the visualization notebook in-place."
         },
         {
-            "label": "Run Prismatic Generator",
+            "label": "Index Co-occurrence Data",
             "type": "shell",
-            "command": "PYTHONPATH=. env/bin/python benchmarks/benchmark_generator/run_generator.py --type prismatic_adk --output-dir benchmarks/benchmark_definitions/prismatic_generated --model gemini-3-pro-preview --repo-path ../adk-python --concurrency 1 --session-db prismatic_sessions.db",
+            "command": "env/bin/python tools/cooccurrence_indexer.py --repo-paths ../adk-python/contributing/samples ../adk-python/tests/integration --output benchmarks/adk_cooccurrence.json",
             "group": "build",
             "presentation": {
                 "reveal": "always",
                 "panel": "new"
             },
             "problemMatcher": [],
-            "detail": "Generates repository-specific benchmarks using the Prismatic Evaluation architecture with concurrency control and state persistence."
+            "detail": "Generates the co-occurrence matrix from local adk-python integration tests and samples."
+        },
+        {
+            "label": "Run Prismatic Generator",
+            "type": "shell",
+            "command": "PYTHONPATH=. env/bin/python benchmarks/benchmark_generator/run_generator.py --type prismatic_adk --output-dir benchmarks/benchmark_definitions/prismatic_generated --model gemini-3-pro-preview --repo-path ../adk-python --concurrency 3 --session-db prismatic_sessions.db --namespace google.adk --cooccurrence-file benchmarks/adk_cooccurrence.json",
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": [],
+            "detail": "Generates repository-specific benchmarks using the Prismatic Evaluation architecture."
         }
     ]
 }

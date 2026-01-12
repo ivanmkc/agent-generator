@@ -37,6 +37,10 @@ from benchmarks.answer_generators.experiment_47 import create_statistical_v27_ge
 from benchmarks.answer_generators.experiment_48 import create_statistical_v28_generator
 from benchmarks.answer_generators.experiment_49 import create_statistical_v29_generator
 from benchmarks.answer_generators.experiment_52 import create_statistical_v32_generator
+from benchmarks.answer_generators.experiment_53 import create_statistical_v33_generator
+from benchmarks.answer_generators.experiment_54 import create_statistical_v34_generator
+from benchmarks.answer_generators.experiment_55 import create_statistical_v35_generator
+from benchmarks.answer_generators.experiment_56 import create_statistical_v36_generator
 from benchmarks.answer_generators.gemini_cli_docker import (
     GeminiCliPodmanAnswerGenerator,
 )
@@ -243,6 +247,26 @@ CANDIDATE_GENERATORS.extend([
     ),
     # Statistical V32 (Exp 52 - V29 wrapped in AgentTool)
     create_statistical_v32_generator(
+        model_name=ModelName.GEMINI_2_5_FLASH,
+        api_key_manager=api_key_manager
+    ),
+    # Statistical V33 (Exp 53 - Fast Retrieval Code Agent)
+    create_statistical_v33_generator(
+        model_name=ModelName.GEMINI_2_5_FLASH,
+        api_key_manager=api_key_manager
+    ),
+    # Statistical V34 (Exp 54 - Mixed Pro Coding / Flash QA)
+    create_statistical_v34_generator(
+        model_name=ModelName.GEMINI_2_5_FLASH,
+        api_key_manager=api_key_manager
+    ),
+    # Statistical V35 (Exp 55 - V34 + True Verification + Logged Fetching)
+    create_statistical_v35_generator(
+        model_name=ModelName.GEMINI_2_5_FLASH,
+        api_key_manager=api_key_manager
+    ),
+    # Statistical V36 (Exp 56 - V35 + Strict Signature Enforcement)
+    create_statistical_v36_generator(
         model_name=ModelName.GEMINI_2_5_FLASH,
         api_key_manager=api_key_manager
     )

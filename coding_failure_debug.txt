@@ -1,0 +1,100 @@
+teardown_agent: 0.02s
+-------------------------------------------
+
+    ▶ Case: Which `LlmAgent` parameter (type `str`) is used fo... (Suite: configure_adk_features_mc)
+      Attempt 1: Success (Key: 9)
+      Result: PASS ✔
+
+--- Agent Timing & Token Report [benchmark_session_745e3cde-707f-423e-919b-84a3ae5738b4] ---
+setup_agent: 0.05s
+prompt_sanitizer_agent: 5.98s [Tokens: 1937 prompt + 62 completion]
+router: 0.56s [Tokens: 160 prompt + 2 completion]
+seed_selector_agent: 1.20s [Tokens: 1681 prompt + 45 completion]
+context_expander_agent: 0.00s
+docstring_fetcher_agent: 0.00s
+qa_solver: 5.26s [Tokens: 396 prompt + 117 completion]
+finalizer: 0.00s
+teardown_agent: 0.03s
+-------------------------------------------
+
+[ApiKeyManager] Key 6 short cooldown (Generic Error): 3 validation errors for ApiUnderstandingAnswerOutput
+benchmark_type
+  Input should be <BenchmarkType.API_UNDERSTANDING: 'api_understanding'> [type=literal_error, input_value='multiple_choice', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/literal_error
+code
+  Field required [type=missing, input_value={'answer': 'tools', 'rati...ype': 'multiple_choice'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.12/v/missing
+fully_qualified_class_name
+  Field required [type=missing, input_value={'answer': 'tools', 'rati...ype': 'multiple_choice'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.12/v/missing
+    ▶ Case: Which parameter on `LlmAgent` allows for custom logic before an LLM call? (Suite: api_understanding)
+      Attempt 1: Failed - ADK Generation failed: 3 validation errors for ApiUnderstandingAnswerOutput
+benchmark_type
+  Input should be <BenchmarkType.API_UNDERSTANDING: 'api_understanding'> [type=literal_error, input_value='multiple_choice', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/literal_error
+code
+  Field required [type=missing, input_value={'answer': 'tools', 'rati...ype': 'multiple_choice'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.12/v/missing
+fully_qualified_class_name
+  Field required [type=missing, input_value={'answer': 'tools', 'rati...ype': 'multiple_choice'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.12/v/missing (Key: 6)
+      Validation Error: Generation failed after 1 attempts. Last error: ADK Generation failed: 3 validation errors for ApiUnderstandingAnswerOutput
+benchmark_type
+  Input should be <BenchmarkType.API_UNDERSTANDING: 'api_understanding'> [type=literal_error, input_value='multiple_choice', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/literal_error
+code
+  Field required [type=missing, input_value={'answer': 'tools', 'rati...ype': 'multiple_choice'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.12/v/missing
+fully_qualified_class_name
+  Field required [type=missing, input_value={'answer': 'tools', 'rati...ype': 'multiple_choice'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.12/v/missing
+      Result: FAIL_GENERATION ✘
+--
+qa_solver: 3.51s [Tokens: 5211 prompt + 106 completion]
+finalizer: 0.00s
+teardown_agent: 0.03s
+-------------------------------------------
+
+    ▶ Case: You are using a `LoopAgent` and want to prevent it... (Suite: configure_adk_features_mc)
+      Attempt 1: Success (Key: 4)
+      Result: PASS ✔
+
+--- Agent Timing & Token Report [benchmark_session_5afb6a90-acd6-47fb-81f4-8f728f7511d9] ---
+setup_agent: 0.03s
+prompt_sanitizer_agent: 2.06s [Tokens: 577 prompt + 176 completion]
+router: 0.60s [Tokens: 274 prompt + 2 completion]
+seed_selector_agent: 3.57s [Tokens: 1899 prompt + 166 completion]
+context_expander_agent: 0.00s
+docstring_fetcher_agent: 4.01s
+qa_solver: 10.09s [Tokens: 7014 prompt + 577 completion]
+finalizer: 0.00s
+teardown_agent: 0.02s
+-------------------------------------------
+
+[ApiKeyManager] Key 0 short cooldown (Generic Error): 2 validation errors for MultipleChoiceAnswerOutput
+benchmark_type
+  Input should be <BenchmarkType.MULTIPLE_CHOICE: 'multiple_choice'> [type=literal_error, input_value='fix_error', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/literal_error
+answer
+  Field required [type=missing, input_value={'code': 'class Event:\n ...mark_type': 'fix_error'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.12/v/missing
+    ▶ Case: Why does this code raise a ValidationError?... (Suite: predict_runtime_behavior_mc)
+      Attempt 1: Failed - ADK Run Failed: 
+On how to mitigate this issue, please refer to:
+
+https://google.github.io/adk-docs/agents/models/#error-code-429-resource_exhausted
+
+
+429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-2.5-flash\nPlease retry in 23.134845888s.', 'status': 'RESOURCE_EXHAUSTED', 'details': [{'@type': 'type.googleapis.com/google.rpc.Help', 'links': [{'description': 'Learn more about Gemini API quotas', 'url': 'https://ai.google.dev/gemini-api/docs/rate-limits'}]}, {'@type': 'type.googleapis.com/google.rpc.QuotaFailure', 'violations': [{'quotaMetric': 'generativelanguage.googleapis.com/generate_content_free_tier_requests', 'quotaId': 'GenerateRequestsPerDayPerProjectPerModel-FreeTier', 'quotaDimensions': {'location': 'global', 'model': 'gemini-2.5-flash'}, 'quotaValue': '20'}]}, {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '23s'}]}} (Key: 2)
+      Attempt 2: Failed - ADK Generation failed: 2 validation errors for MultipleChoiceAnswerOutput
+benchmark_type
+  Input should be <BenchmarkType.MULTIPLE_CHOICE: 'multiple_choice'> [type=literal_error, input_value='fix_error', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/literal_error
+answer
+  Field required [type=missing, input_value={'code': 'class Event:\n ...mark_type': 'fix_error'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.12/v/missing (Key: 0)
+      Validation Error: Generation failed after 2 attempts. Last error: ADK Generation failed: 2 validation errors for MultipleChoiceAnswerOutput
+benchmark_type
+  Input should be <BenchmarkType.MULTIPLE_CHOICE: 'multiple_choice'> [type=literal_error, input_value='fix_error', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/literal_error
+answer

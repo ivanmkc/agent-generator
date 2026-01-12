@@ -225,9 +225,13 @@ class AdkTools:
         """Retrieves a summary of the public API for a Python module with statistical prioritization."""
         # Check if we have pre-calculated stats
         if self._stats_index:
-             return self._get_statistical_module_help(module_name)
+             stats_help = self._get_statistical_module_help(module_name)
+             # If the stats index actually found something, return it.
+             # Otherwise, continue to runtime fallback.
+             if "Fallback to runtime search" not in stats_help:
+                 return stats_help
         
-        # Fallback to runtime inspection if no index
+        # Fallback to runtime inspection if no index or no stats for this module
         return await self._get_runtime_module_help(module_name, depth)
 
     def _get_statistical_module_help(self, module_name: str, max_tokens: int = 1500) -> str:
@@ -262,8 +266,8 @@ class AdkTools:
             sorted_args = sorted(args.items(), key=lambda x: x[1]['freq'], reverse=True)
             
             for arg, arg_data in sorted_args:
-                if arg_data['freq'] < 0.1 and arg_data['count'] < 5:
-                    continue # Prune rare args
+                if arg_data['freq'] < 0.01 and arg_data['count'] < 1:
+                    continue # Prune very rare args
                 
                 req_str = "REQUIRED" if arg_data['freq'] == 1.0 else f"Used {int(arg_data['freq']*100)}%"
                 output.append(f"    {arg},  # {req_str}")

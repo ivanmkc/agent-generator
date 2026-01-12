@@ -1,3 +1,19 @@
+#!/usr/bin/env python3
+"""
+ADK Probabilistic Chain Analyzer.
+
+This utility visualizes the 'API Surface' of the ADK framework as a probabilistic dependency tree.
+Starting from a root node (e.g., google.adk.agents.Agent), it uses a BFS-based Chain Rule
+algorithm to determine what other modules, classes, and methods are statistically likely
+to be relevant based on real-world usage in adk-samples.
+
+Main logic:
+1. Load physical structure (Module -> Class -> Method -> Parameter).
+2. Load co-occurrence data (P(B|A)).
+3. Calculate transitive probabilities: P(N) = P(Parent) * P(N|Parent).
+4. Render a hierarchical ASCII tree sorted by probability.
+"""
+
 import json
 import sys
 import argparse
@@ -8,6 +24,17 @@ from pathlib import Path
 from collections import defaultdict, deque
 
 def get_physical_structure(repo_path):
+    """
+    Scans a repository to build a static hierarchy map and alias resolution map.
+    
+    Args:
+        repo_path: Path to the ADK python source code.
+        
+    Returns:
+        tuple: (node_map, alias_map)
+            - node_map: Dict mapping FQN to definition metadata (Type, Children, Params, Props).
+            - alias_map: Dict mapping public aliases to canonical FQNs.
+    """
     root_dir = Path(repo_path).resolve()
     node_map = {}
     alias_map = {}
@@ -78,14 +105,18 @@ def get_physical_structure(repo_path):
     return node_map, alias_map
 
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--start", type=str, default="google.adk.agents.Agent")
-    parser.add_argument("--threshold", type=float, default=0.01)
-    parser.add_argument("--data", type=str, default="benchmarks/adk_cooccurrence.json")
-    parser.add_argument("--repo", type=str, default="../adk-python")
-    parser.add_argument("--top", type=int, default=40)
+    parser = argparse.ArgumentParser(description="Visualize ADK dependencies as a probabilistic tree.")
+    parser.add_argument("--start", type=str, default="google.adk.agents.Agent", help="Starting identifier (FQN)")
+    parser.add_argument("--threshold", type=float, default=0.01, help="Probability threshold for pruning")
+    parser.add_argument("--data", type=str, default="benchmarks/adk_cooccurrence.json", help="Path to co-occurrence data")
+    parser.add_argument("--repo", type=str, default="../adk-python", help="Path to ADK repository")
+    parser.add_argument("--top", type=int, default=40, help="Max nodes to display in root list")
     args = parser.parse_args()
     
+    if not Path(args.data).exists():
+        print(f"Data file not found: {args.data}")
+        sys.exit(1)
+        
     structure, alias_map = get_physical_structure(args.repo)
     usage_stats = {}
     if Path("benchmarks/adk_stats.yaml").exists():
@@ -95,12 +126,11 @@ def main():
     def resolve_fqn(name):
         if name in structure: return name
         if name in alias_map: return resolve_fqn(alias_map[name])
-        # Fuzzy Fallback
         name_parts = name.split(".")
         last = name_parts[-1]
         candidates = [k for k in structure.keys() if k.endswith(f".{last}") or k == last]
         if candidates:
-            return max(candidates, key=lambda x: len(os.path.commonprefix([x, name])))
+            return max(candidates, key=lambda x: len(os.commonprefix([x, name])))
         return name
 
     with open(args.data, "r") as f:
@@ -119,10 +149,9 @@ def main():
         curr, p = queue.popleft()
         for neighbor, cond_p in prob_map.get(curr, {}).items():
             new_p = p * cond_p
-            if new_p >= args.threshold:
-                if new_p > final_probs.get(neighbor, 0.0):
-                    final_probs[neighbor] = new_p
-                    queue.append((neighbor, new_p))
+            if new_p >= args.threshold and new_p > final_probs.get(neighbor, 0.0):
+                final_probs[neighbor] = new_p
+                queue.append((neighbor, new_p))
 
     sorted_results = sorted(final_probs.items(), key=lambda x: x[1], reverse=True)
     
@@ -134,10 +163,8 @@ def main():
     def print_node_recursive(node_fqn, prob=None, indent=0, label=""):
         canonical = resolve_fqn(node_fqn)
         node_def = structure.get(canonical)
-        
         node_type = node_def["type"] if node_def else "Unknown"
         display_name = node_fqn
-        
         prefix = "  " * indent
         prob_str = f"{prob:.4f}" if prob is not None else ""
         
@@ -163,33 +190,24 @@ def main():
                 if child_def and child_def["type"] == "Method":
                     m_usage = usage_stats.get(child_fqn, {}).get("total_calls", 0)
                     parent_usage = usage_stats.get(canonical, {}).get("total_calls", 0)
-                    
-                    if child_def["name"] == "__init__":
-                         if parent_usage > 0: m_usage = parent_usage
-                         else: m_usage = 1 
-                    
+                    if child_def["name"] == "__init__" and parent_usage > 0: m_usage = parent_usage
                     m_prob = 0.0
                     if parent_usage > 0: m_prob = m_usage / parent_usage
                     elif m_usage > 0: m_prob = 1.0
-                    
                     if m_prob > 0:
                         print_node_recursive(child_fqn, m_prob, indent + 1)
 
         if node_type == "Method":
              p_stats = usage_stats.get(canonical, {}).get("args", {})
              method_usage = usage_stats.get(canonical, {}).get("total_calls", 0)
-             
+             is_init = node_def["name"] == "__init__"
              sorted_params = sorted(node_def["params"].items(), key=lambda x: p_stats.get(x[0], {}).get("count", 0), reverse=True)
-             
              for p_name, p_type in sorted_params:
                  p_count = p_stats.get(p_name, {}).get("count", 0)
-                 is_init = node_def["name"] == "__init__"
                  p_prob = p_count / method_usage if method_usage > 0 else (1.0 if is_init else 0.0)
-                 
                  if p_prob > 0:
                      print(f"{ '':<5} | { '':<8} | { '':<8} | {prefix}  🔹 {p_name:<20} ({p_type}) [P:{p_prob:.2f}]")
-                     
-                     if indent < 6:
+                     if indent < 6: 
                          for word in p_type.replace("[", " ").replace("]", " ").replace("|", " ").split():
                              type_fqn = resolve_fqn(word)
                              if type_fqn in structure and type_fqn != canonical and type_fqn not in unwrapped_types:
@@ -197,11 +215,9 @@ def main():
                                  print_node_recursive(type_fqn, None, indent + 2, label="(Type Dependency)")
                                  unwrapped_types.remove(type_fqn)
 
-
     for i, (node_name, prob) in enumerate(sorted_results):
         if node_name == args.start: continue
         if i > args.top: break
-        
         canonical = resolve_fqn(node_name)
         node_def = structure.get(canonical)
         if node_def and node_def["type"] in ["Module", "Class"]:

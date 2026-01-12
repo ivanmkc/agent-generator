@@ -72,6 +72,7 @@ class RotatingKeyGemini(Gemini):
     @property
     def api_client(self) -> Client:
         """Overrides the standard client to provide one with a rotated key."""
+        current_key = None
         
         # 1. Check for context-scoped key (set by AdkAnswerGenerator)
         ctx = adk_execution_context.get()

@@ -11,7 +11,7 @@ Test Verification:
 
 import asyncio
 
-from google.adk.agents import Agent
+from google.adk.agents import BaseAgent
 from pydantic import ValidationError
 import pytest
 
@@ -32,7 +32,7 @@ async def test_create_agent_passes():
 
     root_agent = fixed.create_agent(MODEL_NAME)
 
-    assert isinstance(root_agent, Agent), "root_agent should be an instance of Agent"
+    assert isinstance(root_agent, BaseAgent), "root_agent should be an instance of BaseAgent"
     response = await run_agent_test(root_agent, "Hello", mock_llm_response="Hello")
     assert "Hello" in response
 

@@ -39,6 +39,6 @@ async def test_create_agent_passes():
     )
     assert "important information" in response
     assert (
-        "{artifact.my_data}" in root_agent.instruction
+        "{artifact.my_data}" in root_agent.instruction or "{{artifacts.my_data}}" in root_agent.instruction
     ), "Instruction must reference artifact."
     assert root_agent.name == "artifact_agent", "Agent name mismatch."

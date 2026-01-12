@@ -1,0 +1,11 @@
+benchmarks:
+  - question: What does `RunConfig.proactivity` control?
+    options:
+      A: Tool selection.
+      B: Nothing.
+      C: Agent name.
+      D: Configure proactive behavior.
+      E: None of the above
+    correct_answer: D
+    explanation: '`proactivity` controls Configure proactive behavior.'
+    benchmark_type: multiple_choice

@@ -28,6 +28,7 @@ class AdkAnswerGenerator(LlmAnswerGenerator):
         setup_hook: Optional[Callable[[], Awaitable[None]]] = None,
         teardown_hook: Optional[Callable[[], Awaitable[None]]] = None,
         api_key_manager: ApiKeyManager | None = None,
+        model_name: str | None = None,
     ):
         super().__init__(context=None)
         self.agent = agent
@@ -43,6 +44,16 @@ class AdkAnswerGenerator(LlmAnswerGenerator):
         self.app = App(name=app_name, root_agent=self.agent)
         self.runner = InMemoryRunner(app=self.app) # Pass the App instance
         self._name = name or app_name
+        
+        # Store model name for filtering
+        self.model_name = model_name or "Unknown"
+        if self.model_name == "Unknown":
+            if hasattr(agent, "model"):
+                 m = agent.model
+                 if isinstance(m, str):
+                     self.model_name = m
+                 elif hasattr(m, "model"):
+                     self.model_name = getattr(m, "model", "Unknown")
 
     @property
     def name(self) -> str:
@@ -106,36 +117,44 @@ class AdkAnswerGenerator(LlmAnswerGenerator):
         if isinstance(benchmark_case, FixErrorBenchmarkCase):
             prompt = self._create_prompt_for_fix_error(benchmark_case)
             output_schema_class = FixErrorAnswerOutput
+            benchmark_type = "fix_error"
         elif isinstance(benchmark_case, ApiUnderstandingBenchmarkCase):
             prompt = self._create_prompt_for_api_understanding(benchmark_case)
             output_schema_class = ApiUnderstandingAnswerOutput
+            benchmark_type = "api_understanding"
         elif isinstance(benchmark_case, MultipleChoiceBenchmarkCase):
             prompt = self._create_prompt_for_multiple_choice(benchmark_case)
             output_schema_class = MultipleChoiceAnswerOutput
+            benchmark_type = "multiple_choice"
         else:
             raise TypeError(f"Unsupported benchmark case type: {type(benchmark_case)}")
 
         # Manage API Key for this run via ContextVars
         api_key_id: Optional[str] = None
         token = None
+        current_key = None
+
+        if self.api_key_manager:
+             current_key, api_key_id = self.api_key_manager.get_key_for_run(run_id, KeyType.GEMINI_API)
         
-        # Retrieve key for this run from the manager (always expected if manager exists)
-        if not self.api_key_manager:
-            raise RuntimeError("ApiKeyManager is not configured for AdkAnswerGenerator.")
-
-        current_key, api_key_id = self.api_key_manager.get_key_for_run(run_id, KeyType.GEMINI_API)
-        if not current_key:
-            raise RuntimeError(f"No API key available for run_id '{run_id}' from ApiKeyManager.")
-
         # Set context for RotatingKeyGemini to pick up
         token = adk_execution_context.set({"api_key": current_key, "key_id": api_key_id})
+        
+        # Also store benchmark type in a way that can be passed to ADK session
+        # We'll use a wrapper or just let the caller handle it.
+        # Actually, we can inject it into the prompt or the session state if we modify _run_agent_async
         
         trace_logs = None
         usage_metadata = None
 
         try:
             # Run the agent asynchronously.
-            response_text, trace_logs, usage_metadata = await self._run_agent_async(prompt, api_key_id=api_key_id)
+            # We pass the benchmark_type to _run_agent_async
+            response_text, trace_logs, usage_metadata = await self._run_agent_async(
+                prompt, 
+                api_key_id=api_key_id,
+                benchmark_type=benchmark_type
+            )
             
             # Extract JSON from markdown code block if present
             if "```json" in response_text:
@@ -185,7 +204,8 @@ class AdkAnswerGenerator(LlmAnswerGenerator):
     async def _run_agent_async(
         self,
         prompt: str,
-        api_key_id: Optional[str] = None
+        api_key_id: Optional[str] = None,
+        benchmark_type: str = "unknown"
     ) -> tuple[str, list[TraceLogEvent], UsageMetadata]:
         """Helper to run the agent and get the response."""
         if not self.runner:
@@ -197,6 +217,10 @@ class AdkAnswerGenerator(LlmAnswerGenerator):
             user_id="benchmark_user",
             session_id=session_id,
         )
+        
+        # Save benchmark type to session state
+        session.state["benchmark_type"] = benchmark_type
+        
         final_response = ""
         logs: list[TraceLogEvent] = []
 
@@ -217,7 +241,7 @@ class AdkAnswerGenerator(LlmAnswerGenerator):
         total_completion_tokens = 0
         total_tokens = 0
 
-        new_message = types.UserContent(parts=[types.Part(text=prompt)])
+        new_message = types.UserContent(parts=[types.Part(text=f"Task Type: {benchmark_type}\n\n{prompt}")])
 
         # Timing Stats
         execution_sequence = []

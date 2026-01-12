@@ -17,7 +17,7 @@ class SimplePlugin(BasePlugin):
         print("SimplePlugin: after_agent_callback")
 
 
-def create_agent(model_name: str) -> BaseAgent:
+def create_agent(model_name: str) -> App:
     """
     Creates an App instance that includes a basic plugin and a root LlmAgent.
 

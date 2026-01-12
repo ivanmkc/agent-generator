@@ -126,26 +126,6 @@ Feedback/Errors:
 **STRICT IMPLEMENTATION RULES:**
 1. **Source of Truth:** You MUST use the provided context above as the ONLY source for API signatures and fields.
 2. **Inheritance:** Inherit from `google.adk.agents.BaseAgent`.
-3. **CONSTRUCTOR (CRITICAL):** 
-   - Call `super().__init__(name=name)`.
-   - Do **NOT** pass `model` or `instruction` to `super()`. BaseAgent does not accept them.
-   - If you need to store `model`, do `self._model = model_name`.
-
-4. **ABSTRACT METHODS:** Override `_run_async_impl(self, ctx) -> AsyncGenerator[Event, None]`.
-
-5. **INPUT ACCESS:**
-   - Access: `ctx.user_content.parts[0].text`.
-   - Check if `ctx.user_content` is None.
-
-6. **EVENT CONSTRUCTION:**
-   - Import: `from google.genai import types`
-   - Yield `google.adk.events.Event`.
-   - **Fields:**
-     - `author="logic_agent"`.
-     - `content=types.Content(parts=[types.Part(text="My Response")])`.
-
-7. **SIGNATURE GUARD:**
-   - Signature: `def create_agent(model_name: str) -> BaseAgent:`.
 
 **OUTPUT FORMAT:**
 1. Reasoning text.
@@ -200,6 +180,7 @@ Do NOT wrap the output in JSON."""
 
     agent_obj = SequentialAgent(
         name="prismatic_solver_v29",
+        description="Agent for solving coding tasks.",
         sub_agents=[
             setup_agent,
             prompt_sanitizer_agent,
@@ -238,6 +219,7 @@ def create_statistical_v29_generator(
         name=f"{name_prefix}({model_name})", 
         setup_hook=setup_hook, 
         teardown_hook=teardown_hook, 
-        api_key_manager=api_key_manager
+        api_key_manager=api_key_manager,
+        model_name=model_name
     )
 

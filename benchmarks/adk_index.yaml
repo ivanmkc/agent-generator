@@ -2,6 +2,7 @@ modules:
   - path: google.adk.agents.llm_agent
     exports: 
       - LlmAgent
+      - Agent
     description: The core class for LLM-powered agents. Supports instructions, tools, and output schemas.
 
   - path: google.adk.agents.sequential_agent

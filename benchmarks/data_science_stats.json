@@ -1,0 +1,232 @@
+{
+  "meta": {
+    "repo": "https://github.com/google/adk-samples",
+    "path": "python/agents/data-science"
+  },
+  "associations": [
+    {
+      "context": "google.adk.agents.callback_context",
+      "target": "google.adk.agents",
+      "probability": 1.0,
+      "support": 4,
+      "confidence": 100.0
+    },
+    {
+      "context": "google.adk.tools.agent_tool",
+      "target": "google.adk.tools",
+      "probability": 1.0,
+      "support": 2,
+      "confidence": 100.0
+    },
+    {
+      "context": "google.adk.tools.bigquery",
+      "target": "google.adk.agents",
+      "probability": 1.0,
+      "support": 2,
+      "confidence": 100.0
+    },
+    {
+      "context": "google.adk.tools.bigquery",
+      "target": "google.adk.agents.callback_context",
+      "probability": 1.0,
+      "support": 2,
+      "confidence": 100.0
+    },
+    {
+      "context": "google.adk.tools.bigquery",
+      "target": "google.adk.tools.bigquery.config",
+      "probability": 1.0,
+      "support": 2,
+      "confidence": 100.0
+    },
+    {
+      "context": "google.adk.tools.bigquery",
+      "target": "google.adk.tools",
+      "probability": 1.0,
+      "support": 2,
+      "confidence": 100.0
+    },
+    {
+      "context": "google.adk.tools.bigquery.config",
+      "target": "google.adk.agents",
+      "probability": 1.0,
+      "support": 2,
+      "confidence": 100.0
+    },
+    {
+      "context": "google.adk.tools.bigquery.config",
+      "target": "google.adk.agents.callback_context",
+      "probability": 1.0,
+      "support": 2,
+      "confidence": 100.0
+    },
+    {
+      "context": "google.adk.tools.bigquery.config",
+      "target": "google.adk.tools.bigquery",
+      "probability": 1.0,
+      "support": 2,
+      "confidence": 100.0
+    },
+    {
+      "context": "google.adk.tools.bigquery.config",
+      "target": "google.adk.tools",
+      "probability": 1.0,
+      "support": 2,
+      "confidence": 100.0
+    },
+    {
+      "context": "google.adk.agents",
+      "target": "google.adk.agents.callback_context",
+      "probability": 0.8,
+      "support": 4,
+      "confidence": 80.0
+    },
+    {
+      "context": "google.adk.agents.callback_context",
+      "target": "google.adk.tools.bigquery",
+      "probability": 0.5,
+      "support": 2,
+      "confidence": 50.0
+    },
+    {
+      "context": "google.adk.agents.callback_context",
+      "target": "google.adk.tools.bigquery.config",
+      "probability": 0.5,
+      "support": 2,
+      "confidence": 50.0
+    },
+    {
+      "context": "google.adk.agents.callback_context",
+      "target": "google.adk.tools",
+      "probability": 0.5,
+      "support": 2,
+      "confidence": 50.0
+    },
+    {
+      "context": "google.adk.tools.agent_tool",
+      "target": "google.adk.agents",
+      "probability": 0.5,
+      "support": 1,
+      "confidence": 50.0
+    },
+    {
+      "context": "google.adk.tools.agent_tool",
+      "target": "google.adk.agents.callback_context",
+      "probability": 0.5,
+      "support": 1,
+      "confidence": 50.0
+    },
+    {
+      "context": "google.adk.tools.agent_tool",
+      "target": "google.adk.tools.bigquery",
+      "probability": 0.5,
+      "support": 1,
+      "confidence": 50.0
+    },
+    {
+      "context": "google.adk.tools.agent_tool",
+      "target": "google.adk.tools.bigquery.config",
+      "probability": 0.5,
+      "support": 1,
+      "confidence": 50.0
+    },
+    {
+      "context": "google.adk.tools.bigquery",
+      "target": "google.adk.tools.agent_tool",
+      "probability": 0.5,
+      "support": 1,
+      "confidence": 50.0
+    },
+    {
+      "context": "google.adk.tools.bigquery.config",
+      "target": "google.adk.tools.agent_tool",
+      "probability": 0.5,
+      "support": 1,
+      "confidence": 50.0
+    },
+    {
+      "context": "google.adk.agents",
+      "target": "google.adk.tools.bigquery",
+      "probability": 0.4,
+      "support": 2,
+      "confidence": 40.0
+    },
+    {
+      "context": "google.adk.agents",
+      "target": "google.adk.tools.bigquery.config",
+      "probability": 0.4,
+      "support": 2,
+      "confidence": 40.0
+    },
+    {
+      "context": "google.adk.agents",
+      "target": "google.adk.tools",
+      "probability": 0.4,
+      "support": 2,
+      "confidence": 40.0
+    },
+    {
+      "context": "google.adk.tools",
+      "target": "google.adk.tools.agent_tool",
+      "probability": 0.333,
+      "support": 2,
+      "confidence": 33.3
+    },
+    {
+      "context": "google.adk.tools",
+      "target": "google.adk.agents",
+      "probability": 0.333,
+      "support": 2,
+      "confidence": 33.3
+    },
+    {
+      "context": "google.adk.tools",
+      "target": "google.adk.agents.callback_context",
+      "probability": 0.333,
+      "support": 2,
+      "confidence": 33.3
+    },
+    {
+      "context": "google.adk.tools",
+      "target": "google.adk.tools.bigquery",
+      "probability": 0.333,
+      "support": 2,
+      "confidence": 33.3
+    },
+    {
+      "context": "google.adk.tools",
+      "target": "google.adk.tools.bigquery.config",
+      "probability": 0.333,
+      "support": 2,
+      "confidence": 33.3
+    },
+    {
+      "context": "google.adk.agents.callback_context",
+      "target": "google.adk.tools.agent_tool",
+      "probability": 0.25,
+      "support": 1,
+      "confidence": 25.0
+    },
+    {
+      "context": "google.adk.agents",
+      "target": "google.adk.tools.agent_tool",
+      "probability": 0.2,
+      "support": 1,
+      "confidence": 20.0
+    },
+    {
+      "context": "google.adk.agents",
+      "target": "google.adk.code_executors",
+      "probability": 0.2,
+      "support": 1,
+      "confidence": 20.0
+    },
+    {
+      "context": "google.adk.tools",
+      "target": "google.adk.tools.bigquery.client",
+      "probability": 0.167,
+      "support": 1,
+      "confidence": 16.7
+    }
+  ]
+}

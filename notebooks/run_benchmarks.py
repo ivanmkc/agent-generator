@@ -139,6 +139,7 @@ async def run_comparison(
     logger.log_message("Configuring benchmark run...")
 
     debug_suite = "benchmarks/benchmark_definitions/debug_suite/benchmark.yaml"
+    debug_single = "benchmarks/benchmark_definitions/debug_single/benchmark.yaml"
     
     standard_suites = [
         "benchmarks/benchmark_definitions/api_understanding/benchmark.yaml",
@@ -146,6 +147,7 @@ async def run_comparison(
         "benchmarks/benchmark_definitions/diagnose_setup_errors_mc/benchmark.yaml",
         "benchmarks/benchmark_definitions/configure_adk_features_mc/benchmark.yaml",
         "benchmarks/benchmark_definitions/predict_runtime_behavior_mc/benchmark.yaml",
+        debug_single,
     ]
 
     # Helper for multi-value filtering

@@ -21,10 +21,11 @@ from pydantic import PrivateAttr
 from google.adk.agents import LlmAgent, LoopAgent, SequentialAgent, InvocationContext, Agent
 from google.adk.tools import FunctionTool, exit_loop
 from google.genai import types
-from google.adk.events import Event
+from google.adk.events import Event, EventActions
 
 from benchmarks.benchmark_generator.tools import (
-    scan_repository, trace_execution, validate_mutant, save_benchmark_case, get_prioritized_target, check_uniqueness
+    trace_execution, validate_mutant, save_benchmark_case, 
+    check_uniqueness, scan_repository, list_prioritized_targets, select_target
 )
 from benchmarks.benchmark_generator.models import TargetEntity, TargetType, ObserverOutput, SaboteurOutput
 from benchmarks.data_models import MultipleChoiceBenchmarkCase
@@ -39,61 +40,41 @@ class SemaphoreGemini(RotatingKeyGemini):
         super().__init__(**kwargs)
         self._semaphore = semaphore
 
-    def generate_content_async(self, *args, **kwargs):
-        # Must return an async generator, not a coroutine, to satisfy Aclosing
-        async def _throttled_generator():
-            max_retries = 3
+    async def generate_content_async(self, *args, **kwargs):
+        """Wraps the generation with a semaphore and retry logic."""
+        # The semaphore is entered when the generator is started (iterated)
+        async with self._semaphore:
+            max_retries = 5
             attempt = 0
-            while True:
+            while attempt <= max_retries:
                 try:
-                    async with self._semaphore:
-                        # super().generate_content_async is a regular function returning an awaitable or generator
-                        result = super(SemaphoreGemini, self).generate_content_async(*args, **kwargs)
-                        
-                        if asyncio.iscoroutine(result):
-                            result = await result
-                        
-                        if hasattr(result, '__aiter__'):
-                            async for item in result:
-                                yield item
-                        else:
-                            yield result
-                        return # Success
+                    # Call super method
+                    result = super(SemaphoreGemini, self).generate_content_async(*args, **kwargs)
+                    
+                    # If it returns a coroutine (non-streaming response), await it
+                    if asyncio.iscoroutine(result):
+                        result = await result
+                    
+                    # If result is iterable (streaming), yield chunks
+                    if hasattr(result, '__aiter__'):
+                        async for item in result:
+                            yield item
+                    else:
+                        # Otherwise yield the single result
+                        yield result
+                    return # Success, exit loop
+
                 except Exception as e:
+                    # Simple retry logic for 429
                     is_429 = "429" in str(e) or "RESOURCE_EXHAUSTED" in str(e)
                     if is_429 and attempt < max_retries:
                         attempt += 1
-                        # Wait time increases with each attempt
                         await asyncio.sleep(2 * attempt)
                         continue
                     else:
                         raise e
-        
-        return _throttled_generator()
 
 # --- Agents ---
-
-def create_auditor_agent(model: str | RotatingKeyGemini, repo_path: str) -> LlmAgent:
-    """Creates the Auditor agent responsible for selecting hierarchical targets based on usage."""
-    return LlmAgent(
-        name="Auditor",
-        model=model,
-        tools=[FunctionTool(scan_repository), FunctionTool(get_prioritized_target), FunctionTool(exit_loop)],
-        include_contents='none', # State-based
-        output_key="current_target_json",
-        output_schema=TargetEntity,
-        instruction=(
-            f"You are the Auditor (The Strategist). Your goal is to select the most impactful evaluation targets based on USAGE density.\n"
-            f"1. If 'scanned_targets' is empty, call `scan_repository` with `repo_path='{repo_path}'` to map the full hierarchy (Modules, Classes, Methods, Parameters).\n"
-            "2. Use `get_prioritized_target` to find the most used entities. Priority is strictly based on call count (usage).\n"
-            "3. You can target different categories: \n"
-            "   - **Modules**: Evaluate overall integration.\n"
-            "   - **Methods/Properties**: Evaluate specific functionality.\n"
-            "   - **Parameters**: Evaluate edge cases of specific arguments (prioritize parameters with high historical usage).\n"
-            "4. **Context Expansion**: The target entity will include a list of `associated_modules`. These are modules frequently used alongside the target in real-world samples. Instruct the Observer to incorporate logic from these associated modules into the usage example to create a realistic integration test.\n"
-            "5. Output the target metadata strictly adhering to the TargetEntity schema."
-        )
-    )
 
 def create_observer_agent(model: str | RotatingKeyGemini) -> LlmAgent:
     """Creates the Observer agent responsible for generating ground truth code."""
@@ -105,15 +86,16 @@ def create_observer_agent(model: str | RotatingKeyGemini) -> LlmAgent:
         output_key="observer_status",
         output_schema=ObserverOutput,
         instruction=(
-            "You are the Observer. Your goal is to generate a VALID usage example for the target entity."
-            "\nTarget Entity Metadata: {current_target_json}"
-            "CRITICAL: Do NOT use `unittest.mock.MagicMock` or similar mocking libraries. "
-            "Use real constructors with minimal valid arguments or define simple concrete stub classes."
-            "1. Analyze the target (Type: {current_target_json})."
-            "2. Call `trace_execution` with two arguments:"
-            "   - `code`: a self-contained Python script that imports and uses this entity correctly without mocks."
-            "   - `target_method`: The EXACT dictionary provided in `{current_target_json}`."
-            "3. After the tool call, output a structured ObserverOutput indicating success or failure."
+            "You are the Observer (The Developer). Your goal is to create a realistic, VALID usage example for the selected TargetEntity.\n"
+            "\n=== TARGET CONTEXT ===\n"
+            "{current_target_json}\n"
+            "======================\n"
+            "1. Analyze the `current_target_json` provided above. It contains the target's SOURCE CODE.\n"
+            "2. Incorporate the `associated_context` (related modules/classes) to build an INTEGRATION test case, not an isolated unit test.\n"
+            "3. Call `trace_execution` with `code` (the Python script) and `target_method` (the dictionary from `current_target_json`).\n"
+            "4. CRITICAL: Agents should use real constructors/stubs (like StubAgent) where necessary. NEVER use MagicMock.\n"
+            "5. After verification, YOU MUST OUTPUT VALID JSON matching the ObserverOutput schema. Do not output markdown code blocks around the JSON.\n"
+            "   Example: {\"status\": \"success\", \"rationale\": \"Tested via stubs\", \"code_generated\": \"...\"}"
         )
     )
 
@@ -154,7 +136,6 @@ def create_referee_agent(model: str | RotatingKeyGemini) -> LlmAgent:
             "3. Analyze results:"
             "   - If ALL 3 mutants are VALID, call `exit_loop` to finish the Adversarial Phase."
             "   - If ANY mutant is invalid, construct constructive feedback for the Saboteur."
-            "4. Output the feedback text."
         )
     )
 
@@ -197,26 +178,8 @@ def create_assembler_agent(model: str | RotatingKeyGemini) -> LlmAgent:
         )
     )
 
-class PrismaticCoordinator(Agent):
-    """Coordinates the loop logic and target count."""
-    
-    async def _run_async_impl(self, ctx: InvocationContext):
-        benchmarks = ctx.session.state.get("generated_benchmarks", [])
-        if len(benchmarks) >= 100:
-            yield Event(
-                invocation_id=ctx.invocation_id,
-                author=self.name,
-                content=types.Content(role="model", parts=[types.Part(function_call=types.FunctionCall(name="exit_loop", args={}))])
-            )
-        else:
-            yield Event(
-                invocation_id=ctx.invocation_id,
-                author=self.name,
-                content=types.Content(role="model", parts=[types.Part(text=f"Continuing loop... ({len(benchmarks)}/100 generated)")])
-            )
-
-def create_prismatic_agent(model_name: str = "gemini-3-pro-preview", api_key_manager: Optional[ApiKeyManager] = None, repo_path: str = "../adk-samples/python", concurrency: int = 1) -> Agent:
-    """Creates the full Prismatic Generation Agent."""
+def create_worker_pipeline(model_name: str = "gemini-3-pro-preview", api_key_manager: Optional[ApiKeyManager] = None, concurrency: int = 1) -> Agent:
+    """Creates the stateless worker pipeline for processing a single target."""
     
     if api_key_manager:
         semaphore = asyncio.Semaphore(concurrency)
@@ -224,11 +187,11 @@ def create_prismatic_agent(model_name: str = "gemini-3-pro-preview", api_key_man
     else:
         model = model_name
 
-    auditor = create_auditor_agent(model, repo_path)
     observer = create_observer_agent(model)
-    
     saboteur = create_saboteur_agent(model)
     referee = create_referee_agent(model)
+    
+    # Adversarial loop tries to fix mutants up to 3 times
     adversarial_loop = LoopAgent(
         name="AdversarialLoop",
         sub_agents=[saboteur, referee],
@@ -238,17 +201,47 @@ def create_prismatic_agent(model_name: str = "gemini-3-pro-preview", api_key_man
     critic = create_critic_agent(model)
     assembler = create_assembler_agent(model)
     
-    process_target_seq = SequentialAgent(
-        name="ProcessTarget",
-        sub_agents=[auditor, observer, adversarial_loop, critic, assembler]
+    # Linear sequence: Observer -> (Saboteur <-> Referee) -> Critic -> Assembler
+    return SequentialAgent(
+        name="BenchmarkWorker",
+        sub_agents=[observer, adversarial_loop, critic, assembler]
     )
+
+def create_prismatic_agent(model_name: str = "gemini-3-pro-preview", api_key_manager: Optional[ApiKeyManager] = None, repo_path: str = ".", concurrency: int = 1) -> Agent:
+    """
+    Creates the top-level Prismatic Agent that orchestrates the entire generation process.
+    It includes an 'Auditor' (Coordinator) that manages the target queue and a 'Worker' pipeline.
+    """
     
-    coordinator = PrismaticCoordinator(name="Coordinator", tools=[FunctionTool(exit_loop)])
+    # The Coordinator (Auditor)
+    # It uses a cheaper model or just tools since it's mostly deterministic logic via tools?
+    # Actually, the instructions say "Auditor uses scan_repository".
+    # But here we can just use a simple tool-using agent.
     
-    main_loop = LoopAgent(
-        name="PrismaticLoop",
-        sub_agents=[coordinator, process_target_seq],
-        max_iterations=200, 
+    # We reuse the same model logic for Auditor (or a simpler one if desired, but consistency is safer)
+    if api_key_manager:
+        semaphore = asyncio.Semaphore(concurrency)
+        auditor_model = SemaphoreGemini(model=model_name, api_key_manager=api_key_manager, semaphore=semaphore)
+    else:
+        auditor_model = model_name
+        
+    auditor = LlmAgent(
+        name="Auditor",
+        model=auditor_model,
+        tools=[FunctionTool(scan_repository), FunctionTool(list_prioritized_targets), FunctionTool(select_target)],
+        include_contents='none',
+        instruction=(
+            f"You are the Auditor (Coordinator). Your goal is to select the next high-value target for benchmarking from '{repo_path}'.\n"
+            "1. If targets are not scanned, call `scan_repository(repo_path='{repo_path}')`."
+            "2. Call `list_prioritized_targets()` to see the queue."
+            "3. Select the highest priority target (top of list) using `select_target(target_id=...)`."
+            "4. Output 'TARGET_SELECTED' to hand off to the Worker."
+        )
     )
-    
-    return main_loop
+
+    worker = create_worker_pipeline(model_name, api_key_manager, concurrency)
+
+    return SequentialAgent(
+        name="PrismaticRunner",
+        sub_agents=[auditor, worker]
+    )

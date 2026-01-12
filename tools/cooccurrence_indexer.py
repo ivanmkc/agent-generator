@@ -1,8 +1,21 @@
 #!/usr/bin/env python3
 """
-Co-occurrence Indexer.
-Analyzes Python repositories to calculate conditional probabilities of module/class/property usage.
+ADK Co-occurrence Indexer.
+
+This utility scans a Python repository (e.g., adk-samples) to calculate the 
+conditional probabilities of ADK module and class usage. It determines the 
+likelihood that one component is used given the presence of another in the same file.
+
 P(B | A) = Count(A and B) / Count(A)
+
+The output is a JSON file containing these associations, which is used by the 
+Prismatic Auditor and the Chain Prob Analyzer to build realistic, integrated 
+benchmarking scenarios.
+
+Key tracking:
+- Module imports (from x import y)
+- Class instantiations (Class())
+- Attribute access (Class.property)
 """
 
 import ast
@@ -22,6 +35,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger(__name__)
 
 class GranularUsageVisitor(ast.NodeVisitor):
+    """AST Visitor that tracks granular usage of ADK entities within a file."""
     def __init__(self):
         self.used_entities = set()
         self.imports = {} # alias -> canonical
@@ -75,6 +89,7 @@ class GranularUsageVisitor(ast.NodeVisitor):
         return name
 
 def analyze_repo(repo_path: Path) -> Tuple[Counter, Dict[str, Counter]]:
+    """Scans the repo and builds the co-occurrence counts."""
     file_counts = Counter()
     co_occurrences = defaultdict(Counter)
     
@@ -99,22 +114,19 @@ def analyze_repo(repo_path: Path) -> Tuple[Counter, Dict[str, Counter]]:
             
             # Filter for google.adk entities
             relevant = {ent for ent in visitor.used_entities if ent.startswith("google.adk")}
-            
-            if not relevant:
-                continue
+            if not relevant: continue
 
             for ent in relevant:
                 file_counts[ent] += 1
                 for other in relevant:
                     if ent != other:
                         co_occurrences[ent][other] += 1
-                        
-        except Exception:
-            pass 
+        except Exception: pass 
 
     return file_counts, co_occurrences
 
 def clone_repo(url: str, branch: str = "main") -> Path:
+    """Clones a repo to a temporary directory."""
     temp_dir = Path(tempfile.mkdtemp(prefix="adk_coocc_"))
     logger.info(f"Cloning {url} to {temp_dir}...")
     try:
@@ -128,25 +140,50 @@ def clone_repo(url: str, branch: str = "main") -> Path:
         return None
 
 def main():
-    parser = argparse.ArgumentParser(description="Calculate Granular Co-occurrence Probabilities")
-    parser.add_argument("--repo", type=str, default="https://github.com/google/adk-samples", help="Repo URL")
-    parser.add_argument("--path", type=str, default="python", help="Subpath")
-    parser.add_argument("--output", type=str, default="benchmarks/adk_cooccurrence.json", help="Output JSON path")
+    parser = argparse.ArgumentParser(description="Calculate ADK Co-occurrence Probabilities.")
+    parser.add_argument("--repo", type=str, help="Repo URL to analyze (optional if --repo-paths is used)")
+    parser.add_argument("--repo-paths", type=str, nargs='+', help="List of local repository paths to scan")
+    parser.add_argument("--path", type=str, default="", help="Subpath within the repo (only used with --repo)")
+    parser.add_argument("--output", type=str, default="benchmarks/adk_cooccurrence.json", help="Output path for JSON stats")
     
     args = parser.parse_args()
     
-    repo_dir = clone_repo(args.repo)
-    if not repo_dir: sys.exit(1)
-        
+    temp_dirs = []
+    scan_targets = []
+    
     try:
-        target_dir = repo_dir / args.path
-        counts, co_matrix = analyze_repo(target_dir)
+        if args.repo_paths:
+            for p in args.repo_paths:
+                resolved = Path(p).resolve()
+                if resolved.exists():
+                    scan_targets.append(resolved)
+                else:
+                    logger.warning(f"Path not found: {p}")
+        
+        elif args.repo:
+            repo_dir = clone_repo(args.repo)
+            if repo_dir:
+                temp_dirs.append(repo_dir)
+                scan_targets.append(repo_dir / args.path)
+            else:
+                sys.exit(1)
+        else:
+             parser.error("Must provide either --repo-paths or --repo")
+
+        total_counts = Counter()
+        total_co_occurrences = defaultdict(Counter)
+        
+        for target in scan_targets:
+            c, co = analyze_repo(target)
+            total_counts.update(c)
+            for key, val in co.items():
+                total_co_occurrences[key].update(val)
         
         results = []
-        for context, count in counts.items():
-            if count < 2: continue 
+        for context, count in total_counts.items():
+            if count < 2: continue # Noise filter
             
-            associations = co_matrix[context]
+            associations = total_co_occurrences[context]
             for target, co_count in associations.items():
                 prob = co_count / count
                 results.append({
@@ -158,16 +195,20 @@ def main():
         
         results.sort(key=lambda x: (x["probability"], x["support"]), reverse=True)
         
+        # Ensure output directory exists
+        Path(args.output).parent.mkdir(parents=True, exist_ok=True)
+        
         with open(args.output, "w") as f:
             json.dump({
-                "meta": {"repo": args.repo, "path": args.path},
+                "meta": {"repo_paths": [str(p) for p in scan_targets]},
                 "associations": results
             }, f, indent=2)
             
         logger.info(f"Saved {len(results)} granular associations to {args.output}")
-        
+
     finally:
-        shutil.rmtree(repo_dir, ignore_errors=True)
+        for t in temp_dirs:
+            shutil.rmtree(t, ignore_errors=True)
 
 if __name__ == "__main__":
     main()

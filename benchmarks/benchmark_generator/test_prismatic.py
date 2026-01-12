@@ -50,6 +50,11 @@ def test_scan_repository(mock_context, tmp_path):
     # Use explicit FQN style to ensure naive static analysis catches it
     caller.write_text("import my_module\nmy_module.Foo.bar(None)")
     
+    # Create dummy usage stats for external usage simulation
+    stats_file = tmp_path / "adk_stats.yaml"
+    stats_file.write_text("my_module.Foo.bar:\n  total_calls: 5\n  args: {}")
+    mock_context.session.state["stats_file_path"] = str(stats_file)
+    
     result = scan_repository(str(tmp_path), mock_context)
     
     assert "Cartographer scan complete" in result

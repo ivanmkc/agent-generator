@@ -79,13 +79,15 @@ Do not run the full suite immediately. Use the benchmark shell script to iterati
 3.  Implement the `AnswerGenerator` interface.
 4.  **Register** your new agent key in `benchmarks/benchmark_candidates.py`.
 
-### Step B: Run the Experiment
-Run your new variant alongside the previous best candidate (baseline) to get a direct comparison.
+### Step B: Run the Experiment (Latest Only)
+To minimize latency and token consumption, **DO NOT** run historical baselines or previous versions alongside your current variant. Only evaluate the specific variant you are currently testing.
 
 ```bash
-# Run both the new agent ("MY_NEW_AGENT") and the baseline ("BASELINE_AGENT")
-bash notebooks/run_benchmarks.sh --suite-filter "debug" --generator-filter "MY_NEW_AGENT|BASELINE_AGENT"
+# Target ONLY the latest variant (e.g., V14)
+bash notebooks/run_benchmarks.sh --suite-filter "debug" --generator-filter "ADK_STATISTICAL_V14"
 ```
+
+**Technical Tip:** The `--generator-filter` uses substring matching. Ensure your name is specific enough to avoid accidental matches (e.g., using `V1` might match `V10`, `V11`, etc., whereas `V14` is precise).
 
 ### Step C: Analyze Traces (Debugging)
 If the agent fails or uses too many tokens, you need to see *why*. Use the built-in debugging tool to inspect the interaction.
@@ -238,4 +240,5 @@ The logs are a chronological stream of events. Focus on the interplay between th
 | **1** | Single Agent | Context Injection | Full | **Fail** (50k tokens) | *Remove injection.* |
 | **2** | Single Agent | Naive Grep | Full | **Fail** (45k tokens) | *Switch to Read File.* |
 | **3** | Markovian Chain | Read File | Isolated | **Partial** (12k tokens) | *Switch Topology.* |
-| **4** | **Single ReAct** | **Abstracted Tool** | **Windowed** | **Success** (15k, 54%) | *Optimal.* |
+| **4** | **Single ReAct** | **Abstracted Tool** | **Windowed** | **Success** (15k, 54%) | *Switch Topology.* |
+| **14**| **Deterministic Chain** | **Smart Fetcher** | **Isolated** | **Architecture Pass** (2.7k, 0%) | *Fix Import Quirk.* |

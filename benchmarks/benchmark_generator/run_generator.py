@@ -59,7 +59,20 @@ async def main():
     parser.add_argument("--repo-path", type=str, default=".", help="Path to the repository to scan.")
     parser.add_argument("--coverage-file", type=str, help="Path to coverage data.")
     parser.add_argument("--irt-file", type=str, help="Path to IRT data.")
+    parser.add_argument(
+        "--namespace",
+        type=str,
+        required=True,
+        help="Namespace to restrict the scan to (e.g., 'google.adk'). Only entities within this namespace will be targeted.",
+    )
+    parser.add_argument(
+        "--cooccurrence-file",
+        type=str,
+        required=True,
+        help="Path to the JSON file containing co-occurrence data for context calculation.",
+    )
     parser.add_argument("--concurrency", type=int, default=1, help="Max concurrent LLM requests.")
+    parser.add_argument("--limit", type=int, default=100, help="Maximum number of benchmarks to generate (default: 100).")
     parser.add_argument("--session-db", type=str, default="prismatic_sessions.db", help="Path to SQLite session database.")
 
     args = parser.parse_args()
@@ -68,7 +81,17 @@ async def main():
 
     if args.type == "prismatic_adk":
         print(f"Starting Prismatic ADK Generator (Model: {args.model})...")
-        agent = create_prismatic_agent(model_name=args.model, api_key_manager=API_KEY_MANAGER, repo_path=args.repo_path, concurrency=args.concurrency)
+        print(f"  Repo Path: {args.repo_path}")
+        print(f"  Namespace: {args.namespace or 'All'}")
+        print(f"  Co-occurrence: {args.cooccurrence_file}")
+        print(f"  Limit: {args.limit}")
+        
+        agent = create_prismatic_agent(
+            model_name=args.model, 
+            api_key_manager=API_KEY_MANAGER, 
+            repo_path=args.repo_path, 
+            concurrency=args.concurrency
+        )
         logger = PrismaticLogger()
         
         # Setup Runner with Persistence
@@ -107,22 +130,57 @@ async def main():
         
         # Always update configuration from CLI args (overrides session state)
         state_delta["repo_path"] = str(args.repo_path)
+        state_delta["output_dir"] = str(args.output_dir)
+        if args.namespace:
+            state_delta["target_namespace"] = args.namespace
+        state_delta["cooccurrence_file"] = args.cooccurrence_file
+        
         if args.coverage_file:
             state_delta["coverage_file_path"] = args.coverage_file
         if args.irt_file:
             state_delta["irt_file"] = args.irt_file
         
-        # Run the agent
-        async for event in runner.run_async(
-            user_id="user",
-            session_id=session_id,
-            new_message=types.Content(parts=[types.Part(text="Start generation")]),
-            state_delta=state_delta
-        ):
-            logger.log_event(event)
+        # Get session object for current state
+        session = await session_service.get_session(session_id=session_id, user_id="user", app_name="benchmark_generator")
+        
+        # Run the agent in a loop until target is reached
+        target_count = args.limit
+        current_count = len(session.state.get("generated_benchmarks", []))
+        
+        while current_count < target_count:
+            print(f"[Coordinator]: Continuing loop... ({current_count}/{target_count} generated)")
+            
+            # Send the message to trigger next cycle
+            # Use 'Start' if current_count is 0, else 'Continue'
+            trigger_msg = "Start generation" if current_count == 0 else "Continue generation"
+            
+            async for event in runner.run_async(
+                user_id="user",
+                session_id=session_id,
+                new_message=types.Content(parts=[types.Part(text=trigger_msg)]),
+                state_delta=state_delta if current_count == 0 else None
+            ):
+                logger.log_event(event)
+            
+            # Refresh session to get latest state from DB
+            session = await session_service.get_session(session_id=session_id, user_id="user", app_name="benchmark_generator")
+            new_count = len(session.state.get("generated_benchmarks", []))
+            
+            # Use raw file as fallback for count if state persistence is buggy
+            if Path("prismatic_generated_raw.jsonl").exists():
+                with open("prismatic_generated_raw.jsonl", "r") as f:
+                    raw_count = sum(1 for _ in f)
+                new_count = max(new_count, raw_count)
+
+            if new_count == current_count:
+                 # It might have failed one turn, let's not give up immediately
+                 # But for now, we'll use a small limit to avoid infinite loops in failure
+                 pass
+
+            current_count = new_count
+            if current_count >= target_count: break
         
         # Extract results
-        session = await session_service.get_session(session_id=session_id, user_id="user", app_name="benchmark_generator")
         generated_data = session.state.get("generated_benchmarks", [])
         print(f"Generation complete. Found {len(generated_data)} benchmarks in session state.")
         

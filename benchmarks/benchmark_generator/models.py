@@ -31,6 +31,14 @@ class TargetType(str, Enum):
     PROPERTY = "property"
     PARAMETER = "parameter"
 
+class ContextNode(pydantic.BaseModel):
+    """A node in the associated context tree (flattened)."""
+    id: str
+    type: str
+    probability: float
+    usage: int = 0
+    parent_id: Optional[str] = None # Used to reconstruct hierarchy if needed
+
 class TargetEntity(pydantic.BaseModel):
     """A hierarchical entity in the codebase targeted for benchmarking."""
     id: str  # Fully Qualified Name (FQN)
@@ -44,8 +52,8 @@ class TargetEntity(pydantic.BaseModel):
     # Specific metadata for agents
     signature: Optional[str] = None
     source_code: Optional[str] = None
-    # Context Expansion
-    associated_modules: List[str] = [] # Modules likely to be used with this entity
+    # Context Expansion (Flattened list of related entities)
+    associated_context: List[ContextNode] = []
 
 class GoldenSnapshot(pydantic.BaseModel):
     """The 'ground truth' capture from the Tracer."""
