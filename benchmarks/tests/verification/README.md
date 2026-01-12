@@ -18,7 +18,21 @@ To run the verification script for the `advanced_adk_usage_benchmarks.yaml`:
 python benchmarks/tests/verification/verify_advanced_benchmarks.py
 ```
 
-Each verification script (e.g., `verify_advanced_benchmarks.py`) should be executed periodically, especially after significant changes to the ADK library, to ensure the benchmarks accurately reflect the current state of the codebase.
+Each verification script should be executed periodically, especially after significant changes to the ADK library, to ensure the benchmarks accurately reflect the current state of the codebase.
+
+## Infrastructure Verification
+
+This directory also contains scripts to verify the benchmark runner infrastructure itself:
+
+-   **`verify_adk_runner.py`**: A smoke test for the ADK runner infrastructure, particularly for verifying MCP server functionality and containerized execution.
+    ```bash
+    python benchmarks/tests/verification/verify_adk_runner.py
+    ```
+
+-   **`verify_context7.py`**: Verifies the specific `context7` MCP tool functionality within the podman-based execution environment.
+    ```bash
+    python benchmarks/tests/verification/verify_context7.py
+    ```
 
 ## Adding New Verification Scripts
 

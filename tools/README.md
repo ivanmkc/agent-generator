@@ -23,10 +23,6 @@ Scripts for aggregated analysis of benchmark data.
 -   `compare_adk_variants.py`: Compares performance across different ADK agent versions.
 -   `analyze_traces.py`: detailed inspection of trace logs.
 
-### `verification/`
-Scripts for verifying the integrity of the runner or specific components.
--   `verify_adk_runner.py`: Smoke test for the ADK runner infrastructure.
-
 ### `utils/`
 Miscellaneous utility scripts.
 -   `finalize_prismatic_benchmarks.py`: Helper for dataset generation.
