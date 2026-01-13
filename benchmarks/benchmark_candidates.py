@@ -37,6 +37,7 @@ _selected_images = [
     "gemini-cli:mcp_context7",
     "gemini-cli:mcp_adk_agent_runner_basic",
     "gemini-cli:mcp_adk_agent_runner_smart_search",
+    "gemini-cli:adk_skill",
 ]
 
 CANDIDATE_GENERATORS = []
