@@ -151,6 +151,11 @@ class AdkTools:
             full_path = self._resolve_path(dir_path)
             if not full_path.exists(): return f"Error: Directory not found at {full_path}"
             if not full_path.is_dir(): return f"Error: Path {full_path} is not a directory."
+            
+            # Default ignores if not provided
+            if ignore is None:
+                ignore = ['.git', '__pycache__', 'venv', 'env', 'node_modules', '.DS_Store', '*.pyc']
+
             entries = []
             with os.scandir(full_path) as it:
                 for entry in it:
@@ -196,7 +201,9 @@ class AdkTools:
     async def search_files(self, pattern: str, path: str) -> str:
         """Searches for files matching a specific pattern using `grep -r`."""
         safe_pattern = pattern.replace("'", "'\\''")
-        cmd = f"grep -r '{safe_pattern}' '{path}' | head -n 20 | cut -c 1-500"
+        # Exclude common noise directories
+        exclude_args = "--exclude-dir=venv --exclude-dir=env --exclude-dir=.git --exclude-dir=__pycache__ --exclude-dir=node_modules"
+        cmd = f"grep -r {exclude_args} '{safe_pattern}' '{path}' | head -n 20 | cut -c 1-500"
         return await self.run_shell_command(cmd)
 
     def get_api_associations(self, entity_name: str, threshold: float = 0.1) -> str:

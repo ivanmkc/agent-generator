@@ -26,23 +26,37 @@ Think of your agent as a system with four adjustable components.
 
 ### Step 0: Iterative Benchmark Strategy
 
-Do not run the full suite immediately. Use the benchmark shell script to iteratively expand your test scope.
+**MANDATORY: Always use `benchmark_run.sh`.**
+To ensure consistent environment variables and path configuration, you MUST use the shell script as the entry point for all tests. Do not run python scripts directly.
+
+```bash
+# Correct Usage
+./benchmark_run.sh run_experiment.py
+
+# Incorrect Usage
+python run_experiment.py
+```
 
 1.  **Start Small (Debug Suite):**
     Use the `debug` suite to catch basic errors quickly.
     ```bash
-    bash notebooks/run_benchmarks.sh --suite-filter "debug" --generator-filter "MY_AGENT"
+    ./benchmark_run.sh notebooks/run_benchmarks.py --suite-filter "debug" --generator-filter "MY_AGENT"
     ```
 2.  **Scale Up (Fix Errors):**
     Once the debug suite passes, run the comprehensive `fix_errors` suite.
     ```bash
-    bash notebooks/run_benchmarks.sh --suite-filter "fix_errors" --generator-filter "MY_AGENT"
+    ./benchmark_run.sh notebooks/run_benchmarks.py --suite-filter "fix_errors" --generator-filter "MY_AGENT"
     ```
 3.  **Full Evaluation (All Suites):**
     Finally, run all suites to check for regression on other tasks.
     ```bash
-    bash notebooks/run_benchmarks.sh --generator-filter "MY_AGENT"
+    ./benchmark_run.sh notebooks/run_benchmarks.py --generator-filter "MY_AGENT"
     ```
+
+### Step 0.5: Flagging Bad Benchmarks
+In your debugging process, if you encounter **persistent pesky cases** that fail across multiple agent architectures despite correct reasoning, this indicates a potential issue with the question itself.
+*   **Action:** Verify the ground truth manually.
+*   **Instruction:** If the benchmark question is ambiguous or the ground truth is outdated/incorrect, flag it in your experiment report and recommend a fix to the benchmark definition file.
 
 ### A. Topology (Flow Control)
 *Where to look: `benchmarks/answer_generators/`*
