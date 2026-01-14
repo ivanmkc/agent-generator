@@ -9,38 +9,16 @@ from benchmarks.answer_generators.adk_agents import (
     create_baseline_workflow_adk_generator
 )
 from benchmarks.answer_generators.debug_adk_agents import create_react_workflow_adk_generator
-from benchmarks.answer_generators.experiment_22 import create_statistical_v2_generator
-from benchmarks.answer_generators.experiment_23 import create_statistical_v3_generator
-from benchmarks.answer_generators.experiment_24 import create_statistical_v4_generator
-from benchmarks.answer_generators.experiment_25 import create_statistical_v5_generator
-from benchmarks.answer_generators.experiment_26 import create_statistical_v6_generator
-from benchmarks.answer_generators.experiment_27 import create_statistical_v7_generator
-from benchmarks.answer_generators.experiment_29 import create_statistical_v9_generator
-from benchmarks.answer_generators.experiment_30 import create_statistical_v10_generator
-from benchmarks.answer_generators.experiment_31 import create_statistical_v11_generator
-from benchmarks.answer_generators.experiment_32 import create_statistical_v12_generator
-from benchmarks.answer_generators.experiment_33 import create_statistical_v13_generator
-from benchmarks.answer_generators.experiment_34 import create_statistical_v14_generator
-from benchmarks.answer_generators.experiment_35 import create_statistical_v15_generator
-from benchmarks.answer_generators.experiment_36 import create_statistical_v16_generator
-from benchmarks.answer_generators.experiment_37 import create_statistical_v17_generator
-from benchmarks.answer_generators.experiment_38 import create_statistical_v18_generator
-from benchmarks.answer_generators.experiment_39 import create_statistical_v19_generator
-from benchmarks.answer_generators.experiment_40 import create_statistical_v20_generator
-from benchmarks.answer_generators.experiment_41 import create_statistical_v21_generator
-from benchmarks.answer_generators.experiment_42 import create_statistical_v22_generator
-from benchmarks.answer_generators.experiment_43 import create_statistical_v23_generator
-from benchmarks.answer_generators.experiment_44 import create_statistical_v24_generator
-from benchmarks.answer_generators.experiment_45 import create_statistical_v25_generator
-from benchmarks.answer_generators.experiment_46 import create_statistical_v26_generator
-from benchmarks.answer_generators.experiment_47 import create_statistical_v27_generator
-from benchmarks.answer_generators.experiment_48 import create_statistical_v28_generator
-from benchmarks.answer_generators.experiment_49 import create_statistical_v29_generator
 from benchmarks.answer_generators.experiment_52 import create_statistical_v32_generator
 from benchmarks.answer_generators.experiment_53 import create_statistical_v33_generator
 from benchmarks.answer_generators.experiment_54 import create_statistical_v34_generator
 from benchmarks.answer_generators.experiment_55 import create_statistical_v35_generator
 from benchmarks.answer_generators.experiment_56 import create_statistical_v36_generator
+from benchmarks.answer_generators.experiment_57 import create_knowledge_only_v37_generator
+from benchmarks.answer_generators.experiment_58 import create_coding_v38_generator
+from benchmarks.answer_generators.experiment_62 import create_refined_knowledge_generator_v42
+from benchmarks.answer_generators.experiment_64 import create_refined_knowledge_generator_v44
+
 from benchmarks.answer_generators.gemini_cli_docker import (
     GeminiCliPodmanAnswerGenerator,
 )
@@ -59,223 +37,23 @@ class ModelName(enum.StrEnum):
 
 api_key_manager = ApiKeyManager()
 
-# Create pre-configured agent instances for AdkAnswerGenerator
-agent_flash = create_default_adk_agent(model_name=ModelName.GEMINI_2_5_FLASH)
-agent_pro = create_default_adk_agent(model_name=ModelName.GEMINI_2_5_PRO)
-
-_selected_images = [
-    "gemini-cli:base",
-    "gemini-cli:adk-python",
-    "gemini-cli:adk-docs-ext",
-    "gemini-cli:mcp_context7",
-    "gemini-cli:mcp_adk_agent_runner_basic",
-    "gemini-cli:mcp_adk_agent_runner_smart_search",
-]
-
-CANDIDATE_GENERATORS = []
-
-# Add Gemini CLI Podman-based generators
-CANDIDATE_GENERATORS.extend(list(permute(
-    GeminiCliPodmanAnswerGenerator,
-    model_name=[ModelName.GEMINI_2_5_FLASH], #, ModelName.GEMINI_2_5_PRO],
-    image_name=_selected_images,
-    image_definitions=[IMAGE_DEFINITIONS],
-    api_key_manager=[api_key_manager]
-)))
-
-# Add Workflow ADK-based generators
-CANDIDATE_GENERATORS.extend([
-    create_workflow_adk_generator(
-        model_name=ModelName.GEMINI_2_5_FLASH,
-        api_key_manager=api_key_manager
-    ),
+# Instantiate candidates
+CANDIDATE_GENERATORS = [
+    # Historical baselines can be added here if needed
     
-    create_structured_workflow_adk_generator(
-        model_name=ModelName.GEMINI_2_5_FLASH,
-        api_key_manager=api_key_manager
-    ),
-
-    # Variant with history disabled
-    create_structured_workflow_adk_generator(
-        model_name=ModelName.GEMINI_2_5_FLASH,
-        api_key_manager=api_key_manager,
-        use_loop_history=False
-    ),
-    create_baseline_workflow_adk_generator(
-        model_name=ModelName.GEMINI_2_5_FLASH,
-        api_key_manager=api_key_manager
-    ),
-    # ReAct Workflow (Statistical - Exp 20)
-    create_react_workflow_adk_generator(
-        model_name=ModelName.GEMINI_2_5_FLASH,
-        api_key_manager=api_key_manager
-    ),
-    # Statistical V2 (Exp 22 - Guide Check)
-    create_statistical_v2_generator(
-        model_name=ModelName.GEMINI_2_5_FLASH,
-        api_key_manager=api_key_manager
-    ),
-    # Statistical V3 (Exp 23 - Semantic Mapping)
-    create_statistical_v3_generator(
-        model_name=ModelName.GEMINI_2_5_FLASH,
-        api_key_manager=api_key_manager
-    ),
-    # Statistical V4 (Exp 24 - Proof of Knowledge)
-    create_statistical_v4_generator(
-        model_name=ModelName.GEMINI_2_5_FLASH,
-        api_key_manager=api_key_manager
-    ),
-    # Statistical V5 (Exp 25 - Proof + read_file)
-    create_statistical_v5_generator(
-        model_name=ModelName.GEMINI_2_5_FLASH,
-        api_key_manager=api_key_manager
-    ),
-    # Statistical V6 (Exp 26 - Signature Compliance)
-    create_statistical_v6_generator(
-        model_name=ModelName.GEMINI_2_5_FLASH,
-        api_key_manager=api_key_manager
-    ),
-    # Statistical V7 (Exp 27 - Pydantic Kwarg Enforcement)
-    create_statistical_v7_generator(
-        model_name=ModelName.GEMINI_2_5_FLASH,
-        api_key_manager=api_key_manager
-    ),
-    # Statistical V9 (Exp 29 - Deterministic Retrieval)
-    create_statistical_v9_generator(
-        model_name=ModelName.GEMINI_2_5_FLASH,
-        api_key_manager=api_key_manager
-    ),
-    # Statistical V10 (Exp 30 - Robust Retrieval)
-    create_statistical_v10_generator(
-        model_name=ModelName.GEMINI_2_5_FLASH,
-        api_key_manager=api_key_manager
-    ),
-    # Statistical V11 (Exp 31 - Schema Guard)
-    create_statistical_v11_generator(
-        model_name=ModelName.GEMINI_2_5_FLASH,
-        api_key_manager=api_key_manager
-    ),
-    # Statistical V12 (Exp 32 - Context Awareness)
-    create_statistical_v12_generator(
-        model_name=ModelName.GEMINI_2_5_FLASH,
-        api_key_manager=api_key_manager
-    ),
-    # Statistical V13 (Exp 33 - Smart Retrieval)
-    create_statistical_v13_generator(
-        model_name=ModelName.GEMINI_2_5_FLASH,
-        api_key_manager=api_key_manager
-    ),
-    # Statistical V14 (Exp 34 - Type Conservatism)
-    create_statistical_v14_generator(
-        model_name=ModelName.GEMINI_2_5_FLASH,
-        api_key_manager=api_key_manager
-    ),
-    # Statistical V15 (Exp 35 - Class Preference)
-    create_statistical_v15_generator(
-        model_name=ModelName.GEMINI_2_5_FLASH,
-        api_key_manager=api_key_manager
-    ),
-    # Statistical V16 (Exp 36 - Canonical Import)
-    create_statistical_v16_generator(
-        model_name=ModelName.GEMINI_2_5_FLASH,
-        api_key_manager=api_key_manager
-    ),
-    # Statistical V17 (Exp 37 - Validation Table)
-    create_statistical_v17_generator(
-        model_name=ModelName.GEMINI_2_5_FLASH,
-        api_key_manager=api_key_manager
-    ),
-    # Statistical V18 (Exp 38 - Format Fix & Agent Preference)
-    create_statistical_v18_generator(
-        model_name=ModelName.GEMINI_2_5_FLASH,
-        api_key_manager=api_key_manager
-    ),
-    # Statistical V19 (Exp 39 - Inheritance Inspection)
-    create_statistical_v19_generator(
-        model_name=ModelName.GEMINI_2_5_FLASH,
-        api_key_manager=api_key_manager
-    ),
-    # Statistical V20 (Exp 40 - Convergence)
-    create_statistical_v20_generator(
-        model_name=ModelName.GEMINI_2_5_FLASH,
-        api_key_manager=api_key_manager
-    ),
-    # Statistical V21 (Exp 41 - Super Call)
-    create_statistical_v21_generator(
-        model_name=ModelName.GEMINI_2_5_FLASH,
-        api_key_manager=api_key_manager
-    ),
-    # Statistical V22 (Exp 42 - Input Access)
-    create_statistical_v22_generator(
-        model_name=ModelName.GEMINI_2_5_FLASH,
-        api_key_manager=api_key_manager
-    ),
-    # Statistical V23 (Exp 43 - Golden Convergence)
-    create_statistical_v23_generator(
-        model_name=ModelName.GEMINI_2_5_FLASH,
-        api_key_manager=api_key_manager
-    ),
-    # Statistical V24 (Exp 44 - Event Schema Fix)
-    create_statistical_v24_generator(
-        model_name=ModelName.GEMINI_2_5_FLASH,
-        api_key_manager=api_key_manager
-    ),
-    # Statistical V25 (Exp 45 - Index Retrieval)
-    create_statistical_v25_generator(
-        model_name=ModelName.GEMINI_2_5_FLASH,
-        api_key_manager=api_key_manager
-    ),
-    # Statistical V26 (Exp 46 - Targeted Index Retrieval)
-    create_statistical_v26_generator(
-        model_name=ModelName.GEMINI_2_5_FLASH,
-        api_key_manager=api_key_manager
-    ),
-    # Statistical V27 (Exp 47 - BaseAgent Fallback)
-    create_statistical_v27_generator(
-        model_name=ModelName.GEMINI_2_5_FLASH,
-        api_key_manager=api_key_manager
-    ),
-    # Statistical V28 (Exp 48 - BaseAgent Fallback + Error Loop)
-    create_statistical_v28_generator(
-        model_name=ModelName.GEMINI_2_5_FLASH,
-        api_key_manager=api_key_manager
-    ),
-    # Statistical V29 (Exp 49 - Association-Aware Retrieval)
-    create_statistical_v29_generator(
-        model_name=ModelName.GEMINI_2_5_FLASH,
-        api_key_manager=api_key_manager
-    ),
-    # Statistical V32 (Exp 52 - V29 wrapped in AgentTool)
-    create_statistical_v32_generator(
-        model_name=ModelName.GEMINI_2_5_FLASH,
-        api_key_manager=api_key_manager
-    ),
-    # Statistical V33 (Exp 53 - Fast Retrieval Code Agent)
-    create_statistical_v33_generator(
-        model_name=ModelName.GEMINI_2_5_FLASH,
-        api_key_manager=api_key_manager
-    ),
-    # Statistical V34 (Exp 54 - Mixed Pro Coding / Flash QA)
-    create_statistical_v34_generator(
-        model_name=ModelName.GEMINI_2_5_FLASH,
-        api_key_manager=api_key_manager
-    ),
-    # Statistical V35 (Exp 55 - V34 + True Verification + Logged Fetching)
-    create_statistical_v35_generator(
-        model_name=ModelName.GEMINI_2_5_FLASH,
-        api_key_manager=api_key_manager
-    ),
-    # Statistical V36 (Exp 56 - V35 + Strict Signature Enforcement)
-    create_statistical_v36_generator(
-        model_name=ModelName.GEMINI_2_5_FLASH,
-        api_key_manager=api_key_manager
-    )
+    # Recent Experiments
+    create_statistical_v32_generator(model_name=ModelName.GEMINI_2_5_FLASH, api_key_manager=api_key_manager),
+    create_statistical_v33_generator(model_name=ModelName.GEMINI_2_5_FLASH, api_key_manager=api_key_manager),
+    create_statistical_v34_generator(model_name=ModelName.GEMINI_2_5_FLASH, api_key_manager=api_key_manager),
+    create_statistical_v35_generator(model_name=ModelName.GEMINI_2_5_FLASH, api_key_manager=api_key_manager),
+    create_statistical_v36_generator(model_name=ModelName.GEMINI_2_5_FLASH, api_key_manager=api_key_manager),
+    
+    # Decoupled Specialists
+    create_knowledge_only_v37_generator(model_name=ModelName.GEMINI_2_5_PRO, api_key_manager=api_key_manager),
+    # create_coding_v38_generator(model_name=ModelName.GEMINI_2_5_PRO, api_key_manager=api_key_manager), # Disabled (Dummy)
+    create_refined_knowledge_generator_v42(model_name=ModelName.GEMINI_2_5_FLASH, api_key_manager=api_key_manager),
+    create_refined_knowledge_generator_v44(model_name=ModelName.GEMINI_2_5_FLASH, api_key_manager=api_key_manager),
+    
+    # Baseline: Gemini CLI with ADK Docs Extension
+    # GeminiCliPodmanAnswerGenerator( ... ) # Disabled due to Podman instability
 ]
-)
-
-# Add trivial and ground truth generators
-# CANDIDATE_GENERATORS.extend([
-#     # Control generators
-#     GroundTruthAnswerGenerator(),
-#     TrivialAnswerGenerator(),
-# ])

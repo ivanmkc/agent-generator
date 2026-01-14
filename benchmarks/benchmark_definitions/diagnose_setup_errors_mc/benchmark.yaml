@@ -328,18 +328,18 @@ benchmarks:
   explanation: RunConfig validates that max_llm_calls is less than sys.maxsize.
   benchmark_type: multiple_choice
 - id: diagnose_setup_errors_mc:loop_agent_missing_max_iter
-  question: You define a `LoopAgent` without specifying `max_iterations`. If `max_iterations` is required (hypothetically), what error would you expect?
+  question: You instantiate a `LoopAgent` without providing the `max_iterations` argument. Why does this **not** raise a `ValidationError`?
   code_snippet_ref:
     file: benchmarks/benchmark_definitions/diagnose_setup_errors_mc/snippets.py
     section: loop_agent_missing_max_iter
   options:
-    A: 'ValidationError: Field required.'
-    B: TypeError.
-    C: No error, it defaults to None/Infinite.
-    D: ValueError.
+    A: Because `max_iterations` is automatically set to a default value of 10.
+    B: Because it is an optional field in the `LoopAgent` model (defaults to `None`).
+    C: Because validation only happens when the agent is actually run.
+    D: Because `LoopAgent` does not actually use a `max_iterations` parameter.
     E: None of the above
-  correct_answer: C
-  explanation: '`max_iterations` is optional (default None), so no error occurs.'
+  correct_answer: B
+  explanation: In the `LoopAgent` definition, `max_iterations` is an `Optional[int]` with a default of `None`, so it is not required during instantiation.
   benchmark_type: multiple_choice
 - id: diagnose_setup_errors_mc:set_parent_agent_init
   question: You try to set `parent_agent` manually during initialization. What error occurs?

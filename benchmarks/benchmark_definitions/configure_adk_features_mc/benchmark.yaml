@@ -573,7 +573,7 @@ benchmarks:
   explanation: '`ReflectAndRetryToolPlugin` is designed for Retrying failed tool calls.'
   benchmark_type: multiple_choice
 - id: configure_adk_features_mc:which_llmagent_parameter_type_str_is_used_for_auto
-  question: Which `LlmAgent` parameter (type `str`) is used for Automatically saving agent output to session state.?
+  question: Which `LlmAgent` parameter is used for Automatically saving agent output to session state.?
   options:
     A: settings
     B: output_key
@@ -584,7 +584,7 @@ benchmarks:
   explanation: '`output_key` is used for Automatically saving agent output to session state.'
   benchmark_type: multiple_choice
 - id: configure_adk_features_mc:which_llmagent_parameter_type_content_is_used_for_
-  question: Which `LlmAgent` parameter (type `Content`) is used for Optimizing context caching for fixed instructions.?
+  question: Which `LlmAgent` parameter is used for Optimizing context caching for fixed instructions.?
   options:
     A: setup
     B: static_instruction
@@ -594,27 +594,16 @@ benchmarks:
   correct_answer: B
   explanation: '`static_instruction` is used for Optimizing context caching for fixed instructions.'
   benchmark_type: multiple_choice
-- id: configure_adk_features_mc:which_llmagent_parameter_type_basemodel_is_used_fo
-  question: Which `LlmAgent` parameter (type `BaseModel`) is used for Enforcing structured JSON output.?
+- id: configure_adk_features_mc:llmagent_pydantic_schema_parameters
+  question: 'Which `LlmAgent` parameters (both of type `BaseModel`) are used to: 1) Enforce a structured JSON response from the model, and 2) Define the expected input schema when the agent is utilized as a tool by another agent?'
   options:
-    A: settings
-    B: config
-    C: setup
-    D: output_schema
+    A: 1) `response_schema`, 2) `request_schema`
+    B: 1) `output_schema`, 2) `input_schema`
+    C: 1) `json_model`, 2) `tool_model`
+    D: 1) `output_schema`, 2) `config_schema`
     E: None of the above
-  correct_answer: D
-  explanation: '`output_schema` is used for Enforcing structured JSON output.'
-  benchmark_type: multiple_choice
-- id: configure_adk_features_mc:which_llmagent_parameter_type_basemodel_is_used_fo_2
-  question: Which `LlmAgent` parameter (type `BaseModel`) is used for Defining expected input when used as a tool.?
-  options:
-    A: settings
-    B: config
-    C: setup
-    D: input_schema
-    E: None of the above
-  correct_answer: D
-  explanation: '`input_schema` is used for Defining expected input when used as a tool.'
+  correct_answer: B
+  explanation: '`output_schema` is used to enforce structured output, and `input_schema` defines the interface for the agent when called as a tool.'
   benchmark_type: multiple_choice
 - id: configure_adk_features_mc:what_is_the_primary_use_case_for_timelimitplugin
   question: What is the primary use case for `TimeLimitPlugin`?
@@ -672,7 +661,7 @@ benchmarks:
   explanation: '`planner` is used for Enabling chain-of-thought or step-by-step planning.'
   benchmark_type: multiple_choice
 - id: configure_adk_features_mc:which_llmagent_parameter_type_basecodeexecutor_is_
-  question: Which `LlmAgent` parameter (type `BaseCodeExecutor`) is used for Enabling Python code execution.?
+  question: Which `LlmAgent` parameter is used for Enabling Python code execution.?
   options:
     A: settings
     B: setup
@@ -683,7 +672,7 @@ benchmarks:
   explanation: '`code_executor` is used for Enabling Python code execution.'
   benchmark_type: multiple_choice
 - id: configure_adk_features_mc:which_llmagent_parameter_type_str_is_used_for_defi
-  question: Which `LlmAgent` parameter (type `str`) is used for Defining the LLM model to use.?
+  question: Which `LlmAgent` parameter is used for Defining the LLM model to use.?
   options:
     A: model
     B: settings
@@ -694,7 +683,7 @@ benchmarks:
   explanation: '`model` is used for Defining the LLM model to use.'
   benchmark_type: multiple_choice
 - id: configure_adk_features_mc:which_llmagent_parameter_type_str_is_used_for_desc
-  question: Which `LlmAgent` parameter (type `str`) is used for Describing agent capability for delegation.?
+  question: Which `LlmAgent` parameter is used for Describing agent capability for delegation.?
   options:
     A: setup
     B: settings
@@ -749,7 +738,7 @@ benchmarks:
   explanation: '`speech_config` controls Configure TTS/STT settings.'
   benchmark_type: multiple_choice
 - id: configure_adk_features_mc:which_llmagent_parameter_type_str_is_used_for_defi_2
-  question: Which `LlmAgent` parameter (type `str`) is used for Defining the prompt for the agent.?
+  question: Which `LlmAgent` parameter is used for Defining the prompt for the agent.?
   options:
     A: settings
     B: instruction
@@ -760,7 +749,7 @@ benchmarks:
   explanation: '`instruction` is used for Defining the prompt for the agent.'
   benchmark_type: multiple_choice
 - id: configure_adk_features_mc:which_llmagent_parameter_type_list_is_used_for_pro
-  question: Which `LlmAgent` parameter (type `list`) is used for Providing capabilities to the agent.?
+  question: Which `LlmAgent` parameter is used for Providing capabilities to the agent.?
   options:
     A: setup
     B: settings
