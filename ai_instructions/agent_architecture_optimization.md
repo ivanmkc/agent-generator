@@ -55,7 +55,15 @@ python run_experiment.py
 
 ### Step 0.5: Flagging Bad Benchmarks
 In your debugging process, if you encounter **persistent pesky cases** that fail across multiple agent architectures despite correct reasoning, this indicates a potential issue with the question itself.
-*   **Action:** Verify the ground truth manually.
+
+**Tooling:**
+Use the historical analysis script to pinpoint these cases:
+```bash
+python tools/analysis/analyze_historical_pass_rates.py
+```
+Focus on cases with a low **Weighted Pass Rate**. This metric prioritizes recent runs while accounting for long-term failure patterns.
+
+*   **Action:** Verify the ground truth manually for these low-pass-rate cases.
 *   **Instruction:** If the benchmark question is ambiguous or the ground truth is outdated/incorrect, flag it in your experiment report and recommend a fix to the benchmark definition file.
 
 ### A. Topology (Flow Control)
@@ -110,9 +118,9 @@ If the agent fails or uses too many tokens, you need to see *why*. Use the built
     ```bash
     python tools/debugging.py --run-dir benchmark_runs/<timestamp> --list-cases
     ```
-2.  **Inspect a specific case** to see thoughts, tool calls, and results:
+2.  **Inspect a specific case** by its unique ID (e.g., `suite:slug`):
     ```bash
-    python tools/debugging.py --run-dir benchmark_runs/<timestamp> --case "Case Name"
+    python tools/debugging.py --run-dir benchmark_runs/<timestamp> --case "api_understanding:what_is_the_foundational_class_for_all_agents_in_t"
     ```
 3.  **Key indicators in the trace:**
     *   **Looping:** Is it calling the same tool repeatedly? (Fix: Add history/memory).
@@ -166,7 +174,7 @@ Use these tools to diagnose failures and validate your architecture.
     python tools/debugging.py --run-dir benchmark_runs/<timestamp> --list-cases
 
     # Deep dive into a specific case (shows thoughts, tool args, tool outputs)
-    python tools/debugging.py --run-dir benchmark_runs/<timestamp> --case "Case Name"
+    python tools/debugging.py --run-dir benchmark_runs/<timestamp> --case "api_understanding:identifier_for_case"
     ```
 
 ### B. Benchmark Viewer (`tools/benchmark_viewer.py`)

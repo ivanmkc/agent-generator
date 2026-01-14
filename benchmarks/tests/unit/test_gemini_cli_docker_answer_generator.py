@@ -63,6 +63,7 @@ async def test_docker_command_construction_api_key():
 
             # Create a dummy case
             case = ApiUnderstandingBenchmarkCase(
+                id="test:docker_api_key",
                 description="Test",
                 category="Test",
                 question="Test question",
@@ -180,6 +181,7 @@ async def test_docker_command_construction_vertex_adc():
             mock_exec.return_value = mock_proc
 
             case = ApiUnderstandingBenchmarkCase(
+                id="test:docker_vertex",
                 description="Test",
                 category="Test",
                 question="Test",

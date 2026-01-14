@@ -170,6 +170,7 @@ async def test_podman_generator_generate_answer():
     generator._base_url = "http://localhost:12345"
 
     case = ApiUnderstandingBenchmarkCase(
+        id="test:podman",
         description="Test",
         category="Test",
         question="Generate code",

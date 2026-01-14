@@ -1,882 +1,959 @@
 # Requirement: All multiple-choice questions must include a 'None of the above' option.
 benchmarks:
-  - question: Which is the correct import statement for the `Runner` class?
-    options:
-      A: from google.adk.runners import Runner
-      B: from google.adk.agent_runner import Runner
-      C: from google.adk.factory import Runner
-      D: from google.adk.core import Runner
-      E: None of the above
-    correct_answer: A
-    explanation: '`Runner` is defined in `google.adk.runners` (and re-exported in `google.adk`).'
-    benchmark_type: multiple_choice
-  - question: You need to inspect an `Event` object. Which import allows you to reference the `Event` class for type hinting?
-    options:
-      A: from google.adk.types import Event
-      B: from google.adk.event import Event
-      C: from google.adk.models import Event
-      D: from google.adk.core.events import Event
-      E: None of the above
-    correct_answer: E
-    explanation: The correct import is `from google.adk.events.event import Event`.
-    benchmark_type: multiple_choice
-  - question: When calling `runner.run_async()`, which parameter is used to pass the user's input message?
-    options:
-      A: message
-      B: input
-      C: new_message
-      D: content
-      E: None of the above
-    correct_answer: C
-    explanation: The parameter `new_message` is used to pass the user's input content.
-    benchmark_type: multiple_choice
-  - question: You are initializing an `App`. Which parameter is mutually exclusive with providing `app_name` and `root_agent` directly to the `Runner`?
-    options:
-      A: resumability_config
-      B: plugins
-      C: application
-      D: context_cache_config
-      E: None of the above
-    correct_answer: E
-    explanation: The correct parameter is `app`. You provide either an `App` object via `app` OR `app_name` and `agent` separately.
-    benchmark_type: multiple_choice
-  - question: Which Google GenAI type represents the fundamental unit of content (text, image, function call) within a message?
-    options:
-      A: types.Element
-      B: types.Part
-      C: types.Item
-      D: types.Chunk
-      E: None of the above
-    correct_answer: B
-    explanation: '`types.Part` is the atomic unit of content in the Gemini API and ADK.'
-    benchmark_type: multiple_choice
-  - question: How do you correctly construct a user message content object with text?
-    options:
-      A: types.Content(role='user', text='Hello')
-      B: types.Message(role='user', content='Hello')
-      C: types.UserMessage(text='Hello')
-      D: types.Content(role='user', parts=[types.Part(text='Hello')])
-      E: None of the above
-    correct_answer: D
-    explanation: '`types.Content` takes a list of `types.Part` objects in the `parts` parameter.'
-    benchmark_type: multiple_choice
-  - question: When defining a custom agent class, which abstract base class must you inherit from?
-    options:
-      A: AdkAgent
-      B: CustomAgent
-      C: Agent
-      D: AbstractAgent
-      E: None of the above
-    correct_answer: E
-    explanation: The correct base class is `BaseAgent` (from `google.adk.agents.base_agent`).
-    benchmark_type: multiple_choice
-  - question: You are implementing a custom tool. Which method must you implement from `BaseTool`?
-    options:
-      A: execute()
-      B: run()
-      C: __call__()
-      D: The method defined in the tool's definition (schema).
-      E: None of the above
-    correct_answer: D
-    explanation: '`BaseTool` implementation details depend on the specific tool type (e.g., `FunctionTool` wraps a callable), but generally, the runner invokes the underlying function.'
-    benchmark_type: multiple_choice
-  - question: What is the correct signature for a `before_tool_callback` function?
-    options:
-      A: 'async def callback(tool, args, context):'
-      B: 'def callback(tool, args):'
-      C: 'async def callback(tool, args, context, response):'
-      D: 'async def callback(tool_name, arguments):'
-      E: None of the above
-    correct_answer: A
-    explanation: 'The signature is `async def callback(tool: BaseTool, args: dict, tool_context: ToolContext)`.'
-    benchmark_type: multiple_choice
-  - question: In a `BasePlugin`, what is the correct signature for `run_on_event_callback`?
-    options:
-      A: 'async def run_on_event_callback(self, event: Event) -> Event:'
-      B: 'def run_on_event_callback(self, event: Event):'
-      C: 'async def run_on_event_callback(self, context: dict, event: Event) -> Event:'
-      D: 'async def run_on_event_callback(self, invocation_context: InvocationContext, event: Event) -> Optional[Event]:'
-      E: None of the above
-    correct_answer: D
-    explanation: The callback receives the `InvocationContext` and the `Event`, and returns an optional modified `Event`.
-    benchmark_type: multiple_choice
-  - question: What is the primary purpose of `InvocationContext`?
-    options:
-      A: To configure the LLM's generation parameters.
-      B: To manage the state and dependencies (services, config) for a single agent execution turn.
-      C: To define the tools available to the agent.
-      D: To store the chat history of the session.
-      E: None of the above
-    correct_answer: B
-    explanation: '`InvocationContext` holds the scoped state, services, and configuration for the current run/invocation.'
-    benchmark_type: multiple_choice
-  - question: You want to create a custom artifact service. Which class should you inherit from?
-    options:
-      A: StorageService
-      B: BaseArtifactService
-      C: ArtifactProvider
-      D: ArtifactManager
-      E: None of the above
-    correct_answer: B
-    explanation: '`BaseArtifactService` is the ABC for implementing artifact storage backends.'
-    benchmark_type: multiple_choice
-  - question: How do you configure an `App` to automatically compact events in the session history?
-    options:
-      A: Pass an `EventsCompactionConfig` object to the `events_compaction_config` parameter of the `App` constructor.
-      B: Set `auto_compact=True` in the `Runner` constructor.
-      C: Use the `CompactionPlugin` in the plugins list.
-      D: Call `app.compact_events()` manually before every run.
-      E: None of the above
-    correct_answer: A
-    explanation: Event compaction is configured at the App level using `EventsCompactionConfig`.
-    benchmark_type: multiple_choice
-  - question: When using `InMemorySessionService`, how is session data persisted?
-    options:
-      A: It is stored in a SQLite database.
-      B: It is kept in a Python dictionary in RAM and lost when the process exits.
-      C: It is saved to a local JSON file.
-      D: It is uploaded to Google Cloud Storage.
-      E: None of the above
-    correct_answer: B
-    explanation: '`InMemorySessionService` is ephemeral and stores data only in memory.'
-    benchmark_type: multiple_choice
-  - question: What is the purpose of the `state_delta` parameter in `runner.run_async`?
-    options:
-      A: To update the agent's configuration for the current run.
-      B: To modify the session state (variables shared across agents) for the current invocation.
-      C: To change the LLM's system instruction dynamically.
-      D: To inject temporary tools for the current turn.
-      E: None of the above
-    correct_answer: B
-    explanation: '`state_delta` allows you to inject or update session state variables at the start of a run.'
-    benchmark_type: multiple_choice
-  - question: You want to implement a 'human-in-the-loop' workflow where the agent asks for confirmation before executing a sensitive tool. Which mechanism is best suited for this?
-    options:
-      A: Use a `SequentialAgent` with a `HumanAgent`.
-      B: Raise a `ToolConfirmationRequest` exception in the tool's execution logic.
-      C: Return a special string from the tool asking for confirmation.
-      D: This is not supported in ADK.
-      E: None of the above
-    correct_answer: A
-    explanation: While custom logic is possible, `HumanAgent` or `UserProxy` patterns are the standard architectural way to handle human interaction in agent flows.
-    benchmark_type: multiple_choice
-  - question: Which class allows you to define a tool from an OpenAPI specification?
-    options:
-      A: ApiTool
-      B: SpecTool
-      C: SwaggerTool
-      D: OpenApiTool
-      E: None of the above
-    correct_answer: D
-    explanation: '`OpenApiTool` is designed to wrap OpenAPI specs into ADK-compatible tools.'
-    benchmark_type: multiple_choice
-  - question: If you want to use a Google Search tool that returns structured results, which tool should you use?
-    options:
-      A: SearchTool
-      B: GoogleSearchTool
-      C: SerpApiTool
-      D: WebSearch
-      E: None of the above
-    correct_answer: B
-    explanation: '`GoogleSearchTool` (often imported as `google_search`) provides access to Google Search.'
-    benchmark_type: multiple_choice
-  - question: What is the correct way to access the `session_id` from within a tool's execution logic?
-    options:
-      A: Access `self.session_id` (if the tool is a class).
-      B: It is available in the `tool_context` object passed to the tool function (if configured).
-      C: Use `google.adk.get_current_session_id()`.
-      D: It is passed as an argument named `session_id`.
-      E: None of the above
-    correct_answer: B
-    explanation: Contextual information like `session_id` is injected via `tool_context` if the tool signature requests it.
-    benchmark_type: multiple_choice
-  - question: Which event type indicates that the model has finished generating a text response?
-    options:
-      A: Event(content=...)
-      B: Event(status='finished')
-      C: Event(type='response_complete')
-      D: The event stream simply ends.
-      E: None of the above
-    correct_answer: A
-    explanation: A standard `Event` with `content` populated (and `partial=False` by default) represents a completed turn/response chunk.
-    benchmark_type: multiple_choice
-  - question: You want to use a `ParallelAgent` to run three sub-agents. How does the `ParallelAgent` determine when it is finished?
-    options:
-      A: It waits for all sub-agents to finish their execution.
-      B: It waits for the first agent to finish.
-      C: It runs for a fixed timeout.
-      D: It requires a manual stop signal.
-      E: None of the above
-    correct_answer: A
-    explanation: '`ParallelAgent` aggregates results from all its sub-agents.'
-    benchmark_type: multiple_choice
-  - question: What is the `model_client` property on an `LlmAgent` used for?
-    options:
-      A: To configure HTTP proxies.
-      B: To change the model name at runtime.
-      C: It is an internal property and should not be used.
-      D: To directly access the underlying GenAI client for raw API calls.
-      E: None of the above
-    correct_answer: D
-    explanation: It provides access to the configured model client wrapper.
-    benchmark_type: multiple_choice
-  - question: How do you specify that a tool function should *not* return its output to the model, but instead save it directly to the session state?
-    options:
-      A: Modify the `session.state` directly within the tool and return a confirmation string.
-      B: Use the `side_effect=True` decorator.
-      C: This is not possible; all tool outputs go to the model.
-      D: Return `None` from the function.
-      E: None of the above
-    correct_answer: A
-    explanation: Tools can modify state via context. While they must return *something* to the model (the tool response), the *meaningful* data acts as a side effect on the state.
-    benchmark_type: multiple_choice
-  - question: Which component is responsible for truncating conversation history to fit within the model's context window?
-    options:
-      A: The `SessionService`.
-      B: The `LlmAgent` handles it internally.
-      C: The `Runner` automatically does this.
-      D: The `ContextFilterPlugin` (or similar compaction logic).
-      E: None of the above
-    correct_answer: D
-    explanation: Plugins like `ContextFilterPlugin` or `CompactionPlugin` (configured via `EventsCompactionConfig`) handle history truncation/compaction.
-    benchmark_type: multiple_choice
-  - question: You are using a `LoopAgent` and want to prevent it from running infinitely if the sub-agents never escalate. Which parameter should you set?
-    options:
-      A: max_iterations
-      B: loop_limit
-      C: max_steps
-      D: timeout
-      E: None of the above
-    correct_answer: A
-    explanation: '`LoopAgent` uses `max_iterations` to limit the number of times it loops through its sub-agents.'
-    benchmark_type: multiple_choice
-  - question: Which `RunConfig` parameter allows you to limit the total number of LLM calls in a single run to prevent runaway costs?
-    options:
-      A: budget
-      B: max_tokens
-      C: llm_call_limit
-      D: call_limit
-      E: None of the above
-    correct_answer: E
-    explanation: The correct parameter is `max_llm_calls`.
-    benchmark_type: multiple_choice
-  - question: You want to automatically save any file blobs (images, audio) sent by the user as artifacts in the artifact service. Which plugin should you use?
-    options:
-      A: SaveArtifactsPlugin
-      B: BlobStoragePlugin
-      C: FilePersistencePlugin
-      D: ArtifactSaverPlugin
-      E: None of the above
-    correct_answer: E
-    explanation: The correct plugin class is `SaveFilesAsArtifactsPlugin`.
-    benchmark_type: multiple_choice
-  - question: When using `LlmAgent` with a model that supports native audio output, how do you configure the response modality?
-    options:
-      A: Set `response_modalities=['AUDIO']` in `RunConfig`.
-      B: Pass `audio=True` to the `LlmAgent` constructor.
-      C: This is automatically detected based on the input.
-      D: Use `types.GenerationConfig(response_mime_type='audio/mp3')`.
-      E: None of the above
-    correct_answer: A
-    explanation: '`RunConfig.response_modalities` controls the expected output format (e.g., TEXT, AUDIO).'
-    benchmark_type: multiple_choice
-  - question: What is the purpose of `GlobalInstructionPlugin`?
-    options:
-      A: To inject a specific instruction into the context of *every* agent in the application.
-      B: To provide a fallback instruction if the user prompt is empty.
-      C: To set the system instruction for the root agent only.
-      D: To override the model's safety settings globally.
-      E: None of the above
-    correct_answer: A
-    explanation: '`GlobalInstructionPlugin` appends (or prepends) instructions to all agents'' contexts, useful for enforcing global policies.'
-    benchmark_type: multiple_choice
-  - question: You need to retry a tool execution automatically if the tool raises a specific exception or returns an error. Which plugin can help?
-    options:
-      A: ToolErrorPlugin
-      B: RetryPlugin
-      C: RobustnessPlugin
-      D: ReflectRetryToolPlugin
-      E: None of the above
-    correct_answer: E
-    explanation: The correct class name is `ReflectAndRetryToolPlugin`.
-    benchmark_type: multiple_choice
-  - question: How does `ContextFilterPlugin` generally operate?
-    options:
-      A: It removes PII (Personally Identifiable Information) from the context.
-      B: It summarizes the entire conversation history into a single string.
-      C: It filters out tool outputs to save tokens.
-      D: It keeps only the last `N` invocations or messages to fit context limits.
-      E: None of the above
-    correct_answer: D
-    explanation: '`ContextFilterPlugin` is primarily used for sliding window context management, retaining recent history.'
-    benchmark_type: multiple_choice
-  - question: Which class allows you to run an agent loop specifically for debugging in a REPL or notebook environment without setting up a full runner loop manually?
-    options:
-      A: runner.run_debug()
-      B: adk.debug_run()
-      C: agent.execute_debug()
-      D: Runner.debug()
-      E: None of the above
-    correct_answer: A
-    explanation: '`runner.run_debug()` is a convenience method for quick experimentation and debugging.'
-    benchmark_type: multiple_choice
-  - question: When implementing a `BaseToolset`, what is the `close()` method responsible for?
-    options:
-      A: Deleting the tool definitions from the agent.
-      B: Saving the tool state to the session.
-      C: Validating the tool arguments.
-      D: Releasing external resources (e.g., closing HTTP sessions, database connections).
-      E: None of the above
-    correct_answer: D
-    explanation: '`BaseToolset.close()` is an async lifecycle method for cleaning up I/O resources.'
-    benchmark_type: multiple_choice
-  - question: Which configuration object is used to enable 'affective dialog' (emotion detection and adaptation) in a live run?
-    options:
-      A: LiveConfig(affective=True)
-      B: AffectiveConfig
-      C: EmotionConfig
-      D: RunConfig(enable_affective_dialog=True)
-      E: None of the above
-    correct_answer: D
-    explanation: '`RunConfig` has an `enable_affective_dialog` boolean field.'
-    benchmark_type: multiple_choice
-  - question: Which class is responsible for orchestrating the complete lifecycle of authentication credentials (loading, exchanging, refreshing) in ADK?
-    options:
-      A: AuthLifecycleManager
-      B: CredentialOrchestrator
-      C: CredentialManager
-      D: AuthService
-      E: None of the above
-    correct_answer: C
-    explanation: '`CredentialManager` (in `google.adk.auth.credential_manager`) handles the credential workflow.'
-    benchmark_type: multiple_choice
-  - question: How do you enable sending OpenTelemetry traces to Google Cloud Trace when running a local API server?
-    options:
-      A: Set `RunConfig(trace_to_cloud=True)`.
-      B: Use the `--trace_to_cloud` flag with `adk api_server`.
-      C: Set the environment variable `ADK_ENABLE_CLOUD_TRACE=1`.
-      D: Import `google.adk.telemetry` and call `telemetry.enable_cloud_trace()`.
-      E: None of the above
-    correct_answer: B
-    explanation: The CLI command `adk api_server` accepts a `--trace_to_cloud` flag to enable this feature.
-    benchmark_type: multiple_choice
-  - question: Which URI format is used to connect to Spanner for session storage via the `--session_service_uri` flag?
-    options:
-      A: gcp:spanner:{project}:{instance}:{database}
-      B: spanner://{project}/{instance}/{database}
-      C: spanner://projects/{project}/instances/{instance}/databases/{database}
-      D: google-spanner://{instance}/{database}
-      E: None of the above
-    correct_answer: C
-    explanation: The ADK standard URI format for Spanner is `spanner://projects/.../instances/.../databases/...`.
-    benchmark_type: multiple_choice
-  - question: When deploying to Cloud Run using `adk deploy cloud_run`, which flag allows you to specify a custom service name?
-    options:
-      A: --cloud_run_service
-      B: --service_id
-      C: --service
-      D: --name
-      E: None of the above
-    correct_answer: E
-    explanation: The correct flag is `--service_name`.
-    benchmark_type: multiple_choice
-  - question: You want to pass an image to an `LlmAgent` as part of the user's message. How should you structure the content?
-    options:
-      A: types.Content(role='user', text='Here is an image', attachments=[my_image])
-      B: types.Content(parts=[types.Part(inline_data=types.Blob(mime_type='image/png', data=...))])
-      C: types.Message(image_url='...')
-      D: types.Content(parts=[types.Part(image=my_image)])
-      E: None of the above
-    correct_answer: B
-    explanation: Images are typically passed as `types.Part` containing `inline_data` (Blob) or `file_data`.
-    benchmark_type: multiple_choice
-  - question: If a tool execution fails, and you want to handle the exception *within the agent's callback lifecycle* before the model sees it, which callback should you use?
-    options:
-      A: handle_error_callback
-      B: on_tool_error_callback
-      C: after_tool_callback
-      D: tool_exception_handler
-      E: None of the above
-    correct_answer: B
-    explanation: '`on_tool_error_callback` is specifically designed to catch and potentially recover from exceptions raised during tool execution.'
-    benchmark_type: multiple_choice
-  - question: When defining an `EvalCase` for evaluation, which of the following statements is true regarding `conversation` and `conversation_scenario` fields?
-    options:
-      A: Both must be provided to ensure coverage.
-      B: '`conversation_scenario` is deprecated; only `conversation` is supported.'
-      C: Exactly one of them must be provided (XOR constraint).
-      D: Neither is required if `session_input` is set.
-      E: None of the above
-    correct_answer: C
-    explanation: '`EvalCase` enforces a validator ensuring exactly one of `conversation` or `conversation_scenario` is set.'
-    benchmark_type: multiple_choice
-  - question: In the context of ADK evaluation, what does the `IntermediateData` object primarily capture?
-    options:
-      A: The raw HTTP requests sent to the Vertex AI API.
-      B: The trajectory of tool uses and tool responses generated during an agent's execution.
-      C: The debug logs printed to stdout.
-      D: The internal hidden states of the LSTM model.
-      E: None of the above
-    correct_answer: B
-    explanation: '`IntermediateData` stores `tool_uses`, `tool_responses`, and `intermediate_responses` to track the agent''s path to the final answer.'
-    benchmark_type: multiple_choice
-  - question: How do you enable context caching for an entire application?
-    options:
-      A: Set `cache=True` on every `LlmAgent`.
-      B: Set `context_cache_config` on the `App` instance.
-      C: Use `CachePlugin`.
-      D: Set `enable_cache=True` on `Runner`.
-      E: None of the above
-    correct_answer: B
-    explanation: '`App.context_cache_config` applies caching to all agents in the app.'
-    benchmark_type: multiple_choice
-  - question: Which plugin would you use to log all agent interactions to an external monitoring service?
-    options:
-      A: EventsCompactionConfig.
-      B: MetricService.
-      C: MonitorPlugin.
-      D: LoggingPlugin (or a custom plugin inheriting BasePlugin).
-      E: None of the above
-    correct_answer: D
-    explanation: Plugins (specifically `LoggingPlugin` or custom ones) are the standard way to observe execution.
-    benchmark_type: multiple_choice
-  - question: You want to save specific agent outputs to the session state automatically. What `LlmAgent` parameter do you use?
-    options:
-      A: save_to_state
-      B: state_variable
-      C: export_output
-      D: output_key
-      E: None of the above
-    correct_answer: D
-    explanation: '`output_key` specifies the session state key to store the agent''s final response.'
-    benchmark_type: multiple_choice
-  - question: To enforce a structured JSON output from an `LlmAgent`, which parameter should be set?
-    options:
-      A: json_schema
-      B: response_format
-      C: structure_config
-      D: output_schema
-      E: None of the above
-    correct_answer: D
-    explanation: '`output_schema` accepts a Pydantic model to enforce output structure.'
-    benchmark_type: multiple_choice
-  - question: What is the correct way to provide a static system instruction that benefits from context caching?
-    options:
-      A: Use the `system_instruction` parameter in `generate_content_config`.
-      B: Hardcode it in the `instruction` string.
-      C: Use `GlobalInstructionPlugin`.
-      D: Use the `static_instruction` parameter.
-      E: None of the above
-    correct_answer: D
-    explanation: '`static_instruction` is specifically designed for invariant content to optimize caching.'
-    benchmark_type: multiple_choice
-  - question: How do you configure an app to support pausing and resuming execution?
-    options:
-      A: Set `resumability_config` on the `App`.
-      B: Set `persistent=True` on `Runner`.
-      C: Use `ResumePlugin`.
-      D: It is enabled by default.
-      E: None of the above
-    correct_answer: A
-    explanation: '`App.resumability_config` controls the resumability features.'
-    benchmark_type: multiple_choice
-  - question: You want to automatically summarize old events to manage context window size. What should you configure?
-    options:
-      A: events_compaction_config on the App.
-      B: max_history in LlmAgent.
-      C: SummaryAgent as a sub-agent.
-      D: ContextWindowCompressionConfig in RunConfig.
-      E: None of the above
-    correct_answer: A
-    explanation: '`events_compaction_config` on the `App` enables the event summarizer.'
-    benchmark_type: multiple_choice
-  - question: What is the primary use case for `GlobalInstructionPlugin`?
-    options:
-      A: Applying a prompt instruction to all agents.
-      B: Configuring LLM parameters.
-      C: Managing session state.
-      D: Defining tools.
-      E: None of the above
-    correct_answer: A
-    explanation: '`GlobalInstructionPlugin` is designed for Applying a prompt instruction to all agents.'
-    benchmark_type: multiple_choice
-  - question: What is the primary use case for `LoggingPlugin`?
-    options:
-      A: Configuring LLM parameters.
-      B: Observing events without modifying them.
-      C: Defining tools.
-      D: Managing session state.
-      E: None of the above
-    correct_answer: B
-    explanation: '`LoggingPlugin` is designed for Observing events without modifying them.'
-    benchmark_type: multiple_choice
-  - question: What is the primary use case for `SaveFilesAsArtifactsPlugin`?
-    options:
-      A: Configuring LLM parameters.
-      B: Saving file inputs/outputs automatically.
-      C: Managing session state.
-      D: Defining tools.
-      E: None of the above
-    correct_answer: B
-    explanation: '`SaveFilesAsArtifactsPlugin` is designed for Saving file inputs/outputs automatically.'
-    benchmark_type: multiple_choice
-  - question: What is the primary use case for `ReflectAndRetryToolPlugin`?
-    options:
-      A: Defining tools.
-      B: Configuring LLM parameters.
-      C: Retrying failed tool calls.
-      D: Managing session state.
-      E: None of the above
-    correct_answer: C
-    explanation: '`ReflectAndRetryToolPlugin` is designed for Retrying failed tool calls.'
-    benchmark_type: multiple_choice
-  - question: Which `LlmAgent` parameter (type `str`) is used for Automatically saving agent output to session state.?
-    options:
-      A: settings
-      B: output_key
-      C: config
-      D: setup
-      E: None of the above
-    correct_answer: B
-    explanation: '`output_key` is used for Automatically saving agent output to session state.'
-    benchmark_type: multiple_choice
-  - question: Which `LlmAgent` parameter (type `Content`) is used for Optimizing context caching for fixed instructions.?
-    options:
-      A: setup
-      B: static_instruction
-      C: config
-      D: settings
-      E: None of the above
-    correct_answer: B
-    explanation: '`static_instruction` is used for Optimizing context caching for fixed instructions.'
-    benchmark_type: multiple_choice
-  - question: Which `LlmAgent` parameter (type `BaseModel`) is used for Enforcing structured JSON output.?
-    options:
-      A: settings
-      B: config
-      C: setup
-      D: output_schema
-      E: None of the above
-    correct_answer: D
-    explanation: '`output_schema` is used for Enforcing structured JSON output.'
-    benchmark_type: multiple_choice
-  - question: Which `LlmAgent` parameter (type `BaseModel`) is used for Defining expected input when used as a tool.?
-    options:
-      A: settings
-      B: config
-      C: setup
-      D: input_schema
-      E: None of the above
-    correct_answer: D
-    explanation: '`input_schema` is used for Defining expected input when used as a tool.'
-    benchmark_type: multiple_choice
-  - question: What is the primary use case for `TimeLimitPlugin`?
-    options:
-      A: Defining tools.
-      B: Managing session state.
-      C: Limiting execution time.
-      D: Configuring LLM parameters.
-      E: None of the above
-    correct_answer: C
-    explanation: '`TimeLimitPlugin` is designed for Limiting execution time.'
-    benchmark_type: multiple_choice
-  - question: What is the primary use case for `CostTrackingPlugin`?
-    options:
-      A: Monitoring token costs.
-      B: Defining tools.
-      C: Configuring LLM parameters.
-      D: Managing session state.
-      E: None of the above
-    correct_answer: A
-    explanation: '`CostTrackingPlugin` is designed for Monitoring token costs.'
-    benchmark_type: multiple_choice
-  - question: What is the primary use case for `SafetyFilterPlugin`?
-    options:
-      A: Managing session state.
-      B: Filtering harmful content.
-      C: Configuring LLM parameters.
-      D: Defining tools.
-      E: None of the above
-    correct_answer: B
-    explanation: '`SafetyFilterPlugin` is designed for Filtering harmful content.'
-    benchmark_type: multiple_choice
-  - question: What is the primary use case for `ContextFilterPlugin`?
-    options:
-      A: Managing session state.
-      B: Configuring LLM parameters.
-      C: Managing context window.
-      D: Defining tools.
-      E: None of the above
-    correct_answer: C
-    explanation: '`ContextFilterPlugin` is designed for Managing context window.'
-    benchmark_type: multiple_choice
-  - question: Which `LlmAgent` parameter (type `BasePlanner`) is used for Enabling chain-of-thought or step-by-step planning.?
-    options:
-      A: planner
-      B: settings
-      C: setup
-      D: config
-      E: None of the above
-    correct_answer: A
-    explanation: '`planner` is used for Enabling chain-of-thought or step-by-step planning.'
-    benchmark_type: multiple_choice
-  - question: Which `LlmAgent` parameter (type `BaseCodeExecutor`) is used for Enabling Python code execution.?
-    options:
-      A: settings
-      B: setup
-      C: code_executor
-      D: config
-      E: None of the above
-    correct_answer: C
-    explanation: '`code_executor` is used for Enabling Python code execution.'
-    benchmark_type: multiple_choice
-  - question: Which `LlmAgent` parameter (type `str`) is used for Defining the LLM model to use.?
-    options:
-      A: model
-      B: settings
-      C: setup
-      D: config
-      E: None of the above
-    correct_answer: A
-    explanation: '`model` is used for Defining the LLM model to use.'
-    benchmark_type: multiple_choice
-  - question: Which `LlmAgent` parameter (type `str`) is used for Describing agent capability for delegation.?
-    options:
-      A: setup
-      B: settings
-      C: description
-      D: config
-      E: None of the above
-    correct_answer: C
-    explanation: '`description` is used for Describing agent capability for delegation.'
-    benchmark_type: multiple_choice
-  - question: What does `RunConfig.max_llm_calls` control?
-    options:
-      A: Tool selection.
-      B: Limit total LLM calls.
-      C: Nothing.
-      D: Agent name.
-      E: None of the above
-    correct_answer: B
-    explanation: '`max_llm_calls` controls Limit total LLM calls.'
-    benchmark_type: multiple_choice
-  - question: What does `RunConfig.streaming_mode` control?
-    options:
-      A: Agent name.
-      B: Enable SSE or BIDI streaming.
-      C: Nothing.
-      D: Tool selection.
-      E: None of the above
-    correct_answer: B
-    explanation: '`streaming_mode` controls Enable SSE or BIDI streaming.'
-    benchmark_type: multiple_choice
-  - question: What does `RunConfig.save_live_blob` control?
-    options:
-      A: Tool selection.
-      B: Save audio/video blobs.
-      C: Agent name.
-      D: Nothing.
-      E: None of the above
-    correct_answer: B
-    explanation: '`save_live_blob` controls Save audio/video blobs.'
-    benchmark_type: multiple_choice
-  - question: What does `RunConfig.speech_config` control?
-    options:
-      A: Agent name.
-      B: Tool selection.
-      C: Nothing.
-      D: Configure TTS/STT settings.
-      E: None of the above
-    correct_answer: D
-    explanation: '`speech_config` controls Configure TTS/STT settings.'
-    benchmark_type: multiple_choice
-  - question: Which `LlmAgent` parameter (type `str`) is used for Defining the prompt for the agent.?
-    options:
-      A: settings
-      B: instruction
-      C: setup
-      D: config
-      E: None of the above
-    correct_answer: B
-    explanation: '`instruction` is used for Defining the prompt for the agent.'
-    benchmark_type: multiple_choice
-  - question: Which `LlmAgent` parameter (type `list`) is used for Providing capabilities to the agent.?
-    options:
-      A: setup
-      B: settings
-      C: config
-      D: tools
-      E: None of the above
-    correct_answer: D
-    explanation: '`tools` is used for Providing capabilities to the agent.'
-    benchmark_type: multiple_choice
-  - question: What does `RunConfig.response_modalities` control?
-    options:
-      A: Nothing.
-      B: Configure output format (TEXT/AUDIO).
-      C: Tool selection.
-      D: Agent name.
-      E: None of the above
-    correct_answer: B
-    explanation: '`response_modalities` controls Configure output format (TEXT/AUDIO).'
-    benchmark_type: multiple_choice
-  - question: What does `RunConfig.support_cfc` control?
-    options:
-      A: Nothing.
-      B: Agent name.
-      C: Tool selection.
-      D: Enable Compositional Function Calling.
-      E: None of the above
-    correct_answer: D
-    explanation: '`support_cfc` controls Enable Compositional Function Calling.'
-    benchmark_type: multiple_choice
-  - question: What does `RunConfig.enable_affective_dialog` control?
-    options:
-      A: Nothing.
-      B: Tool selection.
-      C: Enable emotional adaptation.
-      D: Agent name.
-      E: None of the above
-    correct_answer: C
-    explanation: '`enable_affective_dialog` controls Enable emotional adaptation.'
-    benchmark_type: multiple_choice
-  - question: What does `RunConfig.proactivity` control?
-    options:
-      A: Tool selection.
-      B: Nothing.
-      C: Agent name.
-      D: Configure proactive behavior.
-      E: None of the above
-    correct_answer: D
-    explanation: '`proactivity` controls Configure proactive behavior.'
-    benchmark_type: multiple_choice
-  - question: What is `InMemoryRunner` primarily used for?
-    options:
-      A: Testing without external services.
-      B: Nothing.
-      C: Generating random numbers.
-      D: Defining data models.
-      E: None of the above
-    correct_answer: A
-    explanation: '`InMemoryRunner` is for Testing without external services.'
-    benchmark_type: multiple_choice
-  - question: What is `Runner` primarily used for?
-    options:
-      A: Generating random numbers.
-      B: Defining data models.
-      C: Nothing.
-      D: Base class for execution.
-      E: None of the above
-    correct_answer: D
-    explanation: '`Runner` is for Base class for execution.'
-    benchmark_type: multiple_choice
-  - question: What is `App` primarily used for?
-    options:
-      A: Generating random numbers.
-      B: Nothing.
-      C: Defining data models.
-      D: Configuring the application container.
-      E: None of the above
-    correct_answer: D
-    explanation: '`App` is for Configuring the application container.'
-    benchmark_type: multiple_choice
-  - question: What does `ContextCacheConfig.ttl` control?
-    options:
-      A: Network timeout.
-      B: Cache duration/threshold.
-      C: CPU usage.
-      D: Memory size.
-      E: None of the above
-    correct_answer: B
-    explanation: Configures context caching policies.
-    benchmark_type: multiple_choice
-  - question: What does `ContextCacheConfig.token_count_threshold` control?
-    options:
-      A: Memory size.
-      B: CPU usage.
-      C: Network timeout.
-      D: Cache duration/threshold.
-      E: None of the above
-    correct_answer: D
-    explanation: Configures context caching policies.
-    benchmark_type: multiple_choice
-  - question: What is `EventsCompactionConfig.overlap_size` used for?
-    options:
-      A: Tool config.
-      B: Defining compaction logic.
-      C: Logging.
-      D: Agent name.
-      E: None of the above
-    correct_answer: B
-    explanation: Configures event compaction strategy.
-    benchmark_type: multiple_choice
-  - question: What is `EventsCompactionConfig.compaction_interval` used for?
-    options:
-      A: Tool config.
-      B: Defining compaction logic.
-      C: Logging.
-      D: Agent name.
-      E: None of the above
-    correct_answer: B
-    explanation: Configures event compaction strategy.
-    benchmark_type: multiple_choice
-  - question: What is `EventsCompactionConfig.summarizer` used for?
-    options:
-      A: Agent name.
-      B: Defining compaction logic.
-      C: Logging.
-      D: Tool config.
-      E: None of the above
-    correct_answer: B
-    explanation: Configures event compaction strategy.
-    benchmark_type: multiple_choice
-  - question: What does `ResumabilityConfig.is_resumable=True` enable?
-    options:
-      A: Infinite loops.
-      B: Recursive calls.
-      C: Pausing/resuming invocations.
-      D: Parallelism.
-      E: None of the above
-    correct_answer: C
-    explanation: Enables resumption features.
-    benchmark_type: multiple_choice
-  - question: How do you enable `GoogleSearchTool` via configuration?
-    options:
-      A: Use a plugin.
-      B: Import it in `main.py`.
-      C: Add 'GoogleSearchTool' to `tools` list.
-      D: Set `enable_{t}=True`.
-      E: None of the above
-    correct_answer: C
-    explanation: Tools are enabled by adding them to the agent's tool list.
-    benchmark_type: multiple_choice
-  - question: How do you enable `CodeExecutionTool` via configuration?
-    options:
-      A: Use a plugin.
-      B: Import it in `main.py`.
-      C: Set `enable_{t}=True`.
-      D: Add 'CodeExecutionTool' to `tools` list.
-      E: None of the above
-    correct_answer: D
-    explanation: Tools are enabled by adding them to the agent's tool list.
-    benchmark_type: multiple_choice
-  - question: How do you enable `VertexAISearchTool` via configuration?
-    options:
-      A: Add 'VertexAISearchTool' to `tools` list.
-      B: Import it in `main.py`.
-      C: Set `enable_{t}=True`.
-      D: Use a plugin.
-      E: None of the above
-    correct_answer: A
-    explanation: Tools are enabled by adding them to the agent's tool list.
-    benchmark_type: multiple_choice
-  - question: You want to configure an `LlmAgent` with a specific set of tools (e.g., 5 tools). How do you pass them?
-    options:
-      A: Use a Toolset.
-      B: Pass them one by one to `add_tool`.
-      C: Define separate agents for each tool.
-      D: Pass a list containing the tool instances to the `tools` parameter.
-      E: None of the above
-    correct_answer: D
-    explanation: Tools are passed as a list to the `tools` parameter of the `LlmAgent`.
-    benchmark_type: multiple_choice
+- id: configure_adk_features_mc:which_is_the_correct_import_statement_for_the_runn
+  question: Which is the correct import statement for the `Runner` class?
+  options:
+    A: from google.adk.runners import Runner
+    B: from google.adk.agent_runner import Runner
+    C: from google.adk.factory import Runner
+    D: from google.adk.core import Runner
+    E: None of the above
+  correct_answer: A
+  explanation: '`Runner` is defined in `google.adk.runners` (and re-exported in `google.adk`).'
+  benchmark_type: multiple_choice
+- id: configure_adk_features_mc:you_need_to_inspect_an_event_object_which_import_a
+  question: You need to inspect an `Event` object. Which import allows you to reference the `Event` class for type hinting?
+  options:
+    A: from google.adk.types import Event
+    B: from google.adk.event import Event
+    C: from google.adk.models import Event
+    D: from google.adk.core.events import Event
+    E: None of the above
+  correct_answer: E
+  explanation: The correct import is `from google.adk.events.event import Event`.
+  benchmark_type: multiple_choice
+- id: configure_adk_features_mc:when_calling_runner_run_async_which_parameter_is_u
+  question: When calling `runner.run_async()`, which parameter is used to pass the user's input message?
+  options:
+    A: message
+    B: input
+    C: new_message
+    D: content
+    E: None of the above
+  correct_answer: C
+  explanation: The parameter `new_message` is used to pass the user's input content.
+  benchmark_type: multiple_choice
+- id: configure_adk_features_mc:you_are_initializing_an_app_which_parameter_is_mut
+  question: You are initializing an `App`. Which parameter is mutually exclusive with providing `app_name` and `root_agent` directly to the `Runner`?
+  options:
+    A: resumability_config
+    B: plugins
+    C: application
+    D: context_cache_config
+    E: None of the above
+  correct_answer: E
+  explanation: The correct parameter is `app`. You provide either an `App` object via `app` OR `app_name` and `agent` separately.
+  benchmark_type: multiple_choice
+- id: configure_adk_features_mc:which_google_genai_type_represents_the_fundamental
+  question: Which Google GenAI type represents the fundamental unit of content (text, image, function call) within a message?
+  options:
+    A: types.Element
+    B: types.Part
+    C: types.Item
+    D: types.Chunk
+    E: None of the above
+  correct_answer: B
+  explanation: '`types.Part` is the atomic unit of content in the Gemini API and ADK.'
+  benchmark_type: multiple_choice
+- id: configure_adk_features_mc:how_do_you_correctly_construct_a_user_message_cont
+  question: How do you correctly construct a user message content object with text?
+  options:
+    A: types.Content(role='user', text='Hello')
+    B: types.Message(role='user', content='Hello')
+    C: types.UserMessage(text='Hello')
+    D: types.Content(role='user', parts=[types.Part(text='Hello')])
+    E: None of the above
+  correct_answer: D
+  explanation: '`types.Content` takes a list of `types.Part` objects in the `parts` parameter.'
+  benchmark_type: multiple_choice
+- id: configure_adk_features_mc:when_defining_a_custom_agent_class_which_abstract_
+  question: When defining a custom agent class, which abstract base class must you inherit from?
+  options:
+    A: AdkAgent
+    B: CustomAgent
+    C: Agent
+    D: AbstractAgent
+    E: None of the above
+  correct_answer: E
+  explanation: The correct base class is `BaseAgent` (from `google.adk.agents.base_agent`).
+  benchmark_type: multiple_choice
+- id: configure_adk_features_mc:you_are_implementing_a_custom_tool_which_method_mu
+  question: You are implementing a custom tool. Which method must you implement from `BaseTool`?
+  options:
+    A: execute()
+    B: run()
+    C: __call__()
+    D: The method defined in the tool's definition (schema).
+    E: None of the above
+  correct_answer: D
+  explanation: '`BaseTool` implementation details depend on the specific tool type (e.g., `FunctionTool` wraps a callable), but generally, the runner invokes the underlying function.'
+  benchmark_type: multiple_choice
+- id: configure_adk_features_mc:what_is_the_correct_signature_for_a_before_tool_ca
+  question: What is the correct signature for a `before_tool_callback` function?
+  options:
+    A: 'async def callback(tool, args, context):'
+    B: 'def callback(tool, args):'
+    C: 'async def callback(tool, args, context, response):'
+    D: 'async def callback(tool_name, arguments):'
+    E: None of the above
+  correct_answer: A
+  explanation: 'The signature is `async def callback(tool: BaseTool, args: dict, tool_context: ToolContext)`.'
+  benchmark_type: multiple_choice
+- id: configure_adk_features_mc:in_a_baseplugin_what_is_the_correct_signature_for_
+  question: In a `BasePlugin`, what is the correct signature for `run_on_event_callback`?
+  options:
+    A: 'async def run_on_event_callback(self, event: Event) -> Event:'
+    B: 'def run_on_event_callback(self, event: Event):'
+    C: 'async def run_on_event_callback(self, context: dict, event: Event) -> Event:'
+    D: 'async def run_on_event_callback(self, invocation_context: InvocationContext, event: Event) -> Optional[Event]:'
+    E: None of the above
+  correct_answer: D
+  explanation: The callback receives the `InvocationContext` and the `Event`, and returns an optional modified `Event`.
+  benchmark_type: multiple_choice
+- id: configure_adk_features_mc:what_is_the_primary_purpose_of_invocationcontext
+  question: What is the primary purpose of `InvocationContext`?
+  options:
+    A: To configure the LLM's generation parameters.
+    B: To manage the state and dependencies (services, config) for a single agent execution turn.
+    C: To define the tools available to the agent.
+    D: To store the chat history of the session.
+    E: None of the above
+  correct_answer: B
+  explanation: '`InvocationContext` holds the scoped state, services, and configuration for the current run/invocation.'
+  benchmark_type: multiple_choice
+- id: configure_adk_features_mc:you_want_to_create_a_custom_artifact_service_which
+  question: You want to create a custom artifact service. Which class should you inherit from?
+  options:
+    A: StorageService
+    B: BaseArtifactService
+    C: ArtifactProvider
+    D: ArtifactManager
+    E: None of the above
+  correct_answer: B
+  explanation: '`BaseArtifactService` is the ABC for implementing artifact storage backends.'
+  benchmark_type: multiple_choice
+- id: configure_adk_features_mc:how_do_you_configure_an_app_to_automatically_compa
+  question: How do you configure an `App` to automatically compact events in the session history?
+  options:
+    A: Pass an `EventsCompactionConfig` object to the `events_compaction_config` parameter of the `App` constructor.
+    B: Set `auto_compact=True` in the `Runner` constructor.
+    C: Use the `CompactionPlugin` in the plugins list.
+    D: Call `app.compact_events()` manually before every run.
+    E: None of the above
+  correct_answer: A
+  explanation: Event compaction is configured at the App level using `EventsCompactionConfig`.
+  benchmark_type: multiple_choice
+- id: configure_adk_features_mc:when_using_inmemorysessionservice_how_is_session_d
+  question: When using `InMemorySessionService`, how is session data persisted?
+  options:
+    A: It is stored in a SQLite database.
+    B: It is kept in a Python dictionary in RAM and lost when the process exits.
+    C: It is saved to a local JSON file.
+    D: It is uploaded to Google Cloud Storage.
+    E: None of the above
+  correct_answer: B
+  explanation: '`InMemorySessionService` is ephemeral and stores data only in memory.'
+  benchmark_type: multiple_choice
+- id: configure_adk_features_mc:what_is_the_purpose_of_the_state_delta_parameter_i
+  question: What is the purpose of the `state_delta` parameter in `runner.run_async`?
+  options:
+    A: To update the agent's configuration for the current run.
+    B: To modify the session state (variables shared across agents) for the current invocation.
+    C: To change the LLM's system instruction dynamically.
+    D: To inject temporary tools for the current turn.
+    E: None of the above
+  correct_answer: B
+  explanation: '`state_delta` allows you to inject or update session state variables at the start of a run.'
+  benchmark_type: multiple_choice
+- id: configure_adk_features_mc:which_class_allows_you_to_define_a_tool_from_an_op
+  question: Which class allows you to define a tool from an OpenAPI specification?
+  options:
+    A: ApiTool
+    B: SpecTool
+    C: SwaggerTool
+    D: OpenApiTool
+    E: None of the above
+  correct_answer: D
+  explanation: '`OpenApiTool` is designed to wrap OpenAPI specs into ADK-compatible tools.'
+  benchmark_type: multiple_choice
+- id: configure_adk_features_mc:if_you_want_to_use_a_google_search_tool_that_retur
+  question: If you want to use a Google Search tool that returns structured results, which tool should you use?
+  options:
+    A: SearchTool
+    B: GoogleSearchTool
+    C: SerpApiTool
+    D: WebSearch
+    E: None of the above
+  correct_answer: B
+  explanation: '`GoogleSearchTool` (often imported as `google_search`) provides access to Google Search.'
+  benchmark_type: multiple_choice
+- id: configure_adk_features_mc:what_is_the_correct_way_to_access_the_session_id_f
+  question: What is the correct way to access the `session_id` from within a tool's execution logic?
+  options:
+    A: Access `self.session_id` (if the tool is a class).
+    B: It is available in the `tool_context` object passed to the tool function (if configured).
+    C: Use `google.adk.get_current_session_id()`.
+    D: It is passed as an argument named `session_id`.
+    E: None of the above
+  correct_answer: B
+  explanation: Contextual information like `session_id` is injected via `tool_context` if the tool signature requests it.
+  benchmark_type: multiple_choice
+- id: configure_adk_features_mc:which_event_type_indicates_that_the_model_has_fini
+  question: Which event type indicates that the model has finished generating a text response?
+  options:
+    A: Event(content=...)
+    B: Event(status='finished')
+    C: Event(type='response_complete')
+    D: The event stream simply ends.
+    E: None of the above
+  correct_answer: A
+  explanation: A standard `Event` with `content` populated (and `partial=False` by default) represents a completed turn/response chunk.
+  benchmark_type: multiple_choice
+- id: configure_adk_features_mc:you_want_to_use_a_parallelagent_to_run_three_sub_a
+  question: You want to use a `ParallelAgent` to run three sub-agents. How does the `ParallelAgent` determine when it is finished?
+  options:
+    A: It waits for all sub-agents to finish their execution.
+    B: It waits for the first agent to finish.
+    C: It runs for a fixed timeout.
+    D: It requires a manual stop signal.
+    E: None of the above
+  correct_answer: A
+  explanation: '`ParallelAgent` aggregates results from all its sub-agents.'
+  benchmark_type: multiple_choice
+- id: configure_adk_features_mc:what_is_the_model_client_property_on_an_llmagent_u
+  question: What is the `model_client` property on an `LlmAgent` used for?
+  options:
+    A: To configure HTTP proxies.
+    B: To change the model name at runtime.
+    C: It is an internal property and should not be used.
+    D: To directly access the underlying GenAI client for raw API calls.
+    E: None of the above
+  correct_answer: D
+  explanation: It provides access to the configured model client wrapper.
+  benchmark_type: multiple_choice
+- id: configure_adk_features_mc:how_do_you_specify_that_a_tool_function_should_not
+  question: How do you specify that a tool function should *not* return its output to the model, but instead save it directly to the session state?
+  options:
+    A: Modify the `session.state` directly within the tool and return a confirmation string.
+    B: Use the `side_effect=True` decorator.
+    C: This is not possible; all tool outputs go to the model.
+    D: Return `None` from the function.
+    E: None of the above
+  correct_answer: A
+  explanation: Tools can modify state via context. While they must return *something* to the model (the tool response), the *meaningful* data acts as a side effect on the state.
+  benchmark_type: multiple_choice
+- id: configure_adk_features_mc:which_component_is_responsible_for_truncating_conv
+  question: Which component is responsible for truncating conversation history to fit within the model's context window?
+  options:
+    A: The `SessionService`.
+    B: The `LlmAgent` handles it internally.
+    C: The `Runner` automatically does this.
+    D: The `ContextFilterPlugin` (or similar compaction logic).
+    E: None of the above
+  correct_answer: D
+  explanation: Plugins like `ContextFilterPlugin` or `CompactionPlugin` (configured via `EventsCompactionConfig`) handle history truncation/compaction.
+  benchmark_type: multiple_choice
+- id: configure_adk_features_mc:you_are_using_a_loopagent_and_want_to_prevent_it_f
+  question: You are using a `LoopAgent` and want to prevent it from running infinitely if the sub-agents never escalate. Which parameter should you set?
+  options:
+    A: max_iterations
+    B: loop_limit
+    C: max_steps
+    D: timeout
+    E: None of the above
+  correct_answer: A
+  explanation: '`LoopAgent` uses `max_iterations` to limit the number of times it loops through its sub-agents.'
+  benchmark_type: multiple_choice
+- id: configure_adk_features_mc:which_runconfig_parameter_allows_you_to_limit_the_
+  question: Which `RunConfig` parameter allows you to limit the total number of LLM calls in a single run to prevent runaway costs?
+  options:
+    A: budget
+    B: max_tokens
+    C: llm_call_limit
+    D: call_limit
+    E: None of the above
+  correct_answer: E
+  explanation: The correct parameter is `max_llm_calls`.
+  benchmark_type: multiple_choice
+- id: configure_adk_features_mc:you_want_to_automatically_save_any_file_blobs_imag
+  question: You want to automatically save any file blobs (images, audio) sent by the user as artifacts in the artifact service. Which plugin should you use?
+  options:
+    A: SaveArtifactsPlugin
+    B: BlobStoragePlugin
+    C: FilePersistencePlugin
+    D: ArtifactSaverPlugin
+    E: None of the above
+  correct_answer: E
+  explanation: The correct plugin class is `SaveFilesAsArtifactsPlugin`.
+  benchmark_type: multiple_choice
+- id: configure_adk_features_mc:when_using_llmagent_with_a_model_that_supports_nat
+  question: When using `LlmAgent` with a model that supports native audio output, how do you configure the response modality?
+  options:
+    A: Set `response_modalities=['AUDIO']` in `RunConfig`.
+    B: Pass `audio=True` to the `LlmAgent` constructor.
+    C: This is automatically detected based on the input.
+    D: Use `types.GenerationConfig(response_mime_type='audio/mp3')`.
+    E: None of the above
+  correct_answer: A
+  explanation: '`RunConfig.response_modalities` controls the expected output format (e.g., TEXT, AUDIO).'
+  benchmark_type: multiple_choice
+- id: configure_adk_features_mc:what_is_the_purpose_of_globalinstructionplugin
+  question: What is the purpose of `GlobalInstructionPlugin`?
+  options:
+    A: To inject a specific instruction into the context of *every* agent in the application.
+    B: To provide a fallback instruction if the user prompt is empty.
+    C: To set the system instruction for the root agent only.
+    D: To override the model's safety settings globally.
+    E: None of the above
+  correct_answer: A
+  explanation: '`GlobalInstructionPlugin` appends (or prepends) instructions to all agents'' contexts, useful for enforcing global policies.'
+  benchmark_type: multiple_choice
+- id: configure_adk_features_mc:you_need_to_retry_a_tool_execution_automatically_i
+  question: You need to retry a tool execution automatically if the tool raises a specific exception or returns an error. Which plugin can help?
+  options:
+    A: ToolErrorPlugin
+    B: RetryPlugin
+    C: RobustnessPlugin
+    D: ReflectRetryToolPlugin
+    E: None of the above
+  correct_answer: E
+  explanation: The correct class name is `ReflectAndRetryToolPlugin`.
+  benchmark_type: multiple_choice
+- id: configure_adk_features_mc:how_does_contextfilterplugin_generally_operate
+  question: How does `ContextFilterPlugin` generally operate?
+  options:
+    A: It removes PII (Personally Identifiable Information) from the context.
+    B: It summarizes the entire conversation history into a single string.
+    C: It filters out tool outputs to save tokens.
+    D: It keeps only the last `N` invocations or messages to fit context limits.
+    E: None of the above
+  correct_answer: D
+  explanation: '`ContextFilterPlugin` is primarily used for sliding window context management, retaining recent history.'
+  benchmark_type: multiple_choice
+- id: configure_adk_features_mc:which_class_allows_you_to_run_an_agent_loop_specif
+  question: Which class allows you to run an agent loop specifically for debugging in a REPL or notebook environment without setting up a full runner loop manually?
+  options:
+    A: runner.run_debug()
+    B: adk.debug_run()
+    C: agent.execute_debug()
+    D: Runner.debug()
+    E: None of the above
+  correct_answer: A
+  explanation: '`runner.run_debug()` is a convenience method for quick experimentation and debugging.'
+  benchmark_type: multiple_choice
+- id: configure_adk_features_mc:when_implementing_a_basetoolset_what_is_the_close_
+  question: When implementing a `BaseToolset`, what is the `close()` method responsible for?
+  options:
+    A: Deleting the tool definitions from the agent.
+    B: Saving the tool state to the session.
+    C: Validating the tool arguments.
+    D: Releasing external resources (e.g., closing HTTP sessions, database connections).
+    E: None of the above
+  correct_answer: D
+  explanation: '`BaseToolset.close()` is an async lifecycle method for cleaning up I/O resources.'
+  benchmark_type: multiple_choice
+- id: configure_adk_features_mc:which_configuration_object_is_used_to_enable_affec
+  question: Which configuration object is used to enable 'affective dialog' (emotion detection and adaptation) in a live run?
+  options:
+    A: LiveConfig(affective=True)
+    B: AffectiveConfig
+    C: EmotionConfig
+    D: RunConfig(enable_affective_dialog=True)
+    E: None of the above
+  correct_answer: D
+  explanation: '`RunConfig` has an `enable_affective_dialog` boolean field.'
+  benchmark_type: multiple_choice
+- id: configure_adk_features_mc:which_class_is_responsible_for_orchestrating_the_c
+  question: Which class is responsible for orchestrating the complete lifecycle of authentication credentials (loading, exchanging, refreshing) in ADK?
+  options:
+    A: AuthLifecycleManager
+    B: CredentialOrchestrator
+    C: CredentialManager
+    D: AuthService
+    E: None of the above
+  correct_answer: C
+  explanation: '`CredentialManager` (in `google.adk.auth.credential_manager`) handles the credential workflow.'
+  benchmark_type: multiple_choice
+- id: configure_adk_features_mc:how_do_you_enable_sending_opentelemetry_traces_to_
+  question: How do you enable sending OpenTelemetry traces to Google Cloud Trace when running a local API server?
+  options:
+    A: Set `RunConfig(trace_to_cloud=True)`.
+    B: Use the `--trace_to_cloud` flag with `adk api_server`.
+    C: Set the environment variable `ADK_ENABLE_CLOUD_TRACE=1`.
+    D: Import `google.adk.telemetry` and call `telemetry.enable_cloud_trace()`.
+    E: None of the above
+  correct_answer: B
+  explanation: The CLI command `adk api_server` accepts a `--trace_to_cloud` flag to enable this feature.
+  benchmark_type: multiple_choice
+- id: configure_adk_features_mc:which_uri_format_is_used_to_connect_to_spanner_for
+  question: Which URI format is used to connect to Spanner for session storage via the `--session_service_uri` flag?
+  options:
+    A: gcp:spanner:{project}:{instance}:{database}
+    B: spanner://{project}/{instance}/{database}
+    C: spanner://projects/{project}/instances/{instance}/databases/{database}
+    D: google-spanner://{instance}/{database}
+    E: None of the above
+  correct_answer: C
+  explanation: The ADK standard URI format for Spanner is `spanner://projects/.../instances/.../databases/...`.
+  benchmark_type: multiple_choice
+- id: configure_adk_features_mc:when_deploying_to_cloud_run_using_adk_deploy_cloud
+  question: When deploying to Cloud Run using `adk deploy cloud_run`, which flag allows you to specify a custom service name?
+  options:
+    A: --cloud_run_service
+    B: --service_id
+    C: --service
+    D: --name
+    E: None of the above
+  correct_answer: E
+  explanation: The correct flag is `--service_name`.
+  benchmark_type: multiple_choice
+- id: configure_adk_features_mc:you_want_to_pass_an_image_to_an_llmagent_as_part_o
+  question: You want to pass an image to an `LlmAgent` as part of the user's message. How should you structure the content?
+  options:
+    A: types.Content(role='user', text='Here is an image', attachments=[my_image])
+    B: types.Content(parts=[types.Part(inline_data=types.Blob(mime_type='image/png', data=...))])
+    C: types.Message(image_url='...')
+    D: types.Content(parts=[types.Part(image=my_image)])
+    E: None of the above
+  correct_answer: B
+  explanation: Images are typically passed as `types.Part` containing `inline_data` (Blob) or `file_data`.
+  benchmark_type: multiple_choice
+- id: configure_adk_features_mc:if_a_tool_execution_fails_and_you_want_to_handle_t
+  question: If a tool execution fails, and you want to handle the exception *within the agent's callback lifecycle* before the model sees it, which callback should you use?
+  options:
+    A: handle_error_callback
+    B: on_tool_error_callback
+    C: after_tool_callback
+    D: tool_exception_handler
+    E: None of the above
+  correct_answer: B
+  explanation: '`on_tool_error_callback` is specifically designed to catch and potentially recover from exceptions raised during tool execution.'
+  benchmark_type: multiple_choice
+- id: configure_adk_features_mc:when_defining_an_evalcase_for_evaluation_which_of_
+  question: When defining an `EvalCase` for evaluation, which of the following statements is true regarding `conversation` and `conversation_scenario` fields?
+  options:
+    A: Both must be provided to ensure coverage.
+    B: '`conversation_scenario` is deprecated; only `conversation` is supported.'
+    C: Exactly one of them must be provided (XOR constraint).
+    D: Neither is required if `session_input` is set.
+    E: None of the above
+  correct_answer: C
+  explanation: '`EvalCase` enforces a validator ensuring exactly one of `conversation` or `conversation_scenario` is set.'
+  benchmark_type: multiple_choice
+- id: configure_adk_features_mc:in_the_context_of_adk_evaluation_what_does_the_int
+  question: In the context of ADK evaluation, what does the `IntermediateData` object primarily capture?
+  options:
+    A: The raw HTTP requests sent to the Vertex AI API.
+    B: The trajectory of tool uses and tool responses generated during an agent's execution.
+    C: The debug logs printed to stdout.
+    D: The internal hidden states of the LSTM model.
+    E: None of the above
+  correct_answer: B
+  explanation: '`IntermediateData` stores `tool_uses`, `tool_responses`, and `intermediate_responses` to track the agent''s path to the final answer.'
+  benchmark_type: multiple_choice
+- id: configure_adk_features_mc:how_do_you_enable_context_caching_for_an_entire_ap
+  question: How do you enable context caching for an entire application?
+  options:
+    A: Set `cache=True` on every `LlmAgent`.
+    B: Set `context_cache_config` on the `App` instance.
+    C: Use `CachePlugin`.
+    D: Set `enable_cache=True` on `Runner`.
+    E: None of the above
+  correct_answer: B
+  explanation: '`App.context_cache_config` applies caching to all agents in the app.'
+  benchmark_type: multiple_choice
+- id: configure_adk_features_mc:which_plugin_would_you_use_to_log_all_agent_intera
+  question: Which plugin would you use to log all agent interactions to an external monitoring service?
+  options:
+    A: EventsCompactionConfig.
+    B: MetricService.
+    C: MonitorPlugin.
+    D: LoggingPlugin (or a custom plugin inheriting BasePlugin).
+    E: None of the above
+  correct_answer: D
+  explanation: Plugins (specifically `LoggingPlugin` or custom ones) are the standard way to observe execution.
+  benchmark_type: multiple_choice
+- id: configure_adk_features_mc:you_want_to_save_specific_agent_outputs_to_the_ses
+  question: You want to save specific agent outputs to the session state automatically. What `LlmAgent` parameter do you use?
+  options:
+    A: save_to_state
+    B: state_variable
+    C: export_output
+    D: output_key
+    E: None of the above
+  correct_answer: D
+  explanation: '`output_key` specifies the session state key to store the agent''s final response.'
+  benchmark_type: multiple_choice
+- id: configure_adk_features_mc:to_enforce_a_structured_json_output_from_an_llmage
+  question: To enforce a structured JSON output from an `LlmAgent`, which parameter should be set?
+  options:
+    A: json_schema
+    B: response_format
+    C: structure_config
+    D: output_schema
+    E: None of the above
+  correct_answer: D
+  explanation: '`output_schema` accepts a Pydantic model to enforce output structure.'
+  benchmark_type: multiple_choice
+- id: configure_adk_features_mc:what_is_the_correct_way_to_provide_a_static_system
+  question: What is the correct way to provide a static system instruction that benefits from context caching?
+  options:
+    A: Use the `system_instruction` parameter in `generate_content_config`.
+    B: Hardcode it in the `instruction` string.
+    C: Use `GlobalInstructionPlugin`.
+    D: Use the `static_instruction` parameter.
+    E: None of the above
+  correct_answer: D
+  explanation: '`static_instruction` is specifically designed for invariant content to optimize caching.'
+  benchmark_type: multiple_choice
+- id: configure_adk_features_mc:how_do_you_configure_an_app_to_support_pausing_and
+  question: How do you configure an app to support pausing and resuming execution?
+  options:
+    A: Set `resumability_config` on the `App`.
+    B: Set `persistent=True` on `Runner`.
+    C: Use `ResumePlugin`.
+    D: It is enabled by default.
+    E: None of the above
+  correct_answer: A
+  explanation: '`App.resumability_config` controls the resumability features.'
+  benchmark_type: multiple_choice
+- id: configure_adk_features_mc:you_want_to_automatically_summarize_old_events_to_
+  question: You want to automatically summarize old events to manage context window size. What should you configure?
+  options:
+    A: events_compaction_config on the App.
+    B: max_history in LlmAgent.
+    C: SummaryAgent as a sub-agent.
+    D: ContextWindowCompressionConfig in RunConfig.
+    E: None of the above
+  correct_answer: A
+  explanation: '`events_compaction_config` on the `App` enables the event summarizer.'
+  benchmark_type: multiple_choice
+- id: configure_adk_features_mc:what_is_the_primary_use_case_for_globalinstruction
+  question: What is the primary use case for `GlobalInstructionPlugin`?
+  options:
+    A: Applying a prompt instruction to all agents.
+    B: Configuring LLM parameters.
+    C: Managing session state.
+    D: Defining tools.
+    E: None of the above
+  correct_answer: A
+  explanation: '`GlobalInstructionPlugin` is designed for Applying a prompt instruction to all agents.'
+  benchmark_type: multiple_choice
+- id: configure_adk_features_mc:what_is_the_primary_use_case_for_loggingplugin
+  question: What is the primary use case for `LoggingPlugin`?
+  options:
+    A: Configuring LLM parameters.
+    B: Observing events without modifying them.
+    C: Defining tools.
+    D: Managing session state.
+    E: None of the above
+  correct_answer: B
+  explanation: '`LoggingPlugin` is designed for Observing events without modifying them.'
+  benchmark_type: multiple_choice
+- id: configure_adk_features_mc:what_is_the_primary_use_case_for_savefilesasartifa
+  question: What is the primary use case for `SaveFilesAsArtifactsPlugin`?
+  options:
+    A: Configuring LLM parameters.
+    B: Saving file inputs/outputs automatically.
+    C: Managing session state.
+    D: Defining tools.
+    E: None of the above
+  correct_answer: B
+  explanation: '`SaveFilesAsArtifactsPlugin` is designed for Saving file inputs/outputs automatically.'
+  benchmark_type: multiple_choice
+- id: configure_adk_features_mc:what_is_the_primary_use_case_for_reflectandretryto
+  question: What is the primary use case for `ReflectAndRetryToolPlugin`?
+  options:
+    A: Defining tools.
+    B: Configuring LLM parameters.
+    C: Retrying failed tool calls.
+    D: Managing session state.
+    E: None of the above
+  correct_answer: C
+  explanation: '`ReflectAndRetryToolPlugin` is designed for Retrying failed tool calls.'
+  benchmark_type: multiple_choice
+- id: configure_adk_features_mc:which_llmagent_parameter_type_str_is_used_for_auto
+  question: Which `LlmAgent` parameter (type `str`) is used for Automatically saving agent output to session state.?
+  options:
+    A: settings
+    B: output_key
+    C: config
+    D: setup
+    E: None of the above
+  correct_answer: B
+  explanation: '`output_key` is used for Automatically saving agent output to session state.'
+  benchmark_type: multiple_choice
+- id: configure_adk_features_mc:which_llmagent_parameter_type_content_is_used_for_
+  question: Which `LlmAgent` parameter (type `Content`) is used for Optimizing context caching for fixed instructions.?
+  options:
+    A: setup
+    B: static_instruction
+    C: config
+    D: settings
+    E: None of the above
+  correct_answer: B
+  explanation: '`static_instruction` is used for Optimizing context caching for fixed instructions.'
+  benchmark_type: multiple_choice
+- id: configure_adk_features_mc:which_llmagent_parameter_type_basemodel_is_used_fo
+  question: Which `LlmAgent` parameter (type `BaseModel`) is used for Enforcing structured JSON output.?
+  options:
+    A: settings
+    B: config
+    C: setup
+    D: output_schema
+    E: None of the above
+  correct_answer: D
+  explanation: '`output_schema` is used for Enforcing structured JSON output.'
+  benchmark_type: multiple_choice
+- id: configure_adk_features_mc:which_llmagent_parameter_type_basemodel_is_used_fo_2
+  question: Which `LlmAgent` parameter (type `BaseModel`) is used for Defining expected input when used as a tool.?
+  options:
+    A: settings
+    B: config
+    C: setup
+    D: input_schema
+    E: None of the above
+  correct_answer: D
+  explanation: '`input_schema` is used for Defining expected input when used as a tool.'
+  benchmark_type: multiple_choice
+- id: configure_adk_features_mc:what_is_the_primary_use_case_for_timelimitplugin
+  question: What is the primary use case for `TimeLimitPlugin`?
+  options:
+    A: Defining tools.
+    B: Managing session state.
+    C: Limiting execution time.
+    D: Configuring LLM parameters.
+    E: None of the above
+  correct_answer: C
+  explanation: '`TimeLimitPlugin` is designed for Limiting execution time.'
+  benchmark_type: multiple_choice
+- id: configure_adk_features_mc:what_is_the_primary_use_case_for_costtrackingplugi
+  question: What is the primary use case for `CostTrackingPlugin`?
+  options:
+    A: Monitoring token costs.
+    B: Defining tools.
+    C: Configuring LLM parameters.
+    D: Managing session state.
+    E: None of the above
+  correct_answer: A
+  explanation: '`CostTrackingPlugin` is designed for Monitoring token costs.'
+  benchmark_type: multiple_choice
+- id: configure_adk_features_mc:what_is_the_primary_use_case_for_safetyfilterplugi
+  question: What is the primary use case for `SafetyFilterPlugin`?
+  options:
+    A: Managing session state.
+    B: Filtering harmful content.
+    C: Configuring LLM parameters.
+    D: Defining tools.
+    E: None of the above
+  correct_answer: B
+  explanation: '`SafetyFilterPlugin` is designed for Filtering harmful content.'
+  benchmark_type: multiple_choice
+- id: configure_adk_features_mc:what_is_the_primary_use_case_for_contextfilterplug
+  question: What is the primary use case for `ContextFilterPlugin`?
+  options:
+    A: Managing session state.
+    B: Configuring LLM parameters.
+    C: Managing context window.
+    D: Defining tools.
+    E: None of the above
+  correct_answer: C
+  explanation: '`ContextFilterPlugin` is designed for Managing context window.'
+  benchmark_type: multiple_choice
+- id: configure_adk_features_mc:which_llmagent_parameter_type_baseplanner_is_used_
+  question: Which `LlmAgent` parameter (type `BasePlanner`) is used for Enabling chain-of-thought or step-by-step planning.?
+  options:
+    A: planner
+    B: settings
+    C: setup
+    D: config
+    E: None of the above
+  correct_answer: A
+  explanation: '`planner` is used for Enabling chain-of-thought or step-by-step planning.'
+  benchmark_type: multiple_choice
+- id: configure_adk_features_mc:which_llmagent_parameter_type_basecodeexecutor_is_
+  question: Which `LlmAgent` parameter (type `BaseCodeExecutor`) is used for Enabling Python code execution.?
+  options:
+    A: settings
+    B: setup
+    C: code_executor
+    D: config
+    E: None of the above
+  correct_answer: C
+  explanation: '`code_executor` is used for Enabling Python code execution.'
+  benchmark_type: multiple_choice
+- id: configure_adk_features_mc:which_llmagent_parameter_type_str_is_used_for_defi
+  question: Which `LlmAgent` parameter (type `str`) is used for Defining the LLM model to use.?
+  options:
+    A: model
+    B: settings
+    C: setup
+    D: config
+    E: None of the above
+  correct_answer: A
+  explanation: '`model` is used for Defining the LLM model to use.'
+  benchmark_type: multiple_choice
+- id: configure_adk_features_mc:which_llmagent_parameter_type_str_is_used_for_desc
+  question: Which `LlmAgent` parameter (type `str`) is used for Describing agent capability for delegation.?
+  options:
+    A: setup
+    B: settings
+    C: description
+    D: config
+    E: None of the above
+  correct_answer: C
+  explanation: '`description` is used for Describing agent capability for delegation.'
+  benchmark_type: multiple_choice
+- id: configure_adk_features_mc:what_does_runconfig_max_llm_calls_control
+  question: What does `RunConfig.max_llm_calls` control?
+  options:
+    A: Tool selection.
+    B: Limit total LLM calls.
+    C: Nothing.
+    D: Agent name.
+    E: None of the above
+  correct_answer: B
+  explanation: '`max_llm_calls` controls Limit total LLM calls.'
+  benchmark_type: multiple_choice
+- id: configure_adk_features_mc:what_does_runconfig_streaming_mode_control
+  question: What does `RunConfig.streaming_mode` control?
+  options:
+    A: Agent name.
+    B: Enable SSE or BIDI streaming.
+    C: Nothing.
+    D: Tool selection.
+    E: None of the above
+  correct_answer: B
+  explanation: '`streaming_mode` controls Enable SSE or BIDI streaming.'
+  benchmark_type: multiple_choice
+- id: configure_adk_features_mc:what_does_runconfig_save_live_blob_control
+  question: What does `RunConfig.save_live_blob` control?
+  options:
+    A: Tool selection.
+    B: Save audio/video blobs.
+    C: Agent name.
+    D: Nothing.
+    E: None of the above
+  correct_answer: B
+  explanation: '`save_live_blob` controls Save audio/video blobs.'
+  benchmark_type: multiple_choice
+- id: configure_adk_features_mc:what_does_runconfig_speech_config_control
+  question: What does `RunConfig.speech_config` control?
+  options:
+    A: Agent name.
+    B: Tool selection.
+    C: Nothing.
+    D: Configure TTS/STT settings.
+    E: None of the above
+  correct_answer: D
+  explanation: '`speech_config` controls Configure TTS/STT settings.'
+  benchmark_type: multiple_choice
+- id: configure_adk_features_mc:which_llmagent_parameter_type_str_is_used_for_defi_2
+  question: Which `LlmAgent` parameter (type `str`) is used for Defining the prompt for the agent.?
+  options:
+    A: settings
+    B: instruction
+    C: setup
+    D: config
+    E: None of the above
+  correct_answer: B
+  explanation: '`instruction` is used for Defining the prompt for the agent.'
+  benchmark_type: multiple_choice
+- id: configure_adk_features_mc:which_llmagent_parameter_type_list_is_used_for_pro
+  question: Which `LlmAgent` parameter (type `list`) is used for Providing capabilities to the agent.?
+  options:
+    A: setup
+    B: settings
+    C: config
+    D: tools
+    E: None of the above
+  correct_answer: D
+  explanation: '`tools` is used for Providing capabilities to the agent.'
+  benchmark_type: multiple_choice
+- id: configure_adk_features_mc:what_does_runconfig_response_modalities_control
+  question: What does `RunConfig.response_modalities` control?
+  options:
+    A: Nothing.
+    B: Configure output format (TEXT/AUDIO).
+    C: Tool selection.
+    D: Agent name.
+    E: None of the above
+  correct_answer: B
+  explanation: '`response_modalities` controls Configure output format (TEXT/AUDIO).'
+  benchmark_type: multiple_choice
+- id: configure_adk_features_mc:what_does_runconfig_support_cfc_control
+  question: What does `RunConfig.support_cfc` control?
+  options:
+    A: Nothing.
+    B: Agent name.
+    C: Tool selection.
+    D: Enable Compositional Function Calling.
+    E: None of the above
+  correct_answer: D
+  explanation: '`support_cfc` controls Enable Compositional Function Calling.'
+  benchmark_type: multiple_choice
+- id: configure_adk_features_mc:what_does_runconfig_enable_affective_dialog_contro
+  question: What does `RunConfig.enable_affective_dialog` control?
+  options:
+    A: Nothing.
+    B: Tool selection.
+    C: Enable emotional adaptation.
+    D: Agent name.
+    E: None of the above
+  correct_answer: C
+  explanation: '`enable_affective_dialog` controls Enable emotional adaptation.'
+  benchmark_type: multiple_choice
+- id: configure_adk_features_mc:what_does_runconfig_proactivity_control
+  question: What does `RunConfig.proactivity` control?
+  options:
+    A: Tool selection.
+    B: Nothing.
+    C: Agent name.
+    D: Configure proactive behavior.
+    E: None of the above
+  correct_answer: D
+  explanation: '`proactivity` controls Configure proactive behavior.'
+  benchmark_type: multiple_choice
+- id: configure_adk_features_mc:what_is_inmemoryrunner_primarily_used_for
+  question: What is `InMemoryRunner` primarily used for?
+  options:
+    A: Testing without external services.
+    B: Nothing.
+    C: Generating random numbers.
+    D: Defining data models.
+    E: None of the above
+  correct_answer: A
+  explanation: '`InMemoryRunner` is for Testing without external services.'
+  benchmark_type: multiple_choice
+- id: configure_adk_features_mc:what_is_runner_primarily_used_for
+  question: What is `Runner` primarily used for?
+  options:
+    A: Generating random numbers.
+    B: Defining data models.
+    C: Nothing.
+    D: Base class for execution.
+    E: None of the above
+  correct_answer: D
+  explanation: '`Runner` is for Base class for execution.'
+  benchmark_type: multiple_choice
+- id: configure_adk_features_mc:what_is_app_primarily_used_for
+  question: What is `App` primarily used for?
+  options:
+    A: Generating random numbers.
+    B: Nothing.
+    C: Defining data models.
+    D: Configuring the application container.
+    E: None of the above
+  correct_answer: D
+  explanation: '`App` is for Configuring the application container.'
+  benchmark_type: multiple_choice
+- id: configure_adk_features_mc:what_does_contextcacheconfig_ttl_control
+  question: What does `ContextCacheConfig.ttl` control?
+  options:
+    A: Network timeout.
+    B: Cache duration/threshold.
+    C: CPU usage.
+    D: Memory size.
+    E: None of the above
+  correct_answer: B
+  explanation: Configures context caching policies.
+  benchmark_type: multiple_choice
+- id: configure_adk_features_mc:what_does_contextcacheconfig_token_count_threshold
+  question: What does `ContextCacheConfig.token_count_threshold` control?
+  options:
+    A: Memory size.
+    B: CPU usage.
+    C: Network timeout.
+    D: Cache duration/threshold.
+    E: None of the above
+  correct_answer: D
+  explanation: Configures context caching policies.
+  benchmark_type: multiple_choice
+- id: configure_adk_features_mc:what_is_eventscompactionconfig_overlap_size_used_f
+  question: What is `EventsCompactionConfig.overlap_size` used for?
+  options:
+    A: Tool config.
+    B: Defining compaction logic.
+    C: Logging.
+    D: Agent name.
+    E: None of the above
+  correct_answer: B
+  explanation: Configures event compaction strategy.
+  benchmark_type: multiple_choice
+- id: configure_adk_features_mc:what_is_eventscompactionconfig_compaction_interval
+  question: What is `EventsCompactionConfig.compaction_interval` used for?
+  options:
+    A: Tool config.
+    B: Defining compaction logic.
+    C: Logging.
+    D: Agent name.
+    E: None of the above
+  correct_answer: B
+  explanation: Configures event compaction strategy.
+  benchmark_type: multiple_choice
+- id: configure_adk_features_mc:what_is_eventscompactionconfig_summarizer_used_for
+  question: What is `EventsCompactionConfig.summarizer` used for?
+  options:
+    A: Agent name.
+    B: Defining compaction logic.
+    C: Logging.
+    D: Tool config.
+    E: None of the above
+  correct_answer: B
+  explanation: Configures event compaction strategy.
+  benchmark_type: multiple_choice
+- id: configure_adk_features_mc:what_does_resumabilityconfig_is_resumable_true_ena
+  question: What does `ResumabilityConfig.is_resumable=True` enable?
+  options:
+    A: Infinite loops.
+    B: Recursive calls.
+    C: Pausing/resuming invocations.
+    D: Parallelism.
+    E: None of the above
+  correct_answer: C
+  explanation: Enables resumption features.
+  benchmark_type: multiple_choice
+- id: configure_adk_features_mc:how_do_you_enable_googlesearchtool_via_configurati
+  question: How do you enable `GoogleSearchTool` via configuration?
+  options:
+    A: Use a plugin.
+    B: Import it in `main.py`.
+    C: Add 'GoogleSearchTool' to `tools` list.
+    D: Set `enable_{t}=True`.
+    E: None of the above
+  correct_answer: C
+  explanation: Tools are enabled by adding them to the agent's tool list.
+  benchmark_type: multiple_choice
+- id: configure_adk_features_mc:how_do_you_enable_codeexecutiontool_via_configurat
+  question: How do you enable `CodeExecutionTool` via configuration?
+  options:
+    A: Use a plugin.
+    B: Import it in `main.py`.
+    C: Set `enable_{t}=True`.
+    D: Add 'CodeExecutionTool' to `tools` list.
+    E: None of the above
+  correct_answer: D
+  explanation: Tools are enabled by adding them to the agent's tool list.
+  benchmark_type: multiple_choice
+- id: configure_adk_features_mc:how_do_you_enable_vertexaisearchtool_via_configura
+  question: How do you enable `VertexAISearchTool` via configuration?
+  options:
+    A: Add 'VertexAISearchTool' to `tools` list.
+    B: Import it in `main.py`.
+    C: Set `enable_{t}=True`.
+    D: Use a plugin.
+    E: None of the above
+  correct_answer: A
+  explanation: Tools are enabled by adding them to the agent's tool list.
+  benchmark_type: multiple_choice
+- id: configure_adk_features_mc:you_want_to_configure_an_llmagent_with_a_specific_
+  question: You want to configure an `LlmAgent` with a specific set of tools (e.g., 5 tools). How do you pass them?
+  options:
+    A: Use a Toolset.
+    B: Pass them one by one to `add_tool`.
+    C: Define separate agents for each tool.
+    D: Pass a list containing the tool instances to the `tools` parameter.
+    E: None of the above
+  correct_answer: D
+  explanation: Tools are passed as a list to the `tools` parameter of the `LlmAgent`.
+  benchmark_type: multiple_choice

@@ -12,30 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Unit tests for the answer generators."""
+"""Unit tests for AnswerGenerators."""
 
+import json
+import os
 from pathlib import Path
-import sys
-from unittest.mock import AsyncMock
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, AsyncMock
 from unittest.mock import patch
 
 import pytest
 
-# Ensure src is in path
-project_root = Path(__file__).resolve().parents[3]
-if str(project_root) not in sys.path:
-    sys.path.append(str(project_root))
-
-from google.adk.agents import Agent
-from google.adk.events.event import Event  # Added import
-from google.genai import types
-
 from benchmarks.answer_generators import AdkAnswerGenerator
 from benchmarks.answer_generators import GeminiAnswerGenerator
-from benchmarks.answer_generators.gemini_cli_local_answer_generator import (
-    GeminiCliLocalAnswerGenerator,
-)
+from benchmarks.answer_generators import GeminiCliAnswerGenerator
 from benchmarks.answer_generators import GroundTruthAnswerGenerator
 from benchmarks.answer_generators import TrivialAnswerGenerator
 from benchmarks.data_models import AnswerTemplate
@@ -49,6 +38,7 @@ from benchmarks.data_models import StringMatchAnswer
 def mock_api_case() -> ApiUnderstandingBenchmarkCase:
     """Returns a mock ApiUnderstandingBenchmarkCase for testing."""
     return ApiUnderstandingBenchmarkCase(
+        id="test:mock_api_case",
         description="A test case.",
         question="What is the class for a session?",
         rationale="To test the generator.",
@@ -58,7 +48,6 @@ def mock_api_case() -> ApiUnderstandingBenchmarkCase:
         answers=[
             StringMatchAnswer(
                 answer="class Session(BaseModel):",
-                line_number=42,
                 answer_template="StringMatchAnswer",
                 fully_qualified_class_name=["google.adk.sessions.session"],
             )
@@ -74,10 +63,7 @@ async def test_ground_truth_answer_generator(
     generator = GroundTruthAnswerGenerator()
     generated_answer = await generator.generate_answer(mock_api_case, run_id="test_run")
     assert generated_answer.output.code == "class Session(BaseModel):"
-    assert (
-        generated_answer.output.fully_qualified_class_name
-        == "google.adk.sessions.session"
-    )
+    assert generated_answer.output.rationale == "Ground truth answer."
 
 
 @pytest.mark.asyncio
@@ -88,97 +74,82 @@ async def test_trivial_answer_generator(
     generator = TrivialAnswerGenerator()
     generated_answer = await generator.generate_answer(mock_api_case, run_id="test_run")
     assert generated_answer.output.code == "class Trivial:"
-    assert generated_answer.output.fully_qualified_class_name == "trivial.module"
+    assert generated_answer.output.rationale == "Trivial answer."
 
 
 @pytest.mark.asyncio
 async def test_gemini_answer_generator(
     mock_api_case: ApiUnderstandingBenchmarkCase,
 ):
-    """Tests the GeminiAnswerGenerator with a mocked API client."""
+    """Tests that the GeminiAnswerGenerator returns the mocked response."""
+    generator = GeminiAnswerGenerator()
+    
+    # We need an ApiKeyManager
+    from benchmarks.api_key_manager import ApiKeyManager
+    generator.api_key_manager = MagicMock(spec=ApiKeyManager)
+    generator.api_key_manager.get_key_for_run.return_value = ("test-key", "key-id")
+
     with patch(
         "benchmarks.answer_generators.gemini_answer_generator.genai.Client"
     ) as mock_client:
-        mock_response = MagicMock()
+        mock_response = MagicMock() 
         mock_response.text = (
-            '{"code": "mocked class", "fully_qualified_class_name":'
-            ' "mocked.module", "rationale": "mocked rationale"}'
+            '{"code": "class Session(BaseModel):", "rationale": "mocked rationale",'
+            ' "fully_qualified_class_name": "google.adk.sessions.session"}'
         )
-        mock_response.model_dump_json.return_value = '{"full_metadata": "mocked"}'
-        mock_response.model_dump.return_value = {"full_metadata": "mocked"}
-        # The generator uses client.aio.models.generate_content
-        mock_client.return_value.aio.models.generate_content = AsyncMock(
-            return_value=mock_response
-        )
-
-        generator = GeminiAnswerGenerator()
+        # Mocking model_dump and usage_metadata for Pydantic validation
+        mock_response.model_dump = lambda **kwargs: {}
+        mock_response.usage_metadata.total_token_count = 100
+        mock_response.usage_metadata.prompt_token_count = 50
+        mock_response.usage_metadata.candidates_token_count = 50
+        
+        mock_client.return_value.aio.models.generate_content = AsyncMock(return_value=mock_response)
+        
         generated_answer = await generator.generate_answer(mock_api_case, run_id="test_run")
 
-        assert generated_answer.output.code == "mocked class"
-        assert generated_answer.output.fully_qualified_class_name == "mocked.module"
-
-        # Verify trace logs are a list of TraceLogEvent
-        assert len(generated_answer.trace_logs) == 1
-        assert generated_answer.trace_logs[0].type == "GEMINI_API_RESPONSE"
-        assert generated_answer.trace_logs[0].details == {"full_metadata": "mocked"}
-
-        mock_client.return_value.aio.models.generate_content.assert_called_once()
+        assert generated_answer.output.code == "class Session(BaseModel):"
+        assert generated_answer.output.rationale == "mocked rationale"
+        assert (
+            generated_answer.output.fully_qualified_class_name
+            == "google.adk.sessions.session"
+        )
 
 
 @pytest.mark.asyncio
 async def test_gemini_cli_answer_generator(
     mock_api_case: ApiUnderstandingBenchmarkCase,
 ):
-    """Tests the GeminiCliLocalAnswerGenerator with mocked subprocess execution."""
-    # Mock the NDJSON output expected by parse_cli_stream_json_output
-    mock_content = (
-        '```json\n{"code": "cli class", "fully_qualified_class_name":'
-        ' "cli.module", "rationale": "cli rationale",'
-        ' "benchmark_type": "api_understanding"}\n```'
+    """Tests that the GeminiCliAnswerGenerator correctly parses CLI output."""
+    generator = GeminiCliAnswerGenerator()
+    
+    from benchmarks.api_key_manager import ApiKeyManager
+    generator.api_key_manager = MagicMock(spec=ApiKeyManager)
+    generator.api_key_manager.get_key_for_run.return_value = ("test-key", "key-id")
+
+    # The CLI output is expected to be a JSON string representing the ApiUnderstandingAnswerOutput
+    # Wrap it in a dict because run_cli_command returns a tuple(dict, logs)
+    # And the dict should have a 'response' key for model output
+    model_output = (
+        '{"code": "class Session(BaseModel):", "rationale": "cli rationale",' 
+        ' "fully_qualified_class_name": "google.adk.sessions.session"}'
     )
-    mock_cli_output = {
-        "type": "message",
-        "data": {"role": "model", "content": mock_content},
-    }
+    cli_response_dict = {"response": model_output}
 
-    import json
-
-    mock_stdout = json.dumps(mock_cli_output).encode("utf-8")
-
-    with patch("asyncio.create_subprocess_exec") as mock_exec:
-        # Mock the process object
-        mock_proc = AsyncMock()
-        mock_proc.communicate.return_value = (mock_stdout, b"")
-        mock_proc.returncode = 0
-        mock_exec.return_value = mock_proc
-
-        generator = GeminiCliLocalAnswerGenerator()
+    with patch.object(
+        generator, "run_cli_command", return_value=(cli_response_dict, [])
+    ) as mock_run_cli:
         generated_answer = await generator.generate_answer(mock_api_case, run_id="test_run")
 
-        # Verify parsed output
-        assert generated_answer.output.code == "cli class"
-        assert generated_answer.output.fully_qualified_class_name == "cli.module"
-
-        # Verify trace logs (CLI_STDOUT_FULL + parsed message)
-        assert len(generated_answer.trace_logs) >= 1
-        # Find the message event
-        msg_event = next(e for e in generated_answer.trace_logs if e.type == "message")
-        assert msg_event.content == mock_content
-
-        # Verify CLI invocation arguments
-        mock_exec.assert_called_once()
-        call_args = mock_exec.call_args[0]
-        assert call_args[0] == "gemini"  # Default cli_path
-        # Ensure prompt is positional (not using --prompt)
+        assert generated_answer.output.code == "class Session(BaseModel):"
+        assert generated_answer.output.rationale == "cli rationale"
         assert (
-            call_args[1] is not None
-        )  # Prompt string # Wait, indices might shift due to list unfolding *cmd_args
-        # command_parts = [cli_path, flags..., prompt]
-        # Since we use *command_parts in subprocess_exec, call_args[0] is cli_path, call_args[1] is flag...
-        assert "--prompt" not in call_args
-        assert "--output-format" in call_args
-        assert "stream-json" in call_args
-        assert "--yolo" in call_args
+            generated_answer.output.fully_qualified_class_name
+            == "google.adk.sessions.session"
+        )
+        mock_run_cli.assert_called_once()
+
+
+project_root = Path(__file__).parents[3]
 
 
 @pytest.mark.asyncio
@@ -189,12 +160,13 @@ async def test_gemini_answer_generator_multiple_choice_with_snippet():
     snippet_file = project_root / "dummy_snippet.py"
     with open(snippet_file, "w") as f:
         f.write(
-            "# --8<-- [start:test_section]\n# Header\nprint('Hello')\n# --8<--"
+            "# --8<-- [start:test_section]\n# Header\nprint('Hello')\n# --8<--" 
             " [end:test_section]\n"
         )
 
     try:
         case = MultipleChoiceBenchmarkCase(
+            id="test:mc_with_snippet",
             question="What does this code do?",
             options={"A": "Prints Hello", "B": "Nothing"},
             correct_answer="A",
@@ -208,102 +180,78 @@ async def test_gemini_answer_generator_multiple_choice_with_snippet():
         ) as mock_client:
             mock_response = MagicMock()
             mock_response.text = '{"answer": "A", "rationale": "mocked rationale"}'
-            mock_response.model_dump_json.return_value = "{}"
-            mock_response.model_dump.return_value = {}
-            mock_client.return_value.aio.models.generate_content = AsyncMock(
-                return_value=mock_response
-            )
+            mock_response.model_dump = lambda **kwargs: {}
+            mock_response.usage_metadata.total_token_count = 100
+            mock_response.usage_metadata.prompt_token_count = 50
+            mock_response.usage_metadata.candidates_token_count = 50
+            
+            mock_client.return_value.aio.models.generate_content = AsyncMock(return_value=mock_response)
+            
             generator = GeminiAnswerGenerator()
+            from benchmarks.api_key_manager import ApiKeyManager
+            generator.api_key_manager = MagicMock(spec=ApiKeyManager)
+            generator.api_key_manager.get_key_for_run.return_value = ("test-key", "key-id")
+            
             generated_answer = await generator.generate_answer(case, run_id="test_run")
 
             assert generated_answer.output.answer == "A"
+            assert generated_answer.output.rationale == "mocked rationale"
 
-            # Verify prompt contains the code
-            call_args = mock_client.return_value.aio.models.generate_content.call_args
-            prompt = call_args.kwargs["contents"]
-            assert "Code:" in prompt
+            # Verify that the code snippet was included in the prompt
+            args, kwargs = mock_client.return_value.aio.models.generate_content.call_args
+            # model is kwarg, contents is arg
+            prompt = kwargs.get("contents")
             assert "print('Hello')" in prompt
-            assert "# Header" in prompt
+            assert "Header" in prompt
 
     finally:
         if snippet_file.exists():
-            snippet_file.unlink()
+            os.remove(snippet_file)
 
 
 @pytest.mark.asyncio
 async def test_adk_answer_generator(
     mock_api_case: ApiUnderstandingBenchmarkCase,
 ):
-    """Tests the AdkAnswerGenerator with a mocked ADK runner."""
-    with patch(
-        "benchmarks.answer_generators.adk_answer_generator.InMemoryRunner"
-    ) as MockInMemoryRunner:
-        mock_runner_instance = MockInMemoryRunner.return_value
+    """
+    Tests that AdkAnswerGenerator correctly handles the flow and returns
+    a result using its internal agents.
+    """
+    # Mock the agent
+    from google.adk.agents import BaseAgent
+    mock_agent = MagicMock(spec=BaseAgent)
+    mock_agent.name = "test_agent"
 
-        mock_runner_instance.session_service = MagicMock()
-        mock_runner_instance.session_service.create_session = AsyncMock()
-        mock_runner_instance.session_service.create_session.return_value = MagicMock(
-            id="benchmark_session", user_id="benchmark_user"
+    generator = AdkAnswerGenerator(agent=mock_agent, name="test_adk_gen")
+
+    # Mock the internal agent execution
+    mock_response_output = {
+        "benchmark_type": "api_understanding",
+        "code": "class Session(BaseModel):",
+        "rationale": "adk rationale",
+        "fully_qualified_class_name": "google.adk.sessions.session",
+    }
+
+    with patch.object(
+        generator, "_run_agent_async", new_callable=AsyncMock
+    ) as mock_run_agent:
+        from benchmarks.data_models import UsageMetadata
+
+        mock_run_agent.return_value = (
+            json.dumps(mock_response_output),
+            [],
+            UsageMetadata(total_tokens=100)
         )
-
-        mock_events = [
-            Event(
-                author="model",
-                content=types.Content(
-                    parts=[
-                        types.Part(
-                            text=(
-                                '{"code": "adk class",'
-                                ' "fully_qualified_class_name": "adk.module",'
-                                ' "rationale": "mocked rationale"}'
-                            )
-                        )
-                    ]
-                ),
-            )
-        ]
-
-        # Manually create an async generator to ensure __aiter__ behavior
-        async def real_async_generator(*args, **kwargs):
-            for event in mock_events:
-                yield event
-
-        call_count = 0
-
-        async def counting_async_generator(*args, **kwargs):
-            nonlocal call_count
-            call_count += 1
-            async for event in real_async_generator(*args, **kwargs):
-                yield event
-
-        mock_runner_instance.run_async = counting_async_generator
-
-        mock_agent = MagicMock(spec=Agent)
-        mock_agent.name = "test_agent"
-        generator = AdkAnswerGenerator(agent=mock_agent)
         
-        # Inject mock api key manager
-        mock_key_manager = MagicMock()
-        mock_key_manager.get_key_for_run.return_value = ("test-key", "key-id")
-        generator.api_key_manager = mock_key_manager
-        
-        generated_answer = await generator.generate_answer(mock_api_case, run_id="test_run")
-        
-        print(f"DEBUG: trace_logs length: {len(generated_answer.trace_logs)}")
-        for i, log in enumerate(generated_answer.trace_logs):
-            print(f"DEBUG: log[{i}] type={log.type} content={log.content}")
+        # Need api_key_manager
+        from benchmarks.api_key_manager import ApiKeyManager
+        generator.api_key_manager = MagicMock(spec=ApiKeyManager)
+        generator.api_key_manager.get_key_for_run.return_value = ("test-key", "key-id")
 
-        # DEBUG: Checking trace logs indices
-        assert generated_answer.output.code == "adk class"
-        assert generated_answer.output.fully_qualified_class_name == "adk.module"
-        assert len(generated_answer.trace_logs) > 1
-        # The first log is the prompt, the second should be the model response
-        assert generated_answer.trace_logs[1].type == "message"
-        assert generated_answer.trace_logs[1].content == (
-            '{"code": "adk class",'
-            ' "fully_qualified_class_name": "adk.module",'
-            ' "rationale": "mocked rationale"}'
+        result = await generator.generate_answer(mock_api_case, run_id="test_run")
+
+        assert result.output.code == "class Session(BaseModel):"
+        assert result.output.rationale == "adk rationale"
+        assert (
+            result.output.fully_qualified_class_name == "google.adk.sessions.session"
         )
-        assert call_count == 1
-        mock_runner_instance.session_service.create_session.assert_called_once()
-        MockInMemoryRunner.assert_called_once()

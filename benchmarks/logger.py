@@ -54,6 +54,7 @@ class BenchmarkLogger(abc.ABC):
     @abc.abstractmethod
     def log_test_result(
         self,
+        id: str,
         benchmark_name: str,
         result: str,
         suite: str,
@@ -113,6 +114,7 @@ class ConsoleBenchmarkLogger(BenchmarkLogger):
 
     def log_test_result(
         self,
+        id: str,
         benchmark_name: str,
         result: str,
         suite: str,
@@ -130,7 +132,7 @@ class ConsoleBenchmarkLogger(BenchmarkLogger):
         # But since cases run in parallel, we want a self-contained block for the case.
         
         # Indent specifically for this case block
-        with self.section(f"Case: {benchmark_name} (Suite: {suite})"):
+        with self.section(f"Case: {id} (Suite: {suite})"):
             # Log attempts if provided
             if generation_attempts:
                 for attempt in generation_attempts:
@@ -241,6 +243,7 @@ class TraceMarkdownLogger(BenchmarkLogger):
 
     def log_test_result(
         self,
+        id: str,
         benchmark_name: str,
         result: str,
         suite: str,
@@ -253,7 +256,8 @@ class TraceMarkdownLogger(BenchmarkLogger):
         status_icon = "✅" if result == "pass" else "❌"
         status_text = "PASSED" if result == "pass" else "FAILED"
         with open(self.output_file, "a", encoding="utf-8") as f:
-            f.write(f"### {status_icon} Test {status_text}: {benchmark_name} (Suite: {suite})\n")
+            f.write(f"### {status_icon} Test {status_text}: {id} (Suite: {suite})\n")
+            f.write(f"**Name:** {benchmark_name}\n")
             if generation_attempts:
                 f.write("**Generation Attempts:**\n")
                 for att in generation_attempts:
@@ -365,6 +369,7 @@ class JsonTraceLogger(BenchmarkLogger):
 
     def log_test_result(
         self,
+        id: str,
         benchmark_name: str,
         result: str,
         suite: str,
@@ -390,6 +395,7 @@ class JsonTraceLogger(BenchmarkLogger):
         self._log_event(
             "test_result",
             {
+                "id": id,
                 "benchmark_name": benchmark_name,
                 "result": result,
                 "suite": suite,
@@ -439,6 +445,7 @@ class CompositeLogger(BenchmarkLogger):
 
     def log_test_result(
         self,
+        id: str,
         benchmark_name: str,
         result: str,
         suite: str,
@@ -450,6 +457,7 @@ class CompositeLogger(BenchmarkLogger):
     ) -> None:
         for logger in self.loggers:
             logger.log_test_result(
+                id,
                 benchmark_name,
                 result,
                 suite,

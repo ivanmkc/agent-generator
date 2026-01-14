@@ -25,6 +25,7 @@ from benchmarks.data_models import StringMatchAnswer
 
 # A simple API Understanding case
 SIMPLE_API_UNDERSTANDING_CASE = ApiUnderstandingBenchmarkCase(
+    id="test:simple_api_understanding",
     description="Trivial test case for integration.",
     category="Core",
     question=(
@@ -46,6 +47,7 @@ SIMPLE_API_UNDERSTANDING_CASE = ApiUnderstandingBenchmarkCase(
 
 # A simple Multiple Choice case
 SIMPLE_MULTIPLE_CHOICE_CASE = MultipleChoiceBenchmarkCase(
+    id="test:simple_multiple_choice",
     question="The correct answer for this question is B. Select B.",
     options={
         "A": "Wrong Option A",
@@ -60,6 +62,7 @@ SIMPLE_MULTIPLE_CHOICE_CASE = MultipleChoiceBenchmarkCase(
 
 # A multiple choice case for concurrency testing
 CONCURRENCY_TEST_CASE = ApiUnderstandingBenchmarkCase(
+    id="test:concurrency_test",
     description="Concurrency Test",
     category="Core",
     question="Return `class Trivial:`.",
@@ -76,7 +79,9 @@ CONCURRENCY_TEST_CASE = ApiUnderstandingBenchmarkCase(
 )
 
 # A multiple choice case specifically for Gemini CLI test (General Knowledge)
+# Using a unique ID but keeping the same question content
 GEMINI_CLI_MC_CASE = MultipleChoiceBenchmarkCase(
+    id="test:gemini_cli_mc",
     question="Which planet is known as the Red Planet?",
     options={"A": "Venus", "B": "Mars", "C": "Jupiter", "D": "Saturn"},
     correct_answer="B",
@@ -86,6 +91,7 @@ GEMINI_CLI_MC_CASE = MultipleChoiceBenchmarkCase(
 
 # A multiple choice case for Docker integration (ADK Knowledge)
 ADK_QUESTION_DOCKER_CASE = MultipleChoiceBenchmarkCase(
+    id="test:adk_question_docker",
     question=(
         "What class does `LlmAgent` inherit from directly in" " `google.adk.agents`?"
     ),
@@ -101,8 +107,8 @@ ADK_QUESTION_DOCKER_CASE = MultipleChoiceBenchmarkCase(
 )
 
 # Content for Fix Error Minimal Agent test case
-# TODO: Use FixErrorBenchmarkCase constructor
 FIX_ERROR_MINIMAL_AGENT_CONTENT = {
+    "id": "test:fix_error_minimal_agent",
     "name": "Test Fix Error",
     "description": "Fix a bug by creating a valid agent.",
     "requirements": [
@@ -119,6 +125,7 @@ FIX_ERROR_MINIMAL_AGENT_CONTENT = {
 
 # A case for checking ADK BaseAgent knowledge (used in extensions testing)
 ADK_BASE_AGENT_QUESTION_CASE_EASY = ApiUnderstandingBenchmarkCase(
+    id="test:adk_base_agent_easy",
     category="Core Class Signatures & Initialization",
     question="What is the foundational class for all agents in the ADK?",
     rationale="All agents must inherit from `google.adk.agents.base_agent.BaseAgent`, which provides the core interface for execution and configuration.",
@@ -135,6 +142,7 @@ ADK_BASE_AGENT_QUESTION_CASE_EASY = ApiUnderstandingBenchmarkCase(
 
 # An intermediate case for checking ADK internals (requires deeper lookup)
 ADK_BASE_AGENT_QUESTION_CASE_INTERMEDIATE = ApiUnderstandingBenchmarkCase(
+    id="test:adk_base_agent_intermediate",
     category="Core Class Relationships & Design Patterns",
     question=(
         "In `google.adk.agents.llm_agent.LlmAgent`, what is the exact name of the method "
@@ -157,6 +165,7 @@ ADK_BASE_AGENT_QUESTION_CASE_INTERMEDIATE = ApiUnderstandingBenchmarkCase(
 
 # A case for testing the dynamic ADK agent runner MCP tool
 MCP_ADK_RUNNER_CASE = FixErrorBenchmarkCase(
+    id="test:mcp_adk_runner",
     name="MCP ADK Runner Test",
     description=(
         "You must complete this task in steps:\n"
@@ -176,6 +185,7 @@ MCP_ADK_RUNNER_CASE = FixErrorBenchmarkCase(
 # A case specifically designed for StructuredWorkflowAdk to test sub-agent orchestration
 # without imperative tool commands that confuse the Planner.
 STRUCTURED_WORKFLOW_CASE = FixErrorBenchmarkCase(
+    id="test:structured_workflow",
     name="Structured Workflow Agent Creation",
     description=(
         "Create a Python file `my_agent.py` that defines a function `create_agent(model_name: str) -> Agent`.\n"

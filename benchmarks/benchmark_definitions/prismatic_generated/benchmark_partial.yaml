@@ -1,159 +1,101 @@
 benchmarks:
-- question: Which of the following describes the primary function of the `AgentTool`
-    class?
+- id: prismatic_generated:benchmark_partial:which_of_the_following_describes_the_primary_funct
+  question: Which of the following describes the primary function of the `AgentTool` class?
   options:
     A: It directly manages and orchestrates the execution of multiple agents.
-    B: It serves as a wrapper, allowing an agent to be called as a tool within a larger
-      application, using the agent's input schema to define the tool's input parameters
-      and returning the agent's output as the tool's result.
-    C: It is responsible for the deployment and scaling of agents in a distributed
-      environment.
+    B: It serves as a wrapper, allowing an agent to be called as a tool within a larger application, using the agent's input schema to define the tool's input parameters and returning the agent's output as the tool's result.
+    C: It is responsible for the deployment and scaling of agents in a distributed environment.
     D: It provides a graphical user interface for interacting with agents.
   correct_answer: B
-  explanation: 'The `AgentTool` class is designed to wrap an agent, enabling it to
-    be used as a tool within a larger application. It utilizes the agent''s input
-    schema for defining the tool''s input parameters and returns the agent''s output
-    as the tool''s result. This is evident from the class documentation which states:
-    "This tool allows an agent to be called as a tool within a larger application.
-    The agent''s input schema is used to define the tool''s input parameters, and
-    the agent''s output is returned as the tool''s result." Options A, C, and D are
-    incorrect because they describe functionalities that are not part of the `AgentTool`''s
-    responsibility. It doesn''t manage multiple agents (A), handle deployment (C),
-    or provide a GUI (D).'
+  explanation: 'The `AgentTool` class is designed to wrap an agent, enabling it to be used as a tool within a larger application. It utilizes the agent''s input schema for defining the tool''s input parameters and returns the agent''s output as the tool''s result. This is evident from the class documentation which states: "This tool allows an agent to be called as a tool within a larger application. The agent''s input schema is used to define the tool''s input parameters, and the agent''s output is returned as the tool''s result." Options A, C, and D are incorrect because they describe functionalities that are not part of the `AgentTool`''s responsibility. It doesn''t manage multiple agents (A), handle deployment (C), or provide a GUI (D).'
   benchmark_type: multiple_choice
-- question: What is the primary responsibility of the `LlmResponse` class?
+- id: prismatic_generated:benchmark_partial:what_is_the_primary_responsibility_of_the_llmrespo
+  question: What is the primary responsibility of the `LlmResponse` class?
   options:
     A: To manage and execute LLM models directly.
-    B: To provide a structured representation of the LLM's response, including content,
-      metadata, and error information.
+    B: To provide a structured representation of the LLM's response, including content, metadata, and error information.
     C: To handle user authentication and authorization for LLM access.
     D: To optimize LLM performance and resource utilization.
   correct_answer: B
-  explanation: The `LlmResponse` class is designed to encapsulate the response from
-    a Language Model (LLM). According to the docstring, it provides the first candidate
-    response from the model if available. Otherwise, it returns error code and message.
-    It includes attributes such as content, grounding metadata, error codes, and other
-    related information. Options A, C, and D are incorrect because they describe functionalities
-    outside the scope of representing an LLM response.
+  explanation: The `LlmResponse` class is designed to encapsulate the response from a Language Model (LLM). According to the docstring, it provides the first candidate response from the model if available. Otherwise, it returns error code and message. It includes attributes such as content, grounding metadata, error codes, and other related information. Options A, C, and D are incorrect because they describe functionalities outside the scope of representing an LLM response.
   benchmark_type: multiple_choice
-- question: What is the primary function of the `Runner` class in the ADK?
+- id: prismatic_generated:benchmark_partial:what_is_the_primary_function_of_the_runner_class_i
+  question: What is the primary function of the `Runner` class in the ADK?
   options:
     A: To define the structure and data types used within the ADK.
-    B: To manage the execution of agents within a session, handling message processing,
-      event generation, and interactions with various services.
+    B: To manage the execution of agents within a session, handling message processing, event generation, and interactions with various services.
     C: To provide a user interface for interacting with agents.
     D: To handle the deployment and scaling of agents.
   correct_answer: B
-  explanation: The `Runner` class is responsible for managing the execution of an
-    agent within a session. This includes handling message processing, event generation,
-    and interaction with services such as artifact storage, session management, and
-    memory. This is explicitly stated in the class's docstring. Options A, C, and
-    D describe functionalities that are not part of the Runner class's core responsibility.
+  explanation: The `Runner` class is responsible for managing the execution of an agent within a session. This includes handling message processing, event generation, and interaction with services such as artifact storage, session management, and memory. This is explicitly stated in the class's docstring. Options A, C, and D describe functionalities that are not part of the Runner class's core responsibility.
   benchmark_type: multiple_choice
-- question: What is the primary purpose of the `get_bigquery_client` function?
+- id: prismatic_generated:benchmark_partial:what_is_the_primary_purpose_of_the_get_bigquery_cl
+  question: What is the primary purpose of the `get_bigquery_client` function?
   options:
     A: To execute BigQuery queries directly.
     B: To retrieve metadata about BigQuery datasets and tables.
-    C: To provide a pre-configured BigQuery client instance for interacting with the
-      BigQuery service.
+    C: To provide a pre-configured BigQuery client instance for interacting with the BigQuery service.
     D: To manage BigQuery billing and cost optimization.
   correct_answer: C
-  explanation: The `get_bigquery_client` function is designed to return a BigQuery
-    client instance. The docstring explicitly states that it "Get a BigQuery client."
-    and returns "A BigQuery client.". This client can then be used to interact with
-    the BigQuery service. Options A, B, and D describe functionalities that are performed
-    using a BigQuery client but are not the primary purpose of obtaining the client
-    itself.
+  explanation: The `get_bigquery_client` function is designed to return a BigQuery client instance. The docstring explicitly states that it "Get a BigQuery client." and returns "A BigQuery client.". This client can then be used to interact with the BigQuery service. Options A, B, and D describe functionalities that are performed using a BigQuery client but are not the primary purpose of obtaining the client itself.
   benchmark_type: multiple_choice
-- question: What distinguishes the `InMemoryRunner` from other runner implementations
-    in the ADK?
+- id: prismatic_generated:benchmark_partial:what_distinguishes_the_inmemoryrunner_from_other_r
+  question: What distinguishes the `InMemoryRunner` from other runner implementations in the ADK?
   options:
     A: It uses a persistent database for storing session data.
-    B: It utilizes in-memory implementations for artifact, session, and memory services,
-      providing a lightweight and self-contained environment.
+    B: It utilizes in-memory implementations for artifact, session, and memory services, providing a lightweight and self-contained environment.
     C: It is designed for deployment in production environments.
     D: It supports distributed agent execution across multiple machines.
   correct_answer: B
-  explanation: The `InMemoryRunner` is specifically designed for testing and development
-    purposes. Its key characteristic is the use of in-memory implementations for services
-    like artifact storage, session management, and memory. This provides a lightweight
-    and self-contained environment, as mentioned in the class's docstring. Options
-    A, C, and D describe features not associated with InMemoryRunner.
+  explanation: The `InMemoryRunner` is specifically designed for testing and development purposes. Its key characteristic is the use of in-memory implementations for services like artifact storage, session management, and memory. This provides a lightweight and self-contained environment, as mentioned in the class's docstring. Options A, C, and D describe features not associated with InMemoryRunner.
   benchmark_type: multiple_choice
-- question: What is the purpose of the `BigQueryToolConfig` class?
+- id: prismatic_generated:benchmark_partial:what_is_the_purpose_of_the_bigquerytoolconfig_clas
+  question: What is the purpose of the `BigQueryToolConfig` class?
   options:
     A: To directly execute BigQuery queries.
     B: To manage BigQuery datasets and tables.
-    C: To define the configuration settings for BigQuery tools, such as write mode,
-      maximum bytes billed, and application name.
+    C: To define the configuration settings for BigQuery tools, such as write mode, maximum bytes billed, and application name.
     D: To authenticate and authorize access to BigQuery resources.
   correct_answer: C
-  explanation: The `BigQueryToolConfig` class is designed for defining the configuration
-    settings for BigQuery tools. As stated in the docstring, it is the "Configuration
-    for BigQuery tools.". It includes parameters like write mode, maximum bytes billed,
-    and application name. Options A, B, and D describe functionalities outside the
-    scope of configuration settings.
+  explanation: The `BigQueryToolConfig` class is designed for defining the configuration settings for BigQuery tools. As stated in the docstring, it is the "Configuration for BigQuery tools.". It includes parameters like write mode, maximum bytes billed, and application name. Options A, B, and D describe functionalities outside the scope of configuration settings.
   benchmark_type: multiple_choice
-- question: What is the primary function of the `APIHubToolset` class?
+- id: prismatic_generated:benchmark_partial:what_is_the_primary_function_of_the_apihubtoolset_
+  question: What is the primary function of the `APIHubToolset` class?
   options:
     A: To directly manage and deploy APIs on API Hub.
-    B: To generate tools from a given API Hub resource, allowing agents to interact
-      with APIs defined in API Hub.
+    B: To generate tools from a given API Hub resource, allowing agents to interact with APIs defined in API Hub.
     C: To provide a graphical user interface for interacting with the API Hub console.
     D: To monitor and analyze API usage within API Hub.
   correct_answer: B
-  explanation: The `APIHubToolset` class is designed to generate tools from a specified
-    API Hub resource. The docstring states that the "APIHubTool generates tools from
-    a given API Hub resource." This allows an agent to use these generated tools to
-    interact with the API. Options A, C, and D describe actions related to API Hub
-    management and interaction, but the primary function of `APIHubToolset` is tool
-    generation from an API Hub resource.
+  explanation: The `APIHubToolset` class is designed to generate tools from a specified API Hub resource. The docstring states that the "APIHubTool generates tools from a given API Hub resource." This allows an agent to use these generated tools to interact with the API. Options A, C, and D describe actions related to API Hub management and interaction, but the primary function of `APIHubToolset` is tool generation from an API Hub resource.
   benchmark_type: multiple_choice
-- question: What is the purpose of the `StdioConnectionParams` class?
+- id: prismatic_generated:benchmark_partial:what_is_the_purpose_of_the_stdioconnectionparams_c
+  question: What is the purpose of the `StdioConnectionParams` class?
   options:
-    A: To establish a direct connection to the standard input/output streams of a
-      process.
-    B: To define the parameters required for establishing a connection to the MCP
-      Stdio server.
+    A: To establish a direct connection to the standard input/output streams of a process.
+    B: To define the parameters required for establishing a connection to the MCP Stdio server.
     C: To manage the execution and monitoring of MCP Stdio servers.
     D: To provide a graphical interface for interacting with the MCP Stdio connection.
   correct_answer: B
-  explanation: The `StdioConnectionParams` class serves to define the parameters necessary
-    for connecting to the MCP Stdio server. Its docstring describes it as "Parameters
-    for the MCP Stdio connection." with attributes for the server parameters and connection
-    timeout. Options A, C, and D describe functionalities outside of the scope of
-    connection parameters.
+  explanation: The `StdioConnectionParams` class serves to define the parameters necessary for connecting to the MCP Stdio server. Its docstring describes it as "Parameters for the MCP Stdio connection." with attributes for the server parameters and connection timeout. Options A, C, and D describe functionalities outside of the scope of connection parameters.
   benchmark_type: multiple_choice
-- question: What is the primary purpose of the `MCPToolset` class, and what does its
-    deprecation indicate?
+- id: prismatic_generated:benchmark_partial:what_is_the_primary_purpose_of_the_mcptoolset_clas
+  question: What is the primary purpose of the `MCPToolset` class, and what does its deprecation indicate?
   options:
-    A: It provides a mechanism for managing and executing code within a secure sandbox
-      environment; its deprecation indicates a shift to a more sandboxed approach.
-    B: It offers a way to interact with the Model Control Plane (MCP) and generate
-      tools; its deprecation suggests that `McpToolset` should be used instead.
-    C: It manages credentials for accessing various cloud services; its deprecation
-      suggests a shift to a more centralized credential management system.
-    D: It facilitates the creation of agents with specific tool configurations; its
-      deprecation indicates a more streamlined approach to agent creation.
+    A: It provides a mechanism for managing and executing code within a secure sandbox environment; its deprecation indicates a shift to a more sandboxed approach.
+    B: It offers a way to interact with the Model Control Plane (MCP) and generate tools; its deprecation suggests that `McpToolset` should be used instead.
+    C: It manages credentials for accessing various cloud services; its deprecation suggests a shift to a more centralized credential management system.
+    D: It facilitates the creation of agents with specific tool configurations; its deprecation indicates a more streamlined approach to agent creation.
   correct_answer: B
-  explanation: The `MCPToolset` class (now deprecated) was intended to provide tools
-    for interacting with the Model Control Plane (MCP). However, it is being replaced
-    by the `McpToolset` class. This is explicitly stated in the class's docstring.
-    Options A, C, and D describe functionalities that are not directly related to
-    the purpose or deprecation of `MCPToolset`.
+  explanation: The `MCPToolset` class (now deprecated) was intended to provide tools for interacting with the Model Control Plane (MCP). However, it is being replaced by the `McpToolset` class. This is explicitly stated in the class's docstring. Options A, C, and D describe functionalities that are not directly related to the purpose or deprecation of `MCPToolset`.
   benchmark_type: multiple_choice
-- question: What is the primary purpose of the `RunConfig` class?
+- id: prismatic_generated:benchmark_partial:what_is_the_primary_purpose_of_the_runconfig_class
+  question: What is the primary purpose of the `RunConfig` class?
   options:
     A: To define the base class for all agents.
-    B: To configure the runtime behavior of agents, such as speech configuration,
-      response modalities, and streaming mode.
+    B: To configure the runtime behavior of agents, such as speech configuration, response modalities, and streaming mode.
     C: To manage the deployment and scaling of agents in a production environment.
     D: To provide a user interface for interacting with agents.
   correct_answer: B
-  explanation: The `RunConfig` class is designed to hold configurations for the runtime
-    behavior of agents. The docstring states that it defines "Configs for runtime
-    behavior of agents." and that "The configs here will be overridden by agent-specific
-    configurations." These configurations encompass aspects like speech settings,
-    response modalities, and streaming modes. Options A, C, and D describe functionalities
-    outside the scope of configuring agent runtime behavior.
+  explanation: The `RunConfig` class is designed to hold configurations for the runtime behavior of agents. The docstring states that it defines "Configs for runtime behavior of agents." and that "The configs here will be overridden by agent-specific configurations." These configurations encompass aspects like speech settings, response modalities, and streaming modes. Options A, C, and D describe functionalities outside the scope of configuring agent runtime behavior.
   benchmark_type: multiple_choice

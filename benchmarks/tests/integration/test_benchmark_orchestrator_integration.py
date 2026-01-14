@@ -45,7 +45,7 @@ async def test_benchmark_orchestrator_integration():
     is working correctly.
     """
     benchmark_suites = [
-        "benchmarks/benchmark_definitions/fix_errors/benchmark.yaml",
+        "benchmarks/benchmark_definitions/debug_single/benchmark.yaml",
         "benchmarks/benchmark_definitions/configure_adk_features_mc/benchmark.yaml",
     ]
 

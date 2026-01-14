@@ -1,0 +1,166 @@
+benchmarks:
+- question: Which of the following code snippets correctly initializes/uses `get_fast_api_app`?
+  options:
+    A: "from google.adk.cli.adk_web_server import AdkWebServer\nfrom fastapi import\
+      \ FastAPI\nfrom typing import Optional\nfrom typing import Callable\nfrom watchdog.observers\
+      \ import Observer\nfrom opentelemetry import trace\nfrom opentelemetry.sdk.trace\
+      \ import TracerProvider\nfrom starlette.middleware import Middleware\nfrom starlette.middleware.cors\
+      \ import CORSMiddleware\nfrom fastapi import Query\nfrom typing import Any\n\
+      from fastapi import HTTPException\nfrom typing import List\nfrom google.adk.cli.adk_web_server\
+      \ import ListAppsResponse\nfrom google.adk.cli.adk_web_server import AppInfo\n\
+      from google.adk.cli.adk_web_server import Session\nfrom google.adk.cli.adk_web_server\
+      \ import CreateSessionRequest\nfrom google.adk.cli.adk_web_server import UpdateSessionRequest\n\
+      from google.adk.cli.adk_web_server import CreateEvalSetRequest\nfrom google.adk.cli.adk_web_server\
+      \ import EvalSet\nfrom google.adk.cli.adk_web_server import ListEvalSetsResponse\n\
+      from google.adk.cli.adk_web_server import AddSessionToEvalSetRequest\nfrom google.adk.cli.adk_web_server\
+      \ import EvalCase\nfrom google.adk.cli.adk_web_server import SessionInput\n\
+      from google.adk.cli.adk_web_server import RunEvalRequest\nfrom google.adk.cli.adk_web_server\
+      \ import RunEvalResult\nfrom google.adk.cli.adk_web_server import RunEvalResponse\n\
+      from google.adk.cli.adk_web_server import EvalResult\nfrom google.adk.cli.adk_web_server\
+      \ import ListEvalResultsResponse\nfrom google.adk.cli.adk_web_server import\
+      \ ListMetricsInfoResponse\nfrom typing import Literal\nfrom fastapi import WebSocket\n\
+      import asyncio\nfrom google.adk.cli.adk_web_server import LiveRequestQueue\n\
+      from google.adk.cli.adk_web_server import LiveRequest\nfrom starlette.responses\
+      \ import StreamingResponse\nfrom google.adk.cli.adk_web_server import RunAgentRequest\n\
+      \nasync def example():\n  server = AdkWebServer(\n      agent_loader=None,\n\
+      \      session_service=None,\n      eval_sets_manager=None,\n      eval_set_results_manager=None,\n\
+      \      artifact_service=None,\n      memory_service=None,\n      url_prefix=\"\
+      /\",\n      runner_dict={},\n      logo_text=\"Test Logo\",\n      logo_image_url=\"\
+      http://example.com/logo.png\",\n      current_app_name_ref=None,\n  )\n  app\
+      \ = server.get_fast_api_app()\n  print(app)"
+    B: "class AdkWebServer:\n    def __init__(self): # Removed all arguments to cause\
+      \ a TypeError\n        pass\n\n    def start(self):\n        print(\"Server\
+      \ started\")\n\n    def stop(self):\n        print(\"Server stopped\")\n\n#\
+      \ Example usage (this part caused the traceback, but the class def is the root\
+      \ cause)\nserver = AdkWebServer()\nserver.start()\nserver.stop()"
+    C: "class AdkWebServer:\n    def __init__(self, host, port, routes, static_dir,\
+      \ template_dir, error_template, db_config):\n        self.host = host\n    \
+      \    self.port = port\n        self.routes = routes\n        self.static_dir\
+      \ = static_dir\n        self.template_dir = template_dir\n        self.error_template\
+      \ = error_template\n        self.db_config = db_config\n\n    def start(self):\n\
+      \        print(\"Server started\")\n        print(f\"Port is now a string: {str(self.port\
+      \ + 'abc')}\") # Introduce a TypeError during runtime\n\n    def stop(self):\n\
+      \        print(\"Server stopped\")\n\n# Example usage\nserver = AdkWebServer(\"\
+      localhost\", 8080, [], \"static\", \"templates\", \"error.html\", {})\nserver.start()\n\
+      server.stop()"
+    D: "class AdkWebServer:\n    def __init__(self, host, port, routes, static_dir,\
+      \ template_dir, error_template, db_config):\n        self.host = host\n    \
+      \    self.port = port\n        self.routes = routes\n        self.static_dir\
+      \ = static_dir\n        self.template_dir = template_dir\n        self.error_template\
+      \ = error_template\n        self.db_config = db_config\n\n    def start(self):\n\
+      \        print(\"Server started\")\n        try:\n            result = 1 / 0\
+      \  # Introduce a ZeroDivisionError\n        except ZeroDivisionError as e:\n\
+      \            print(f\"Error during startup: {e}\")\n\n    def stop(self):\n\
+      \        print(\"Server stopped\")\n\n# Example usage\nserver = AdkWebServer(\"\
+      localhost\", 8080, [], \"static\", \"templates\", \"error.html\", {})\nserver.start()\n\
+      server.stop()"
+  correct_answer: A
+  explanation: Option A (golden snapshot) executes without errors. Option B introduces
+    a TypeError due to incorrect initialization. Option C introduces a TypeError during
+    the start method. Option D introduces a ZeroDivisionError during the start method.
+  benchmark_type: multiple_choice
+- question: Which of the following code snippets correctly initializes/uses `get_fast_api_app`?
+  options:
+    A: "from google.adk.cli.adk_web_server import AdkWebServer\nfrom fastapi import\
+      \ FastAPI\nfrom typing import Optional\nfrom typing import Callable\nfrom watchdog.observers\
+      \ import Observer\nfrom opentelemetry import trace\nfrom opentelemetry.sdk.trace\
+      \ import TracerProvider\nfrom starlette.middleware import Middleware\nfrom starlette.middleware.cors\
+      \ import CORSMiddleware\nfrom fastapi import Query\nfrom typing import Any\n\
+      from fastapi import HTTPException\nfrom typing import List\nfrom google.adk.cli.adk_web_server\
+      \ import ListAppsResponse\nfrom google.adk.cli.adk_web_server import AppInfo\n\
+      from google.adk.cli.adk_web_server import Session\nfrom google.adk.cli.adk_web_server\
+      \ import CreateSessionRequest\nfrom google.adk.cli.adk_web_server import UpdateSessionRequest\n\
+      from google.adk.cli.adk_web_server import CreateEvalSetRequest\nfrom google.adk.cli.adk_web_server\
+      \ import EvalSet\nfrom google.adk.cli.adk_web_server import ListEvalSetsResponse\n\
+      from google.adk.cli.adk_web_server import AddSessionToEvalSetRequest\nfrom google.adk.cli.adk_web_server\
+      \ import EvalCase\nfrom google.adk.cli.adk_web_server import SessionInput\n\
+      from google.adk.cli.adk_web_server import RunEvalRequest\nfrom google.adk.cli.adk_web_server\
+      \ import RunEvalResult\nfrom google.adk.cli.adk_web_server import RunEvalResponse\n\
+      from google.adk.cli.adk_web_server import EvalResult\nfrom google.adk.cli.adk_web_server\
+      \ import ListEvalResultsResponse\nfrom google.adk.cli.adk_web_server import\
+      \ ListMetricsInfoResponse\nfrom typing import Literal\nfrom fastapi import WebSocket\n\
+      import asyncio\nfrom google.adk.cli.adk_web_server import LiveRequestQueue\n\
+      from google.adk.cli.adk_web_server import LiveRequest\nfrom starlette.responses\
+      \ import StreamingResponse\nfrom google.adk.cli.adk_web_server import RunAgentRequest\n\
+      \nasync def example():\n  server = AdkWebServer(\n      agent_loader=None,\n\
+      \      session_service=None,\n      eval_sets_manager=None,\n      eval_set_results_manager=None,\n\
+      \      artifact_service=None,\n      memory_service=None,\n      url_prefix=\"\
+      /\",\n      runner_dict={},\n      logo_text=\"Test Logo\",\n      logo_image_url=\"\
+      http://example.com/logo.png\",\n      current_app_name_ref=None,\n  )\n  app\
+      \ = server.get_fast_api_app()\n  print(app)"
+    B: "import os\nfrom fastapi import FastAPI, Depends, APIRouter\n\n\nasync def\
+      \ get_api_key(x_api_key: str = Depends(lambda: os.environ.get('API_KEY'))):\n\
+      \    if x_api_key is None:\n        raise HTTPException(status_code=400, detail=\"\
+      API Key missing\")\n    return x_api_key\n\n\ndef create_app():\n    app = FastAPI(dependencies=[Depends(get_api_key)])\n\
+      \n    @app.get(\"/\")\n    async def root():\n        return {\"message\": \"\
+      Hello World\"}\n\n    return app"
+    C: "from fastapi import FastAPI, APIRouter\n\n\ndef create_app():\n    app = FastAPI()\n\
+      \n    router = APIRouter()\n\n    @router.get(\"/\")\n    async def root():\n\
+      \        return {\"message\": \"Hello World\"}\n\n    app.include_router(router)\n\
+      \n    @app.get(\"/health\") # Added health check endpoint\n    async def health_check():\n\
+      \        return {\"status\": \"ok\"}\n\n    return app"
+    D: "from fastapi import FastAPI\nfrom starlette.middleware import Middleware\n\
+      from starlette.middleware.cors import CORSMiddleware\n\ndef create_app():\n\
+      \    middleware = [\n        Middleware(CORSMiddleware, allow_origins=['*'],\
+      \ allow_methods=['*'], allow_headers=['*'])\n    ]\n    app = FastAPI(middleware=middleware)\n\
+      \n    @app.get(\"/\")\n    async def root():\n        return {\"message\": \"\
+      Hello World\"}\n\n    return app"
+  correct_answer: A
+  explanation: Option B introduces an API key dependency controlled by an environment
+    variable. Option C adds a /health endpoint and uses an APIRouter. Option D adds
+    CORS middleware using starlette.middleware.Middleware. All options are valid FastAPI
+    implementations but represent different configurations and functionalities compared
+    to a basic setup.
+  benchmark_type: multiple_choice
+- question: Which of the following code snippets correctly initializes/uses `get_fast_api_app`?
+  options:
+    A: "from google.adk.cli.adk_web_server import AdkWebServer\nfrom fastapi import\
+      \ FastAPI\nfrom typing import Optional\nfrom typing import Callable\nfrom watchdog.observers\
+      \ import Observer\nfrom opentelemetry import trace\nfrom opentelemetry.sdk.trace\
+      \ import TracerProvider\nfrom starlette.middleware import Middleware\nfrom starlette.middleware.cors\
+      \ import CORSMiddleware\nfrom fastapi import Query\nfrom typing import Any\n\
+      from fastapi import HTTPException\nfrom typing import List\nfrom google.adk.cli.adk_web_server\
+      \ import ListAppsResponse\nfrom google.adk.cli.adk_web_server import AppInfo\n\
+      from google.adk.cli.adk_web_server import Session\nfrom google.adk.cli.adk_web_server\
+      \ import CreateSessionRequest\nfrom google.adk.cli.adk_web_server import UpdateSessionRequest\n\
+      from google.adk.cli.adk_web_server import CreateEvalSetRequest\nfrom google.adk.cli.adk_web_server\
+      \ import EvalSet\nfrom google.adk.cli.adk_web_server import ListEvalSetsResponse\n\
+      from google.adk.cli.adk_web_server import AddSessionToEvalSetRequest\nfrom google.adk.cli.adk_web_server\
+      \ import EvalCase\nfrom google.adk.cli.adk_web_server import SessionInput\n\
+      from google.adk.cli.adk_web_server import RunEvalRequest\nfrom google.adk.cli.adk_web_server\
+      \ import RunEvalResult\nfrom google.adk.cli.adk_web_server import RunEvalResponse\n\
+      from google.adk.cli.adk_web_server import EvalResult\nfrom google.adk.cli.adk_web_server\
+      \ import ListEvalResultsResponse\nfrom google.adk.cli.adk_web_server import\
+      \ ListMetricsInfoResponse\nfrom typing import Literal\nfrom fastapi import WebSocket\n\
+      import asyncio\nfrom google.adk.cli.adk_web_server import LiveRequestQueue\n\
+      from google.adk.cli.adk_web_server import LiveRequest\nfrom starlette.responses\
+      \ import StreamingResponse\nfrom google.adk.cli.adk_web_server import RunAgentRequest\n\
+      \nasync def example():\n  server = AdkWebServer(\n      agent_loader=None,\n\
+      \      session_service=None,\n      eval_sets_manager=None,\n      eval_set_results_manager=None,\n\
+      \      artifact_service=None,\n      memory_service=None,\n      url_prefix=\"\
+      /\",\n      runner_dict={},\n      logo_text=\"Test Logo\",\n      logo_image_url=\"\
+      http://example.com/logo.png\",\n      current_app_name_ref=None,\n  )\n  app\
+      \ = server.get_fast_api_app()\n  print(app)"
+    B: "from fastapi import FastAPI\n\n\nasync def lifespan(app: FastAPI):\n    print(\"\
+      Entering lifespan\")\n    yield\n    print(\"Exiting lifespan\")\n\ndef create_app():\n\
+      \    app = FastAPI(lifespan=lifespan)\n\n    @app.get(\"/\")\n    async def\
+      \ root():\n        return {\"message\": \"Hello World\"}\n\n    return app"
+    C: "from fastapi import FastAPI, Request, HTTPException\nfrom fastapi.responses\
+      \ import JSONResponse\n\n\nasync def http_exception_handler(request: Request,\
+      \ exc: HTTPException):\n    return JSONResponse(\n        status_code=exc.status_code,\n\
+      \        content={\"detail\": exc.detail},\n    )\n\ndef create_app():\n   \
+      \ app = FastAPI()\n    app.add_exception_handler(HTTPException, http_exception_handler)\n\
+      \n    @app.get(\"/\")\n    async def root():\n        return {\"message\": \"\
+      Hello World\"}\n\n    return app"
+    D: "from fastapi import FastAPI\nfrom fastapi.middleware import Middleware\nfrom\
+      \ starlette.middleware import Middleware as StarletteMiddleware\nfrom starlette.middleware.cors\
+      \ import CORSMiddleware\n\ndef create_app():\n    middleware = [\n        StarletteMiddleware(CORSMiddleware,\
+      \ allow_origins=['*'], allow_methods=['*'], allow_headers=['*'])\n    ]\n  \
+      \  app = FastAPI(middleware=middleware)\n\n    @app.get(\"/\")\n    async def\
+      \ root():\n        return {\"message\": \"Hello World\"}\n\n    return app"
+  correct_answer: A
+  explanation: Option B introduces a lifespan function, which is absent in the golden
+    snapshot. Option C adds a custom exception handler, modifying the response format,
+    which is not in the original application. Option D incorporates CORS middleware,
+    which is also not present in the original application.
+  benchmark_type: multiple_choice

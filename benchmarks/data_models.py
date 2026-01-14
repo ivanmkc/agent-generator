@@ -68,14 +68,14 @@ class ExpectedOutcome(str, enum.Enum):
 class BaseBenchmarkCase(pydantic.BaseModel, abc.ABC):
     """Abstract base class for a single benchmark case."""
 
+    id: str = Field(..., description="A unique identifier for the benchmark case.")
     benchmark_type: BenchmarkType
     code_snippet_ref: Optional[CodeSnippetRef] = None
 
-    @abc.abstractmethod
     def get_identifier(self) -> str:
         """Returns a unique identifier for the benchmark case."""
 
-        raise NotImplementedError
+        return self.id
 
     @property
     @abc.abstractmethod
@@ -111,10 +111,6 @@ class FixErrorBenchmarkCase(BaseBenchmarkCase):
     fixed_file: Path | None = None
     requirements: list[str] | None = None
     error_output: Optional[str] = None
-
-    def get_identifier(self) -> str:
-
-        return self.name
 
     @property
     def runner(self) -> "PytestBenchmarkRunner":
@@ -201,9 +197,6 @@ class ApiUnderstandingBenchmarkCase(BaseBenchmarkCase):
             v["fully_qualified_class_name"] = [v["fully_qualified_class_name"]]
         return v
 
-    def get_identifier(self) -> str:
-        return self.question
-
     @property
     def runner(self) -> "ApiUnderstandingRunner":
         from benchmarks.benchmark_runner import ApiUnderstandingRunner
@@ -241,9 +234,6 @@ class MultipleChoiceBenchmarkCase(BaseBenchmarkCase):
     benchmark_type: Literal[BenchmarkType.MULTIPLE_CHOICE] = (
         BenchmarkType.MULTIPLE_CHOICE
     )
-
-    def get_identifier(self) -> str:
-        return self.question[:50] + "..."
 
     @property
     def runner(self) -> "MultipleChoiceRunner":
@@ -564,6 +554,10 @@ class BenchmarkGenerationError(Exception):
 class BenchmarkRunResult(pydantic.BaseModel):
     """Represents the structured result of a single benchmark run."""
 
+    id: str = Field(
+        ...,
+        description="The unique identifier for the benchmark case.",
+    )
     suite: str = Field(
         ...,
         description=(

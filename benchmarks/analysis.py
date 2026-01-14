@@ -319,7 +319,8 @@ def generate_detailed_reports(raw_results_df: pd.DataFrame, output_dir: Path):
             status_icon = "✅" if row["result"] == 1 else "❌"
             report_lines.extend(
                 [
-                    f"### {status_icon} {row['benchmark_name']}",
+                    f"### {status_icon} {row['id']}",
+                    f"- **Name:** {row['benchmark_name']}",
                     f"- **Suite:** {row['suite']}",
                     f"- **Status:** {row['status']}",
                     f"- **Error Type:** {row['final_error_type']}",
@@ -461,7 +462,7 @@ def get_token_usage_stats(results: List[BenchmarkRunResult]) -> pd.DataFrame:
             
             if key not in unique_generations:
                 unique_generations[key] = {
-                    "benchmark": r.benchmark_name,
+                    "benchmark": r.id,
                     "generator": r.answer_generator,
                     "author": author,
                     "prompt_tokens": usage.get("prompt_token_count") or usage.get("input_tokens") or 0,

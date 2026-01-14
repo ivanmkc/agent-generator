@@ -3,6 +3,7 @@
 # Each question in this benchmark evaluates API understanding within the ADK.
 # Follow these guidelines when adding new entries:
 #
+# - id (string, required): A unique identifier for the case (format: `suite:slug`).
 # - category (string, required): A broad grouping for the question (e.g., "Core Class Signatures & Initialization").
 # - question (string, required): The specific question to be answered.
 # - rationale (string, required): Explanation of *why* the answer is correct, referencing ADK concepts.
@@ -19,7 +20,8 @@
 # - file (string, required): The relative path to the primary source file defining the class or method in question.
 #
 # Example:
-# - category: My Category
+# - id: api_understanding:what_is_myclass
+#   category: My Category
 #   question: What is MyClass?
 #   rationale: MyClass is fundamental.
 #   benchmark_type: api_understanding
@@ -33,443 +35,483 @@
 #
 # --------------------------------------------------------------------------------
 benchmarks:
-  - category: Core Class Signatures & Initialization
-    question: What is the foundational class for all agents in the ADK?
-    rationale: All agents must inherit from `google.adk.agents.base_agent.BaseAgent`, which provides the core interface for execution and configuration.
-    benchmark_type: api_understanding
-    template: identifier
-    answers:
-      - answer_template: StringMatchAnswer
-        answer: BaseAgent
-        fully_qualified_class_name:
-          - google.adk.agents.base_agent.BaseAgent
-    file: src/google/adk/agents/base_agent.py
-  - category: Core Class Signatures & Initialization
-    question: What is the mandatory parameter required by the `BaseAgent` constructor?
-    rationale: Every agent must be initialized with a unique `name` (string) parameter.
-    benchmark_type: api_understanding
-    template: identifier
-    answers:
-      - answer_template: StringMatchAnswer
-        answer: name
-        fully_qualified_class_name:
-          - google.adk.agents.base_agent.BaseAgent
-    file: src/google/adk/agents/base_agent.py
-  - category: Core Class Signatures & Initialization
-    question: Which class is used to define a sequence of agents that run in order?
-    rationale: The `SequentialAgent` is used to define a series of `sub_agents` that will be executed one after another in the order they are provided.
-    benchmark_type: api_understanding
-    template: identifier
-    answers:
-      - answer_template: StringMatchAnswer
-        answer: SequentialAgent
-        fully_qualified_class_name:
-          - google.adk.agents.sequential_agent.SequentialAgent
-    file: src/google/adk/agents/sequential_agent.py
-  - category: Core Class Signatures & Initialization
-    question: Which class is the primary entry point for running an agent and managing the execution loop?
-    rationale: The `google.adk.runners.Runner` class is the primary entry point for running an agent. It manages the execution loop and interaction with services.
-    benchmark_type: api_understanding
-    template: identifier
-    answers:
-      - answer_template: StringMatchAnswer
-        answer: Runner
-        fully_qualified_class_name:
-          - google.adk.runners.Runner
-    file: src/google/adk/runners.py
-  - category: Core Class Signatures & Initialization
-    question: What is the core interface for all LLM integrations?
-    rationale: All model wrappers must implement the `BaseLlm` abstract class, which defines the common interface for generating content.
-    benchmark_type: api_understanding
-    template: identifier
-    answers:
-      - answer_template: StringMatchAnswer
-        answer: BaseLlm
-        fully_qualified_class_name:
-          - google.adk.models.base_llm.BaseLlm
-    file: src/google/adk/models/base_llm.py
-  - category: Core Class Signatures & Initialization
-    question: Which method is the primary entry point for running a programmatic evaluation of an agent?
-    rationale: The `AgentEvaluator.evaluate` method is the primary entry point for running a programmatic evaluation of an agent.
-    benchmark_type: api_understanding
-    template: identifier
-    answers:
-      - answer_template: StringMatchAnswer
-        answer: evaluate
-        fully_qualified_class_name:
-          - google.adk.evaluation.agent_evaluator.AgentEvaluator
-    file: src/google/adk/evaluation/agent_evaluator.py
-  - category: Configuration Parameters
-    question: Which parameter limits the number of iterations for a `LoopAgent`?
-    rationale: Set the `max_iterations` integer parameter in the `LoopAgent`'s configuration. The loop will terminate when this limit is reached.
-    benchmark_type: api_understanding
-    template: identifier
-    answers:
-      - answer_template: StringMatchAnswer
-        answer: max_iterations
-        fully_qualified_class_name:
-          - google.adk.agents.loop_agent.LoopAgent
-    file: src/google/adk/agents/loop_agent.py
-  - category: Configuration Parameters
-    question: Which parameter specifies the model for an `LlmAgent`?
-    rationale: Use the `model` string parameter in the `LlmAgent`'s configuration (e.g., 'gemini-1.5-pro'). This can be inherited from a parent agent if not set.
-    benchmark_type: api_understanding
-    template: identifier
-    answers:
-      - answer_template: StringMatchAnswer
-        answer: model
-        fully_qualified_class_name:
-          - google.adk.agents.llm_agent.LlmAgent
-    file: src/google/adk/agents/llm_agent.py
-  - category: Configuration Parameters
-    question: Where can I configure LLM generation parameters like temperature and safety settings?
-    rationale: In the `LlmAgent`, these are configured through the `generate_content_config` parameter, which accepts a `types.GenerateContentConfig` object.
-    benchmark_type: api_understanding
-    template: identifier
-    answers:
-      - answer_template: StringMatchAnswer
-        answer: generate_content_config
-        fully_qualified_class_name:
-          - google.adk.agents.llm_agent.LlmAgent
-    file: src/google/adk/agents/llm_agent.py
-  - category: Configuration Parameters
-    question: Which parameter on an `LlmAgent` is used to attach a list of tools?
-    rationale: Tools are provided as a list to the `tools` parameter of an `LlmAgent`. The list can contain `FunctionTool` instances, `BaseToolset` instances, or other `BaseTool` subclasses.
-    benchmark_type: api_understanding
-    template: identifier
-    answers:
-      - answer_template: StringMatchAnswer
-        answer: tools
-        fully_qualified_class_name:
-          - google.adk.agents.llm_agent.LlmAgent
-    file: src/google/adk/agents/llm_agent.py
-  - category: Configuration Parameters
-    question: Which method is used to register a new LLM implementation with the `LLMRegistry`?
-    rationale: The `LLMRegistry.register` static method is used to associate a `BaseLlm` subclass with a model name pattern, allowing the ADK to instantiate the correct LLM based on the `LlmAgent`'s `model` parameter.
-    benchmark_type: api_understanding
-    template: identifier
-    answers:
-      - answer_template: StringMatchAnswer
-        answer: register
-        fully_qualified_class_name:
-          - google.adk.models.registry.LLMRegistry
-    file: src/google/adk/models/registry.py
-  - category: Hooks and Lifecycle Methods
-    question: What is the primary public method to initiate an agent's asynchronous execution?
-    rationale: The `run_async(parent_context)` method is the main entry point for executing an agent's logic asynchronously. Subclasses of `BaseAgent` implement `_run_async_impl` to define their specific execution flow.
-    benchmark_type: api_understanding
-    template: identifier
-    answers:
-      - answer_template: StringMatchAnswer
-        answer: run_async
-        fully_qualified_class_name:
-          - google.adk.agents.base_agent.BaseAgent
-    file: src/google/adk/agents/base_agent.py
-  - category: Hooks and Lifecycle Methods
-    question: Which parameter on `BaseAgent` defines a callback that executes before the agent's `run_async` method is called?
-    rationale: '`BaseAgent` provides `before_agent_callback` to execute custom logic before the agent''s run.'
-    benchmark_type: api_understanding
-    template: identifier
-    answers:
-      - answer_template: StringMatchAnswer
-        answer: before_agent_callback
-        fully_qualified_class_name:
-          - google.adk.agents.base_agent.BaseAgent
-    file: src/google/adk/agents/base_agent.py
-  - category: Hooks and Lifecycle Methods
-    question: Which parameter on `BaseAgent` defines a callback that executes after the agent's `run_async` method is called?
-    rationale: '`BaseAgent` provides `after_agent_callback` to execute custom logic after the agent''s run.'
-    benchmark_type: api_understanding
-    template: identifier
-    answers:
-      - answer_template: StringMatchAnswer
-        answer: after_agent_callback
-        fully_qualified_class_name:
-          - google.adk.agents.base_agent.BaseAgent
-    file: src/google/adk/agents/base_agent.py
-  - category: Hooks and Lifecycle Methods
-    question: Which parameter on `LlmAgent` allows for custom logic before an LLM call?
-    rationale: The `before_model_callback` parameter on `LlmAgent` accepts a callback or list of callbacks to be invoked before a request is sent to the LLM, providing an opportunity to inspect or modify the `LlmRequest`.
-    benchmark_type: api_understanding
-    template: identifier
-    answers:
-      - answer_template: StringMatchAnswer
-        answer: before_model_callback
-        fully_qualified_class_name:
-          - google.adk.agents.llm_agent.LlmAgent
-    file: src/google/adk/agents/llm_agent.py
-  - category: Hooks and Lifecycle Methods
-    question: Which abstract base class allows for implementing global functionality across all agents by hooking into the runner's lifecycle via callbacks?
-    rationale: The `BasePlugin` class serves as the abstract base for creating plugins that hook into the runner's lifecycle. Plugins provide a structured way to intercept and modify agent, tool, and LLM behaviors at critical execution points in a callback manner, applying globally to all agents in the runner.
-    benchmark_type: api_understanding
-    template: identifier
-    answers:
-      - answer_template: StringMatchAnswer
-        answer: BasePlugin
-        fully_qualified_class_name:
-          - google.adk.plugins.base_plugin.BasePlugin
-    file: src/google/adk/plugins/base_plugin.py
-  - category: Hooks and Lifecycle Methods
-    question: Which plugin callback method can return a value to short-circuit agent execution?
-    rationale: The `before_agent_callback` method in a plugin can return a non-`None` value (e.g., `types.Content`) to immediately halt the current agent's execution and prevent subsequent plugins and agent-specific callbacks from running.
-    benchmark_type: api_understanding
-    template: identifier
-    answers:
-      - answer_template: StringMatchAnswer
-        answer: before_agent_callback
-        fully_qualified_class_name:
-          - google.adk.plugins.base_plugin.BasePlugin
-    file: src/google/adk/plugins/base_plugin.py
-  - category: Hooks and Lifecycle Methods
-    question: Which class is responsible for registering plugins and invoking their callback hooks in the correct order?
-    rationale: The `PluginManager` registers plugins and orchestrates the invocation of their callback hooks at the correct points in the execution lifecycle.
-    benchmark_type: api_understanding
-    template: identifier
-    answers:
-      - answer_template: StringMatchAnswer
-        answer: PluginManager
-        fully_qualified_class_name:
-          - google.adk.plugins.plugin_manager.PluginManager
-    file: src/google/adk/plugins/plugin_manager.py
-  - category: Hooks and Lifecycle Methods
-    question: Which specific plugin class is designed to observe events without altering execution flow?
-    rationale: An 'observational' plugin, such as `LoggingPlugin`, implements callback hooks for data gathering but always returns `None` from its callbacks to avoid interfering with the execution flow.
-    benchmark_type: api_understanding
-    template: identifier
-    answers:
-      - answer_template: StringMatchAnswer
-        answer: LoggingPlugin
-        fully_qualified_class_name:
-          - google.adk.plugins.logging_plugin.LoggingPlugin
-    file: src/google/adk/plugins/logging_plugin.py
-  - category: Hooks and Lifecycle Methods
-    question: Which plugin class is used to apply a system-wide instruction to all `LlmAgent` calls?
-    rationale: The `GlobalInstructionPlugin` intercepts every `LlmRequest` and prepends a configured global instruction, ensuring consistent behavior across all agents.
-    benchmark_type: api_understanding
-    template: identifier
-    answers:
-      - answer_template: StringMatchAnswer
-        answer: GlobalInstructionPlugin
-        fully_qualified_class_name:
-          - google.adk.plugins.global_instruction_plugin.GlobalInstructionPlugin
-    file: src/google/adk/plugins/global_instruction_plugin.py
-  - category: Data Structure Access & Best Practices
-    question: Which method on the `InvocationContext` is used to programmatically persist an agent's state for subsequent turns?
-    rationale: To persist state, call `ctx.set_agent_state(self.name, agent_state=your_state_object)`.
-    benchmark_type: api_understanding
-    template: identifier
-    answers:
-      - answer_template: StringMatchAnswer
-        answer: set_agent_state
-        fully_qualified_class_name:
-          - google.adk.agents.invocation_context.InvocationContext
-    file: src/google/adk/agents/invocation_context.py
-  - category: Data Structure Access & Best Practices
-    question: Which `LlmAgent` parameter provides a declarative way to automatically save the agent's final output to the session state?
-    rationale: Use the `output_key` string parameter on the `LlmAgent`. The framework will automatically write the agent's final output to `session.state[output_key]`.
-    benchmark_type: api_understanding
-    template: identifier
-    answers:
-      - answer_template: StringMatchAnswer
-        answer: output_key
-        fully_qualified_class_name:
-          - google.adk.agents.llm_agent.LlmAgent
-    file: src/google/adk/agents/llm_agent.py
-  - category: Data Structure Access & Best Practices
-    question: What is the abstract base class for implementing custom session persistence?
-    rationale: The `BaseSessionService` abstract class defines the contract for all session management implementations, providing methods for creating, retrieving, updating, and deleting sessions.
-    benchmark_type: api_understanding
-    template: identifier
-    answers:
-      - answer_template: StringMatchAnswer
-        answer: BaseSessionService
-        fully_qualified_class_name:
-          - google.adk.sessions.base_session_service.BaseSessionService
-    file: src/google/adk/sessions/base_session_service.py
-  - category: Data Structure Access & Best Practices
-    question: What is the `InvocationContext` object?
-    rationale: The `InvocationContext` is a critical internal object that carries the entire state of a single agent invocation, including the session, agent-specific states, and references to all available services.
-    benchmark_type: api_understanding
-    template: identifier
-    answers:
-      - answer_template: StringMatchAnswer
-        answer: InvocationContext
-        fully_qualified_class_name:
-          - google.adk.agents.invocation_context.InvocationContext
-    file: src/google/adk/agents/invocation_context.py
-  - category: Data Structure Access & Best Practices
-    question: What is the `CallbackContext` object?
-    rationale: The `CallbackContext` is passed to all `before_*` and `after_*` callbacks. It is a subset of the `InvocationContext` and provides access to the current event, session, and agent state.
-    benchmark_type: api_understanding
-    template: identifier
-    answers:
-      - answer_template: StringMatchAnswer
-        answer: CallbackContext
-        fully_qualified_class_name:
-          - google.adk.agents.callback_context.CallbackContext
-    file: src/google/adk/agents/callback_context.py
-  - category: Data Structure Access & Best Practices
-    question: Where does the ADK define the data model for a `Session`?
-    rationale: The `Session` data model is a Pydantic class defined in `src/google/adk/sessions/session.py`. It includes the session ID, user ID, the list of events, and the state dictionary.
-    benchmark_type: api_understanding
-    template: identifier
-    answers:
-      - answer_template: StringMatchAnswer
-        answer: Session
-        fully_qualified_class_name:
-          - google.adk.sessions.session.Session
-    file: src/google/adk/sessions/session.py
-  - category: Data Structure Access & Best Practices
-    question: Which method on the `BaseSessionService` is responsible for applying state changes from an `Event` to the `Session` object?
-    rationale: The `append_event` method on a `BaseSessionService` implementation applies the `state_delta` from an `Event` to the `Session`'s state.
-    benchmark_type: api_understanding
-    template: identifier
-    answers:
-      - answer_template: StringMatchAnswer
-        answer: append_event
-        fully_qualified_class_name:
-          - google.adk.sessions.base_session_service.BaseSessionService
-    file: src/google/adk/sessions/base_session_service.py
-  - category: Data Structure Access & Best Practices
-    question: Which class allows a tool to access the agent's state or other services?
-    rationale: A tool can access services by including a parameter of type `ToolContext` in its function signature. The ADK will automatically inject this context object, which provides access to memory, authentication, and more.
-    benchmark_type: api_understanding
-    template: identifier
-    answers:
-      - answer_template: StringMatchAnswer
-        answer: ToolContext
-        fully_qualified_class_name:
-          - google.adk.tools.tool_context.ToolContext
-    file: src/google/adk/tools/tool_context.py
-  - category: Core Class Signatures & Initialization
-    question: What's the easiest way to create a tool from a Python function?
-    rationale: Wrap the function with the `FunctionTool` class. It automatically generates the necessary JSON schema for the LLM from the function's signature, type hints, and docstring.
-    benchmark_type: api_understanding
-    template: identifier
-    answers:
-      - answer_template: StringMatchAnswer
-        answer: FunctionTool
-        fully_qualified_class_name:
-          - google.adk.tools.function_tool.FunctionTool
-    file: src/google/adk/tools/function_tool.py
-  - category: Configuration Parameters
-    question: Which class is used to configure tools in YAML files?
-    rationale: Tools are defined under the `tools` key. You can specify a built-in tool by its name or a custom tool by its fully qualified import path (e.g., `my.module.my_function`).
-    benchmark_type: api_understanding
-    template: identifier
-    answers:
-      - answer_template: StringMatchAnswer
-        answer: ToolConfig
-        fully_qualified_class_name:
-          - google.adk.tools.tool_configs.ToolConfig
-    file: src/google/adk/tools/tool_configs.py
-  - category: Core Class Signatures & Initialization
-    question: What is the base class for managing and dynamically filtering a collection of tools?
-    rationale: A `BaseToolset` is a class that manages a collection of tools. It can be used to dynamically filter which tools are available to an agent based on the current context.
-    benchmark_type: api_understanding
-    template: identifier
-    answers:
-      - answer_template: StringMatchAnswer
-        answer: BaseToolset
-        fully_qualified_class_name:
-          - google.adk.tools.base_toolset.BaseToolset
-    file: src/google/adk/tools/base_toolset.py
-  - category: Core Class Signatures & Initialization
-    question: Which specific tool class in ADK leverages Google's native search capability without a Python `run_async` implementation?
-    rationale: The `GoogleSearchTool` is designed to directly activate Google's native search capability. It does not have its own Python `run_async` method but instead modifies the `LlmRequest` to utilize the underlying model's built-in tool execution.
-    benchmark_type: api_understanding
-    template: identifier
-    answers:
-      - answer_template: StringMatchAnswer
-        answer: GoogleSearchTool
-        fully_qualified_class_name:
-          - google.adk.tools.google_search_tool.GoogleSearchTool
-    file: src/google/adk/tools/google_search_tool.py
-  - category: Core Class Signatures & Initialization
-    question: Which class is used to run multiple agents concurrently in ADK?
-    rationale: Use the `ParallelAgent`. Its `sub_agents` parameter takes a list of agent instances to be executed concurrently.
-    benchmark_type: api_understanding
-    template: identifier
-    answers:
-      - answer_template: StringMatchAnswer
-        answer: ParallelAgent
-        fully_qualified_class_name:
-          - google.adk.agents.parallel_agent.ParallelAgent
-    file: src/google/adk/agents/parallel_agent.py
-  - category: Core Class Signatures & Initialization
-    question: Which class provides the capability to add plugins or other advanced features to an agent?
-    rationale: For advanced configurations, wrap your root agent in an `App` object. The `App` class provides parameters for adding plugins, configuring event compaction, and managing other application-level settings.
-    benchmark_type: api_understanding
-    template: identifier
-    answers:
-      - answer_template: StringMatchAnswer
-        answer: App
-        fully_qualified_class_name:
-          - google.adk.apps.app.App
-    file: src/google/adk/apps/app.py
-  - category: Data Structure Access & Best Practices
-    question: What is the fundamental data structure for conversation history?
-    rationale: The `Event` class is the core data structure used to represent a single turn in the conversation. It contains the content of the message, the author (user or agent), and any actions taken, such as tool calls.
-    benchmark_type: api_understanding
-    template: identifier
-    answers:
-      - answer_template: StringMatchAnswer
-        answer: Event
-        fully_qualified_class_name:
-          - google.adk.events.event.Event
-    file: src/google/adk/events/event.py
-  - category: Core Class Signatures & Initialization
-    question: Which `Runner` subclass comes pre-configured with in-memory implementations for session, artifact, and memory services, making it the standard choice for local development and testing?
-    rationale: Use the `InMemoryRunner`. It's a convenient subclass of `Runner` that comes pre-configured with in-memory implementations for all the required services (session, artifact, and memory).
-    benchmark_type: api_understanding
-    template: identifier
-    answers:
-      - answer_template: StringMatchAnswer
-        answer: InMemoryRunner
-        fully_qualified_class_name:
-          - google.adk.runners.InMemoryRunner
-    file: src/google/adk/runners.py
-  - category: Core Class Signatures & Initialization
-    question: What is the base class for all tools?
-    rationale: All tools must inherit from `google.adk.tools.base_tool.BaseTool`, which defines the core interface for tool execution and schema generation.
-    benchmark_type: api_understanding
-    template: identifier
-    answers:
-      - answer_template: StringMatchAnswer
-        answer: BaseTool
-        fully_qualified_class_name:
-          - google.adk.tools.base_tool.BaseTool
-    file: src/google/adk/tools/base_tool.py
-  - category: Configuration Parameters
-    question: Which parameter forces an `LlmAgent` to return a structured JSON object?
-    rationale: Set the `output_schema` parameter on the `LlmAgent` to a Pydantic model. The ADK will instruct the LLM to generate a JSON object that conforms to the model's schema.
-    benchmark_type: api_understanding
-    template: identifier
-    answers:
-      - answer_template: StringMatchAnswer
-        answer: output_schema
-        fully_qualified_class_name:
-          - google.adk.agents.llm_agent.LlmAgent
-    file: src/google/adk/agents/llm_agent.py
-  - category: Configuration Parameters
-    question: Which `LlmAgent` parameter is used for static, unchanging system instructions to enable context caching?
-    rationale: The `static_instruction` parameter is designed for content that never changes and doesn't contain placeholders. It's sent directly to the model as a system instruction at the beginning of the request, allowing for improved performance when the static portion remains unchanged, especially for context caching optimizations.
-    benchmark_type: api_understanding
-    template: identifier
-    answers:
-      - answer_template: StringMatchAnswer
-        answer: static_instruction
-        fully_qualified_class_name:
-          - google.adk.agents.llm_agent.LlmAgent
-    file: src/google/adk/agents/llm_agent.py
-  - category: Agent-to-Agent Communication
-    question: Which method finds a specific agent within a multi-agent hierarchy?
-    rationale: Call the `find_agent(name)` method on any agent in the tree (usually the root agent). It will recursively search through all of its descendants and return the first agent with a matching name.
-    benchmark_type: api_understanding
-    template: identifier
-    answers:
-      - answer_template: StringMatchAnswer
-        answer: find_agent
-        fully_qualified_class_name:
-          - google.adk.agents.base_agent.BaseAgent
-    file: src/google/adk/agents/base_agent.py
+- id: api_understanding:what_is_the_foundational_class_for_all_agents_in_t
+  category: Core Class Signatures & Initialization
+  question: What is the foundational class for all agents in the ADK?
+  rationale: All agents must inherit from `google.adk.agents.base_agent.BaseAgent`, which provides the core interface for execution and configuration.
+  benchmark_type: api_understanding
+  template: identifier
+  answers:
+  - answer_template: StringMatchAnswer
+    answer: BaseAgent
+    fully_qualified_class_name:
+    - google.adk.agents.base_agent.BaseAgent
+  file: src/google/adk/agents/base_agent.py
+- id: api_understanding:what_is_the_mandatory_parameter_required_by_the_ba
+  category: Core Class Signatures & Initialization
+  question: What is the mandatory parameter required by the `BaseAgent` constructor?
+  rationale: Every agent must be initialized with a unique `name` (string) parameter.
+  benchmark_type: api_understanding
+  template: identifier
+  answers:
+  - answer_template: StringMatchAnswer
+    answer: name
+    fully_qualified_class_name:
+    - google.adk.agents.base_agent.BaseAgent
+  file: src/google/adk/agents/base_agent.py
+- id: api_understanding:which_class_is_used_to_define_a_sequence_of_agents
+  category: Core Class Signatures & Initialization
+  question: Which class is used to define a sequence of agents that run in order?
+  rationale: The `SequentialAgent` is used to define a series of `sub_agents` that will be executed one after another in the order they are provided.
+  benchmark_type: api_understanding
+  template: identifier
+  answers:
+  - answer_template: StringMatchAnswer
+    answer: SequentialAgent
+    fully_qualified_class_name:
+    - google.adk.agents.sequential_agent.SequentialAgent
+  file: src/google/adk/agents/sequential_agent.py
+- id: api_understanding:which_class_is_the_primary_entry_point_for_running
+  category: Core Class Signatures & Initialization
+  question: Which class is the primary entry point for running an agent and managing the execution loop?
+  rationale: The `google.adk.runners.Runner` class is the primary entry point for running an agent. It manages the execution loop and interaction with services.
+  benchmark_type: api_understanding
+  template: identifier
+  answers:
+  - answer_template: StringMatchAnswer
+    answer: Runner
+    fully_qualified_class_name:
+    - google.adk.runners.Runner
+  file: src/google/adk/runners.py
+- id: api_understanding:what_is_the_core_interface_for_all_llm_integration
+  category: Core Class Signatures & Initialization
+  question: What is the core interface for all LLM integrations?
+  rationale: All model wrappers must implement the `BaseLlm` abstract class, which defines the common interface for generating content.
+  benchmark_type: api_understanding
+  template: identifier
+  answers:
+  - answer_template: StringMatchAnswer
+    answer: BaseLlm
+    fully_qualified_class_name:
+    - google.adk.models.base_llm.BaseLlm
+  file: src/google/adk/models/base_llm.py
+- id: api_understanding:which_method_is_the_primary_entry_point_for_runnin
+  category: Core Class Signatures & Initialization
+  question: Which method is the primary entry point for running a programmatic evaluation of an agent?
+  rationale: The `AgentEvaluator.evaluate` method is the primary entry point for running a programmatic evaluation of an agent.
+  benchmark_type: api_understanding
+  template: identifier
+  answers:
+  - answer_template: StringMatchAnswer
+    answer: evaluate
+    fully_qualified_class_name:
+    - google.adk.evaluation.agent_evaluator.AgentEvaluator
+  file: src/google/adk/evaluation/agent_evaluator.py
+- id: api_understanding:which_parameter_limits_the_number_of_iterations_fo
+  category: Configuration Parameters
+  question: Which parameter limits the number of iterations for a `LoopAgent`?
+  rationale: Set the `max_iterations` integer parameter in the `LoopAgent`'s configuration. The loop will terminate when this limit is reached.
+  benchmark_type: api_understanding
+  template: identifier
+  answers:
+  - answer_template: StringMatchAnswer
+    answer: max_iterations
+    fully_qualified_class_name:
+    - google.adk.agents.loop_agent.LoopAgent
+  file: src/google/adk/agents/loop_agent.py
+- id: api_understanding:which_parameter_specifies_the_model_for_an_llmagen
+  category: Configuration Parameters
+  question: Which parameter specifies the model for an `LlmAgent`?
+  rationale: Use the `model` string parameter in the `LlmAgent`'s configuration (e.g., 'gemini-1.5-pro'). This can be inherited from a parent agent if not set.
+  benchmark_type: api_understanding
+  template: identifier
+  answers:
+  - answer_template: StringMatchAnswer
+    answer: model
+    fully_qualified_class_name:
+    - google.adk.agents.llm_agent.LlmAgent
+  file: src/google/adk/agents/llm_agent.py
+- id: api_understanding:where_can_i_configure_llm_generation_parameters_li
+  category: Configuration Parameters
+  question: Where can I configure LLM generation parameters like temperature and safety settings?
+  rationale: In the `LlmAgent`, these are configured through the `generate_content_config` parameter, which accepts a `types.GenerateContentConfig` object.
+  benchmark_type: api_understanding
+  template: identifier
+  answers:
+  - answer_template: StringMatchAnswer
+    answer: generate_content_config
+    fully_qualified_class_name:
+    - google.adk.agents.llm_agent.LlmAgent
+  file: src/google/adk/agents/llm_agent.py
+- id: api_understanding:which_parameter_on_an_llmagent_is_used_to_attach_a
+  category: Configuration Parameters
+  question: Which parameter on an `LlmAgent` is used to attach a list of tools?
+  rationale: Tools are provided as a list to the `tools` parameter of an `LlmAgent`. The list can contain `FunctionTool` instances, `BaseToolset` instances, or other `BaseTool` subclasses.
+  benchmark_type: api_understanding
+  template: identifier
+  answers:
+  - answer_template: StringMatchAnswer
+    answer: tools
+    fully_qualified_class_name:
+    - google.adk.agents.llm_agent.LlmAgent
+  file: src/google/adk/agents/llm_agent.py
+- id: api_understanding:which_method_is_used_to_register_a_new_llm_impleme
+  category: Configuration Parameters
+  question: Which method is used to register a new LLM implementation with the `LLMRegistry`?
+  rationale: The `LLMRegistry.register` static method is used to associate a `BaseLlm` subclass with a model name pattern, allowing the ADK to instantiate the correct LLM based on the `LlmAgent`'s `model` parameter.
+  benchmark_type: api_understanding
+  template: identifier
+  answers:
+  - answer_template: StringMatchAnswer
+    answer: register
+    fully_qualified_class_name:
+    - google.adk.models.registry.LLMRegistry
+  file: src/google/adk/models/registry.py
+- id: api_understanding:what_is_the_primary_public_method_to_initiate_an_a
+  category: Hooks and Lifecycle Methods
+  question: What is the primary public method to initiate an agent's asynchronous execution?
+  rationale: The `run_async(parent_context)` method is the main entry point for executing an agent's logic asynchronously. Subclasses of `BaseAgent` implement `_run_async_impl` to define their specific execution flow.
+  benchmark_type: api_understanding
+  template: identifier
+  answers:
+  - answer_template: StringMatchAnswer
+    answer: run_async
+    fully_qualified_class_name:
+    - google.adk.agents.base_agent.BaseAgent
+  file: src/google/adk/agents/base_agent.py
+- id: api_understanding:which_parameter_on_baseagent_defines_a_callback_th
+  category: Hooks and Lifecycle Methods
+  question: Which parameter on `BaseAgent` defines a callback that executes before the agent's `run_async` method is called?
+  rationale: '`BaseAgent` provides `before_agent_callback` to execute custom logic before the agent''s run.'
+  benchmark_type: api_understanding
+  template: identifier
+  answers:
+  - answer_template: StringMatchAnswer
+    answer: before_agent_callback
+    fully_qualified_class_name:
+    - google.adk.agents.base_agent.BaseAgent
+  file: src/google/adk/agents/base_agent.py
+- id: api_understanding:which_parameter_on_baseagent_defines_a_callback_th_2
+  category: Hooks and Lifecycle Methods
+  question: Which parameter on `BaseAgent` defines a callback that executes after the agent's `run_async` method is called?
+  rationale: '`BaseAgent` provides `after_agent_callback` to execute custom logic after the agent''s run.'
+  benchmark_type: api_understanding
+  template: identifier
+  answers:
+  - answer_template: StringMatchAnswer
+    answer: after_agent_callback
+    fully_qualified_class_name:
+    - google.adk.agents.base_agent.BaseAgent
+  file: src/google/adk/agents/base_agent.py
+- id: api_understanding:which_parameter_on_llmagent_allows_for_custom_logi
+  category: Hooks and Lifecycle Methods
+  question: Which parameter on `LlmAgent` allows for custom logic before an LLM call?
+  rationale: The `before_model_callback` parameter on `LlmAgent` accepts a callback or list of callbacks to be invoked before a request is sent to the LLM, providing an opportunity to inspect or modify the `LlmRequest`.
+  benchmark_type: api_understanding
+  template: identifier
+  answers:
+  - answer_template: StringMatchAnswer
+    answer: before_model_callback
+    fully_qualified_class_name:
+    - google.adk.agents.llm_agent.LlmAgent
+  file: src/google/adk/agents/llm_agent.py
+- id: api_understanding:which_abstract_base_class_allows_for_implementing_
+  category: Hooks and Lifecycle Methods
+  question: Which abstract base class allows for implementing global functionality across all agents by hooking into the runner's lifecycle via callbacks?
+  rationale: The `BasePlugin` class serves as the abstract base for creating plugins that hook into the runner's lifecycle. Plugins provide a structured way to intercept and modify agent, tool, and LLM behaviors at critical execution points in a callback manner, applying globally to all agents in the runner.
+  benchmark_type: api_understanding
+  template: identifier
+  answers:
+  - answer_template: StringMatchAnswer
+    answer: BasePlugin
+    fully_qualified_class_name:
+    - google.adk.plugins.base_plugin.BasePlugin
+  file: src/google/adk/plugins/base_plugin.py
+- id: api_understanding:which_plugin_callback_method_can_return_a_value_to
+  category: Hooks and Lifecycle Methods
+  question: Which plugin callback method can return a value to short-circuit agent execution?
+  rationale: The `before_agent_callback` method in a plugin can return a non-`None` value (e.g., `types.Content`) to immediately halt the current agent's execution and prevent subsequent plugins and agent-specific callbacks from running.
+  benchmark_type: api_understanding
+  template: identifier
+  answers:
+  - answer_template: StringMatchAnswer
+    answer: before_agent_callback
+    fully_qualified_class_name:
+    - google.adk.plugins.base_plugin.BasePlugin
+  file: src/google/adk/plugins/base_plugin.py
+- id: api_understanding:which_class_is_responsible_for_registering_plugins
+  category: Hooks and Lifecycle Methods
+  question: Which class is responsible for registering plugins and invoking their callback hooks in the correct order?
+  rationale: The `PluginManager` registers plugins and orchestrates the invocation of their callback hooks at the correct points in the execution lifecycle.
+  benchmark_type: api_understanding
+  template: identifier
+  answers:
+  - answer_template: StringMatchAnswer
+    answer: PluginManager
+    fully_qualified_class_name:
+    - google.adk.plugins.plugin_manager.PluginManager
+  file: src/google/adk/plugins/plugin_manager.py
+- id: api_understanding:which_specific_plugin_class_is_designed_to_observe
+  category: Hooks and Lifecycle Methods
+  question: Which specific plugin class is designed to observe events without altering execution flow?
+  rationale: An 'observational' plugin, such as `LoggingPlugin`, implements callback hooks for data gathering but always returns `None` from its callbacks to avoid interfering with the execution flow.
+  benchmark_type: api_understanding
+  template: identifier
+  answers:
+  - answer_template: StringMatchAnswer
+    answer: LoggingPlugin
+    fully_qualified_class_name:
+    - google.adk.plugins.logging_plugin.LoggingPlugin
+  file: src/google/adk/plugins/logging_plugin.py
+- id: api_understanding:which_plugin_class_is_used_to_apply_a_system_wide_
+  category: Hooks and Lifecycle Methods
+  question: Which plugin class is used to apply a system-wide instruction to all `LlmAgent` calls?
+  rationale: The `GlobalInstructionPlugin` intercepts every `LlmRequest` and prepends a configured global instruction, ensuring consistent behavior across all agents.
+  benchmark_type: api_understanding
+  template: identifier
+  answers:
+  - answer_template: StringMatchAnswer
+    answer: GlobalInstructionPlugin
+    fully_qualified_class_name:
+    - google.adk.plugins.global_instruction_plugin.GlobalInstructionPlugin
+  file: src/google/adk/plugins/global_instruction_plugin.py
+- id: api_understanding:which_method_on_the_invocationcontext_is_used_to_p
+  category: Data Structure Access & Best Practices
+  question: Which method on the `InvocationContext` is used to programmatically persist an agent's state for subsequent turns?
+  rationale: To persist state, call `ctx.set_agent_state(self.name, agent_state=your_state_object)`.
+  benchmark_type: api_understanding
+  template: identifier
+  answers:
+  - answer_template: StringMatchAnswer
+    answer: set_agent_state
+    fully_qualified_class_name:
+    - google.adk.agents.invocation_context.InvocationContext
+  file: src/google/adk/agents/invocation_context.py
+- id: api_understanding:which_llmagent_parameter_provides_a_declarative_wa
+  category: Data Structure Access & Best Practices
+  question: Which `LlmAgent` parameter provides a declarative way to automatically save the agent's final output to the session state?
+  rationale: Use the `output_key` string parameter on the `LlmAgent`. The framework will automatically write the agent's final output to `session.state[output_key]`.
+  benchmark_type: api_understanding
+  template: identifier
+  answers:
+  - answer_template: StringMatchAnswer
+    answer: output_key
+    fully_qualified_class_name:
+    - google.adk.agents.llm_agent.LlmAgent
+  file: src/google/adk/agents/llm_agent.py
+- id: api_understanding:what_is_the_abstract_base_class_for_implementing_c
+  category: Data Structure Access & Best Practices
+  question: What is the abstract base class for implementing custom session persistence?
+  rationale: The `BaseSessionService` abstract class defines the contract for all session management implementations, providing methods for creating, retrieving, updating, and deleting sessions.
+  benchmark_type: api_understanding
+  template: identifier
+  answers:
+  - answer_template: StringMatchAnswer
+    answer: BaseSessionService
+    fully_qualified_class_name:
+    - google.adk.sessions.base_session_service.BaseSessionService
+  file: src/google/adk/sessions/base_session_service.py
+- id: api_understanding:what_is_the_invocationcontext_object
+  category: Data Structure Access & Best Practices
+  question: What is the `InvocationContext` object?
+  rationale: The `InvocationContext` is a critical internal object that carries the entire state of a single agent invocation, including the session, agent-specific states, and references to all available services.
+  benchmark_type: api_understanding
+  template: identifier
+  answers:
+  - answer_template: StringMatchAnswer
+    answer: InvocationContext
+    fully_qualified_class_name:
+    - google.adk.agents.invocation_context.InvocationContext
+  file: src/google/adk/agents/invocation_context.py
+- id: api_understanding:what_is_the_callbackcontext_object
+  category: Data Structure Access & Best Practices
+  question: What is the `CallbackContext` object?
+  rationale: The `CallbackContext` is passed to all `before_*` and `after_*` callbacks. It is a subset of the `InvocationContext` and provides access to the current event, session, and agent state.
+  benchmark_type: api_understanding
+  template: identifier
+  answers:
+  - answer_template: StringMatchAnswer
+    answer: CallbackContext
+    fully_qualified_class_name:
+    - google.adk.agents.callback_context.CallbackContext
+  file: src/google/adk/agents/callback_context.py
+- id: api_understanding:where_does_the_adk_define_the_data_model_for_a_ses
+  category: Data Structure Access & Best Practices
+  question: Where does the ADK define the data model for a `Session`?
+  rationale: The `Session` data model is a Pydantic class defined in `src/google/adk/sessions/session.py`. It includes the session ID, user ID, the list of events, and the state dictionary.
+  benchmark_type: api_understanding
+  template: identifier
+  answers:
+  - answer_template: StringMatchAnswer
+    answer: Session
+    fully_qualified_class_name:
+    - google.adk.sessions.session.Session
+  file: src/google/adk/sessions/session.py
+- id: api_understanding:which_method_on_the_basesessionservice_is_responsi
+  category: Data Structure Access & Best Practices
+  question: Which method on the `BaseSessionService` is responsible for applying state changes from an `Event` to the `Session` object?
+  rationale: The `append_event` method on a `BaseSessionService` implementation applies the `state_delta` from an `Event` to the `Session`'s state.
+  benchmark_type: api_understanding
+  template: identifier
+  answers:
+  - answer_template: StringMatchAnswer
+    answer: append_event
+    fully_qualified_class_name:
+    - google.adk.sessions.base_session_service.BaseSessionService
+  file: src/google/adk/sessions/base_session_service.py
+- id: api_understanding:which_class_allows_a_tool_to_access_the_agent_s_st
+  category: Data Structure Access & Best Practices
+  question: Which class allows a tool to access the agent's state or other services?
+  rationale: A tool can access services by including a parameter of type `ToolContext` in its function signature. The ADK will automatically inject this context object, which provides access to memory, authentication, and more.
+  benchmark_type: api_understanding
+  template: identifier
+  answers:
+  - answer_template: StringMatchAnswer
+    answer: ToolContext
+    fully_qualified_class_name:
+    - google.adk.tools.tool_context.ToolContext
+  file: src/google/adk/tools/tool_context.py
+- id: api_understanding:what_s_the_easiest_way_to_create_a_tool_from_a_pyt
+  category: Core Class Signatures & Initialization
+  question: What's the easiest way to create a tool from a Python function?
+  rationale: Wrap the function with the `FunctionTool` class. It automatically generates the necessary JSON schema for the LLM from the function's signature, type hints, and docstring.
+  benchmark_type: api_understanding
+  template: identifier
+  answers:
+  - answer_template: StringMatchAnswer
+    answer: FunctionTool
+    fully_qualified_class_name:
+    - google.adk.tools.function_tool.FunctionTool
+  file: src/google/adk/tools/function_tool.py
+- id: api_understanding:which_class_is_used_to_configure_tools_in_yaml_fil
+  category: Configuration Parameters
+  question: Which class is used to configure tools in YAML files?
+  rationale: Tools are defined under the `tools` key. You can specify a built-in tool by its name or a custom tool by its fully qualified import path (e.g., `my.module.my_function`).
+  benchmark_type: api_understanding
+  template: identifier
+  answers:
+  - answer_template: StringMatchAnswer
+    answer: ToolConfig
+    fully_qualified_class_name:
+    - google.adk.tools.tool_configs.ToolConfig
+  file: src/google/adk/tools/tool_configs.py
+- id: api_understanding:what_is_the_base_class_for_managing_and_dynamicall
+  category: Core Class Signatures & Initialization
+  question: What is the base class for managing and dynamically filtering a collection of tools?
+  rationale: A `BaseToolset` is a class that manages a collection of tools. It can be used to dynamically filter which tools are available to an agent based on the current context.
+  benchmark_type: api_understanding
+  template: identifier
+  answers:
+  - answer_template: StringMatchAnswer
+    answer: BaseToolset
+    fully_qualified_class_name:
+    - google.adk.tools.base_toolset.BaseToolset
+  file: src/google/adk/tools/base_toolset.py
+- id: api_understanding:which_specific_tool_class_in_adk_leverages_google_
+  category: Core Class Signatures & Initialization
+  question: Which specific tool class in ADK leverages Google's native search capability without a Python `run_async` implementation?
+  rationale: The `GoogleSearchTool` is designed to directly activate Google's native search capability. It does not have its own Python `run_async` method but instead modifies the `LlmRequest` to utilize the underlying model's built-in tool execution.
+  benchmark_type: api_understanding
+  template: identifier
+  answers:
+  - answer_template: StringMatchAnswer
+    answer: GoogleSearchTool
+    fully_qualified_class_name:
+    - google.adk.tools.google_search_tool.GoogleSearchTool
+  file: src/google/adk/tools/google_search_tool.py
+- id: api_understanding:which_class_is_used_to_run_multiple_agents_concurr
+  category: Core Class Signatures & Initialization
+  question: Which class is used to run multiple agents concurrently in ADK?
+  rationale: Use the `ParallelAgent`. Its `sub_agents` parameter takes a list of agent instances to be executed concurrently.
+  benchmark_type: api_understanding
+  template: identifier
+  answers:
+  - answer_template: StringMatchAnswer
+    answer: ParallelAgent
+    fully_qualified_class_name:
+    - google.adk.agents.parallel_agent.ParallelAgent
+  file: src/google/adk/agents/parallel_agent.py
+- id: api_understanding:which_class_provides_the_capability_to_add_plugins
+  category: Core Class Signatures & Initialization
+  question: Which class provides the capability to add plugins or other advanced features to an agent?
+  rationale: For advanced configurations, wrap your root agent in an `App` object. The `App` class provides parameters for adding plugins, configuring event compaction, and managing other application-level settings.
+  benchmark_type: api_understanding
+  template: identifier
+  answers:
+  - answer_template: StringMatchAnswer
+    answer: App
+    fully_qualified_class_name:
+    - google.adk.apps.app.App
+  file: src/google/adk/apps/app.py
+- id: api_understanding:what_is_the_fundamental_data_structure_for_convers
+  category: Data Structure Access & Best Practices
+  question: What is the fundamental data structure for conversation history?
+  rationale: The `Event` class is the core data structure used to represent a single turn in the conversation. It contains the content of the message, the author (user or agent), and any actions taken, such as tool calls.
+  benchmark_type: api_understanding
+  template: identifier
+  answers:
+  - answer_template: StringMatchAnswer
+    answer: Event
+    fully_qualified_class_name:
+    - google.adk.events.event.Event
+  file: src/google/adk/events/event.py
+- id: api_understanding:which_runner_subclass_comes_pre_configured_with_in
+  category: Core Class Signatures & Initialization
+  question: Which `Runner` subclass comes pre-configured with in-memory implementations for session, artifact, and memory services, making it the standard choice for local development and testing?
+  rationale: Use the `InMemoryRunner`. It's a convenient subclass of `Runner` that comes pre-configured with in-memory implementations for all the required services (session, artifact, and memory).
+  benchmark_type: api_understanding
+  template: identifier
+  answers:
+  - answer_template: StringMatchAnswer
+    answer: InMemoryRunner
+    fully_qualified_class_name:
+    - google.adk.runners.InMemoryRunner
+  file: src/google/adk/runners.py
+- id: api_understanding:what_is_the_base_class_for_all_tools
+  category: Core Class Signatures & Initialization
+  question: What is the base class for all tools?
+  rationale: All tools must inherit from `google.adk.tools.base_tool.BaseTool`, which defines the core interface for tool execution and schema generation.
+  benchmark_type: api_understanding
+  template: identifier
+  answers:
+  - answer_template: StringMatchAnswer
+    answer: BaseTool
+    fully_qualified_class_name:
+    - google.adk.tools.base_tool.BaseTool
+  file: src/google/adk/tools/base_tool.py
+- id: api_understanding:which_parameter_forces_an_llmagent_to_return_a_str
+  category: Configuration Parameters
+  question: Which parameter forces an `LlmAgent` to return a structured JSON object?
+  rationale: Set the `output_schema` parameter on the `LlmAgent` to a Pydantic model. The ADK will instruct the LLM to generate a JSON object that conforms to the model's schema.
+  benchmark_type: api_understanding
+  template: identifier
+  answers:
+  - answer_template: StringMatchAnswer
+    answer: output_schema
+    fully_qualified_class_name:
+    - google.adk.agents.llm_agent.LlmAgent
+  file: src/google/adk/agents/llm_agent.py
+- id: api_understanding:which_llmagent_parameter_is_used_for_static_unchan
+  category: Configuration Parameters
+  question: Which `LlmAgent` parameter is used for static, unchanging system instructions to enable context caching?
+  rationale: The `static_instruction` parameter is designed for content that never changes and doesn't contain placeholders. It's sent directly to the model as a system instruction at the beginning of the request, allowing for improved performance when the static portion remains unchanged, especially for context caching optimizations.
+  benchmark_type: api_understanding
+  template: identifier
+  answers:
+  - answer_template: StringMatchAnswer
+    answer: static_instruction
+    fully_qualified_class_name:
+    - google.adk.agents.llm_agent.LlmAgent
+  file: src/google/adk/agents/llm_agent.py
+- id: api_understanding:which_method_finds_a_specific_agent_within_a_multi
+  category: Agent-to-Agent Communication
+  question: Which method finds a specific agent within a multi-agent hierarchy?
+  rationale: Call the `find_agent(name)` method on any agent in the tree (usually the root agent). It will recursively search through all of its descendants and return the first agent with a matching name.
+  benchmark_type: api_understanding
+  template: identifier
+  answers:
+  - answer_template: StringMatchAnswer
+    answer: find_agent
+    fully_qualified_class_name:
+    - google.adk.agents.base_agent.BaseAgent
+  file: src/google/adk/agents/base_agent.py

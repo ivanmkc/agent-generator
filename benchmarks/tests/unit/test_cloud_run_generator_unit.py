@@ -64,6 +64,7 @@ async def test_cloud_run_generator_generate_answer(mock_api_key_manager):
 
     # Mock case
     case = ApiUnderstandingBenchmarkCase(
+        id="test:cloud_run",
         description="Test",
         category="Test",
         question="Test question",

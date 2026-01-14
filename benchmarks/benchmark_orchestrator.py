@@ -172,6 +172,7 @@ async def _run_single_benchmark(
                         # Log the final failure summary
                         # We use log_test_result even for generation failure to get the consistent block format
                         logger.log_test_result(
+                            id=case.id,
                             benchmark_name=case.get_identifier(),
                             result=BenchmarkResultType.FAIL_GENERATION,
                             suite=Path(suite_file).parent.name,
@@ -191,6 +192,7 @@ async def _run_single_benchmark(
                             break
 
                     return BenchmarkRunResult(
+                        id=case.id,
                         suite=str(Path(suite_file).absolute()),
                         benchmark_name=case.get_identifier(),
                         benchmark_type=case.benchmark_type,
@@ -214,6 +216,7 @@ async def _run_single_benchmark(
 
         if logger:
             logger.log_test_result(
+                id=case.id,
                 benchmark_name=case.get_identifier(),
                 result=result,
                 suite=Path(suite_file).parent.name,
@@ -237,6 +240,7 @@ async def _run_single_benchmark(
                 answer_str = str(generated_answer.output)
 
     return BenchmarkRunResult(
+        id=case.id,
         suite=str(Path(suite_file).absolute()),
         benchmark_name=case.get_identifier(),
         benchmark_type=case.benchmark_type,

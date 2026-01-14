@@ -1,213 +1,91 @@
 benchmarks:
-- question: What is the primary responsibility of the `AgentTool` class?
+- id: prismatic_concepts:benchmark_partial:what_is_the_primary_responsibility_of_the_agenttoo
+  question: What is the primary responsibility of the `AgentTool` class?
   options:
-    A: Wrapping an agent, allowing it to be called as a tool within a larger application,
-      using the agent's input and output schemas to define the tool's input parameters
-      and process the tool's result.
-    B: Simplifying the deployment of agents to Google Kubernetes Engine (GKE) by automatically
-      generating the necessary YAML configuration files and managing the deployment
-      process.
-    C: Converting a natural language query into a structured API call, using the agent's
-      defined schema to ensure the query is valid.
-    D: Orchestrating the interaction between multiple agents, allowing them to communicate
-      and share data seamlessly within a complex workflow, and managing their lifecycle.
+    A: Wrapping an agent, allowing it to be called as a tool within a larger application, using the agent's input and output schemas to define the tool's input parameters and process the tool's result.
+    B: Simplifying the deployment of agents to Google Kubernetes Engine (GKE) by automatically generating the necessary YAML configuration files and managing the deployment process.
+    C: Converting a natural language query into a structured API call, using the agent's defined schema to ensure the query is valid.
+    D: Orchestrating the interaction between multiple agents, allowing them to communicate and share data seamlessly within a complex workflow, and managing their lifecycle.
   correct_answer: A
-  explanation: The `AgentTool` class is designed to wrap an agent, enabling it to
-    function as a tool within a broader application. It utilizes the agent's input
-    schema to define the tool's input parameters and returns the agent's output as
-    the tool's result. Options B, C, and D are plausible but incorrect; they describe
-    functionalities outside the scope of the `AgentTool`'s primary responsibility.
-    Specifically, option B refers to simplifying agent deployment on GKE, option C
-    mentions converting natural language queries to API calls, and option D describes
-    orchestrating interactions between multiple agents, none of which accurately reflect
-    the core function of `AgentTool`.
+  explanation: The `AgentTool` class is designed to wrap an agent, enabling it to function as a tool within a broader application. It utilizes the agent's input schema to define the tool's input parameters and returns the agent's output as the tool's result. Options B, C, and D are plausible but incorrect; they describe functionalities outside the scope of the `AgentTool`'s primary responsibility. Specifically, option B refers to simplifying agent deployment on GKE, option C mentions converting natural language queries to API calls, and option D describes orchestrating interactions between multiple agents, none of which accurately reflect the core function of `AgentTool`.
   benchmark_type: multiple_choice
-- question: What is the primary responsibility of the `convert_interaction_event_to_llm_response`
-    method?
+- id: prismatic_concepts:benchmark_partial:what_is_the_primary_responsibility_of_the_convert_
+  question: What is the primary responsibility of the `convert_interaction_event_to_llm_response` method?
   options:
-    A: To convert an InteractionSSEEvent into an LlmResponse object for streaming,
-      handling various event types such as text deltas, function calls, and status
-      updates.
-    B: To automatically execute any client-side function calls detected in the event
-      stream and return the computed results.
-    C: To persist the incoming interaction event data into the session storage backend
-      to maintain conversation history.
-    D: To simply extract the raw text content from the event and return it as a string,
-      ignoring any structured data or metadata.
+    A: To convert an InteractionSSEEvent into an LlmResponse object for streaming, handling various event types such as text deltas, function calls, and status updates.
+    B: To automatically execute any client-side function calls detected in the event stream and return the computed results.
+    C: To persist the incoming interaction event data into the session storage backend to maintain conversation history.
+    D: To simply extract the raw text content from the event and return it as a string, ignoring any structured data or metadata.
   correct_answer: A
-  explanation: The `convert_interaction_event_to_llm_response` function's main job
-    is to transform an `InteractionSSEEvent` (a streaming event from the interactions
-    API) into an `LlmResponse` suitable for streaming back to the client. It inspects
-    the event type (e.g., 'content.delta', 'content.stop', 'interaction.status_update')
-    and constructs the appropriate `LlmResponse`, accumulating parts like text or
-    function calls as needed. Option B is incorrect because the function aggregates
-    function call data but does not execute the logic. Option C is incorrect because
-    the function transforms data formats but does not handle persistence. Option D
-    is incorrect because it returns a structured `LlmResponse` object, not just a
-    raw string.
+  explanation: The `convert_interaction_event_to_llm_response` function's main job is to transform an `InteractionSSEEvent` (a streaming event from the interactions API) into an `LlmResponse` suitable for streaming back to the client. It inspects the event type (e.g., 'content.delta', 'content.stop', 'interaction.status_update') and constructs the appropriate `LlmResponse`, accumulating parts like text or function calls as needed. Option B is incorrect because the function aggregates function call data but does not execute the logic. Option C is incorrect because the function transforms data formats but does not handle persistence. Option D is incorrect because it returns a structured `LlmResponse` object, not just a raw string.
   benchmark_type: multiple_choice
-- question: What is the primary responsibility of the `convert_interaction_event_to_llm_response`
-    method?
+- id: prismatic_concepts:benchmark_partial:what_is_the_primary_responsibility_of_the_convert__2
+  question: What is the primary responsibility of the `convert_interaction_event_to_llm_response` method?
   options:
-    A: To convert an InteractionSSEEvent into an LlmResponse object for streaming,
-      handling various event types such as text deltas, function calls, and status
-      updates.
-    B: To automatically execute any client-side function calls detected in the event
-      stream and return the computed results.
-    C: To persist the incoming interaction event data into the session storage backend
-      to maintain conversation history.
-    D: To simply extract the raw text content from the event and return it as a string,
-      ignoring any structured data or metadata.
+    A: To convert an InteractionSSEEvent into an LlmResponse object for streaming, handling various event types such as text deltas, function calls, and status updates.
+    B: To automatically execute any client-side function calls detected in the event stream and return the computed results.
+    C: To persist the incoming interaction event data into the session storage backend to maintain conversation history.
+    D: To simply extract the raw text content from the event and return it as a string, ignoring any structured data or metadata.
   correct_answer: A
-  explanation: The `convert_interaction_event_to_llm_response` function's main job
-    is to transform an `InteractionSSEEvent` (a streaming event from the interactions
-    API) into an `LlmResponse` suitable for streaming back to the client. It inspects
-    the event type (e.g., 'content.delta', 'content.stop', 'interaction.status_update')
-    and constructs the appropriate `LlmResponse`, accumulating parts like text or
-    function calls as needed. Option B is incorrect because the function aggregates
-    function call data but does not execute the logic. Option C is incorrect because
-    the function transforms data formats but does not handle persistence. Option D
-    is incorrect because it returns a structured `LlmResponse` object, not just a
-    raw string.
+  explanation: The `convert_interaction_event_to_llm_response` function's main job is to transform an `InteractionSSEEvent` (a streaming event from the interactions API) into an `LlmResponse` suitable for streaming back to the client. It inspects the event type (e.g., 'content.delta', 'content.stop', 'interaction.status_update') and constructs the appropriate `LlmResponse`, accumulating parts like text or function calls as needed. Option B is incorrect because the function aggregates function call data but does not execute the logic. Option C is incorrect because the function transforms data formats but does not handle persistence. Option D is incorrect because it returns a structured `LlmResponse` object, not just a raw string.
   benchmark_type: multiple_choice
-- question: What is the primary responsibility of the `convert_interaction_event_to_llm_response`
-    method?
+- id: prismatic_concepts:benchmark_partial:what_is_the_primary_responsibility_of_the_convert__3
+  question: What is the primary responsibility of the `convert_interaction_event_to_llm_response` method?
   options:
-    A: To convert an InteractionSSEEvent into an LlmResponse object for streaming,
-      handling various event types such as text deltas, function calls, and status
-      updates.
-    B: To automatically execute any client-side function calls detected in the event
-      stream and return the computed results.
-    C: To persist the incoming interaction event data into the session storage backend
-      to maintain conversation history.
-    D: To simply extract the raw text content from the event and return it as a string,
-      ignoring any structured data or metadata.
+    A: To convert an InteractionSSEEvent into an LlmResponse object for streaming, handling various event types such as text deltas, function calls, and status updates.
+    B: To automatically execute any client-side function calls detected in the event stream and return the computed results.
+    C: To persist the incoming interaction event data into the session storage backend to maintain conversation history.
+    D: To simply extract the raw text content from the event and return it as a string, ignoring any structured data or metadata.
   correct_answer: A
-  explanation: The `convert_interaction_event_to_llm_response` method transforms `InteractionSSEEvent`
-    objects received from the Interactions API into `LlmResponse` objects suitable
-    for streaming. It processes specific event types like `content.delta` (for text,
-    function calls, and images) and `interaction.status_update`. Crucially, it aggregates
-    function call deltas rather than executing them immediately and constructs structured
-    response objects containing metadata, rather than just returning raw text or handling
-    persistence.
+  explanation: The `convert_interaction_event_to_llm_response` method transforms `InteractionSSEEvent` objects received from the Interactions API into `LlmResponse` objects suitable for streaming. It processes specific event types like `content.delta` (for text, function calls, and images) and `interaction.status_update`. Crucially, it aggregates function call deltas rather than executing them immediately and constructs structured response objects containing metadata, rather than just returning raw text or handling persistence.
   benchmark_type: multiple_choice
-- question: What is the primary responsibility of the `convert_interaction_event_to_llm_response`
-    method?
+- id: prismatic_concepts:benchmark_partial:what_is_the_primary_responsibility_of_the_convert__4
+  question: What is the primary responsibility of the `convert_interaction_event_to_llm_response` method?
   options:
-    A: To convert an InteractionSSEEvent into an LlmResponse object for streaming,
-      handling various event types such as text deltas, function calls, and status
-      updates.
-    B: To automatically execute any client-side function calls detected in the event
-      stream and return the computed results.
-    C: To persist the incoming interaction event data into the session storage backend
-      to maintain conversation history.
-    D: To simply extract the raw text content from the event and return it as a string,
-      ignoring any structured data or metadata.
+    A: To convert an InteractionSSEEvent into an LlmResponse object for streaming, handling various event types such as text deltas, function calls, and status updates.
+    B: To automatically execute any client-side function calls detected in the event stream and return the computed results.
+    C: To persist the incoming interaction event data into the session storage backend to maintain conversation history.
+    D: To simply extract the raw text content from the event and return it as a string, ignoring any structured data or metadata.
   correct_answer: A
-  explanation: The `convert_interaction_event_to_llm_response` function's main job
-    is to transform an `InteractionSSEEvent` (a streaming event from the interactions
-    API) into an `LlmResponse` suitable for streaming back to the client. It inspects
-    the event type (e.g., 'content.delta', 'content.stop', 'interaction.status_update')
-    and constructs the appropriate `LlmResponse`, accumulating parts like text or
-    function calls as needed. Option B is incorrect because the function aggregates
-    function call data but does not execute the logic. Option C is incorrect because
-    the function transforms data formats but does not handle persistence. Option D
-    is incorrect because it returns a structured `LlmResponse` object, not just a
-    raw string.
+  explanation: The `convert_interaction_event_to_llm_response` function's main job is to transform an `InteractionSSEEvent` (a streaming event from the interactions API) into an `LlmResponse` suitable for streaming back to the client. It inspects the event type (e.g., 'content.delta', 'content.stop', 'interaction.status_update') and constructs the appropriate `LlmResponse`, accumulating parts like text or function calls as needed. Option B is incorrect because the function aggregates function call data but does not execute the logic. Option C is incorrect because the function transforms data formats but does not handle persistence. Option D is incorrect because it returns a structured `LlmResponse` object, not just a raw string.
   benchmark_type: multiple_choice
-- question: What is the primary responsibility of the `convert_interaction_event_to_llm_response`
-    method?
+- id: prismatic_concepts:benchmark_partial:what_is_the_primary_responsibility_of_the_convert__5
+  question: What is the primary responsibility of the `convert_interaction_event_to_llm_response` method?
   options:
-    A: To convert an InteractionSSEEvent into an LlmResponse object for streaming,
-      handling various event types such as text deltas, function calls, and status
-      updates.
-    B: To automatically execute any client-side function calls detected in the event
-      stream and return the computed results.
-    C: To persist the incoming interaction event data into the session storage backend
-      to maintain conversation history.
-    D: To simply extract the raw text content from the event and return it as a string,
-      ignoring any structured data or metadata.
+    A: To convert an InteractionSSEEvent into an LlmResponse object for streaming, handling various event types such as text deltas, function calls, and status updates.
+    B: To automatically execute any client-side function calls detected in the event stream and return the computed results.
+    C: To persist the incoming interaction event data into the session storage backend to maintain conversation history.
+    D: To simply extract the raw text content from the event and return it as a string, ignoring any structured data or metadata.
   correct_answer: A
-  explanation: The `convert_interaction_event_to_llm_response` function's main job
-    is to transform an `InteractionSSEEvent` (a streaming event from the interactions
-    API) into an `LlmResponse` suitable for streaming back to the client. It inspects
-    the event type (e.g., 'content.delta', 'content.stop', 'interaction.status_update')
-    and constructs the appropriate `LlmResponse`, accumulating parts like text or
-    function calls as needed. Option B is incorrect because the function aggregates
-    function call data but does not execute the logic. Option C is incorrect because
-    the function transforms data formats but does not handle persistence. Option D
-    is incorrect because it returns a structured `LlmResponse` object, not just a
-    raw string.
+  explanation: The `convert_interaction_event_to_llm_response` function's main job is to transform an `InteractionSSEEvent` (a streaming event from the interactions API) into an `LlmResponse` suitable for streaming back to the client. It inspects the event type (e.g., 'content.delta', 'content.stop', 'interaction.status_update') and constructs the appropriate `LlmResponse`, accumulating parts like text or function calls as needed. Option B is incorrect because the function aggregates function call data but does not execute the logic. Option C is incorrect because the function transforms data formats but does not handle persistence. Option D is incorrect because it returns a structured `LlmResponse` object, not just a raw string.
   benchmark_type: multiple_choice
-- question: What is the primary responsibility of the `convert_interaction_event_to_llm_response`
-    method?
+- id: prismatic_concepts:benchmark_partial:what_is_the_primary_responsibility_of_the_convert__6
+  question: What is the primary responsibility of the `convert_interaction_event_to_llm_response` method?
   options:
-    A: To convert an InteractionSSEEvent into an LlmResponse object for streaming,
-      handling various event types such as text deltas, function calls, and status
-      updates.
-    B: To automatically execute any client-side function calls detected in the event
-      stream and return the computed results.
-    C: To persist the incoming interaction event data into the session storage backend
-      to maintain conversation history.
-    D: To simply extract the raw text content from the event and return it as a string,
-      ignoring any structured data or metadata.
+    A: To convert an InteractionSSEEvent into an LlmResponse object for streaming, handling various event types such as text deltas, function calls, and status updates.
+    B: To automatically execute any client-side function calls detected in the event stream and return the computed results.
+    C: To persist the incoming interaction event data into the session storage backend to maintain conversation history.
+    D: To simply extract the raw text content from the event and return it as a string, ignoring any structured data or metadata.
   correct_answer: A
-  explanation: The `convert_interaction_event_to_llm_response` function's main job
-    is to transform an `InteractionSSEEvent` (a streaming event from the interactions
-    API) into an `LlmResponse` suitable for streaming back to the client. It inspects
-    the event type (e.g., 'content.delta', 'content.stop', 'interaction.status_update')
-    and constructs the appropriate `LlmResponse`, accumulating parts like text or
-    function calls as needed. Option B is incorrect because the function aggregates
-    function call data but does not execute the logic. Option C is incorrect because
-    the function transforms data formats but does not handle persistence. Option D
-    is incorrect because it returns a structured `LlmResponse` object, not just a
-    raw string.
+  explanation: The `convert_interaction_event_to_llm_response` function's main job is to transform an `InteractionSSEEvent` (a streaming event from the interactions API) into an `LlmResponse` suitable for streaming back to the client. It inspects the event type (e.g., 'content.delta', 'content.stop', 'interaction.status_update') and constructs the appropriate `LlmResponse`, accumulating parts like text or function calls as needed. Option B is incorrect because the function aggregates function call data but does not execute the logic. Option C is incorrect because the function transforms data formats but does not handle persistence. Option D is incorrect because it returns a structured `LlmResponse` object, not just a raw string.
   benchmark_type: multiple_choice
-- question: What is the primary responsibility of the `convert_interaction_event_to_llm_response`
-    method?
+- id: prismatic_concepts:benchmark_partial:what_is_the_primary_responsibility_of_the_convert__7
+  question: What is the primary responsibility of the `convert_interaction_event_to_llm_response` method?
   options:
-    A: To convert an InteractionSSEEvent into an LlmResponse object for streaming,
-      handling various event types such as text deltas, function calls, and status
-      updates.
-    B: To automatically execute any client-side function calls detected in the event
-      stream and return the computed results.
-    C: To persist the incoming interaction event data into the session storage backend
-      to maintain conversation history.
-    D: To simply extract the raw text content from the event and return it as a string,
-      ignoring any structured data or metadata.
+    A: To convert an InteractionSSEEvent into an LlmResponse object for streaming, handling various event types such as text deltas, function calls, and status updates.
+    B: To automatically execute any client-side function calls detected in the event stream and return the computed results.
+    C: To persist the incoming interaction event data into the session storage backend to maintain conversation history.
+    D: To simply extract the raw text content from the event and return it as a string, ignoring any structured data or metadata.
   correct_answer: A
-  explanation: The `convert_interaction_event_to_llm_response` function's main job
-    is to transform an `InteractionSSEEvent` (a streaming event from the interactions
-    API) into an `LlmResponse` suitable for streaming back to the client. It inspects
-    the event type (e.g., 'content.delta', 'content.stop', 'interaction.status_update')
-    and constructs the appropriate `LlmResponse`, accumulating parts like text or
-    function calls as needed. Option B is incorrect because the function aggregates
-    function call data but does not execute the logic. Option C is incorrect because
-    the function transforms data formats but does not handle persistence. Option D
-    is incorrect because it returns a structured `LlmResponse` object, not just a
-    raw string.
+  explanation: The `convert_interaction_event_to_llm_response` function's main job is to transform an `InteractionSSEEvent` (a streaming event from the interactions API) into an `LlmResponse` suitable for streaming back to the client. It inspects the event type (e.g., 'content.delta', 'content.stop', 'interaction.status_update') and constructs the appropriate `LlmResponse`, accumulating parts like text or function calls as needed. Option B is incorrect because the function aggregates function call data but does not execute the logic. Option C is incorrect because the function transforms data formats but does not handle persistence. Option D is incorrect because it returns a structured `LlmResponse` object, not just a raw string.
   benchmark_type: multiple_choice
-- question: What is the primary responsibility of the `convert_interaction_event_to_llm_response`
-    method?
+- id: prismatic_concepts:benchmark_partial:what_is_the_primary_responsibility_of_the_convert__8
+  question: What is the primary responsibility of the `convert_interaction_event_to_llm_response` method?
   options:
-    A: To convert an InteractionSSEEvent into an LlmResponse object for streaming,
-      handling various event types such as text deltas, function calls, and status
-      updates.
-    B: To automatically execute any client-side function calls detected in the event
-      stream and return the computed results.
-    C: To persist the incoming interaction event data into the session storage backend
-      to maintain conversation history.
-    D: To simply extract the raw text content from the event and return it as a string,
-      ignoring any structured data or metadata.
+    A: To convert an InteractionSSEEvent into an LlmResponse object for streaming, handling various event types such as text deltas, function calls, and status updates.
+    B: To automatically execute any client-side function calls detected in the event stream and return the computed results.
+    C: To persist the incoming interaction event data into the session storage backend to maintain conversation history.
+    D: To simply extract the raw text content from the event and return it as a string, ignoring any structured data or metadata.
   correct_answer: A
-  explanation: The `convert_interaction_event_to_llm_response` function's main job
-    is to transform an `InteractionSSEEvent` (a streaming event from the interactions
-    API) into an `LlmResponse` suitable for streaming back to the client. It inspects
-    the event type (e.g., 'content.delta', 'content.stop', 'interaction.status_update')
-    and constructs the appropriate `LlmResponse`, accumulating parts like text or
-    function calls as needed. Option B is incorrect because the function aggregates
-    function call data but does not execute the logic. Option C is incorrect because
-    the function transforms data formats but does not handle persistence. Option D
-    is incorrect because it returns a structured `LlmResponse` object, not just a
-    raw string.
+  explanation: The `convert_interaction_event_to_llm_response` function's main job is to transform an `InteractionSSEEvent` (a streaming event from the interactions API) into an `LlmResponse` suitable for streaming back to the client. It inspects the event type (e.g., 'content.delta', 'content.stop', 'interaction.status_update') and constructs the appropriate `LlmResponse`, accumulating parts like text or function calls as needed. Option B is incorrect because the function aggregates function call data but does not execute the logic. Option C is incorrect because the function transforms data formats but does not handle persistence. Option D is incorrect because it returns a structured `LlmResponse` object, not just a raw string.
   benchmark_type: multiple_choice

@@ -1,4 +1,3 @@
-
 import sys
 import pytest
 from pathlib import Path
@@ -36,6 +35,7 @@ async def test_run_benchmark_handles_reexports(tmp_path):
         # 2. Construct the benchmark case
         # Expected path is the internal one
         case = ApiUnderstandingBenchmarkCase(
+            id="test:reexport_success",
             benchmark_type="api_understanding",
             category="test",
             question="test",
@@ -49,8 +49,7 @@ async def test_run_benchmark_handles_reexports(tmp_path):
                 )
             ],
             file=Path("dummy.py")
-        )
-        
+        )        
         # 3. Construct the generated answer
         # Generated path is the public re-export
         generated_answer = GeneratedAnswer(
@@ -91,6 +90,7 @@ async def test_run_benchmark_fails_on_different_objects(tmp_path):
     
     try:
         case = ApiUnderstandingBenchmarkCase(
+            id="test:reexport_fail",
             benchmark_type="api_understanding",
             category="test",
             question="test",
@@ -105,7 +105,7 @@ async def test_run_benchmark_fails_on_different_objects(tmp_path):
             ],
             file=Path("dummy.py")
         )
-        
+
         generated_answer = GeneratedAnswer(
             output=ApiUnderstandingAnswerOutput(
                 benchmark_type="api_understanding",
@@ -123,4 +123,4 @@ async def test_run_benchmark_fails_on_different_objects(tmp_path):
 
     finally:
         if str(tmp_path) in sys.path:
-            sys.path.remove(str(tmp_path)) 
+            sys.path.remove(str(tmp_path))

@@ -56,7 +56,7 @@ class TestBenchmarkRetry(unittest.IsolatedAsyncioTestCase):
     
     async def test_no_retry_on_validation_error(self):
         generator = MockAnswerGenerator()
-        case = MockBenchmarkCase(benchmark_type=BenchmarkType.FIX_ERROR)
+        case = MockBenchmarkCase(id="test:retry", benchmark_type=BenchmarkType.FIX_ERROR)
         
         # We need to mock loading the suite file, so we'll mock yaml.safe_load and open
         with (
@@ -87,7 +87,7 @@ class TestBenchmarkRetry(unittest.IsolatedAsyncioTestCase):
 
     async def test_retry_on_validation_error(self):
         generator = MockAnswerGenerator()
-        case = MockBenchmarkCase(benchmark_type=BenchmarkType.FIX_ERROR)
+        case = MockBenchmarkCase(id="test:retry", benchmark_type=BenchmarkType.FIX_ERROR)
         
         semaphore = asyncio.Semaphore(1)
         result = await benchmark_orchestrator._run_single_benchmark(

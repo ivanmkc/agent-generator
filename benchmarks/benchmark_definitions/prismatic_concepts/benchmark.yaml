@@ -1,25 +1,12 @@
 benchmarks:
-- benchmark_type: multiple_choice
+- id: prismatic_concepts:what_is_the_primary_responsibility_of_the_agenttoo
+  benchmark_type: multiple_choice
   code_snippet_ref: null
   question: What is the primary responsibility of the `AgentTool` class?
   options:
-    A: Wrapping an agent, allowing it to be called as a tool within a larger application,
-      using the agent's input and output schemas to define the tool's input parameters
-      and process the tool's result.
-    B: Simplifying the deployment of agents to Google Kubernetes Engine (GKE) by automatically
-      generating the necessary YAML configuration files and managing the deployment
-      process.
-    C: Converting a natural language query into a structured API call, using the agent's
-      defined schema to ensure the query is valid.
-    D: Orchestrating the interaction between multiple agents, allowing them to communicate
-      and share data seamlessly within a complex workflow, and managing their lifecycle.
+    A: Wrapping an agent, allowing it to be called as a tool within a larger application, using the agent's input and output schemas to define the tool's input parameters and process the tool's result.
+    B: Simplifying the deployment of agents to Google Kubernetes Engine (GKE) by automatically generating the necessary YAML configuration files and managing the deployment process.
+    C: Converting a natural language query into a structured API call, using the agent's defined schema to ensure the query is valid.
+    D: Orchestrating the interaction between multiple agents, allowing them to communicate and share data seamlessly within a complex workflow, and managing their lifecycle.
   correct_answer: A
-  explanation: The `AgentTool` class is designed to wrap an agent, enabling it to
-    function as a tool within a broader application. It utilizes the agent's input
-    schema to define the tool's input parameters and returns the agent's output as
-    the tool's result. Options B, C, and D are plausible but incorrect; they describe
-    functionalities outside the scope of the `AgentTool`'s primary responsibility.
-    Specifically, option B refers to simplifying agent deployment on GKE, option C
-    mentions converting natural language queries to API calls, and option D describes
-    orchestrating interactions between multiple agents, none of which accurately reflect
-    the core function of `AgentTool`.
+  explanation: The `AgentTool` class is designed to wrap an agent, enabling it to function as a tool within a broader application. It utilizes the agent's input schema to define the tool's input parameters and returns the agent's output as the tool's result. Options B, C, and D are plausible but incorrect; they describe functionalities outside the scope of the `AgentTool`'s primary responsibility. Specifically, option B refers to simplifying agent deployment on GKE, option C mentions converting natural language queries to API calls, and option D describes orchestrating interactions between multiple agents, none of which accurately reflect the core function of `AgentTool`.
