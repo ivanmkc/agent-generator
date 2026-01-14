@@ -201,7 +201,7 @@ benchmarks:
 - id: configure_adk_features_mc:which_event_type_indicates_that_the_model_has_fini
   question: Which event type indicates that the model has finished generating a text response?
   options:
-    A: Event(content=...)
+    A: Event(content=..., partial=False)
     B: Event(status='finished')
     C: Event(type='response_complete')
     D: The event stream simply ends.
