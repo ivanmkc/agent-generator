@@ -18,6 +18,7 @@ from benchmarks.answer_generators.experiment_57 import create_knowledge_only_v37
 from benchmarks.answer_generators.experiment_58 import create_coding_v38_generator
 from benchmarks.answer_generators.experiment_62 import create_refined_knowledge_generator_v42
 from benchmarks.answer_generators.experiment_64 import create_refined_knowledge_generator_v44
+from benchmarks.answer_generators.experiment_65 import create_task_aware_generator_v45
 
 from benchmarks.answer_generators.gemini_cli_docker import (
     GeminiCliPodmanAnswerGenerator,
@@ -53,6 +54,7 @@ CANDIDATE_GENERATORS = [
     # create_coding_v38_generator(model_name=ModelName.GEMINI_2_5_PRO, api_key_manager=api_key_manager), # Disabled (Dummy)
     create_refined_knowledge_generator_v42(model_name=ModelName.GEMINI_2_5_FLASH, api_key_manager=api_key_manager),
     create_refined_knowledge_generator_v44(model_name=ModelName.GEMINI_2_5_FLASH, api_key_manager=api_key_manager),
+    create_task_aware_generator_v45(model_name=ModelName.GEMINI_2_5_FLASH, api_key_manager=api_key_manager),
     
     # Baseline: Gemini CLI with ADK Docs Extension
     # GeminiCliPodmanAnswerGenerator( ... ) # Disabled due to Podman instability
