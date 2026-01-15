@@ -25,7 +25,7 @@ import json
 from unittest.mock import MagicMock
 from google.adk.sessions.sqlite_session_service import SqliteSessionService
 from google.adk.tools import ToolContext
-from benchmarks.benchmark_generator.tools import get_prioritized_target
+from benchmarks.benchmark_generator.tools import list_prioritized_targets, select_target
 
 @pytest.mark.asyncio
 async def test_session_resumption(tmp_path):
@@ -47,8 +47,8 @@ async def test_session_resumption(tmp_path):
     
     # Initialize targets and a state where one target is already processed
     targets = [
-        {"file_path": "a.py", "method_name": "method_A", "complexity_score": 10, "docstring": None},
-        {"file_path": "b.py", "method_name": "method_B", "complexity_score": 10, "docstring": None}
+        {"id": "a.py::method_A", "type": "method", "file_path": "a.py", "name": "method_A", "complexity_score": 10, "docstring": None, "usage_score": 5},
+        {"id": "b.py::method_B", "type": "method", "file_path": "b.py", "name": "method_B", "complexity_score": 10, "docstring": None, "usage_score": 5}
     ]
     initial_state = {
         "scanned_targets": targets,
@@ -80,12 +80,20 @@ async def test_session_resumption(tmp_path):
     ctx = MagicMock(spec=ToolContext)
     ctx.session = session2
     
-    # Call the Auditor tool logic - it should pick 'method_B'
-    result_json = get_prioritized_target(ctx)
-    result = json.loads(result_json)
+    # 1. Auditor lists targets
+    candidates_json = list_prioritized_targets(ctx, limit=5)
+    candidates = json.loads(candidates_json)
     
-    assert result["method_name"] == "method_B"
-    assert result["file_path"] == "b.py"
+    # Should pick 'method_B' because 'method_A' is in processed_targets_list
+    assert len(candidates) >= 1
+    top_candidate = candidates[0]
+    assert top_candidate["id"] == "b.py::method_B"
+    
+    # 2. Auditor selects the target
+    target_json = select_target(top_candidate["id"], ctx)
+    target = json.loads(target_json)
+    
+    assert target["name"] == "method_B"
     
     # Verify the progress list was updated in the resumed session
     assert "b.py::method_B" in session2.state["processed_targets_list"]

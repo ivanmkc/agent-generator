@@ -20,6 +20,7 @@ import sys
 import io
 import time
 import json
+import random
 import traceback
 import yaml
 from pathlib import Path
@@ -29,6 +30,7 @@ from collections import defaultdict, Counter, deque
 from google.adk.tools import ToolContext
 from benchmarks.benchmark_generator.models import TargetEntity, TargetType, GoldenSnapshot, DistractorOption, ValidationStatus, ContextNode
 from benchmarks.benchmark_generator.irt import IRTManager
+from benchmarks.benchmark_generator.logger import PrismaticLogger
 
 # --- Scanner (Cartographer) Logic ---
 
@@ -104,6 +106,10 @@ def scan_repository(repo_path: str, tool_context: ToolContext, coverage_file: Op
             if module_fqn.startswith("src."): module_fqn = module_fqn[4:]
 
             if namespace and not module_fqn.startswith(namespace):
+                continue
+            
+            # Blacklist modules known to cause crashes (e.g. segfaults in trace_execution)
+            if "spanner" in module_fqn:
                 continue
 
             with open(full_path, "r", encoding="utf-8") as f:
@@ -223,39 +229,135 @@ def scan_repository(repo_path: str, tool_context: ToolContext, coverage_file: Op
     tool_context.session.state["cooccurrence_data"] = cooccurrence_data
     tool_context.session.state["coverage_data"] = coverage_data
     
+    # Persist to shared queue file (if output_dir is available) for Worker Pull
+    output_dir = tool_context.session.state.get("output_dir")
+    if output_dir:
+        out_path = Path(output_dir)
+        out_path.mkdir(parents=True, exist_ok=True)
+        # Save Scanned Targets
+        with open(out_path / "scanned_targets.json", "w", encoding="utf-8") as f:
+            json.dump([e.model_dump() for e in entities], f)
+        # Save Structure Map
+        with open(out_path / "structure_map.json", "w", encoding="utf-8") as f:
+            json.dump(structure_map, f)
+    
     return f"Cartographer scan complete: {len(entities)} hierarchical entities mapped. Structure map size: {len(structure_map)}."
 
 def list_prioritized_targets(tool_context: ToolContext, limit: int = 20) -> str:
     """
-    Returns a prioritized list of target IDs and their usage scores.
-    The Auditor should use this to pick the next target.
+    Returns a prioritized list of target IDs using a stateful BFS strategy:
+    1. High-Usage Seeds -> 2. Dependencies (BFS) -> 3. Orphans (Zero-usage, disconnected).
+    The queue is computed once and cached in the session.
     """
-    targets_data = tool_context.session.state.get("scanned_targets", [])
-    if not targets_data: return "No targets scanned. Call scan_repository first."
+    state = tool_context.session.state
+    targets_data = state.get("scanned_targets", [])
+    output_dir = state.get("output_dir")
     
-    processed_list = tool_context.session.state.get("processed_targets_list", [])
-    processed_set = set(processed_list)
-    
-    targets = [TargetEntity.model_validate(t) for t in targets_data]
-    candidates = [t for t in targets if t.id not in processed_set]
-    
-    if not candidates: return "DONE"
-    
-    irt_file = tool_context.session.state.get("irt_file")
-    irt_manager = IRTManager(irt_file)
-    coverage_data = tool_context.session.state.get("coverage_data")
+    if not targets_data:
+        # Fallback: Try loading from shared file
+        if output_dir:
+            shared_targets_path = Path(output_dir) / "scanned_targets.json"
+            if shared_targets_path.exists():
+                try:
+                    with open(shared_targets_path, "r") as f:
+                        targets_data = json.load(f)
+                    state["scanned_targets"] = targets_data
+                except Exception: pass
 
-    def score(t: TargetEntity):
-        u_score = t.usage_score * 100 
-        irt_p = irt_manager.calculate_priority(t.model_dump(), coverage_data)
-        return u_score + irt_p
-        
-    candidates.sort(key=score, reverse=True)
+    if not targets_data: return "No targets scanned. Call scan_repository first."
+
+    # Load processed list
+    processed_list = state.get("processed_targets_list", [])
+    if output_dir:
+        processed_path = Path(output_dir) / "processed_targets.json"
+        if processed_path.exists():
+            try:
+                with open(processed_path, "r") as f:
+                    file_processed = json.load(f)
+                processed_list = list(set(processed_list + file_processed))
+                state["processed_targets_list"] = processed_list
+            except Exception: pass
+            
+    processed_set = set(processed_list)
+
+    # --- BFS Queue Generation (Cached) ---
+    generation_queue = state.get("generation_queue")
     
-    results = []
-    for t in candidates[:limit]:
-        results.append({"id": t.id, "usage": t.usage_score, "type": t.type})
+    if not generation_queue:
+        print("[DEBUG] Generating new BFS Target Queue...")
+        # Map IDs to Entities for quick lookup
+        entity_map = {t["id"]: t for t in targets_data}
         
+        # 1. Build Graph
+        cooccurrence_data = state.get("cooccurrence_data", {})
+        associations = cooccurrence_data.get("associations", [])
+        graph = defaultdict(list)
+        for a in associations:
+            # Context uses Target. Dependency: Context -> Target
+            # We want to visit dependencies of used things.
+            if a["context"] in entity_map and a["target"] in entity_map:
+                graph[a["context"]].append(a["target"])
+
+        # 2. Identify Seeds (Usage > 0)
+        seeds = [t for t in targets_data if t.get("usage_score", 0) > 0]
+        # Sort seeds by usage desc, complexity desc
+        seeds.sort(key=lambda t: (t.get("usage_score", 0), t.get("complexity_score", 0)), reverse=True)
+        
+        ordered_ids = []
+        visited = set()
+        
+        # 3. Initialize & BFS
+        # Add Seeds first
+        for s in seeds:
+            if s["id"] not in visited:
+                visited.add(s["id"])
+                ordered_ids.append(s["id"])
+        
+        # Expand (Queue behavior using index)
+        idx = 0
+        while idx < len(ordered_ids):
+            curr_id = ordered_ids[idx]
+            idx += 1
+            
+            # Add unvisited dependencies
+            for dep_id in graph.get(curr_id, []):
+                if dep_id not in visited:
+                    visited.add(dep_id)
+                    ordered_ids.append(dep_id)
+                    
+        # 4. Add Orphans (Unvisited Public Entities)
+        orphans = [t for t in targets_data if t["id"] not in visited]
+        # Sort orphans by complexity (prioritize meatier code among unused)
+        orphans.sort(key=lambda t: t.get("complexity_score", 0), reverse=True)
+        
+        for o in orphans:
+            ordered_ids.append(o["id"])
+            
+        generation_queue = ordered_ids
+        state["generation_queue"] = generation_queue
+        print(f"[DEBUG] BFS Queue Generated. Total: {len(generation_queue)}. Seeds: {len(seeds)}. Visited in BFS: {len(visited)}. Orphans: {len(orphans)}.")
+
+    # --- Selection ---
+    # Filter out already processed targets
+    candidates_ids = [tid for tid in generation_queue if tid not in processed_set]
+    
+    print(f"[DEBUG] Target Selection: Queue Size={len(generation_queue)}, Processed={len(processed_set)}, Remaining={len(candidates_ids)}")
+    
+    if not candidates_ids: return "DONE"
+    
+    # Return top N from the ordered list
+    results = []
+    entity_map = {t["id"]: t for t in targets_data}
+    
+    for tid in candidates_ids[:limit]:
+        t = entity_map.get(tid)
+        if t:
+            results.append({
+                "id": t["id"],
+                "usage": t.get("usage_score", 0),
+                "complexity": t.get("complexity_score", 0)
+            })
+            
     return json.dumps(results)
 
 def select_target(target_id: str, tool_context: ToolContext) -> str:
@@ -263,6 +365,10 @@ def select_target(target_id: str, tool_context: ToolContext) -> str:
     Selects a specific target, performs context expansion, and prepares it for the Observer.
     Returns the full TargetEntity JSON for the Auditor to review.
     """
+    # Clear previous turn artifacts to prevent leakage
+    tool_context.session.state["current_snapshot"] = "None"
+    tool_context.session.state["saboteur_output"] = "None"
+
     targets_data = tool_context.session.state.get("scanned_targets", [])
     target_dict = next((t for t in targets_data if t["id"] == target_id), None)
     
@@ -374,6 +480,35 @@ def select_target(target_id: str, tool_context: ToolContext) -> str:
     processed_list.append(best.id)
     tool_context.session.state["processed_targets_list"] = processed_list
     
+    # Persist to shared file
+    output_dir = tool_context.session.state.get("output_dir")
+    if output_dir:
+        processed_path = Path(output_dir) / "processed_targets.json"
+        try:
+            with open(processed_path, "w") as f:
+                json.dump(processed_list, f)
+        except Exception: pass
+    
+    print(f"[DEBUG] select_target: Marked {best.id} as processed. Count is now {len(processed_list)}.")
+    
+    # --- Trace Logging ---
+    if output_dir:
+        logger = PrismaticLogger(output_dir=Path(output_dir))
+        # Recalculate queue stats for the log
+        total_scanned = len(targets_data)
+        remaining = total_scanned - len(processed_list)
+        
+        logger.log_trace("TARGET_SELECTED", {
+            "target_id": best.id,
+            "target_type": best.type,
+            "complexity": best.complexity_score,
+            "queue_stats": {
+                "total_scanned": total_scanned,
+                "processed": len(processed_list),
+                "remaining": remaining
+            }
+        })
+
     # Save to state for Auditor to "see"
     res_json = best.model_dump_json()
     tool_context.session.state["current_target_json"] = res_json
@@ -381,19 +516,52 @@ def select_target(target_id: str, tool_context: ToolContext) -> str:
 
 
 
+# --- Helper Functions ---
+
+def check_syntax(code: str) -> Optional[str]:
+    """Checks if the code has valid Python syntax. Returns error message or None."""
+    try:
+        ast.parse(code)
+        return None
+    except SyntaxError as e:
+        return f"SyntaxError: {e}"
+
 # --- Tracer Logic ---
 
-def trace_execution(code: str, target_method: dict, tool_context: ToolContext) -> str:
+def trace_execution(code: str, target_method: Any, tool_context: ToolContext) -> str:
     """Executes the provided code snippet to capture a Golden Snapshot."""
+    target_name = "Unknown"
+    if isinstance(target_method, dict):
+        target_name = target_method.get('name', 'Unknown')
+    elif isinstance(target_method, str):
+        target_name = target_method
+        
+    print(f"[DEBUG] trace_execution CALLED for {target_name}")
+    
+    # Input Guard: Syntax Check
+    syntax_error = check_syntax(code)
+    if syntax_error:
+        return json.dumps({"status": "error", "message": syntax_error})
+
+    target = None
     try:
-        target = TargetEntity.model_validate(target_method)
+        if isinstance(target_method, dict):
+            target = TargetEntity.model_validate(target_method)
+        else:
+            # Try to find target in state if only ID was provided
+            targets_data = tool_context.session.state.get("scanned_targets", [])
+            target_dict = next((t for t in targets_data if t["id"] == target_method or t["name"] == target_method), None)
+            if target_dict:
+                target = TargetEntity.model_validate(target_dict)
+            else:
+                 # Minimal TargetEntity if not found
+                 target = TargetEntity(id=target_name, type=TargetType.METHOD, name=target_name, file_path="unknown")
     except Exception as e:
-        return json.dumps({"error": f"Invalid target dict: {e}"})
+        return json.dumps({"error": f"Failed to initialize target entity: {e}"})
 
     stdout_capture = io.StringIO()
     original_stdout = sys.stdout
     start_time = time.time()
-    local_scope: Dict[str, Any] = {}
     
     repo_path = tool_context.session.state.get("repo_path")
     original_sys_path = sys.path[:]
@@ -406,7 +574,37 @@ def trace_execution(code: str, target_method: dict, tool_context: ToolContext) -
 
     try:
         sys.stdout = stdout_capture
-        exec(code, {}, local_scope)
+        # Provide common imports and ADK types to the execution scope
+        import typing
+        from typing import Optional, List, Dict, Any, Union, Iterable, Tuple, Set, Type, Callable
+        from google.adk.agents import LlmAgent, Agent, SequentialAgent, LoopAgent
+        from google.adk.runners import Runner
+        
+        exec_scope = {
+            "Optional": Optional,
+            "List": List,
+            "Dict": Dict,
+            "Any": Any,
+            "Union": Union,
+            "Iterable": Iterable,
+            "Tuple": Tuple,
+            "Set": Set,
+            "Type": Type,
+            "Callable": Callable,
+            "typing": typing,
+            "json": json,
+            "time": time,
+            "os": os,
+            "LlmAgent": LlmAgent,
+            "Agent": Agent,
+            "SequentialAgent": SequentialAgent,
+            "LoopAgent": LoopAgent,
+            "Runner": Runner,
+        }
+        
+        # Use a fresh local scope for each execution
+        local_scope: Dict[str, Any] = {}
+        exec(code, exec_scope, local_scope)
         execution_time = time.time() - start_time
         stdout_content = stdout_capture.getvalue()
         
@@ -426,7 +624,13 @@ def trace_execution(code: str, target_method: dict, tool_context: ToolContext) -
             local_vars=captured_locals,
             execution_time=execution_time
         )
+        # Persistence Workaround: Save to File
+        snapshot_file = Path("current_snapshot.json")
+        with open(snapshot_file, "w", encoding="utf-8") as f:
+            f.write(snapshot.model_dump_json())
+            
         tool_context.session.state["current_snapshot"] = snapshot.model_dump()
+        print(f"[DEBUG] Snapshot SAVED to {snapshot_file} and session state.")
         return json.dumps({"status": "success", "snapshot_summary": f"Executed in {execution_time:.2f}s"})
     except Exception as e:
         traceback_str = traceback.format_exc()
@@ -434,36 +638,218 @@ def trace_execution(code: str, target_method: dict, tool_context: ToolContext) -
     finally:
         sys.stdout = original_stdout
         sys.path = original_sys_path
-        # Restore sys.modules to prevent pollution from exec()
-        # We only restore keys that were present; new modules are left (optional) or we can strict restore.
-        # Strict restore is safer for preventing 'MagicMock' replacements of real modules.
-        sys.modules.clear()
+        # STRICT restore of sys.modules to prevent pollution from exec()
+        # This prevents mocks created inside exec() from leaking out.
+        to_delete = [m for m in sys.modules if m not in original_modules]
+        for m in to_delete:
+            del sys.modules[m]
         sys.modules.update(original_modules)
 
 # --- Sandbox Logic ---
 
 def validate_mutant(mutant_code: str, tool_context: ToolContext) -> str:
+    # Input Guard: Syntax Check
+    syntax_error = check_syntax(mutant_code)
+    if syntax_error:
+        # Syntax errors are valid "crashes" for mutants, but we distinguish them
+        return json.dumps({"valid": True, "reason": syntax_error, "status": ValidationStatus.FAIL_CRASH})
+
     snapshot_data = tool_context.session.state.get("current_snapshot")
+    # Backup: Read from file
+    if (not snapshot_data or snapshot_data == "None") and Path("current_snapshot.json").exists():
+        try:
+            with open("current_snapshot.json", "r", encoding="utf-8") as f:
+                snapshot_data = json.load(f)
+        except: pass
+
     if not snapshot_data or snapshot_data == "None":
-        return json.dumps({"error": "No Golden Snapshot found in session state."})
+        return json.dumps({"error": "No Golden Snapshot found in session state or file."})
     
     snapshot = GoldenSnapshot.model_validate(snapshot_data)
     stdout_capture = io.StringIO()
     original_stdout = sys.stdout
     
+    repo_path = tool_context.session.state.get("repo_path")
+    original_sys_path = sys.path[:]
+    original_modules = sys.modules.copy()
+    
+    if repo_path:
+        abs_repo_path = str(Path(repo_path).resolve())
+        if abs_repo_path not in sys.path:
+            sys.path.insert(0, abs_repo_path)
+
     try:
         sys.stdout = stdout_capture
-        exec(mutant_code, {}, {})
+        # Provide common imports and ADK types
+        import typing
+        from typing import Optional, List, Dict, Any, Union, Iterable, Tuple, Set, Type, Callable
+        from google.adk.agents import LlmAgent, Agent, SequentialAgent, LoopAgent
+        from google.adk.runners import Runner
+        
+        exec_scope = {
+            "Optional": Optional,
+            "List": List,
+            "Dict": Dict,
+            "Any": Any,
+            "Union": Union,
+            "Iterable": Iterable,
+            "Tuple": Tuple,
+            "Set": Set,
+            "Type": Type,
+            "Callable": Callable,
+            "typing": typing,
+            "json": json,
+            "time": time,
+            "os": os,
+            "LlmAgent": LlmAgent,
+            "Agent": Agent,
+            "SequentialAgent": SequentialAgent,
+            "LoopAgent": LoopAgent,
+            "Runner": Runner,
+        }
+        
+        local_scope: Dict[str, Any] = {}
+        exec(mutant_code, exec_scope, local_scope)
         stdout_content = stdout_capture.getvalue()
-        if stdout_content.strip() == snapshot.stdout.strip():
+        
+        # Compare Results
+        mutant_result = repr(local_scope.get("result", "N/A"))
+        golden_result = str(snapshot.return_value)
+        
+        stdout_divergent = stdout_content.strip() != snapshot.stdout.strip()
+        result_divergent = mutant_result != golden_result
+        
+        if not stdout_divergent and not result_divergent:
+             print(f"[DEBUG] Mutant is EQUIVALENT. Stdout matched, Result ({mutant_result}) matched.")
              return json.dumps({"valid": False, "reason": "Equivalent Mutant"})
-        return json.dumps({"valid": True, "reason": "Divergent Output", "status": ValidationStatus.PASS})
-    except SyntaxError as e:
-        return json.dumps({"valid": False, "reason": f"SyntaxError: {e}", "status": ValidationStatus.FAIL_CRASH})
+             
+        reason = "Divergent Output"
+        if stdout_divergent and result_divergent:
+            reason = "Divergent Stdout and Return Value"
+        elif stdout_divergent:
+            reason = "Divergent Stdout"
+        else:
+            reason = "Divergent Return Value"
+
+        return json.dumps({"valid": True, "reason": reason, "status": ValidationStatus.PASS})
     except Exception as e:
         return json.dumps({"valid": True, "reason": f"Runtime Crash: {e}", "status": ValidationStatus.PASS})
     finally:
         sys.stdout = original_stdout
+        sys.path = original_sys_path
+        to_delete = [m for m in sys.modules if m not in original_modules]
+        for m in to_delete:
+            del sys.modules[m]
+        sys.modules.update(original_modules)
+
+# --- Assembly Logic ---
+
+def assemble_and_save_benchmark(explanation: str, tool_context: ToolContext) -> str:
+    """
+    Programmatically assembles the benchmark case from session state and saves it.
+    This eliminates the need for the LLM to copy-paste code blocks.
+    """
+    snapshot_data = tool_context.session.state.get("current_snapshot")
+    # Backup: Read from file
+    if (not snapshot_data or snapshot_data == "None") and Path("current_snapshot.json").exists():
+        try:
+            with open("current_snapshot.json", "r", encoding="utf-8") as f:
+                snapshot_data = json.load(f)
+        except: pass
+
+    saboteur_output = tool_context.session.state.get("saboteur_output")
+    target_data = tool_context.session.state.get("current_target_json")
+
+    if not snapshot_data or snapshot_data == "None":
+        return json.dumps({"error": "Missing Golden Snapshot. Observer might have failed or trace_execution wasn't called."})
+    
+    # Parse Saboteur Output safely
+    mutants = []
+    try:
+        if isinstance(saboteur_output, str):
+            # Try to find JSON block if it's wrapped in markdown
+            raw_str = saboteur_output.strip()
+            if "```json" in raw_str:
+                raw_str = raw_str.split("```json")[1].split("```")[0].strip()
+            elif "```" in raw_str:
+                raw_str = raw_str.split("```")[1].split("```")[0].strip()
+            
+            if not raw_str:
+                 return json.dumps({"error": f"Saboteur output string is empty after stripping markdown. Raw: {saboteur_output[:100]}..."})
+
+            parsed = json.loads(raw_str)
+            mutants = parsed.get("mutants") or parsed.get("distractors") or []
+        elif isinstance(saboteur_output, dict):
+            mutants = saboteur_output.get("mutants") or saboteur_output.get("distractors") or []
+        else:
+            return json.dumps({"error": f"Unexpected saboteur_output type: {type(saboteur_output)}. Expected str or dict."})
+    except Exception as e:
+        return json.dumps({"error": f"Failed to parse mutants from saboteur_output: {e}. Raw content: {str(saboteur_output)[:200]}..."})
+
+    if not isinstance(mutants, list) or len(mutants) < 3:
+        return json.dumps({"error": f"Insufficient mutants found: {len(mutants) if isinstance(mutants, list) else 'Not a list'}. Need 3."})
+
+    # Prepare Data
+    try:
+        if isinstance(snapshot_data, str):
+            if not snapshot_data or snapshot_data == "None":
+                return json.dumps({"error": "Missing Golden Snapshot. Observer might have failed or trace_execution wasn't called."})
+            snapshot_data = json.loads(snapshot_data)
+        
+        if isinstance(target_data, str):
+            if not target_data or target_data == "None":
+                return json.dumps({"error": "Missing Target Data. Auditor might have failed to select a target."})
+            target_data = json.loads(target_data)
+    except json.JSONDecodeError as e:
+        return json.dumps({"error": f"Failed to parse JSON from state: {e}. target_data type: {type(target_data)}"})
+    
+    golden_code = snapshot_data.get("valid_usage_code")
+    target_name = target_data.get("name", "Target")
+
+    # --- Randomization Logic ---
+    candidates = [
+        {"code": golden_code, "type": "correct"},
+        {"code": mutants[0]["code"], "type": "distractor"},
+        {"code": mutants[1]["code"], "type": "distractor"},
+        {"code": mutants[2]["code"], "type": "distractor"}
+    ]
+
+    # 20% chance to replace the last distractor with "None of the above"
+    if random.random() < 0.2:
+        candidates[3] = {"code": "None of the above", "type": "distractor"}
+
+    random.shuffle(candidates)
+
+    options = {}
+    correct_letter = "A"
+    
+    letters = ["A", "B", "C", "D"]
+    for i, cand in enumerate(candidates):
+        letter = letters[i]
+        options[letter] = cand["code"]
+        if cand["type"] == "correct":
+            correct_letter = letter
+
+    # Construct Question
+    question = f"Which of the following code snippets correctly initializes/uses `{target_name}`?"
+
+    # Assemble Case
+    case = {
+        "question": question,
+        "options": options,
+        "correct_answer": correct_letter,
+        "explanation": explanation,
+        "benchmark_type": "multiple_choice"
+    }
+    
+    # Save using the existing logic
+    return save_benchmark_case(
+        tool_context=tool_context,
+        question=question,
+        options=options,
+        correct_answer=correct_letter,
+        explanation=explanation
+    )
 
 # --- Dedup Logic ---
 
@@ -477,124 +863,112 @@ def check_uniqueness(question_text: str, tool_context: ToolContext) -> str:
     max_sim = max(jaccard_sim(question_text, b.get("question", "")) for b in existing_benchmarks)
     return json.dumps({"unique": max_sim < 0.8, "max_similarity": max_sim})
 
-def save_benchmark_case(case_json: str, tool_context: ToolContext) -> str:
+def save_benchmark_case(tool_context: ToolContext, question: Optional[str] = None, options: Optional[Dict[str, str]] = None, correct_answer: Optional[str] = None, explanation: Optional[str] = None, case_json: Optional[str] = None) -> str:
+    """
+    Saves a benchmark case to the session state and persistent logs.
+    Can be called with individual fields or a JSON string.
+    """
     try:
-        case = json.loads(case_json)
+        case = {}
+        if case_json:
+            if isinstance(case_json, str):
+                case = json.loads(case_json)
+            elif isinstance(case_json, dict):
+                case = case_json
+        else:
+            case = {
+                "question": question,
+                "options": options,
+                "correct_answer": correct_answer,
+                "explanation": explanation
+            }
         
-        # Schema Normalization: Map Prismatic (flat) schema to Standard MC (dict) schema
+        # Schema Normalization
         normalized_case = {}
         
         # 1. Question
-        if "question" in case:
-            normalized_case["question"] = case["question"]
-        elif "q" in case:
-            normalized_case["question"] = case["q"]
-        else:
-             return json.dumps({"error": "Missing 'question' or 'q' field."})
+        q_val = case.get("question") or case.get("q")
+        if not q_val:
+             return json.dumps({"error": f"Missing 'question' field. Received keys: {list(case.keys())}"})
+        normalized_case["question"] = q_val
 
         # 2. Options
-        options = {}
-        if "options" in case and isinstance(case["options"], dict):
-             options = case["options"]
-        else:
-            # Flattened keys
-            if "a" in case: options["A"] = str(case["a"])
-            if "b" in case: options["B"] = str(case["b"])
-            if "c" in case: options["C"] = str(case["c"])
-            if "d" in case: options["D"] = str(case["d"])
-            
-            # Or list
-            if not options and "options" in case and isinstance(case["options"], list):
-                letters = ["A", "B", "C", "D"]
-                for i, opt in enumerate(case["options"][:4]):
-                    options[letters[i]] = str(opt)
+        opts = case.get("options")
+        if not opts or not isinstance(opts, dict):
+            # Try fallback to A/B/C/D keys
+            opts = {}
+            for k in ["A", "B", "C", "D", "a", "b", "c", "d"]:
+                if k in case: opts[k.upper()] = str(case[k])
         
-        if not options:
-             return json.dumps({"error": "Missing options (a/b/c/d or options dict/list)."})
-        
-        normalized_case["options"] = options
+        if not opts:
+             return json.dumps({"error": "Missing or invalid options."})
+        normalized_case["options"] = opts
 
         # 3. Correct Answer
         mapping = {0: "A", 1: "B", 2: "C", 3: "D", "0": "A", "1": "B", "2": "C", "3": "D"}
-        if "correct_answer" in case:
-             normalized_case["correct_answer"] = case["correct_answer"]
-        elif "correct_idx" in case:
-             val = case["correct_idx"]
-             if val in mapping:
-                 normalized_case["correct_answer"] = mapping[val]
-             else:
-                 # Try to interpret as integer
-                 try:
-                     normalized_case["correct_answer"] = mapping[int(val)]
-                 except:
-                     pass
+        ans = case.get("correct_answer")
+        if ans is None:
+            idx = case.get("correct_idx")
+            if idx in mapping: ans = mapping[idx]
         
-        if "correct_answer" not in normalized_case:
-             # Maybe it's the text of the answer? or the letter itself?
-             pass 
+        normalized_case["correct_answer"] = str(ans) if ans else "A"
 
         # 4. Explanation
-        if "explanation" in case:
-            normalized_case["explanation"] = case["explanation"]
-        elif "context" in case:
-             normalized_case["explanation"] = case["context"]
-
+        normalized_case["explanation"] = case.get("explanation") or case.get("context") or "No explanation provided."
         normalized_case["benchmark_type"] = "multiple_choice"
 
         # Update Session State
-        current_list = tool_context.session.state.get("generated_benchmarks", [])
-        tool_context.session.state["generated_benchmarks"] = current_list + [normalized_case]
+        state = tool_context.session.state
+        current_list = state.get("generated_benchmarks", [])
+        if not isinstance(current_list, list):
+            print(f"[DEBUG] Fix state: generated_benchmarks was {type(current_list)}, resetting to list.")
+            current_list = []
         
-        # JSONL Log (Robust) - Save Normalized
-        raw_log_path = Path("prismatic_generated_raw.jsonl")
-        with open(raw_log_path, "a", encoding="utf-8") as f:
-            f.write(json.dumps(normalized_case) + "\n")
-            
-        # YAML Partial Log (On-the-fly) - Strict Schema
-        output_dir = tool_context.session.state.get("output_dir")
-        if output_dir:
-            out_path = Path(output_dir)
-            out_path.mkdir(parents=True, exist_ok=True)
-            
-            # 1. Save Benchmark Case to Partial YAML
-            yaml_path = out_path / "benchmark_partial.yaml"
+        # Inject ID
+        normalized_case["id"] = f"prismatic_{int(time.time())}_{len(current_list)}"
+        
+        # --- Persistence ---
+        output_dir = state.get("output_dir")
+        raw_log_path = Path(output_dir) / "raw_benchmarks.jsonl" if output_dir else Path("prismatic_generated_raw.jsonl")
+        yaml_path = Path(output_dir) / "benchmark_partial.yaml" if output_dir else None
+        
+        # 1. YAML (Strict)
+        if yaml_path:
+            yaml_path.parent.mkdir(parents=True, exist_ok=True)
             first_write = not yaml_path.exists() or yaml_path.stat().st_size == 0
-            
-            # Create a clean dict for YAML to avoid Pydantic validation errors later
             yaml_case = {
-                "question": normalized_case.get("question"),
-                "options": normalized_case.get("options"),
-                "correct_answer": normalized_case.get("correct_answer"),
-                "explanation": normalized_case.get("explanation"),
+                "question": normalized_case["question"],
+                "options": normalized_case["options"],
+                "correct_answer": normalized_case["correct_answer"],
+                "explanation": normalized_case["explanation"],
                 "benchmark_type": "multiple_choice"
             }
-            
             with open(yaml_path, "a", encoding="utf-8") as f:
-                if first_write:
-                    f.write("benchmarks:\n")
-                yaml_str = yaml.safe_dump([yaml_case], sort_keys=False)
-                f.write(yaml_str)
+                if first_write: f.write("benchmarks:\n")
+                f.write(yaml.safe_dump([yaml_case], sort_keys=False))
 
-            # 2. Save Golden Snapshot to Corpus (reusable valid code)
-            snapshot_data = tool_context.session.state.get("current_snapshot")
-            if snapshot_data and snapshot_data != "None":
-                if isinstance(snapshot_data, str):
-                    snapshot_data = json.loads(snapshot_data)
-                
-                corpus_entry = {
-                    "target_id": snapshot_data.get("target", {}).get("id", "unknown"),
-                    "code": snapshot_data.get("valid_usage_code", ""),
-                    "stdout": snapshot_data.get("stdout", ""),
-                    "timestamp": time.time()
-                }
-                
-                corpus_path = out_path / "valid_usage_corpus.jsonl"
-                with open(corpus_path, "a", encoding="utf-8") as f:
-                    f.write(json.dumps(corpus_entry) + "\n")
+        # 2. JSONL
+        raw_log_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(raw_log_path, "a", encoding="utf-8") as f:
+            f.write(json.dumps(normalized_case) + "\n")
 
-        total = len(tool_context.session.state.get("scanned_targets", []))
-        processed = len(tool_context.session.state.get("processed_targets_list", []))
-        coverage_pct = (processed / total * 100) if total > 0 else 0.0
-        return f"Benchmark saved to {raw_log_path} and {yaml_path if output_dir else 'memory'}. Stats: Processed {processed}/{total} targets ({coverage_pct:.1f}%)."
+        # 3. State Update
+        state["generated_benchmarks"] = current_list + [normalized_case]
+        
+        # 4. Trace Log
+        if output_dir:
+            total = len(state.get("scanned_targets", []))
+            processed = len(state.get("processed_targets_list", []))
+            coverage_pct = (processed / total * 100) if total > 0 else 0.0
+            
+            logger = PrismaticLogger(output_dir=Path(output_dir))
+            logger.log_trace("BENCHMARK_SAVED", {
+                "benchmark_id": normalized_case["id"],
+                "target_id": state.get("current_target_json", "{}"), # Best effort
+                "stats": {"coverage_pct": coverage_pct, "processed_count": processed}
+            })
+            
+        return f"SUCCESS: Benchmark saved. Total now: {len(current_list) + 1}."
     except Exception as e:
-        return f"Error saving case: {e}"
+        traceback.print_exc()
+        return f"ERROR: Failed to save case: {str(e)}"

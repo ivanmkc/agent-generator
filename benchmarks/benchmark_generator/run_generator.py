@@ -51,10 +51,10 @@ async def main():
         help="Name of the benchmark suite.",
     )
     parser.add_argument(
-        "--model",
+        "--model-name",
         type=str,
-        default="gemini-3-pro-preview",
-        help="Model to use for generation.",
+        required=True,
+        help="Model to use for generation and coordination.",
     )
     parser.add_argument("--repo-path", type=str, default=".", help="Path to the repository to scan.")
     parser.add_argument("--coverage-file", type=str, help="Path to coverage data.")
@@ -74,25 +74,47 @@ async def main():
     parser.add_argument("--concurrency", type=int, default=1, help="Max concurrent LLM requests.")
     parser.add_argument("--limit", type=int, default=100, help="Maximum number of benchmarks to generate (default: 100).")
     parser.add_argument("--session-db", type=str, default="prismatic_sessions.db", help="Path to SQLite session database.")
+    parser.add_argument(
+        "--mode",
+        choices=["execution_mcq", "concept_mcq"],
+        default="execution_mcq",
+        help="Mode of benchmark generation (default: execution_mcq).",
+    )
 
     args = parser.parse_args()
 
     benchmarks = []
+    logger = PrismaticLogger()
 
     if args.type == "prismatic_adk":
-        print(f"Starting Prismatic ADK Generator (Model: {args.model})...")
-        print(f"  Repo Path: {args.repo_path}")
-        print(f"  Namespace: {args.namespace or 'All'}")
-        print(f"  Co-occurrence: {args.cooccurrence_file}")
-        print(f"  Limit: {args.limit}")
+        logger.log_info(f"Starting Prismatic ADK Generator (Model: {args.model_name})...")
+        logger.log_info(f"  Mode: {args.mode}")
+        logger.log_info(f"  Repo Path: {args.repo_path}")
+        logger.log_info(f"  Namespace: {args.namespace or 'All'}")
+        logger.log_info(f"  Co-occurrence: {args.cooccurrence_file}")
+        logger.log_info(f"  Limit: {args.limit}")
+
+        # Model Injection Logic
+        from benchmarks.benchmark_generator.agents import SemaphoreGemini
+        
+        # Use provided model for both roles
+        model_name = args.model_name
+        semaphore = asyncio.Semaphore(args.concurrency)
+        
+        if API_KEY_MANAGER:
+            model_obj = SemaphoreGemini(model=model_name, api_key_manager=API_KEY_MANAGER, semaphore=semaphore)
+            model_worker = model_obj
+            model_auditor = model_obj
+        else:
+            model_worker = model_name
+            model_auditor = model_name
         
         agent = create_prismatic_agent(
-            model_name=args.model, 
-            api_key_manager=API_KEY_MANAGER, 
+            model=model_worker,
+            auditor_model=model_auditor,
             repo_path=args.repo_path, 
-            concurrency=args.concurrency
+            mode=args.mode
         )
-        logger = PrismaticLogger()
         
         # Setup Runner with Persistence
         session_service = SqliteSessionService(db_path=args.session_db)
@@ -106,13 +128,13 @@ async def main():
         state_delta = {}
         
         if existing_session:
-            print(f"Resuming existing session: {session_id}")
+            logger.log_info(f"Resuming existing session: {session_id}")
             # Ensure required keys exist (if schema changed or new keys added)
             if "generated_benchmarks" not in existing_session.state:
                 state_delta["generated_benchmarks"] = []
             # Do NOT overwrite scanned_targets or processed_targets_list if they exist
         else:
-            print(f"Creating new session: {session_id}")
+            logger.log_info(f"Creating new session: {session_id}")
             await session_service.create_session(session_id=session_id, user_id="user", app_name="benchmark_generator")
             # Initialize full state
             state_delta = {
@@ -145,10 +167,20 @@ async def main():
         
         # Run the agent in a loop until target is reached
         target_count = args.limit
-        current_count = len(session.state.get("generated_benchmarks", []))
+        raw_log_path = args.output_dir / "raw_benchmarks.jsonl"
+        
+        def get_current_count():
+            count = 0
+            if raw_log_path.exists():
+                with open(raw_log_path, "r") as f:
+                    count = sum(1 for _ in f)
+            return count
+
+        current_count = get_current_count()
         
         while current_count < target_count:
-            print(f"[Coordinator]: Continuing loop... ({current_count}/{target_count} generated)")
+            logger.log_info(f"[Coordinator]: Continuing loop... ({current_count}/{target_count} generated)")
+            logger.log_info(f"--- Starting Generation Cycle for Benchmark #{current_count + 1} ---")
             
             # Send the message to trigger next cycle
             # Use 'Start' if current_count is 0, else 'Continue'
@@ -162,27 +194,19 @@ async def main():
             ):
                 logger.log_event(event)
             
-            # Refresh session to get latest state from DB
-            session = await session_service.get_session(session_id=session_id, user_id="user", app_name="benchmark_generator")
-            new_count = len(session.state.get("generated_benchmarks", []))
-            
-            # Use raw file as fallback for count if state persistence is buggy
-            if Path("prismatic_generated_raw.jsonl").exists():
-                with open("prismatic_generated_raw.jsonl", "r") as f:
-                    raw_count = sum(1 for _ in f)
-                new_count = max(new_count, raw_count)
-
-            if new_count == current_count:
-                 # It might have failed one turn, let's not give up immediately
-                 # But for now, we'll use a small limit to avoid infinite loops in failure
-                 pass
-
-            current_count = new_count
+            # Refresh count from file
+            current_count = get_current_count()
             if current_count >= target_count: break
         
-        # Extract results
-        generated_data = session.state.get("generated_benchmarks", [])
-        print(f"Generation complete. Found {len(generated_data)} benchmarks in session state.")
+        # Extract results from file if session state is stale
+        if raw_log_path.exists():
+            with open(raw_log_path, "r") as f:
+                generated_data = [json.loads(line) for line in f]
+        else:
+            session = await session_service.get_session(session_id=session_id, user_id="user", app_name="benchmark_generator")
+            generated_data = session.state.get("generated_benchmarks", [])
+            
+        logger.log_info(f"Generation complete. Found {len(generated_data)} benchmarks.")
         
         # Convert JSON dicts to Pydantic models (MultipleChoiceBenchmarkCase)
         from benchmarks.data_models import MultipleChoiceBenchmarkCase
@@ -200,7 +224,7 @@ async def main():
                 case = MultipleChoiceBenchmarkCase.model_validate(data)
                 benchmarks.append(case)
             except Exception as e:
-                print(f"Failed to parse benchmark case: {e}")
+                logger.log_error(f"Failed to parse benchmark case: {e}")
                 # print(f"Data: {data}")
 
     if benchmarks:
@@ -211,10 +235,10 @@ async def main():
         with open(output_yaml, "w", encoding="utf-8") as f:
             yaml.dump(benchmark_file.model_dump(mode="json"), f, sort_keys=False)
 
-        print(f"Generated {len(benchmarks)} benchmarks in {args.output_dir}")
-        print(f"Suite YAML saved to {output_yaml}")
+        logger.log_info(f"Generated {len(benchmarks)} benchmarks in {args.output_dir}")
+        logger.log_info(f"Suite YAML saved to {output_yaml}")
     else:
-        print("No benchmarks were generated.")
+        logger.log_info("No benchmarks were generated.")
 
 
 if __name__ == "__main__":

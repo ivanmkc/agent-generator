@@ -14,6 +14,10 @@
 
 """Custom logger for Prismatic Generator events."""
 
+import datetime
+import json
+from pathlib import Path
+from typing import Optional, Any, Dict
 from colorama import Fore, Style, init
 from google.adk.events import Event
 
@@ -21,7 +25,7 @@ from google.adk.events import Event
 init(autoreset=True)
 
 class PrismaticLogger:
-    """Logs events from the Prismatic multi-agent system with color coding."""
+    """Logs events from the Prismatic multi-agent system with color coding and structured file tracing."""
 
     AGENT_COLORS = {
         "Auditor": Fore.YELLOW,
@@ -35,12 +39,40 @@ class PrismaticLogger:
         "user": Fore.LIGHTWHITE_EX
     }
 
+    def __init__(self, output_dir: Optional[Path] = None):
+        self.output_dir = output_dir
+        self.trace_file = None
+        if self.output_dir:
+            self.output_dir.mkdir(parents=True, exist_ok=True)
+            self.trace_file = self.output_dir / "generation_trace.jsonl"
+
+    def _timestamp(self):
+        return datetime.datetime.now().strftime("%H:%M:%S")
+
+    def log_trace(self, event_type: str, details: Dict[str, Any]):
+        """Logs a structured event to the trace file."""
+        if not self.trace_file:
+            return
+            
+        record = {
+            "timestamp": datetime.datetime.now().isoformat(),
+            "event_type": event_type,
+            "details": details
+        }
+        
+        try:
+            with open(self.trace_file, "a", encoding="utf-8") as f:
+                f.write(json.dumps(record) + "\n")
+        except Exception as e:
+            print(f"{Fore.RED}Failed to write to trace log: {e}{Style.RESET_ALL}")
+
     def log_event(self, event: Event):
         """Logs an ADK Event to the console with appropriate styling."""
         author = event.author or "unknown"
         color = self.AGENT_COLORS.get(author, Fore.WHITE)
+        ts = self._timestamp()
         
-        prefix = f"{Style.BRIGHT}{color}[{author}]{Style.RESET_ALL}"
+        prefix = f"{Style.DIM}{ts}{Style.RESET_ALL} {Style.BRIGHT}{color}[{author}]{Style.RESET_ALL}"
         
         if not event.content or not event.content.parts:
             return
@@ -58,7 +90,8 @@ class PrismaticLogger:
             
             if part.function_call:
                 print(f"{prefix} {Fore.LIGHTYELLOW_EX}➔ Tool Call: {part.function_call.name}{Style.RESET_ALL}")
-                # print(f"  Args: {part.function_call.args}") # Optional verbose
+                print(f"{Style.DIM}   Arguments: {part.function_call.args}{Style.RESET_ALL}")
+                print(f"{Style.DIM}   ... Waiting for result ...{Style.RESET_ALL}")
 
             if part.function_response:
                 response_text = str(part.function_response.response)
@@ -70,8 +103,15 @@ class PrismaticLogger:
 
     def log_system(self, message: str):
         """Logs a system message."""
-        print(f"{Fore.LIGHTBLACK_EX}[System]: {message}{Style.RESET_ALL}")
+        ts = self._timestamp()
+        print(f"{Style.DIM}{ts}{Style.RESET_ALL} {Fore.LIGHTBLACK_EX}[System]: {message}{Style.RESET_ALL}")
+
+    def log_info(self, message: str):
+        """Logs an info message."""
+        ts = self._timestamp()
+        print(f"{Style.DIM}{ts}{Style.RESET_ALL} {Fore.CYAN}[Info]: {message}{Style.RESET_ALL}")
 
     def log_error(self, message: str):
         """Logs an error message."""
-        print(f"{Fore.RED}{Style.BRIGHT}[Error]: {message}{Style.RESET_ALL}")
+        ts = self._timestamp()
+        print(f"{Style.DIM}{ts}{Style.RESET_ALL} {Fore.RED}{Style.BRIGHT}[Error]: {message}{Style.RESET_ALL}")

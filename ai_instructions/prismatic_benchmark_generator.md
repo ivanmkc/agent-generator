@@ -13,15 +13,20 @@
 ## 2. Strategic Architecture
 
 ### Design Philosophy
-*   **High-Signal Targeting:** Prioritize code that is complex and uncovered (Fisher Information maximization).
-*   **Indisputable Ground Truth:** Trust the interpreter, not the model's prediction of output.
-*   **Closed-Loop Reliability:** Self-correcting agents (Saboteur/Referee loop) to minimize human-in-the-loop overhead.
+*   **High-Signal Targeting**: Prioritize code that is complex, uncovered, and highly relevant to the core API surface.
+*   **Iterative Coverage Maximization**: Dynamically select the next target based on the maximum potential coverage lift, accounting for what has already been generated.
+*   **Indisputable Ground Truth**: Trust the interpreter, not the model's prediction of output.
+*   **Closed-Loop Reliability**: Self-correcting agents (Saboteur/Referee loop) to minimize human-in-the-loop overhead.
 
 ### Core Components (Agent Architecture)
-*   **Topology:** **Hierarchical/Orchestrated MAS.** A `PrismaticRunner` orchestrates a team of specialized agents (`Auditor`, `Observer`, `Saboteur`).
-*   **Discovery Strategy:** **Automated Cartography.** The `Auditor` agent uses a specialized `scan_repository` tool (AST-based) to map the codebase structure and usage statistics without reading full file contents.
-*   **Memory Model:** **State-Driven (Write-Ahead Log).** Agents share state via a persistent `SqliteSessionService` backed by a JSONL write-ahead log to survive crashes and support resumption.
-*   **Verification:** **Adversarial Loop.** The `Saboteur` proposes distractors, and the `Referee` (Sandbox) attempts to execute them to prove they are "hard negatives" (plausible but incorrect).
+*   **Topology**: **Hierarchical/Orchestrated MAS**. A `PrismaticRunner` orchestrates specialized agents and workers.
+*   **Discovery Strategy**: **Automated Cartography**. AST-based mapping of structure and usage.
+*   **Prioritization Engine**: 
+    *   **Relevancy**: Prioritizes targets that co-occur with major root nodes (e.g., `Agent`, `BaseTool`).
+    *   **Coverage Lift**: Iteratively determines the updated coverage of generated benchmarks and selects the target offering the highest marginal coverage gain.
+*   **Task Management**: Uses a **Task Queue** where prioritized targets are stored, allowing workers to pull and process them concurrently.
+*   **Memory Model**: **State-Driven (Write-Ahead Log)**. Agents share state via a persistent `SqliteSessionService` backed by a JSONL write-ahead log.
+*   **Verification**: **Adversarial Loop**. `Saboteur` proposes distractors, and the `Referee` validates them in a sandbox.
 
 ## 3. Methodology & Verification Protocol
 **CRITICAL:** Every verification step MUST include the exact shell command required to execute it. 
@@ -81,18 +86,39 @@ PYTHONPATH=. env/bin/python benchmarks/benchmark_generator/run_generator.py \
 *   **Result:** **Success**
 *   **Trace Analysis:** The `Observer` initially failed when trying to import `unittest.mock`. After the instruction update, it correctly instantiated concrete classes, proving the "Zero-Trust Truth" constraint requires explicit enforcement.
 
+### Phase 4: Iterative Prioritization & Task Queue (Current)
+*   **Hypothesis:** Static prioritization fails to maximize coverage efficiently. Dynamic "Coverage Lift" calculation and Relevancy scoring will produce higher-value benchmarks faster.
+*   **Configuration:**
+    *   Updated `list_prioritized_targets` to calculate score = `Usage + Relevancy + CoverageLift`.
+    *   Implemented file-backed persistence (`scanned_targets.json`) in `scan_repository` to enable "Worker Pull" architecture.
+*   **Result:** **Unit Tests Passed**
+*   **RCA:** N/A
+
+### Phase 6: BFS Prioritization & Enhanced Conceptual Pipeline (Current)
+*   **Hypothesis:** Relying on simple complexity scores or IRT misses critical dependencies and core infrastructure. A usage-driven BFS approach will ensure foundational components are tested first. Also, the conceptual pipeline needs deduplication to prevent semantic collisions.
+*   **Configuration:**
+    *   **BFS Strategy:** Implemented `list_prioritized_targets` with a stateful queue generation: `Seeds (High Usage) -> Dependencies (BFS) -> Orphans (Unused Public Entities)`.
+    *   **Pipeline Upgrade:** Added the `Critic` agent to the `ConceptWorker` pipeline to enforce uniqueness using Jaccard similarity.
+    *   **Tracing:** Added `generation_trace.jsonl` logging to capture queue state and decision logic for debugging.
+    *   **Robustness:** Refactored `save_benchmark_case` to handle flexible input types (dict/str) and prevent partial writes.
+*   **Result:** **Success**
+*   **Trace Analysis:**
+    *   *Queue Logic:* Verified via `generation_trace.jsonl` that the system correctly expanded from 11 seeds to 192 dependencies before processing orphans.
+    *   *Target Selection:* High-value targets like `Runner`, `AgentTool`, and `LlmResponse` were prioritized immediately due to their high usage scores.
+    *   *Resumption:* Confirmed that the BFS queue persists in the SQLite DB, allowing seamless restart without re-computation.
+
 --- 
 
 ## 5. Critical Reflections & Lessons Learned
-*   **Successes:** The "Write-Ahead Log" (JSONL) solved session persistence quirks where in-place list mutations weren't committed to SQLite.
-*   **Failures:** Early attempts to use `MagicMock` in the Truth Lab crashed Pydantic-based code in the target repo.
+*   **Successes:** The "Write-Ahead Log" (JSONL) solved session persistence quirks where in-place list mutations weren't committed to SQLite. The BFS strategy successfully identified "deep" dependencies that simple random sampling missed.
+*   **Failures:** Early attempts to use `MagicMock` in the Truth Lab crashed Pydantic-based code in the target repo. The `Assembler` initially hallucinated function names (e.g., `forecast_timesfm`) by conflating code symbols; strict prompt instructions fixed this.
 *   **Insights:** Structured output (`output_schema`) combined with strict tool-calling instructions is the only way to get reliable multi-agent orchestration from current model generations.
 
 ## 6. Usage & Artifacts
 **File Structure:**
-*   `agents.py`: MAS orchestration logic.
-*   `tools.py`: AST Scanner, Tracer, and Sandbox.
-*   `irt.py`: IRT-based prioritization scoring.
+*   `agents.py`: MAS orchestration logic (Sequential, Loop, Specialized).
+*   `tools.py`: AST Scanner, BFS Strategist, Truth Lab, and Sandbox.
+*   `logger.py`: Colored console logger and structured file tracer.
 *   `run_generator.py`: CLI entry point.
 
 **Final Execution Command:**
@@ -100,10 +126,11 @@ PYTHONPATH=. env/bin/python benchmarks/benchmark_generator/run_generator.py \
 PYTHONPATH=. env/bin/python benchmarks/benchmark_generator/run_generator.py \
     --type prismatic_adk \
     --output-dir benchmarks/benchmark_definitions/prismatic_generated \
-    --model gemini-3-pro-preview \
+    --model-name gemini-3-pro-preview \
     --repo-path ../adk-python \
-    --concurrency 1 \
-    --session-db prismatic_sessions.db
+    --concurrency 2 \
+    --session-db prismatic_sessions.db \
+    --mode concept_mcq
 ```
 
 ## 7. Appendix: Comprehensive Experiment Log
