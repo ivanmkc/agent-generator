@@ -1,0 +1,113 @@
+benchmarks:
+- id: prismatic_1768440963_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary responsibility of the `AgentTool` class?
+  options:
+    A: It wraps an autonomous agent to expose it as a callable tool, enabling nested
+      agent execution by adapting schemas, managing a dedicated runner, and synchronizing
+      state changes.
+    B: It acts as a semantic router that analyzes incoming user queries and uses keyword
+      matching to deterministically dispatch requests to specific API endpoints.
+    C: It serves as a decorative metadata wrapper that adds name and description tags
+      to a class for logging, without facilitating execution logic or schema conversion.
+    D: It operates as an infrastructure manager that automatically provisions isolated
+      Docker containers and handles network tunneling for secure agent communication.
+  correct_answer: A
+  explanation: The `AgentTool` class is designed to wrap a `BaseAgent` (often an `LlmAgent`)
+    so it can be invoked as a tool by another agent. The source code shows it constructing
+    a `FunctionDeclaration` based on the agent's input schema, creating a new `Runner`
+    instance to execute the agent in a nested context (`run_async`), and handling
+    state synchronization via `state_delta`.
+- id: prismatic_1768441029_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary responsibility of the `LlmResponse` class?
+  options:
+    C: It serves as a lightweight string wrapper that strictly extracts the raw text
+      body from the model output, deliberately discarding all secondary metadata like
+      safety ratings and citations to minimize memory overhead.
+    D: It operates as an active supervisor that automatically detects safety violations
+      in the output and recursively re-prompts the model with modified instructions
+      until a compliant response is generated.
+    B: It functions as a configuration builder that defines model hyperparameters
+      like temperature and token limits, which are then serialized and sent to the
+      API to initiate a generation request.
+    A: It acts as a normalized data container that encapsulates the content, execution
+      status, and extensive metadata (such as usage, grounding, and citations) from
+      an LLM's output, providing a unified structure via a static creation method.
+  correct_answer: A
+  explanation: The `LlmResponse` class serves as a standardized data container that
+    normalizes the output from an LLM. It encapsulates the generated content, execution
+    status (including error codes if applicable), and extensive metadata such as `usage_metadata`,
+    `grounding_metadata`, `citations`, and `logprobs`. It specifically includes a
+    static `create` method to transform a raw `GenerateContentResponse` into this
+    unified structure. It does not configure request parameters (Option B), strictly
+    discard metadata (Option C), or actively re-prompt for safety (Option D).
+- id: prismatic_1768441147_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary responsibility of the `Runner` class?
+  options:
+    A: It functions as an autonomous infrastructure manager that dynamically provisions
+      GPU resources, manages container scaling within Kubernetes, and performs live
+      database schema migrations to accommodate changing agent memory requirements.
+    B: It acts as the application's primary HTTP server and load balancer, responsible
+      for terminating SSL connections, validating API keys, and routing incoming JSON
+      network requests to the appropriate agent endpoints.
+    C: It orchestrates the execution of agents within a session, managing the lifecycle
+      of message processing, event generation, and interaction with services such
+      as session storage, artifact management, and plugin execution.
+    D: It is a lightweight, synchronous wrapper designed strictly for stateless execution,
+      capable only of sending a single prompt to an LLM and returning the text response
+      without managing session history or event persistence.
+  correct_answer: C
+  explanation: The `Runner` class is the central coordinator in the ADK that manages
+    the execution of an agent within a session. As described in the docstring and
+    implementation, it handles message processing, event generation, and interactions
+    with `session_service`, `artifact_service`, and `plugin_manager`. It supports
+    various execution modes (async, live, rewind) and maintains state, distinguishing
+    it from a simple stateless wrapper or an infrastructure/networking component.
+- id: prismatic_1768441218_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary responsibility of the `get_bigquery_client` function?
+  options:
+    B: It initializes a `google.cloud.bigquery.Client` with explicit credentials and
+      project details, specifically managing the creation of `ClientInfo` to combine
+      a default internal user agent with any user-provided user agents.
+    A: It serves as a connection pool manager that monitors active BigQuery sessions,
+      automatically rotating credentials and reconnecting the client if network timeouts
+      occur.
+    D: It retrieves the project ID strictly from system environment variables to return
+      a default client, lacking support for custom credential objects or user agent
+      modifications.
+    C: It initializes the client and performs a comprehensive network test by executing
+      a dry-run query, using the user agent to dynamically adjust TCP keep-alive settings
+      and gRPC channel options.
+  correct_answer: B
+  explanation: 'The function is designed to instantiate a `google.cloud.bigquery.Client`.
+    It explicitly accepts credentials and project configuration. A key part of its
+    logic is handling the `user_agent` parameter: it creates a list starting with
+    a default internal `USER_AGENT`, appends any user-supplied agents (handling both
+    strings and lists), and encapsulates this in a `google.api_core.client_info.ClientInfo`
+    object passed to the client constructor. It does not perform connection pooling,
+    dry-run queries, or rely solely on environment variables.'
+- id: prismatic_1768441282_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary responsibility of the `InMemoryRunner` class?
+  options:
+    B: It provides a self-contained, lightweight execution environment for agents
+      by using in-memory implementations for artifact, session, and memory services.
+    D: It functions as a fault-tolerant virtualization layer that mirrors transient
+      state to a local file system backup for automatic data recovery.
+    C: It acts as a configuration utility that validates environment variables and
+      API keys before delegating execution to a standard persistence layer.
+    A: It serves as an asynchronous job scheduler that manages a queue of background
+      threads to allow concurrent agent task execution without blocking the main process.
+  correct_answer: B
+  explanation: The `InMemoryRunner` is specifically designed for testing and development
+    purposes. It configures the runner to use `InMemoryArtifactService`, `InMemorySessionService`,
+    and `InMemoryMemoryService`, creating a lightweight, self-contained environment
+    where all state and data are held in memory rather than being persisted externally.

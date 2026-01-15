@@ -26,7 +26,10 @@ import asyncio
 from unittest.mock import MagicMock
 from google.adk.tools import ToolContext
 from google.adk.sessions import Session
-from benchmarks.benchmark_generator.tools import scan_repository, trace_execution, validate_mutant, save_benchmark_case, get_prioritized_target
+from benchmarks.benchmark_generator.tools import (
+    scan_repository, trace_execution, validate_mutant, 
+    save_benchmark_case, list_prioritized_targets, select_target
+)
 from benchmarks.benchmark_generator.agents import create_prismatic_agent, SemaphoreGemini
 from benchmarks.api_key_manager import ApiKeyManager
 from benchmarks.benchmark_generator.models import TargetType
@@ -70,8 +73,8 @@ def test_scan_repository(mock_context, tmp_path):
     # Verify usage was counted
     assert bar_target["usage_score"] >= 1
 
-def test_get_prioritized_target(mock_context):
-    """Verifies that the Auditor prioritizes based on Usage > Complexity."""
+def test_list_prioritized_targets(mock_context):
+    """Verifies that the Auditor prioritizes based on Coverage Lift and Usage."""
     targets = [
         {
             "id": "unused.unused", "type": "method", "name": "unused", 
@@ -84,24 +87,35 @@ def test_get_prioritized_target(mock_context):
     ]
     mock_context.session.state["scanned_targets"] = targets
     
-    # First call - should get 'popular' due to usage weight (10 * 20 = 200) vs unused (50 + 10 = 60)
-    res1 = get_prioritized_target(mock_context)
-    data1 = json.loads(res1)
-    assert data1["name"] == "popular"
+    # First call:
+    # 'unused': Usage(0) + Lift(50 * 1.0 * 20 = 1000) = 1000
+    # 'popular': Usage(100) + Lift(5 * 1.0 * 20 = 100) = 200
+    # So 'unused' should be first.
+    
+    res_list_json = list_prioritized_targets(mock_context, limit=2)
+    res_list = json.loads(res_list_json)
+    assert res_list[0]["id"] == "unused.unused"
+    
+    # Simulate processing 'unused'
+    res_select = select_target("unused.unused", mock_context)
+    data_select = json.loads(res_select)
+    assert data_select["id"] == "unused.unused"
     
     # Verify state update
     processed_list = mock_context.session.state["processed_targets_list"]
-    assert "popular.popular" in processed_list
+    assert "unused.unused" in processed_list
     
-    # Second call - should get 'unused'
-    res2 = get_prioritized_target(mock_context)
-    data2 = json.loads(res2)
-    assert data2["name"] == "unused"
+    # Second call - should get 'popular'
+    res_list_2 = list_prioritized_targets(mock_context, limit=1)
+    res_list_data_2 = json.loads(res_list_2)
+    assert res_list_data_2[0]["id"] == "popular.popular"
+    
+    # Process popular
+    select_target("popular.popular", mock_context)
     
     # Third call - should return DONE
-    res3 = get_prioritized_target(mock_context)
-    data3 = json.loads(res3)
-    assert data3["status"] == "DONE"
+    res_done = list_prioritized_targets(mock_context)
+    assert res_done == "DONE"
 
 def test_trace_execution(mock_context):
     """Ensures that code execution correctly captures stdout and return values."""
@@ -136,7 +150,7 @@ def test_validate_mutant(mock_context):
     }
     snapshot = {
         "stdout": "Hello\n",
-        "return_value": "2",
+        "return_value": "'N/A'",
         "valid_usage_code": "print('Hello')",
         "target": target,
         "local_vars": {},
@@ -169,7 +183,8 @@ def test_save_benchmark_case(mock_context):
 def test_agent_creation():
     """Sanity check that the Prismatic loop agent can be instantiated."""
     agent = create_prismatic_agent()
-    assert agent.name == "PrismaticLoop"
+    # Updated name expectation from agents.py
+    assert agent.name == "PrismaticRunner"
 
 def test_semaphore_gemini_instantiation():
     """Verifies that the SemaphoreGemini class correctly stores the semaphore."""
@@ -182,9 +197,9 @@ def test_prismatic_agent_creation_with_manager():
     """Ensures the orchestrator correctly integrates with the ApiKeyManager."""
     akm = MagicMock(spec=ApiKeyManager)
     agent = create_prismatic_agent(api_key_manager=akm, concurrency=5)
-    assert agent.name == "PrismaticLoop"
+    assert agent.name == "PrismaticRunner"
 
-def test_get_prioritized_target_with_coverage(mock_context):
+def test_list_prioritized_targets_with_coverage(mock_context):
     """Verifies that targets not present in coverage data are prioritized."""
     targets = [
         {
@@ -204,8 +219,8 @@ def test_get_prioritized_target_with_coverage(mock_context):
     }
     
     # Call Auditor logic
-    res = get_prioritized_target(mock_context)
-    data = json.loads(res)
+    res_json = list_prioritized_targets(mock_context)
+    data = json.loads(res_json)
     
-    # Should pick 'uncovered.bar' due to the coverage penalty on 'covered.py'
-    assert data["file_path"] == "uncovered.py"
+    # Should pick 'uncovered.bar' (Lift = 10 * 1.0 * 20 = 200) vs 'covered.foo' (Lift = 10 * 0.1 * 20 = 20)
+    assert data[0]["id"] == "uncovered.bar"
