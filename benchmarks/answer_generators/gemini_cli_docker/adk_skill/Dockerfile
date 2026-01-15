@@ -7,8 +7,8 @@ RUN mkdir -p /workdir
 # Copy the adk_skill directory into the image
 COPY ../../../../adk_skill /workdir/adk_skill
 
-# Copy the instructions.txt for context
-COPY ../../../../adk_skill/instructions.txt /workdir/instructions.txt
+# Copy the settings.json into the adk_skill directory in the image
+COPY settings.json /workdir/adk_skill/settings.json
 
 # Write version.txt from build argument
 ARG VERSION=unknown

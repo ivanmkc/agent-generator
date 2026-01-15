@@ -1,0 +1,14 @@
+{
+  "tools": {
+    "exclude": ["google_web_search"]
+  },
+  "context": {
+    "fileName": [
+      "instructions.md"
+    ],
+    "includeDirectories": [
+      "./"
+    ],
+    "loadMemoryFromIncludeDirectories": true
+  }
+}
