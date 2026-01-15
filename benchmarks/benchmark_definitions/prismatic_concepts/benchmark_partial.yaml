@@ -1361,3 +1361,58 @@ benchmarks:
     Otherwise, it defaults to returning `GoogleLLMVariant.GEMINI_API`. This logic
     determines which Google LLM backend service to use based on the configuration.
   benchmark_type: multiple_choice
+- question: What is the primary responsibility of the `google.adk.planners` module?
+  options:
+    A: It serves as the initialization point and namespace container for planning
+      algorithms and strategies, organizing and exposing specific planner implementations.
+    B: It functions as the low-level hardware driver that converts high-level motion
+      commands into raw serial byte streams for controlling connected USB accessories.
+    C: It is a standalone utility script limited to calculating basic Euclidean distance
+      between two points, without any capability to manage or import complex algorithms.
+    D: Its primary responsibility is to manage the SQL database schema and handle
+      data migrations for persistently storing historical planning logs and user session
+      statistics.
+  correct_answer: A
+  explanation: The `google.adk.planners` module, defined by its `__init__.py` file,
+    functions as a package root. Its main purpose is to serve as a namespace container
+    that organizes and exposes specific planning algorithms and strategies for use
+    by other parts of the Google ADK library.
+  benchmark_type: multiple_choice
+- question: What is the primary responsibility of the `GoogleLLMVariant` class?
+  options:
+    D: It is a basic text string used strictly to tag the model name in system logs
+      for debugging purposes, having no functional impact on which API endpoint is
+      actually contacted.
+    C: It is a dedicated authentication handler class that executes the OAuth 2.0
+      token refresh cycles and manages secure connection handshakes for the Google
+      Vertex AI gateway.
+    B: It is an enumeration responsible for defining the specific Google Large Language
+      Model (LLM) backend service to be used within the application.
+    A: It is a high-level orchestration engine that automatically provisions Google
+      Cloud infrastructure, manages billing quotas, and sets up auto-scaling rules
+      for deployed LLM endpoints.
+  correct_answer: B
+  explanation: 'The `GoogleLLMVariant` class is an enumeration (Enum) that specifies
+    which Google LLM backend service to use. It defines two options: `VERTEX_AI` (for
+    Google Vertex AI) and `GEMINI_API` (for Google AI Studio), allowing the application
+    to select the appropriate configuration and credentials.'
+  benchmark_type: multiple_choice
+- question: What is the primary responsibility of the `google.adk.utils.variant_utils`
+    module?
+  options:
+    C: It functions as a static text file that simply lists the compatible version
+      numbers of the Google Cloud SDK, devoid of any Python classes or execution logic.
+    B: "It parses and formats the raw JSON output from Google\u2019s Gemini models\
+      \ to convert unstructured text into strongly typed data objects for the agent's\
+      \ memory system."
+    D: It acts as an intelligent load balancer that dynamically routes API traffic
+      between Vertex AI and other Google endpoints to automatically optimize inference
+      latency and reduce cloud costs.
+    A: It defines enumerations and helper functions to identify and manage specific
+      Google LLM variants (such as Vertex AI) for internal ADK use.
+  correct_answer: A
+  explanation: The `google.adk.utils.variant_utils` module contains the `GoogleLLMVariant`
+    class and the `get_google_llm_variant` function. Its docstring explicitly states
+    it provides utilities for Google LLM variants and is intended for ADK internal
+    use only, rather than serving as a parser, load balancer, or version file.
+  benchmark_type: multiple_choice

@@ -140,15 +140,31 @@ class RoutingDelegatorAgent(Agent):
     """
     def __init__(self, model: str | RotatingKeyGemini, coding_agent: Agent, knowledge_agent: Agent, **kwargs):
         super().__init__(**kwargs)
+        
+        # Tool definition for routing
+        def route_task(category: str, tool_context: ToolContext) -> str:
+            """Routes the task to the specified category."""
+            return f"Routed to {category}"
+
+        route_tool = FunctionTool(route_task)
+
         self._router = LlmAgent(
             name="router",
             model=model,
+            tools=[route_tool],
             include_contents='none',
+            generate_content_config=types.GenerateContentConfig(
+                tool_config=types.ToolConfig(
+                    function_calling_config=types.FunctionCallingConfig(
+                        mode='ANY'
+                    )
+                )
+            ),
             instruction=(
                 "You are the Request Router. Classify the user request.\n"
-                "1. Coding Requests: User wants to implement an agent, fix code, or write scripts.\n"
-                "2. Knowledge/QA Requests: User asks a question about ADK, multiple choice, or API definitions.\n"
-                "Output ONLY the word 'CODING' or 'KNOWLEDGE'."
+                "1. CODING: User wants to implement an agent, fix code, or write scripts.\n"
+                "2. KNOWLEDGE: User asks a question about ADK, multiple choice, or API definitions.\n"
+                "Call `route_task` with the correct category ('CODING' or 'KNOWLEDGE')."
             )
         )
         self._coding_agent = coding_agent
@@ -156,13 +172,18 @@ class RoutingDelegatorAgent(Agent):
 
     async def _run_async_impl(self, ctx) -> AsyncGenerator[Event, None]:
         # 1. Route
-        route_decision = ""
+        route_decision = "KNOWLEDGE" # Default
+        
         async for event in self._router.run_async(ctx):
             yield event # Show the routing thought/result
+            
+            # Capture tool call
             if event.content and event.content.parts:
                 for part in event.content.parts:
-                    if part.text:
-                        route_decision += part.text
+                    if part.function_call and part.function_call.name == "route_task":
+                        args = part.function_call.args
+                        if args and "category" in args:
+                            route_decision = args["category"]
         
         target_agent = self._knowledge_agent
         if "CODING" in route_decision.upper():
