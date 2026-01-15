@@ -1300,3 +1300,64 @@ benchmarks:
     It is not merely a configuration interface, a memory manager, or a fine-tuning
     engine.
   benchmark_type: multiple_choice
+- question: What is the primary responsibility of the `BaseTool` class within the
+    framework?
+  options:
+    A: It serves as the abstract foundation for all agent tools, defining the standard
+      interface for tool execution, metadata definition, and integration into LLM
+      requests.
+    B: It serves as the primary decision engine for the framework, responsible for
+      managing the agent's thought loop, parsing natural language into intent, and
+      executing LLM inference requests.
+    C: It acts strictly as a passive data interface for defining function signatures,
+      requiring the developer to manually implement all configuration injection and
+      schema generation logic.
+    D: It is a concrete networking utility specifically designed to manage secure
+      HTTP tunneling, connection pooling, and authentication handshakes for remote
+      APIs.
+  correct_answer: A
+  explanation: '`BaseTool` is the abstract base class for all tools. It defines the
+    interface for running tools (`run_async`), obtaining OpenAPI declarations (`_get_declaration`),
+    and processing LLM requests (`process_llm_request`). It also provides `from_config`
+    for reflective instantiation.'
+  benchmark_type: multiple_choice
+- question: What is the primary responsibility of the `google.adk.tools` module?
+  options:
+    A: It acts as the runtime security engine for the ADK, responsible for creating
+      sandboxed environments to execute untrusted code and enforcing resource quotas
+      on CPU and memory usage.
+    B: It serves strictly as a static collection of pre-built standard utilities (such
+      as a calculator and basic file reader), without providing the abstract base
+      classes or interfaces necessary for developers to define custom tools.
+    C: It serves as the central entry point for the tool ecosystem, aggregating and
+      exporting core classes like `BaseTool`, `FunctionTool`, and `McpToolset` to
+      unify local, agent-based, and MCP tool paradigms.
+    D: Its primary role is to function as an automated API gateway that deploys and
+      auto-scales microservices for defined tools, managing the underlying cloud infrastructure
+      and load balancing.
+  correct_answer: C
+  explanation: The `google.adk.tools` module functions as the main entry point for
+    the ADK's tool system. It exposes essential classes such as `BaseTool`, `FunctionTool`,
+    `AgentTool`, and `McpToolset` from their respective submodules, thereby simplifying
+    imports and unifying access to different types of tools (local functions, other
+    agents, and MCP servers) under a single namespace.
+  benchmark_type: multiple_choice
+- question: What is the primary responsibility of the `get_google_llm_variant` function?
+  options:
+    C: This function simply retrieves the version string of the installed Google Generative
+      AI SDK to ensure compatibility with the current runtime environment.
+    B: This function validates the integrity of the provided API key against Google
+      Cloud IAM permissions to authorize the request before establishing a connection
+      to the backend.
+    D: This function serves as an intelligent load balancer, dynamically routing requests
+      between Vertex AI and Gemini API based on real-time latency metrics and cost
+      optimization strategies.
+    A: This function determines the active Google LLM backend service (Vertex AI or
+      Gemini API) based on the current environment configuration, specifically checking
+      the `GOOGLE_GENAI_USE_VERTEXAI` variable.
+  correct_answer: A
+  explanation: The function `get_google_llm_variant` checks the environment variable
+    `GOOGLE_GENAI_USE_VERTEXAI`. If this variable is enabled, it returns `GoogleLLMVariant.VERTEX_AI`.
+    Otherwise, it defaults to returning `GoogleLLMVariant.GEMINI_API`. This logic
+    determines which Google LLM backend service to use based on the configuration.
+  benchmark_type: multiple_choice

@@ -579,223 +579,71 @@ class AdkAnswerGenerator(LlmAnswerGenerator):
         api_key_id: Optional[str] = None,
         benchmark_type: str = "unknown"
     ) -> tuple[str, list[TraceLogEvent], UsageMetadata]:
-        """Helper to run the agent and get the response."""
-        if not self.runner:
-            raise RuntimeError("ADK runner not initialized. Call setup() first.")
+        """Helper to run the agent using a fresh Runner and TraceCollectorPlugin."""
+
+        # 1. Create fresh infrastructure for this run to ensure isolation
+        if getattr(self.agent, "__module__", "").startswith("google.adk.agents"):
+            app_name = "agents"
+        else:
+            app_name = f"AdkBenchmarkApp_{getattr(self.agent, 'name', 'unnamed')}_{uuid.uuid4().hex}"
+
+        collector = TraceCollectorPlugin()
+        app = App(name=app_name, root_agent=self.agent, plugins=[collector])
+        runner = InMemoryRunner(app=app)
 
         session_id = f"benchmark_session_{uuid.uuid4()}"
-        
-        # Create session with initial state pre-populated
-        session = await self.runner.session_service.create_session(
-            app_name=self.app.name, 
+        session = await runner.session_service.create_session(
+            app_name=app.name, 
             user_id="benchmark_user",
             session_id=session_id,
             state={"benchmark_type": benchmark_type}
         )
         
-        final_response = ""
-        logs: list[TraceLogEvent] = []
-
-        # Explicitly log the initial prompt as a user message
-        logs.append(
+        # 2. Initial Logs
+        collector.logs.append(
             TraceLogEvent(
                 type=TraceEventType.MESSAGE,
                 source="adk",
                 timestamp=datetime.datetime.now().isoformat(),
                 role="user",
-                author="system",  # Indicates it's the initial system/user prompt
+                author="system",
                 content=prompt,
                 details={"step": "Initial Prompt to Agent"}
             )
         )
 
-        total_prompt_tokens = 0
-        total_completion_tokens = 0
-        total_tokens = 0
-
+        final_response = ""
         new_message = types.UserContent(parts=[types.Part(text=f"Task Type: {benchmark_type}\n\n{prompt}")])
 
-        # Timing Stats
-        execution_sequence = []
-        last_event_time = time.time()
-        
-        # Track current block
-        current_block_agent = None
-        current_block_duration = 0.0
-        current_block_prompt_tokens = 0
-        current_block_completion_tokens = 0
-
         try:
-            async for event in self.runner.run_async(
+            async for event in runner.run_async(
                 user_id=session.user_id, session_id=session.id, new_message=new_message
             ):
-                now = time.time()
-                duration = now - last_event_time
-                last_event_time = now
-                
-                author = getattr(event, "author", "unknown") or "unknown"
-                if author == "unknown":
-                     author = getattr(event, "agent_name", "system") or "system"
-                
-                if current_block_agent is None:
-                    current_block_agent = author
-                
-                if author != current_block_agent:
-                    # Switch detected
-                    execution_sequence.append({
-                        "agent": current_block_agent, 
-                        "duration": current_block_duration,
-                        "prompt_tokens": current_block_prompt_tokens,
-                        "completion_tokens": current_block_completion_tokens
-                    })
-                    current_block_agent = author
-                    current_block_duration = 0.0
-                    current_block_prompt_tokens = 0
-                    current_block_completion_tokens = 0
-                
-                current_block_duration += duration
-
-                # Extract usage metadata if available
-                if hasattr(event, "usage_metadata") and event.usage_metadata:
-                    # Note: ADK usage_metadata attributes might vary, assuming standard keys
-                    # We try to get attributes safely
-                    pmt = getattr(event.usage_metadata, "prompt_token_count", 0) or 0
-                    cpt = getattr(event.usage_metadata, "candidates_token_count", 0) or 0
-                    tt = getattr(event.usage_metadata, "total_token_count", 0) or 0
-
-                    total_prompt_tokens += pmt
-                    total_completion_tokens += cpt
-                    total_tokens += tt
-                    
-                    current_block_prompt_tokens += pmt
-                    current_block_completion_tokens += cpt
-
-                # Base details for the event
-                base_details = event.model_dump(mode='json')
-                timestamp = (
-                    event.created_time.isoformat()
-                    if hasattr(event, "created_time") and event.created_time
-                    else None
-                )
-
-                # Attempt to extract common fields that might be present directly on the ADK event
-                event_tool_name = getattr(event, "tool_name", None)
-                event_agent_name = getattr(event, "agent_name", None)
-
-                # Analyze content parts to generate specific log events
-                events_generated = False
-                if event.content and event.content.parts:
-                    for part in event.content.parts:
-                        # 1. Text (Model Response or User Message)
-                        if part.text:
-                            log_event = TraceLogEvent(
-                                type=TraceEventType.MESSAGE,
-                                source="adk",
-                                timestamp=timestamp,
-                                role=event.content.role,
-                                author=event_agent_name or event.author,
-                                content=part.text,
-                                details=base_details
-                            )
-                            logs.append(log_event)
-                            events_generated = True
-
-                        # 2. Function Call (Tool Use)
-                        if part.function_call:
-                            log_event = TraceLogEvent(
-                                type=TraceEventType.TOOL_USE,
-                                source="adk",
-                                timestamp=timestamp,
-                                role="model",
-                                author=event_agent_name or event.author,
-                                tool_name=event_tool_name or part.function_call.name,
-                                tool_input=part.function_call.args, # Assuming args is dict/json-serializable
-                                tool_call_id=getattr(part.function_call, "id", None),
-                                details=base_details
-                            )
-                            logs.append(log_event)
-                            events_generated = True
-
-                        # 3. Function Response (Tool Result)
-                        if part.function_response:
-                            response_content = part.function_response.response
-                            # Simplify response if it's just a 'result' key
-                            if isinstance(response_content, dict) and "result" in response_content and len(response_content) == 1:
-                                tool_output_str = str(response_content["result"])
-                            else:
-                                tool_output_str = str(response_content)
-
-                            log_event = TraceLogEvent(
-                                type=TraceEventType.TOOL_RESULT,
-                                source="adk",
-                                timestamp=timestamp,
-                                role="tool",
-                                author=event_agent_name or event.author,
-                                tool_name=event_tool_name or part.function_response.name,
-                                tool_output=tool_output_str,
-                                tool_call_id=getattr(part.function_response, "id", None),
-                                details=base_details
-                            )
-                            logs.append(log_event)
-                            events_generated = True
-
-                # Fallback for ADK internal events (e.g., sub-agent orchestration)
-                if not events_generated:
-                    content_text = None
-                    if getattr(event, "content", None) and event.content.parts:
-                        content_text = "".join([p.text for p in event.content.parts if p.text])
-
-                    log_event = TraceLogEvent(
-                        type=TraceEventType.ADK_EVENT,
-                        source="adk",
-                        timestamp=timestamp,
-                        role=getattr(event, "role", None), # ADK events might have a role directly
-                        author=event_agent_name or event.author,
-                        tool_name=event_tool_name,
-                        content=content_text,
-                        details=base_details,
-                    )
-                    logs.append(log_event)
-
                 if event.is_final_response():
                     if event.content and event.content.parts:
-                        final_response = event.content.parts[0].text
+                        final_response = "".join([p.text for p in event.content.parts if p.text])
         except Exception as e:
-            # Capture partial usage and logs on failure
+            collector.finalize()
             partial_usage = UsageMetadata(
-                total_tokens=total_tokens,
-                prompt_tokens=total_prompt_tokens,
-                completion_tokens=total_completion_tokens,
+                total_tokens=collector.total_tokens,
+                prompt_tokens=collector.total_prompt_tokens,
+                completion_tokens=collector.total_completion_tokens,
             )
-            # Add last block info to logs or just return what we have
-            # Raise wrapped error with data
             raise BenchmarkGenerationError(
                 f"ADK Run Failed: {e}", 
                 original_exception=e, 
                 api_key_id=api_key_id,
-                trace_logs=logs,
+                trace_logs=collector.logs,
                 usage_metadata=partial_usage
             ) from e
         
-        # Append last block
-        if current_block_agent:
-             execution_sequence.append({
-                 "agent": current_block_agent, 
-                 "duration": current_block_duration,
-                 "prompt_tokens": current_block_prompt_tokens,
-                 "completion_tokens": current_block_completion_tokens
-             })
+        collector.finalize()
         
         # Determine loop exit reason
         loop_exit_reason = "Max Iterations Reached (Implicit)"
-        loop_iterations = 0
-        
-        # Count iterations based on run_analysis_agent activity
-        # We assume every "message" from run_analysis_agent counts as an iteration step
-        loop_iterations = sum(1 for e in logs if e.type == TraceEventType.MESSAGE and e.author == "run_analysis_agent")
+        loop_iterations = sum(1 for e in collector.logs if e.type == TraceEventType.MESSAGE and e.author == "run_analysis_agent")
 
-        # Check for explicit exit
-        for e in logs:
+        for e in collector.logs:
             if e.type == TraceEventType.TOOL_USE and e.tool_name == "exit_loop":
                 loop_exit_reason = "Analyst Exited (Explicit)"
                 break
@@ -806,15 +654,15 @@ class AdkAnswerGenerator(LlmAnswerGenerator):
         }
                 
         usage_metadata = UsageMetadata(
-            total_tokens=total_tokens,
-            prompt_tokens=total_prompt_tokens,
-            completion_tokens=total_completion_tokens,
+            total_tokens=collector.total_tokens,
+            prompt_tokens=collector.total_prompt_tokens,
+            completion_tokens=collector.total_completion_tokens,
             extra_tags=extra_tags
         )
 
-        self._print_timing_report(session_id, execution_sequence)
+        self._print_timing_report(session_id, collector.execution_sequence)
 
-        return final_response, logs, usage_metadata
+        return final_response, collector.logs, usage_metadata
 
     def _print_timing_report(self, session_id: str, execution_sequence: list):
         print(f"\n--- Agent Timing & Token Report [{session_id}] ---")
