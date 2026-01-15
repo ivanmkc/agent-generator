@@ -904,14 +904,46 @@ def save_benchmark_case(tool_context: ToolContext, question: Optional[str] = Non
              return json.dumps({"error": "Missing or invalid options."})
         normalized_case["options"] = opts
 
-        # 3. Correct Answer
+        # 3. Correct Answer Extraction
         mapping = {0: "A", 1: "B", 2: "C", 3: "D", "0": "A", "1": "B", "2": "C", "3": "D"}
-        ans = case.get("correct_answer")
-        if ans is None:
+        raw_ans_key = case.get("correct_answer")
+        if raw_ans_key is None:
             idx = case.get("correct_idx")
-            if idx in mapping: ans = mapping[idx]
+            if idx in mapping: raw_ans_key = mapping[idx]
         
-        normalized_case["correct_answer"] = str(ans) if ans else "A"
+        raw_ans_key = str(raw_ans_key) if raw_ans_key else "A"
+        
+        # --- ENFORCED RANDOMIZATION ---
+        # To eliminate LLM positional bias (e.g. always putting correct answer in A),
+        # we reshuffle the options here and re-map the correct answer key.
+        
+        # 1. Identify the Correct Answer Text
+        correct_text = opts.get(raw_ans_key)
+        if not correct_text:
+             # Fallback: If key not found, assume the first option was intended or log warning
+             # For robustness, we'll just skip shuffling if we can't identify the truth.
+             print(f"[WARN] Could not find text for correct_answer key '{raw_ans_key}'. Skipping shuffle.")
+             normalized_case["options"] = opts
+             normalized_case["correct_answer"] = raw_ans_key
+        else:
+            # 2. Collect and Shuffle
+            option_texts = list(opts.values())
+            random.shuffle(option_texts)
+            
+            # 3. Re-assign Keys
+            new_options = {}
+            new_correct_key = None
+            keys = ["A", "B", "C", "D"]
+            
+            for i, text in enumerate(option_texts):
+                # Handle cases with > 4 options if necessary, though benchmarks usually have 4
+                key = keys[i] if i < 4 else chr(ord('A') + i)
+                new_options[key] = text
+                if text == correct_text:
+                    new_correct_key = key
+            
+            normalized_case["options"] = new_options
+            normalized_case["correct_answer"] = new_correct_key
 
         # 4. Explanation
         normalized_case["explanation"] = case.get("explanation") or case.get("context") or "No explanation provided."

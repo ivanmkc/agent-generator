@@ -211,7 +211,7 @@ async def main():
         # Convert JSON dicts to Pydantic models (MultipleChoiceBenchmarkCase)
         from benchmarks.data_models import MultipleChoiceBenchmarkCase
         
-        for data in generated_data:
+        for idx, data in enumerate(generated_data):
             try:
                 # Ensure it matches the schema expected by BenchmarkFile
                 if isinstance(data, str):
@@ -220,11 +220,16 @@ async def main():
                 # Check/Fix missing fields if necessary
                 if "benchmark_type" not in data:
                     data["benchmark_type"] = "multiple_choice"
+                
+                # Robust ID Injection for Legacy Data
+                if "id" not in data:
+                    import time
+                    data["id"] = f"prismatic_legacy_{int(time.time())}_{idx}"
 
                 case = MultipleChoiceBenchmarkCase.model_validate(data)
                 benchmarks.append(case)
             except Exception as e:
-                logger.log_error(f"Failed to parse benchmark case: {e}")
+                logger.log_error(f"Failed to parse benchmark case at index {idx}: {e}")
                 # print(f"Data: {data}")
 
     if benchmarks:
