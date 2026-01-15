@@ -1221,3 +1221,43 @@ benchmarks:
     implementations must follow, ensuring consistent initialization, structure, and
     execution patterns across the toolkit.
   benchmark_type: multiple_choice
+- question: What is the primary responsibility of the `google.adk.models.google_llm`
+    module?
+  options:
+    A: It integrates Google's Gemini Large Language Models into the Agent Development
+      Kit (ADK), providing the `Gemini` class to handle model interaction and configuration.
+    B: It serves as a training harness that implements the underlying transformer
+      architecture for Gemini, allowing users to pre-train their own large language
+      models from scratch using local GPU resources.
+    C: It is responsible for the localized deployment of Google's open-source Gemma
+      models, specifically handling weight quantization and on-device inference to
+      ensure data does not leave the local environment.
+    D: It acts as a static configuration parser that validates API quotas and formats
+      JSON payloads for Google Cloud requests, but delegates the actual model interaction
+      and response handling to the generic `base_model` class.
+  correct_answer: A
+  explanation: The module `google.adk.models.google_llm` is specifically designed
+    to integrate Google's Gemini models into the ADK. It defines the `Gemini` class,
+    which manages the connection and configuration for these hosted models, distinguishing
+    it from local deployment modules or generic base classes.
+  benchmark_type: multiple_choice
+- question: What is the primary responsibility of the `BuiltInPlanner` class?
+  options:
+    A: It functions strictly as a pass-through logger that records the user's intent
+      for debugging purposes without applying any specific configuration or planning
+      strategies.
+    D: It acts as an autonomous agent supervisor that spins up multiple parallel LLM
+      instances to debate strategies and aggregates their outputs via voting.
+    C: It creates a structured execution plan by querying the kernel's function registry
+      and constructing a rigid sequence of API calls using a generic XML schema for
+      client-side validation.
+    B: It configures the LLM to use its native "thinking" capabilities for planning
+      by injecting a `ThinkingConfig` and bypassing manual planning logic.
+  correct_answer: B
+  explanation: The `BuiltInPlanner` relies on the model's built-in thinking features
+    rather than external prompting or loop management. It initializes with a `ThinkingConfig`
+    and applies this configuration to the `LlmRequest`. Crucially, it overrides `build_planning_instruction`
+    and `process_planning_response` to return nothing, thereby bypassing the manual
+    planning steps typical of other planners and letting the model's native reasoning
+    capabilities handle the planning process.
+  benchmark_type: multiple_choice

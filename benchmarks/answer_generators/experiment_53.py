@@ -106,7 +106,13 @@ def _create_fast_prismatic_retrieval_agents_v33(tools_helper: AdkTools, model) -
         model=model,
         tools=[save_modules_tool],
         include_contents="none",
-        tool_config={'function_calling_config': {'mode': 'ANY'}},
+        generate_content_config=types.GenerateContentConfig(
+            tool_config=types.ToolConfig(
+                function_calling_config=types.FunctionCallingConfig(
+                    mode='ANY'
+                )
+            )
+        ),
         instruction=(
             f"You are the Seed Selector. Select the 1-2 most relevant ADK modules for the request from the index below.\n"
             f"Index:\n{adk_index_content}\n"

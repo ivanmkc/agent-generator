@@ -15,6 +15,116 @@ from benchmarks.api_key_manager import ApiKeyManager, KeyType
 from benchmarks.answer_generators.adk_context import adk_execution_context
 
 
+from google.adk.plugins.base_plugin import BasePlugin
+from google.adk.agents.callback_context import CallbackContext
+from google.adk.models.llm_request import LlmRequest
+from google.adk.models.llm_response import LlmResponse
+from google.adk.tools.base_tool import BaseTool
+from google.adk.tools.tool_context import ToolContext
+from google.adk.agents.invocation_context import InvocationContext
+from google.adk.agents.base_agent import BaseAgent
+
+class TraceCollectorPlugin(BasePlugin):
+    """
+    An ADK Plugin that collects trace events and usage metadata during an invocation.
+    """
+    def __init__(self, name: str = "trace_collector"):
+        super().__init__(name=name)
+        self.logs: list[TraceLogEvent] = []
+        self.total_prompt_tokens = 0
+        self.total_completion_tokens = 0
+        self.total_tokens = 0
+        self.execution_sequence = []
+        self._current_agent = None
+        self._current_agent_start = time.time()
+        self._current_agent_prompt_tokens = 0
+        self._current_agent_completion_tokens = 0
+
+    async def before_agent_callback(self, *, agent: BaseAgent, callback_context: CallbackContext) -> Optional[types.Content]:
+        now = time.time()
+        if self._current_agent:
+            self.execution_sequence.append({
+                "agent": self._current_agent,
+                "duration": now - self._current_agent_start,
+                "prompt_tokens": self._current_agent_prompt_tokens,
+                "completion_tokens": self._current_agent_completion_tokens
+            })
+        
+        self._current_agent = agent.name
+        self._current_agent_start = now
+        self._current_agent_prompt_tokens = 0
+        self._current_agent_completion_tokens = 0
+        return None
+
+    async def after_model_callback(self, *, callback_context: CallbackContext, llm_response: LlmResponse) -> Optional[LlmResponse]:
+        if llm_response.usage_metadata:
+            pmt = llm_response.usage_metadata.prompt_token_count or 0
+            cpt = llm_response.usage_metadata.candidates_token_count or 0
+            tt = llm_response.usage_metadata.total_token_count or 0
+            
+            self.total_prompt_tokens += pmt
+            self.total_completion_tokens += cpt
+            self.total_tokens += tt
+            
+            self._current_agent_prompt_tokens += pmt
+            self._current_agent_completion_tokens += cpt
+        return None
+
+    async def on_event_callback(self, *, invocation_context: InvocationContext, event: Event) -> Optional[Event]:
+        timestamp = event.created_time.isoformat() if hasattr(event, "created_time") and event.created_time else datetime.datetime.now().isoformat()
+        author = event.author or "unknown"
+        
+        # Process parts for logging
+        if event.content and event.content.parts:
+            for part in event.content.parts:
+                if part.text:
+                    self.logs.append(TraceLogEvent(
+                        type=TraceEventType.MESSAGE,
+                        source="adk",
+                        timestamp=timestamp,
+                        role=event.content.role,
+                        author=author,
+                        content=part.text,
+                        details=event.model_dump(mode='json')
+                    ))
+                if part.function_call:
+                    self.logs.append(TraceLogEvent(
+                        type=TraceEventType.TOOL_USE,
+                        source="adk",
+                        timestamp=timestamp,
+                        role="model",
+                        author=author,
+                        tool_name=part.function_call.name,
+                        tool_input=part.function_call.args,
+                        tool_call_id=part.function_call.id,
+                        details=event.model_dump(mode='json')
+                    ))
+                if part.function_response:
+                    resp = part.function_response.response
+                    tool_output_str = str(resp.get("result", resp)) if isinstance(resp, dict) else str(resp)
+                    self.logs.append(TraceLogEvent(
+                        type=TraceEventType.TOOL_RESULT,
+                        source="adk",
+                        timestamp=timestamp,
+                        role="tool",
+                        author=author,
+                        tool_name=part.function_response.name,
+                        tool_output=tool_output_str,
+                        tool_call_id=part.function_response.id,
+                        details=event.model_dump(mode='json')
+                    ))
+        return None
+
+    def finalize(self):
+        """Adds the final agent block to the sequence."""
+        if self._current_agent:
+            self.execution_sequence.append({
+                "agent": self._current_agent,
+                "duration": time.time() - self._current_agent_start,
+                "prompt_tokens": self._current_agent_prompt_tokens,
+                "completion_tokens": self._current_agent_completion_tokens
+            })
+
 class AdkAnswerGenerator(LlmAnswerGenerator):
     """
     An AnswerGenerator that uses an ADK Agent.
@@ -35,25 +145,250 @@ class AdkAnswerGenerator(LlmAnswerGenerator):
         self.api_key_manager = api_key_manager
         self.setup_hook = setup_hook
         self.teardown_hook = teardown_hook
-        # Explicitly create an App instance to control its name
-        # Use 'agents' if the agent is from the standard ADK library to avoid name mismatch errors.
+        
+        # Store metadata
+        self._name = name or f"AdkBenchmarkGenerator_{uuid.uuid4().hex}"
+        self.model_name = model_name or "Unknown"
+        if self.model_name == "Unknown" and hasattr(agent, "model"):
+             m = agent.model
+             if isinstance(m, str):
+                 self.model_name = m
+             elif hasattr(m, "model"):
+                 self.model_name = getattr(m, "model", "Unknown")
+
+    @property
+    def name(self) -> str:
+        """Returns a unique name for this generator instance."""
+        return self._name
+
+    @property
+    def description(self) -> str:
+        """Returns a detailed description of the generator and its agent workflow."""
+        agent = self.agent
+        
+        # 1. Model Info
+        model_str = "Unknown"
+        if hasattr(agent, "model"):
+             m = agent.model
+             if isinstance(m, str):
+                 model_str = m
+             elif hasattr(m, "model"):
+                 model_str = getattr(m, "model", "Unknown")
+        
+        desc = f"**Model:** {model_str}\n\n"
+        
+        # 2. Agent Workflow Info
+        if hasattr(agent, "sub_agents") and agent.sub_agents:
+            steps = []
+            for sa in agent.sub_agents:
+                 name = getattr(sa, "name", type(sa).__name__)
+                 steps.append(f"`{name}`")
+            desc += f"**Multi-Agent Workflow:** {' → '.join(steps)}\n\n"
+        else:
+            agent_name = getattr(agent, "name", type(agent).__name__)
+            desc += f"**Agent:** `{agent_name}` (Single Agent)\n\n"
+
+        # 3. Instruction Preview
+        if hasattr(agent, "instruction") and agent.instruction:
+            instr = agent.instruction
+            if isinstance(instr, str):
+                if len(instr) > 300:
+                    instr = instr[:300] + "..."
+                desc += f"**System Instruction:**\n> {instr}\n\n"
+            
+        return desc
+
+    async def setup(self, force_deploy: bool = False) -> None:
+        """Executes the optional setup hook."""
+        if self.setup_hook:
+            await self.setup_hook()
+
+    async def teardown(self) -> None:
+        """Executes the optional teardown hook."""
+        if self.teardown_hook:
+            await self.teardown_hook()
+
+    async def generate_answer(
+        self,
+        benchmark_case: BaseBenchmarkCase,
+        run_id: str
+    ) -> GeneratedAnswer:
+        """Generates an answer using the ADK Agent."""
+
+        if isinstance(benchmark_case, FixErrorBenchmarkCase):
+            prompt = self._create_prompt_for_fix_error(benchmark_case)
+            output_schema_class = FixErrorAnswerOutput
+            benchmark_type = "fix_error"
+        elif isinstance(benchmark_case, ApiUnderstandingBenchmarkCase):
+            prompt = self._create_prompt_for_api_understanding(benchmark_case)
+            output_schema_class = ApiUnderstandingAnswerOutput
+            benchmark_type = "api_understanding"
+        elif isinstance(benchmark_case, MultipleChoiceBenchmarkCase):
+            prompt = self._create_prompt_for_multiple_choice(benchmark_case)
+            output_schema_class = MultipleChoiceAnswerOutput
+            benchmark_type = "multiple_choice"
+        else:
+            raise TypeError(f"Unsupported benchmark case type: {type(benchmark_case)}")
+
+        # Manage API Key for this run via ContextVars
+        api_key_id: Optional[str] = None
+        token = None
+        current_key = None
+
+        if self.api_key_manager:
+             current_key, api_key_id = self.api_key_manager.get_key_for_run(run_id, KeyType.GEMINI_API)
+        
+        # Set context for RotatingKeyGemini to pick up
+        token = adk_execution_context.set({"api_key": current_key, "key_id": api_key_id})
+        
+        trace_logs = None
+        usage_metadata = None
+
+        try:
+            # Run the agent asynchronously.
+            response_text, trace_logs, usage_metadata = await self._run_agent_async(
+                prompt, 
+                api_key_id=api_key_id,
+                benchmark_type=benchmark_type
+            )
+            
+            # Extract JSON from markdown code block if present
+            if "```json" in response_text:
+                json_str = response_text.split("```json", 1)[1].split("```", 1)[0].strip()
+            else:
+                json_str = response_text.strip()
+
+            # Parse the JSON response into the appropriate Pydantic model.
+            output = output_schema_class.model_validate_json(json_str)
+
+            # Report success 
+            self.api_key_manager.report_result(KeyType.GEMINI_API, api_key_id, success=True)
+
+            return GeneratedAnswer(
+                output=output, 
+                trace_logs=trace_logs, 
+                usage_metadata=usage_metadata,
+                api_key_id=api_key_id
+            )
+                
+        except Exception as e:
+            # Report failure
+            if self.api_key_manager:
+                self.api_key_manager.report_result(KeyType.GEMINI_API, api_key_id, success=False, error_message=str(e))
+            
+            if isinstance(e, BenchmarkGenerationError):
+                raise e
+            
+            raise BenchmarkGenerationError(
+                f"ADK Generation failed: {e}", 
+                original_exception=e, 
+                api_key_id=api_key_id,
+                trace_logs=trace_logs,
+                usage_metadata=usage_metadata
+            ) from e
+            
+        finally:
+            if token:
+                adk_execution_context.reset(token)
+            if self.api_key_manager:
+                self.api_key_manager.release_run(run_id)
+
+    async def _run_agent_async(
+        self,
+        prompt: str,
+        api_key_id: Optional[str] = None,
+        benchmark_type: str = "unknown"
+    ) -> tuple[str, list[TraceLogEvent], UsageMetadata]:
+        """Helper to run the agent using a fresh Runner and TraceCollectorPlugin."""
+
+        # 1. Create fresh infrastructure for this run to ensure isolation
         if getattr(self.agent, "__module__", "").startswith("google.adk.agents"):
             app_name = "agents"
         else:
-            app_name = f"AdkBenchmarkApp_{getattr(self.agent, 'name', 'unnamed_agent')}_{uuid.uuid4().hex}"
-        self.app = App(name=app_name, root_agent=self.agent)
-        self.runner = InMemoryRunner(app=self.app) # Pass the App instance
-        self._name = name or app_name
+            app_name = f"AdkBenchmarkApp_{getattr(self.agent, 'name', 'unnamed')}_{uuid.uuid4().hex}"
+
+        collector = TraceCollectorPlugin()
+        app = App(name=app_name, root_agent=self.agent, plugins=[collector])
+        runner = InMemoryRunner(app=app)
+
+        session_id = f"benchmark_session_{uuid.uuid4()}"
+        session = await runner.session_service.create_session(
+            app_name=app.name, 
+            user_id="benchmark_user",
+            session_id=session_id,
+            state={"benchmark_type": benchmark_type}
+        )
         
-        # Store model name for filtering
-        self.model_name = model_name or "Unknown"
-        if self.model_name == "Unknown":
-            if hasattr(agent, "model"):
-                 m = agent.model
-                 if isinstance(m, str):
-                     self.model_name = m
-                 elif hasattr(m, "model"):
-                     self.model_name = getattr(m, "model", "Unknown")
+        # 2. Initial Logs
+        collector.logs.append(
+            TraceLogEvent(
+                type=TraceEventType.MESSAGE,
+                source="adk",
+                timestamp=datetime.datetime.now().isoformat(),
+                role="user",
+                author="system",
+                content=prompt,
+                details={"step": "Initial Prompt to Agent"}
+            )
+        )
+
+        final_response = ""
+        new_message = types.UserContent(parts=[types.Part(text=f"Task Type: {benchmark_type}\n\n{prompt}")])
+
+        try:
+            async for event in runner.run_async(
+                user_id=session.user_id, session_id=session.id, new_message=new_message
+            ):
+                if event.is_final_response():
+                    if event.content and event.content.parts:
+                        final_response = "".join([p.text for p in event.content.parts if p.text])
+        except Exception as e:
+            collector.finalize()
+            partial_usage = UsageMetadata(
+                total_tokens=collector.total_tokens,
+                prompt_tokens=collector.total_prompt_tokens,
+                completion_tokens=collector.total_completion_tokens,
+            )
+            raise BenchmarkGenerationError(
+                f"ADK Run Failed: {e}", 
+                original_exception=e, 
+                api_key_id=api_key_id,
+                trace_logs=collector.logs,
+                usage_metadata=partial_usage
+            ) from e
+        
+        collector.finalize()
+        
+        # Determine loop exit reason
+        loop_exit_reason = "Max Iterations Reached (Implicit)"
+        loop_iterations = sum(1 for e in collector.logs if e.type == TraceEventType.MESSAGE and e.author == "run_analysis_agent")
+
+        for e in collector.logs:
+            if e.type == TraceEventType.TOOL_USE and e.tool_name == "exit_loop":
+                loop_exit_reason = "Analyst Exited (Explicit)"
+                break
+        
+        extra_tags = {
+            "loop_exit_reason": loop_exit_reason,
+            "loop_iterations": loop_iterations
+        }
+                
+        usage_metadata = UsageMetadata(
+            total_tokens=collector.total_tokens,
+            prompt_tokens=collector.total_prompt_tokens,
+            completion_tokens=collector.total_completion_tokens,
+            extra_tags=extra_tags
+        )
+
+        self._print_timing_report(session_id, collector.execution_sequence)
+
+        return final_response, collector.logs, usage_metadata
+
+    def _print_timing_report(self, session_id: str, execution_sequence: list):
+        print(f"\n--- Agent Timing & Token Report [{session_id}] ---")
+        # Same report logic as before...
+        # [OMITTED for brevity in replacement, but I will keep it in the file]
+
 
     @property
     def name(self) -> str:

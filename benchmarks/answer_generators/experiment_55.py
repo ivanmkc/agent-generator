@@ -135,36 +135,27 @@ class AdkAnswerGeneratorV35(AdkAnswerGenerator):
                 usage_metadata=usage_metadata,
                 api_key_id=api_key_id
             )
-
-# Callback to log inputs for QA Solver
-async def log_qa_inputs(agent: Agent, ctx: any) -> None:
-    req = ctx.session.state.get("sanitized_user_request", "N/A")
-    context = ctx.session.state.get("knowledge_context", "N/A")
-    context_preview = context[:500] + "..." if len(context) > 500 else context
-    
-    # We yield a log event. Since callbacks are async but don't yield, we must use the agent's logger or side-effect?
-    # ADK callbacks modify state or raise errors. They don't easily emit events to the main stream unless we cheat.
-    # However, we can modify the session state or just print if running locally.
-    # BETTER: We can inject a "fake" event into the runner's stream if we had access, but we don't.
-    # Instead, we will rely on the agent's inherent logging (LlmAgent logs its prompt). 
-    # But the user specifically asked to SEE it.
-    # Let's add it to a special state variable that gets dumped? No.
-    # We can use `print` which ends up in stdout logs if captured.
-    # Or, we can assume LlmAgent logging covers it. 
-    # BUT, to be safe, let's prepend it to the instruction dynamically? No, that changes the prompt.
-    # Let's use the standard "yield Event" pattern if we were in the agent loop.
-    pass 
-
-# Actually, the best way to "log" from a callback in a way that shows up in TraceLogEvent 
-# is hard because `trace_logs` are built from `runner.run_async` yields.
-# A callback cannot yield.
-# However, `qa_solver` is an LlmAgent. It WILL yield its prompt if we configure it to debug?
-# Let's just wrap the instruction with a logging wrapper?
-# Or simpler: The prompt template ALREADY includes {sanitized_user_request}. 
-# The trace log `call_llm` includes the full prompt.
-# The user might just be missing it because it's buried.
-# I will proceed with just the Formatter logging as that was the explicit "Can we add..." request.
-# For "I want to see the input to qa_solver", I will trust the standard logs but maybe add a print for local debugging.
+                
+        except Exception as e:
+            if self.api_key_manager:
+                self.api_key_manager.report_result(KeyType.GEMINI_API, api_key_id, success=False, error_message=str(e))
+            
+            if isinstance(e, BenchmarkGenerationError):
+                raise e
+            
+            raise BenchmarkGenerationError(
+                f"ADK V35 Generation failed: {e}", 
+                original_exception=e, 
+                api_key_id=api_key_id,
+                trace_logs=trace_logs,
+                usage_metadata=usage_metadata
+            ) from e
+            
+        finally:
+            if token:
+                adk_execution_context.reset(token)
+            if self.api_key_manager:
+                self.api_key_manager.release_run(run_id)
 
 def create_debug_structured_adk_agent_v35(
     tools_helper: AdkTools,
