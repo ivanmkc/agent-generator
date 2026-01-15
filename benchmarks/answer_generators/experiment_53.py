@@ -106,12 +106,11 @@ def _create_fast_prismatic_retrieval_agents_v33(tools_helper: AdkTools, model) -
         model=model,
         tools=[save_modules_tool],
         include_contents="none",
+        tool_config={'function_calling_config': {'mode': 'ANY'}},
         instruction=(
-            f"You are the Seed Selector. Based on the user request, pick the ONE or TWO most relevant primary ADK modules.\n"
+            f"You are the Seed Selector. Select the 1-2 most relevant ADK modules for the request from the index below.\n"
             f"Index:\n{adk_index_content}\n"
             "Request: {sanitized_user_request}\n"
-            "Task: Call `save_relevant_modules` with the selected seeds.\n"
-            "Constraints: Do NOT output any conversational text or explanation. JUST call the tool."
         ),
     )
 
