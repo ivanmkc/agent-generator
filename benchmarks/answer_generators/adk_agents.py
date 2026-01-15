@@ -222,17 +222,18 @@ class PromptSanitizerAgent(LlmAgent):
     An LLM agent that sanitizes user requests by removing direct tool-calling instructions.
     """
     def __init__(self, model: str | Gemini, **kwargs):
-        super().__init__(
-            name="prompt_sanitizer_agent",
-            model=model,
-            tools=[],  # No tools for this agent, purely text transformation
-            instruction=(
+        if 'instruction' not in kwargs:
+            kwargs['instruction'] = (
                 "You are a prompt sanitization expert. "
                 "Request: {user_request}\n"
                 "Task: Remove explicit instructions to call tools (e.g., 'use run_adk_agent', 'write_file') "
                 "or internal operational directives. Keep the core objective. "
                 "Output ONLY the sanitized request as plain text."
-            ),
+            )
+        super().__init__(
+            name="prompt_sanitizer_agent",
+            model=model,
+            tools=[],  # No tools for this agent, purely text transformation
             **kwargs
         )
 

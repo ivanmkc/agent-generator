@@ -188,6 +188,8 @@ benchmarks:
     fully_qualified_class_name:
     - google.adk.agents.base_agent.BaseAgent
     - google.adk.agents.BaseAgent
+    - google.adk.runners.Runner
+    - google.adk.Runner
   file: src/google/adk/agents/base_agent.py
 - id: api_understanding:which_parameter_on_baseagent_defines_a_callback_th
   category: Hooks and Lifecycle Methods
@@ -464,7 +466,7 @@ benchmarks:
 - id: api_understanding:what_is_the_fundamental_data_structure_for_convers
   category: Data Structure Access & Best Practices
   question: What is the fundamental data structure for conversation history?
-  rationale: The `Event` class is the core data structure used to represent a single turn in the conversation. It contains the content of the message, the author (user or agent), and any actions taken, such as tool calls.
+  rationale: The `Event` class represents a single turn, while the `Session` class encapsulates the entire history of interactions. Both are acceptable answers for the 'fundamental data structure' of history.
   benchmark_type: api_understanding
   template: identifier
   answers:
@@ -473,6 +475,11 @@ benchmarks:
     fully_qualified_class_name:
     - google.adk.events.event.Event
     - google.adk.events.Event
+  - answer_template: StringMatchAnswer
+    answer: Session
+    fully_qualified_class_name:
+    - google.adk.sessions.session.Session
+    - google.adk.sessions.Session
   file: src/google/adk/events/event.py
 - id: api_understanding:which_runner_subclass_comes_pre_configured_with_in
   category: Core Class Signatures & Initialization

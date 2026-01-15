@@ -1,0 +1,33 @@
+benchmarks:
+  - id: debug_suite:fix_error_logic_agent
+    name: '22: Implement a custom LogicAgent from scratch.'
+    benchmark_type: fix_error
+    test_file: benchmarks/benchmark_definitions/fix_errors/cases/22_logic_error/test_agent.py
+    unfixed_file: benchmarks/benchmark_definitions/fix_errors/cases/22_logic_error/unfixed.py
+    fixed_file: benchmarks/benchmark_definitions/fix_errors/cases/22_logic_error/fixed.py
+    description: Implement a custom `LogicAgent` that uses deterministic logic to respond.
+
+  - id: debug_suite:api_understanding_base_agent
+    category: Core Class Signatures & Initialization
+    question: What is the foundational class for all agents in the ADK?
+    rationale: All agents must inherit from `google.adk.agents.base_agent.BaseAgent`.
+    benchmark_type: api_understanding
+    template: identifier
+    answers:
+      - answer_template: StringMatchAnswer
+        answer: BaseAgent
+        fully_qualified_class_name:
+          - google.adk.agents.base_agent.BaseAgent
+    file: src/google/adk/agents/base_agent.py
+
+  - id: debug_suite:mc_proactivity
+    question: What does `RunConfig.proactivity` control?
+    options:
+      A: Tool selection.
+      B: Nothing.
+      C: Agent name.
+      D: Configure proactive behavior.
+      E: None of the above
+    correct_answer: D
+    explanation: '`proactivity` controls Configure proactive behavior.'
+    benchmark_type: multiple_choice

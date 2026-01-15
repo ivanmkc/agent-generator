@@ -107,7 +107,23 @@ graph TD
 ```
 
 ### Flow of Execution (Prismatic Loop)
-1.  **Auditor** calls `scan_repository` -> Loads stats & co-occurrence.
-2.  **Auditor** calls `get_prioritized_target` -> Selects `Agent` (High Usage) + Expands Context (finds `Tools` via BFS).
-3.  **Auditor** outputs instruction: "Test `Agent` with `Tools`."
-4.  **Observer** generates code using both modules.
+
+1.  **Auditor** calls `scan_repository` -> Loads stats, coverage, and co-occurrence data.
+
+2.  **Target Prioritization (Iterative)**: 
+
+    *   The system determines the **Updated Coverage** based on currently generated benchmarks.
+
+    *   Targets are ranked based on two primary factors:
+
+        *   **Relevancy**: Co-occurrence probability ($P(Target|Root)$) with major root nodes like `Agent`, `BaseTool`, or `LlmAgent`.
+
+        *   **Coverage Lift**: The potential increase in total repository coverage gained by generating a benchmark for this target.
+
+    *   This ranking can be computed upfront (ranked list) or iteratively after each generation to account for overlapping coverage.
+
+3.  **Task Queue**: Prioritized targets are pushed to a task queue.
+
+4.  **Worker Pull**: Multiple workers pull from the task queue concurrently to generate benchmarks.
+
+5.  **Observer** generates code using the target and its expanded context (discovered via BFS).

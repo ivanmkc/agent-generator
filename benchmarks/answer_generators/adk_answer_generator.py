@@ -212,14 +212,14 @@ class AdkAnswerGenerator(LlmAnswerGenerator):
             raise RuntimeError("ADK runner not initialized. Call setup() first.")
 
         session_id = f"benchmark_session_{uuid.uuid4()}"
+        
+        # Create session with initial state pre-populated
         session = await self.runner.session_service.create_session(
-            app_name=self.app.name, # Use self.app.name here
+            app_name=self.app.name, 
             user_id="benchmark_user",
             session_id=session_id,
+            state={"benchmark_type": benchmark_type}
         )
-        
-        # Save benchmark type to session state
-        session.state["benchmark_type"] = benchmark_type
         
         final_response = ""
         logs: list[TraceLogEvent] = []

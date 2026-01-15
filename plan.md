@@ -1,39 +1,35 @@
-# Development Plan: Advanced Statistical API Discovery Agent
+# Prismatic Benchmark Generator Plan
 
-## 1. Current Progress Summary
-*   **Architecture Defined:** Established the **Single-Agent ReAct Solver** as the leading archetype for token efficiency (< 15k tokens) and zero-knowledge compliance.
-*   **Verification Criteria:** Formalized `VERIFICATION_CRITERIA.md` to enforce strict generalization (no hardcoded API hints in prompts).
-*   **Advanced Tooling implemented:**
-    *   `tools/api_indexer.py`: AST-based statistical analyzer to establish idiomatic "Happy Path" API usage.
-    *   `tools/debugging.py`: Granular trace analyzer to diagnose tool-usage errors and hallucinations.
-    *   `get_module_help` (v2): Enhanced runtime inspection with recursive depth and signature extraction.
-*   **Root Cause Identified:** Benchmark failures (Experiment 16-19) are primarily due to **Pydantic field-name strictness** and shallow exploration (guessing parameters instead of verifying implementation modules).
+## Goal
+Create a high-quality, diverse benchmark suite for the ADK (Agent Development Kit) Python framework. The suite will contain two types of Multiple Choice Questions (MCQs):
+1.  **Execution MCQs:** Based on valid code execution traces (Golden Snapshots) and adversarial mutants.
+2.  **Conceptual MCQs:** Based on semantic analysis of class/function responsibilities, testing understanding of *what* a component does rather than just *how* to call it.
 
-## 2. Architecture: Single-Agent ReAct Solver
-The agent follows a **Map -> Navigate -> Implement** loop:
-1.  **Map:** Discovers the high-level module structure.
-2.  **Navigate:** Uses `get_module_help` (statistical) to identify mandatory vs. optional parameters based on real-world usage frequencies.
-3.  **Implement:** Generates code using verified signatures, minimizing `ValidationError` regressions.
+## Architecture
+- **Coordinator (Auditor):** Uses `gemini-2.0-flash-exp` (via injection) to scan the repo and prioritize targets.
+- **Worker Pipeline:**
+    - **Execution Mode:** Observer -> Saboteur -> Referee -> Critic -> Assembler.
+    - **Concept Mode:** Analyst -> Confabulator -> Reviewer -> Assembler.
+- **Infrastructure:**
+    - **Isolation:** Agents use `include_contents='none'` to prevent history pollution.
+    - **Persistence:** State is saved to `processed_targets.json` to allow resumption.
+    - **Injection:** Models are fully injected from the CLI (`run_generator.py`).
 
-## 3. Immediate Next Steps
+## Status
 
-### Step 1: Statistical Indexing
-Run the indexer on core repositories to seed the "Conditional Probability" of argument usage.
-*   Target: `google/adk-python` (Core)
-*   Target: `google/adk-samples/python/examples` (Idiomatic usage)
-*   Output: `benchmarks/adk_stats.yaml`
+### Phase 1: Execution MCQ Pipeline (COMPLETE)
+- [x] **Core Logic:** Implemented `Observer` (Trace), `Saboteur` (Mutate), `Referee` (Validate).
+- [x] **Optimization:** Using `gemini-2.0-flash-exp` for Auditor and `gemini-3-pro-preview` for Worker.
+- [x] **Refactoring:** Removed hardcoded defaults; enforced strict dependency injection for models.
+- [x] **Verification:** Verified end-to-end generation of Execution MCQs.
 
-### Step 2: Experiment 20 (Statistical Discovery)
-Enable the agent to consume the statistical index.
-*   **Tool:** Update `AdkTools` to prioritize arguments with high usage frequency (e.g., > 20% in samples).
-*   **Verification:** Run against `fix_errors` suite.
-*   **Success Metric:** Pass rate > 50% (recovering the "hinted" performance without using cheats).
+### Phase 2: Conceptual MCQ Pipeline (NEXT)
+- [ ] **Task:** Generate Conceptual MCQs using `mode="concept_mcq"`.
+- [ ] **Analyst Agent:** Summarizes the primary responsibility of a target (Truth).
+- [ ] **Confabulator Agent:** Generates plausible but incorrect descriptions (Distractors).
+- [ ] **Reviewer Agent:** Validates that distractors are distinct from the truth.
+- [ ] **Assembler Agent:** Formats the final JSON.
 
-### Step 3: Performance Comparison
-Compare token counts and logic accuracy between:
-1.  **Baseline ReAct** (Exp 16): Pure discovery, no stats.
-2.  **Statistical ReAct** (Exp 20): Discovery guided by usage weights.
-
-## 4. Long-term Improvements
-*   **Injectable Strategies:** Finalize the `FilteringStrategy` (TokenBudget vs Threshold) to allow the agent to request "Exhaustive" detail only when "Standard" fails.
-*   **Linter Tooling:** Integrate a static analysis tool (`mypy` or `ruff`) into the implementation loop to catch Pydantic errors before execution.
+## Backlog
+- [ ] **Scale Up:** Run the generator on the full ADK codebase to create a comprehensive suite (target ~50-100 questions).
+- [ ] **Human Review:** Manually spot-check a sample of generated benchmarks for quality.

@@ -100,17 +100,21 @@ class FileBasedAdkAnswerGenerator(AdkAnswerGenerator):
                 benchmark_type=benchmark_type
             )
             
-            # 2. Read 'final_answer.json' from workspace
-            answer_file = self.workspace_root / "final_answer.json"
-            if answer_file.exists():
-                with open(answer_file, "r", encoding="utf-8") as f:
-                    json_str = f.read()
-            else:
-                # Fallback to response_text
-                if "```json" in response_text:
-                    json_str = response_text.split("```json", 1)[1].split("```", 1)[0].strip()
-                else:
-                    json_str = response_text.strip()
+            # 2. Read 'answer_{session_id}.json' from workspace
+            json_str = response_text
+            if "```json" in response_text:
+                json_str = response_text.split("```json", 1)[1].split("```", 1)[0].strip()
+            
+            # Try to find a file if one was written
+            try:
+                answer_files = list(self.workspace_root.glob("answer_*.json"))
+                if answer_files:
+                    # We'll just look for the most recently modified answer_*.json in this workspace
+                    latest_file = max(answer_files, key=os.path.getmtime)
+                    with open(latest_file, "r", encoding="utf-8") as f:
+                        json_str = f.read()
+            except Exception:
+                pass
 
             # 3. Parse JSON
             output = output_schema_class.model_validate_json(json_str)
@@ -244,8 +248,9 @@ class AnswerFormatter(LlmAgent):
     def __init__(self, model, tools_helper: AdkTools, **kwargs):
         
         async def write_answer_file(json_content: str, tool_context: ToolContext) -> str:
-            """Writes the final JSON answer to 'final_answer.json'."""
-            return tools_helper.write_file("final_answer.json", json_content)
+            """Writes the final JSON answer to a unique session file."""
+            sid = tool_context.session.id
+            return tools_helper.write_file(f"answer_{sid}.json", json_content)
 
         super().__init__(
             name="answer_formatter",
@@ -289,7 +294,12 @@ def create_task_aware_generator_v45(
         model_flash = model_name
 
     setup_agent = SetupAgentCodeBased(name='setup_agent', workspace_root=workspace_root, tools_helper=tools_helper)
-    sanitizer = PromptSanitizerAgent(model=model_flash, include_contents='none', output_key='sanitized_user_request')
+    sanitizer = PromptSanitizerAgent(
+        model=model_flash, 
+        include_contents='none', 
+        output_key='sanitized_user_request',
+        instruction="Sanitize this {benchmark_type} request: {user_request}" # Placeholder ensures variable is 'used'
+    )
     
     solver = TaskAwareSolverV45(model=model_flash, tools_helper=tools_helper)
     loop = LoopAgent(name="research_loop", sub_agents=[solver], max_iterations=8)

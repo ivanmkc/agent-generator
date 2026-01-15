@@ -196,16 +196,28 @@
             "detail": "Generates the co-occurrence matrix from local adk-python integration tests and samples."
         },
         {
-            "label": "Run Prismatic Generator",
+            "label": "Prismatic: Generate Execution MCQ (Gemini 3 Pro)",
             "type": "shell",
-            "command": "PYTHONPATH=. env/bin/python benchmarks/benchmark_generator/run_generator.py --type prismatic_adk --output-dir benchmarks/benchmark_definitions/prismatic_generated --model gemini-3-pro-preview --repo-path ../adk-python --concurrency 3 --session-db prismatic_sessions.db --namespace google.adk --cooccurrence-file benchmarks/adk_cooccurrence.json",
+            "command": "PYTHONPATH=. env/bin/python benchmarks/benchmark_generator/run_generator.py --type prismatic_adk --output-dir benchmarks/benchmark_definitions/prismatic_generated --model-name gemini-3-pro-preview --repo-path ../adk-python --concurrency 3 --session-db prismatic_sessions.db --namespace google.adk --cooccurrence-file benchmarks/adk_cooccurrence.json --mode execution_mcq",
             "group": "build",
             "presentation": {
                 "reveal": "always",
                 "panel": "new"
             },
             "problemMatcher": [],
-            "detail": "Generates repository-specific benchmarks using the Prismatic Evaluation architecture."
+            "detail": "Generates repository-specific execution benchmarks using Gemini 3 Pro (High Quality)."
+        },
+        {
+            "label": "Prismatic: Generate Conceptual MCQ (Gemini 3 Pro)",
+            "type": "shell",
+            "command": "PYTHONPATH=. env/bin/python benchmarks/benchmark_generator/run_generator.py --type prismatic_adk --mode concept_mcq --repo-path ../adk-python --output-dir benchmarks/benchmark_definitions/prismatic_concepts --concurrency 5 --limit 100 --session-db prismatic_sessions_concepts.db --namespace google.adk --cooccurrence-file benchmarks/adk_cooccurrence.json --model-name gemini-3-pro-preview",
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": [],
+            "detail": "Generates 100 text-based conceptual questions about the ADK architecture using Gemini 3 Pro."
         }
     ]
 }

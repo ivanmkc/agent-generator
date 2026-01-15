@@ -1,5 +1,5 @@
 You are an expert software engineer specializing in the Google ADK Python framework. Your task is to identify the precise and exact Python definition from the ADK API that correctly answers the following question. 
-The definition must conform to the specified template structure. The defintion must be a public one and not an internal or private API. 
+The definition must conform to the specified template structure. The definition must be a public one and not an internal or private API. 
 Return the result as a JSON object with three keys. First, 'code' for the resulting definition. 
 If the template specifies an identifier (e.g., a parameter, class, or method name), ensure 'code' contains *only* that identifier (e.g., 'parameter_name', not 'parameter_name: str'). 
 If the question asks for a specific named tool (like GoogleSearchTool), 'code' should be the exact class name of that tool. 

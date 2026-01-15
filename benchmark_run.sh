@@ -14,4 +14,9 @@ source env/bin/activate
 export PYTHONPATH=.
 
 # Run
-python "$@"
+# Inject gemini-2.5-flash as the default model if no model-filter is provided
+if [[ "$*" != *"--model-filter"* ]]; then
+    python "$@" --model-filter "gemini-2.5-flash"
+else
+    python "$@"
+fi

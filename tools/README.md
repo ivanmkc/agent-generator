@@ -18,10 +18,15 @@ This directory contains helper scripts and tools for analyzing benchmarks, debug
 ## Subdirectories
 
 ### `analysis/`
-Scripts for aggregated analysis of benchmark data.
--   `analyze_results_json.py`: Parses `results.json` to compute aggregate metrics.
--   `compare_adk_variants.py`: Compares performance across different ADK agent versions.
--   `analyze_traces.py`: detailed inspection of trace logs.
+Specialized scripts for deep-diving into benchmark results and agent behavior. See [tools/analysis/README.md](analysis/README.md) for more details.
+-   **`analyze_root_causes.py`**: Automated failure classification and DB ingestion.
+-   **`llm_root_cause_analysis.py`**: LLM-powered forensic audit of failed traces.
+-   **`analyze_tool_failures.py`**: Statistical reporting on failure modes.
+-   **`analyze_benchmark_chunks.py`**: Per-case comparison of tokens and duration.
+-   **`compare_tool_usage.py`**: Detailed token efficiency comparison between runs.
+-   **`deep_dive_tool_params.py`**: Tool chain extraction for specific failures.
+-   **`analyze_results_json.py`**, `analyze_traces.py`: Quick diagnostic scripts.
+-   **`compare_adk_variants.py`**: Side-by-side agent performance comparison.
 
 ### `utils/`
 Miscellaneous utility scripts.

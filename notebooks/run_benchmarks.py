@@ -208,15 +208,15 @@ async def run_comparison(
             
             # Filter suites based on generator compatibility
             current_suites = list(benchmark_suites)
-            # TODO: Remove this filter when StructuredWorkflowAdk can adapt its output schema
-            # to match different benchmark types (e.g., ApiUnderstanding). Currently, its FinalResponse
-            # is hardcoded to FixErrorAnswerOutput.
-            if "StructuredWorkflowAdk" in generator.name or "BaselineWorkflowAdk" in generator.name:
-                 current_suites = [s for s in current_suites if "fix_errors" in s or "debug_suite" in s]
-                 if not current_suites:
-                     logger.log_message(f"Skipping: No compatible suites found (requires 'fix_errors').")
-                     continue
-                 logger.log_message(f"Restricted suites to: {current_suites}")
+            # # TODO: Remove this filter when StructuredWorkflowAdk can adapt its output schema
+            # # to match different benchmark types (e.g., ApiUnderstanding). Currently, its FinalResponse
+            # # is hardcoded to FixErrorAnswerOutput.
+            # if "StructuredWorkflowAdk" in generator.name or "BaselineWorkflowAdk" in generator.name:
+            #      current_suites = [s for s in current_suites if "fix_errors" in s or "debug_suite" in s]
+            #      if not current_suites:
+            #          logger.log_message(f"Skipping: No compatible suites found (requires 'fix_errors').")
+            #          continue
+            #      logger.log_message(f"Restricted suites to: {current_suites}")
 
             try:
                 logger.log_message(f"Running benchmarks on suites: {current_suites}")
@@ -226,37 +226,37 @@ async def run_comparison(
                 # Determine if we should use a proxy for the actual execution
                 target_generator = generator
 
-                # For Podman generators, create a lightweight proxy that points to the running container
-                if isinstance(generator, GeminiCliPodmanAnswerGenerator):
-                    if hasattr(generator, "_base_url") and generator._base_url:
-                        logger.log_message(
-                            f"Creating proxy for execution at {generator._base_url}"
-                        )
-                        target_generator = GeminiCliPodmanAnswerGenerator(
-                            dockerfile_dir=generator.dockerfile_dir,
-                            image_name=generator.image_name,
-                            image_definitions=generator._image_definitions,
-                            model_name=generator.model_name,
-                            context_instruction=generator.context_instruction,
-                            service_url=generator._base_url,
-                        )
+                # # For Podman generators, create a lightweight proxy that points to the running container
+                # if isinstance(generator, GeminiCliPodmanAnswerGenerator):
+                #     if hasattr(generator, "_base_url") and generator._base_url:
+                #         logger.log_message(
+                #             f"Creating proxy for execution at {generator._base_url}"
+                #         )
+                #         target_generator = GeminiCliPodmanAnswerGenerator(
+                #             dockerfile_dir=generator.dockerfile_dir,
+                #             image_name=generator.image_name,
+                #             image_definitions=generator._image_definitions,
+                #             model_name=generator.model_name,
+                #             context_instruction=generator.context_instruction,
+                #             service_url=generator._base_url,
+                #         )
 
-                # For Cloud Run generators, create a lightweight proxy that points to the deployed service
-                elif isinstance(generator, GeminiCliCloudRunAnswerGenerator):
-                    if hasattr(generator, "service_url") and generator.service_url:
-                        logger.log_message(
-                            f"Creating proxy for execution at {generator.service_url}"
-                        )
-                        target_generator = GeminiCliCloudRunAnswerGenerator(
-                            dockerfile_dir=generator.dockerfile_dir,
-                            service_name=generator.service_name,
-                            project_id=generator.project_id,
-                            region=generator.region,
-                            model_name=generator.model_name,
-                            context_instruction=generator.context_instruction,
-                            service_url=generator.service_url,
-                            image_name=generator.image_name,
-                        )
+                # # For Cloud Run generators, create a lightweight proxy that points to the deployed service
+                # elif isinstance(generator, GeminiCliCloudRunAnswerGenerator):
+                #     if hasattr(generator, "service_url") and generator.service_url:
+                #         logger.log_message(
+                #             f"Creating proxy for execution at {generator.service_url}"
+                #         )
+                #         target_generator = GeminiCliCloudRunAnswerGenerator(
+                #             dockerfile_dir=generator.dockerfile_dir,
+                #             service_name=generator.service_name,
+                #             project_id=generator.project_id,
+                #             region=generator.region,
+                #             model_name=generator.model_name,
+                #             context_instruction=generator.context_instruction,
+                #             service_url=generator.service_url,
+                #             image_name=generator.image_name,
+                #         )
 
                 # Adjust concurrency for heavy generators
                 concurrency = PODMAN_CONFIG.MAX_GLOBAL_CONCURRENCY
@@ -266,7 +266,7 @@ async def run_comparison(
                     benchmark_suites=current_suites,
                     answer_generators=[target_generator],
                     max_concurrency=concurrency,
-                    max_retries=2,
+                    max_retries=3,
                     retry_on_validation_error=retry_on_validation_error,
                     logger=logger,
                 )

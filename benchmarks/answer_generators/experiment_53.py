@@ -132,7 +132,7 @@ class RoutingDelegatorAgent(Agent):
     A custom agent that routes the request to either the Coding or Knowledge expert
     and YIELDS all sub-agent events to the parent runner for visibility.
     """
-    def __init__(self, model, coding_agent: Agent, knowledge_agent: Agent, **kwargs):
+    def __init__(self, model: str | RotatingKeyGemini, coding_agent: Agent, knowledge_agent: Agent, **kwargs):
         super().__init__(**kwargs)
         self._router = LlmAgent(
             name="router",
@@ -177,19 +177,19 @@ class RoutingDelegatorAgent(Agent):
 
 def create_debug_structured_adk_agent_v33(
     tools_helper: AdkTools,
-    model_name: str,
+    model_name: str | RotatingKeyGemini,
     api_key_manager: ApiKeyManager | None = None,
 ) -> SequentialAgent:
     """
     Experiment 53: V33 - Fast Retrieval Delegation (Refactored for Visibility).
     """
-    if api_key_manager:
+    if isinstance(model_name, str) and api_key_manager:
         model = RotatingKeyGemini(model=model_name, api_key_manager=api_key_manager)
     else:
         model = model_name
 
     # 1. Experts (Inner agents)
-    coding_agent = create_debug_structured_adk_agent_v29(tools_helper, model_name, api_key_manager)
+    coding_agent = create_debug_structured_adk_agent_v29(tools_helper, model, api_key_manager)
     
     retrieval_agents = _create_fast_prismatic_retrieval_agents_v33(tools_helper, model)
     qa_solver = LlmAgent(

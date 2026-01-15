@@ -77,14 +77,14 @@ def _create_prismatic_retrieval_agents_v29(tools_helper: AdkTools, model: str | 
 
 def create_debug_structured_adk_agent_v29(
     tools_helper: AdkTools,
-    model_name: str,
+    model_name: str | RotatingKeyGemini,
     api_key_manager: ApiKeyManager | None = None,
 ) -> SequentialAgent:
     """
     Experiment 49: V28 + Association-Aware Discovery.
     """
 
-    if api_key_manager:
+    if isinstance(model_name, str) and api_key_manager:
         model = RotatingKeyGemini(model=model_name, api_key_manager=api_key_manager)
     else:
         model = model_name

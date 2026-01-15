@@ -20,7 +20,6 @@ benchmarks/answer_generators/gemini_cli_docker/source_archive_*.tar.gz
 env/
 
 .env
-plan.md
 postmortem.md
 
 prof/

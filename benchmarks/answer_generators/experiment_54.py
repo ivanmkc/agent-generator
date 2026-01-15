@@ -25,28 +25,26 @@ from benchmarks.answer_generators.adk_agents import SetupAgentCodeBased, PromptS
 
 def create_debug_structured_adk_agent_v34(
     tools_helper: AdkTools,
-    model_name: str, # This will be used for Router/QA
+    model_name: str, # This will be used for all sub-agents
     api_key_manager: ApiKeyManager | None = None,
 ) -> SequentialAgent:
     """
-    Experiment 54: V34 - Pro Coding Expert.
+    Experiment 54: V34 - Unified Injected Model.
     """
     if api_key_manager:
-        model_flash = RotatingKeyGemini(model="gemini-2.5-flash", api_key_manager=api_key_manager)
-        model_pro = RotatingKeyGemini(model="gemini-2.5-pro", api_key_manager=api_key_manager)
+        model = RotatingKeyGemini(model=model_name, api_key_manager=api_key_manager)
     else:
-        model_flash = "gemini-2.5-flash"
-        model_pro = "gemini-2.5-pro"
+        model = model_name
 
     # 1. Experts
-    # Upgrade Coding Specialist to PRO
-    coding_agent = create_debug_structured_adk_agent_v29(tools_helper, "gemini-2.5-pro", api_key_manager)
+    # Use the injected model for Coding Specialist
+    coding_agent = create_debug_structured_adk_agent_v29(tools_helper, model, api_key_manager)
     
-    # Knowledge Specialist stays on FLASH (Fast & Cheap)
-    retrieval_agents = _create_fast_prismatic_retrieval_agents_v33(tools_helper, model_flash)
+    # Knowledge Specialist also uses the injected model
+    retrieval_agents = _create_fast_prismatic_retrieval_agents_v33(tools_helper, model)
     qa_solver = LlmAgent(
         name="qa_solver",
-        model=model_flash,
+        model=model,
         include_contents='none',
         instruction=(
             """You are the ADK Knowledge Expert.
@@ -64,17 +62,17 @@ GOAL: Answer the question accurately based ONLY on the TASK TYPE.
     )
     knowledge_agent = SequentialAgent(name="knowledge_specialist", sub_agents=[*retrieval_agents, qa_solver])
 
-    # 2. Delegator (Flash - Routing is easy)
+    # 2. Delegator
     delegator_agent = RoutingDelegatorAgent(
         name="delegator_agent",
-        model=model_flash,
+        model=model,
         coding_agent=coding_agent,
         knowledge_agent=knowledge_agent
     )
 
     # 3. Root Pipeline
     setup_agent = SetupAgentCodeBased(name="setup_agent", workspace_root=tools_helper.workspace_root, tools_helper=tools_helper)
-    prompt_sanitizer_agent = PromptSanitizerAgent(model=model_flash, include_contents='none', output_key="sanitized_user_request")
+    prompt_sanitizer_agent = PromptSanitizerAgent(model=model, include_contents='none', output_key="sanitized_user_request")
     finalizer = ExpertResponseFinalizer(name="finalizer", tools_helper=tools_helper)
     teardown_agent = CodeBasedTeardownAgent(name="teardown_agent", workspace_root=tools_helper.workspace_root, tools_helper=tools_helper)
 
@@ -93,6 +91,6 @@ def create_statistical_v34_generator(
     workspace_root = Path(tempfile.mkdtemp(prefix="adk_stat_v34_"))
     setup_hook = create_standard_setup_hook(workspace_root, adk_branch, name_prefix)
     tools_helper = AdkTools(workspace_root, venv_path=workspace_root/"venv")
-    # We ignore the passed model_name and use our Mixed-In strategy
+    # Use the passed model_name
     agent = create_debug_structured_adk_agent_v34(tools_helper, model_name, api_key_manager)
-    return AdkAnswerGenerator(agent=agent, name=f"{name_prefix}(Mixed)", setup_hook=setup_hook, api_key_manager=api_key_manager, model_name="mixed")
+    return AdkAnswerGenerator(agent=agent, name=f"{name_prefix}({model_name})", setup_hook=setup_hook, api_key_manager=api_key_manager, model_name=model_name)
