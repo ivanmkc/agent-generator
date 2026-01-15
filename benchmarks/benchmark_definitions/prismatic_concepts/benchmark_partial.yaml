@@ -1261,3 +1261,42 @@ benchmarks:
     planning steps typical of other planners and letting the model's native reasoning
     capabilities handle the planning process.
   benchmark_type: multiple_choice
+- question: What is the primary role of the `google.adk.events` module within the
+    Google ADK framework?
+  options:
+    A: It acts as the primary network gateway, exclusively handling OAuth2 authentication
+      and serializing JSON-RPC requests sent to external APIs.
+    B: It serves as the initialization and namespace entry point for the event handling
+      system, exporting core components like the `Event` class to enable event propagation.
+    C: It is a simple logging utility that outputs static text strings to the console
+      for debugging purposes, without defining complex event mechanisms.
+    D: It serves as the infrastructure orchestrator, responsible for provisioning
+      server resources, managing database migrations, and auto-scaling agent runners.
+  correct_answer: B
+  explanation: The `google.adk.events` module (specifically the `__init__.py` file)
+    initializes the events package and exports the core `Event` class. This allows
+    other components of the framework, such as agents and runners, to import event-related
+    functionality from a central namespace to define and handle execution events.
+  benchmark_type: multiple_choice
+- question: What is the primary responsibility of the `LlmAgent` class within the
+    Google Agent Development Kit?
+  options:
+    A: It serves as a read-only configuration interface that defines model parameters
+      but relies entirely on the client application to manually implement the chat
+      loop and tool execution.
+    B: It functions primarily as a semantic memory manager, responsible for embedding
+      incoming messages and storing them in a local vector database for context retrieval.
+    C: It orchestrates the lifecycle of an LLM-driven agent, managing the interaction
+      loop between a specified language model, tools, instructions, and session state
+      to execute tasks or conduct conversations.
+    D: It dynamically fine-tunes the underlying language model in real-time by updating
+      model weights based on session interactions, allowing for permanent learning
+      without external pipelines.
+  correct_answer: C
+  explanation: The `LlmAgent` class is responsible for the execution lifecycle of
+    an agent. It manages the interaction loop (via methods like `_run_async_impl`
+    and `_llm_flow`), integrates tools, handles context optimization (distinguishing
+    between static and dynamic instructions), and provides lifecycle hooks (callbacks).
+    It is not merely a configuration interface, a memory manager, or a fine-tuning
+    engine.
+  benchmark_type: multiple_choice

@@ -56,6 +56,43 @@ class TraceCollectorPlugin(BasePlugin):
         self._current_agent_completion_tokens = 0
         return None
 
+    async def before_model_callback(self, *, callback_context: CallbackContext, llm_request: LlmRequest) -> Optional[LlmResponse]:
+        timestamp = datetime.datetime.now().isoformat()
+        agent_name = callback_context.agent_name
+        
+        # 1. Capture System Instruction
+        prompt_parts = []
+        if llm_request.config and llm_request.config.system_instruction:
+            si = llm_request.config.system_instruction
+            if hasattr(si, "parts"):
+                si_text = "".join([p.text for p in si.parts if p.text])
+            else:
+                si_text = str(si)
+            prompt_parts.append(f"--- System Instruction ---\n{si_text}")
+
+        # 2. Capture User/History Content
+        if llm_request.contents:
+            prompt_parts.append(f"--- Context/History ({len(llm_request.contents)} items) ---")
+            # Only log the last message to avoid massive duplication, or log all if debugging?
+            # Let's log the *last* message which is usually the active input
+            last_msg = llm_request.contents[-1]
+            if last_msg.parts:
+                last_text = "".join([p.text for p in last_msg.parts if p.text])
+                prompt_parts.append(f"Last Message ({last_msg.role}): {last_text}")
+
+        full_prompt = "\n\n".join(prompt_parts)
+
+        self.logs.append(TraceLogEvent(
+            type=TraceEventType.ADK_EVENT, # Using generic event for Prompt Input
+            source="adk",
+            timestamp=timestamp,
+            role="system",
+            author=agent_name,
+            content=full_prompt,
+            details={"step": "LLM Input (Prompt)", "model": llm_request.model}
+        ))
+        return None
+
     async def after_model_callback(self, *, callback_context: CallbackContext, llm_response: LlmResponse) -> Optional[LlmResponse]:
         if llm_response.usage_metadata:
             pmt = llm_response.usage_metadata.prompt_token_count or 0
