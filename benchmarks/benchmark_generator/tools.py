@@ -141,6 +141,7 @@ def scan_repository(repo_path: str, tool_context: ToolContext, coverage_file: Op
             class EntityVisitor(ast.NodeVisitor):
                 def __init__(self, mod_fqn, f_path):
                     self.current_class_fqn = None
+                    self.in_function = False
                     self.mod_fqn = mod_fqn
                     self.f_path = f_path
 
@@ -168,45 +169,120 @@ def scan_repository(repo_path: str, tool_context: ToolContext, coverage_file: Op
                     
                     old_class = self.current_class_fqn
                     self.current_class_fqn = class_fqn
+                    
+                    # -- Property Docstring Extraction --
+                    body = node.body
+                    for i, child in enumerate(body):
+                        prop_name = None
+                        prop_type = "Any"
+                        
+                        if isinstance(child, ast.Assign):
+                            for target in child.targets:
+                                if isinstance(target, ast.Name) and not target.id.startswith("_"):
+                                    prop_name = target.id
+                                    # Infer type (simple)
+                                    if isinstance(child.value, ast.Constant):
+                                        prop_type = type(child.value.value).__name__
+                                    elif isinstance(child.value, ast.Call):
+                                        if isinstance(child.value.func, ast.Name):
+                                            prop_type = child.value.func.id
+                                        elif isinstance(child.value.func, ast.Attribute):
+                                            prop_type = child.value.func.attr
+                                    break # Just take first target
+                        elif isinstance(child, ast.AnnAssign):
+                            if isinstance(child.target, ast.Name) and not child.target.id.startswith("_"):
+                                prop_name = child.target.id
+                                try:
+                                    prop_type = ast.unparse(child.annotation)
+                                except: pass
+                        
+                        if prop_name:
+                            # Look ahead for docstring
+                            doc = None
+                            if i + 1 < len(body):
+                                next_node = body[i+1]
+                                if isinstance(next_node, ast.Expr) and isinstance(next_node.value, ast.Constant) and isinstance(next_node.value.value, str):
+                                    doc = next_node.value.value
+                            
+                            self._add_prop(prop_name, prop_type, doc)
+
                     self.generic_visit(node)
                     self.current_class_fqn = old_class
 
-                def visit_FunctionDef(self, node):
-                    if node.name.startswith("_"): return
-                    parent_fqn = self.current_class_fqn or self.mod_fqn
-                    func_fqn = f"{parent_fqn}.{node.name}"
+                def _visit_any_function(self, node):
+                    old_in_func = self.in_function
+                    self.in_function = True
                     
-                    params = {arg.arg: (ast.unparse(arg.annotation) if arg.annotation else "Any") for arg in node.args.args if arg.arg != "self"}
-                    
-                    # Structure Map
-                    structure_map[func_fqn] = {
-                        "type": "Method", "name": node.name, "children": [], "params": params, "props": []
-                    }
-                    if parent_fqn in structure_map:
-                        structure_map[parent_fqn]["children"].append(func_fqn)
+                    is_public = not node.name.startswith("_")
+                    if is_public:
+                        parent_fqn = self.current_class_fqn or self.mod_fqn
+                        func_fqn = f"{parent_fqn}.{node.name}"
+                        
+                        params = {arg.arg: (ast.unparse(arg.annotation) if arg.annotation else "Any") for arg in node.args.args if arg.arg != "self"}
+                        doc = ast.get_docstring(node)
+                        
+                        # Structure Map
+                        structure_map[func_fqn] = {
+                            "type": "Method", "name": node.name, "children": [], "params": params, "props": [], "docstring": doc
+                        }
+                        if parent_fqn in structure_map:
+                            structure_map[parent_fqn]["children"].append(func_fqn)
 
-                    complexity = node.end_lineno - node.lineno if hasattr(node, "end_lineno") else 0
-                    if complexity < 3: return
-                    
-                    # Entity
-                    func_stats = usage_stats.get(func_fqn, {})
-                    entities.append(TargetEntity(
-                        id=func_fqn,
-                        type=TargetType.METHOD,
-                        name=node.name,
-                        file_path=self.f_path,
-                        usage_score=func_stats.get("total_calls", 0),
-                        complexity_score=float(complexity),
-                        docstring=ast.get_docstring(node),
-                        parent_id=parent_fqn,
-                        signature=f"def {node.name}(...):"
-                    ))
-                
+                        if node.end_lineno - node.lineno >= 3:
+                            # Entity
+                            func_stats = usage_stats.get(func_fqn, {})
+                            entities.append(TargetEntity(
+                                id=func_fqn,
+                                type=TargetType.METHOD,
+                                name=node.name,
+                                file_path=self.f_path,
+                                usage_score=func_stats.get("total_calls", 0),
+                                docstring=doc,
+                                parent_id=parent_fqn,
+                                signature=f"def {node.name}(...):"
+                            ))
+
+                    self.generic_visit(node)
+                    self.in_function = old_in_func
+
+                def visit_FunctionDef(self, node):
+                    self._visit_any_function(node)
+
+                def visit_AsyncFunctionDef(self, node):
+                    self._visit_any_function(node)
+
+                def _add_prop(self, name, type_hint, docstring=None):
+                    if not self.current_class_fqn or self.in_function: return
+                    # Avoid duplicates
+                    props = structure_map[self.current_class_fqn]["props"]
+                    if not any(p["name"] == name for p in props):
+                        props.append({"name": name, "type": type_hint, "docstring": docstring})
+
                 def visit_Assign(self, node):
-                    if self.current_class_fqn:
+                    if self.current_class_fqn and not self.in_function:
+                        # Try to infer type from value
+                        type_hint = "Any"
+                        if isinstance(node.value, ast.Constant):
+                            type_hint = type(node.value.value).__name__
+                        elif isinstance(node.value, ast.Call):
+                            if isinstance(node.value.func, ast.Name):
+                                type_hint = node.value.func.id
+                            elif isinstance(node.value.func, ast.Attribute):
+                                type_hint = node.value.func.attr
+
                         for target in node.targets:
                             if isinstance(target, ast.Name) and not target.id.startswith("_"):
-                                structure_map[self.current_class_fqn]["props"].append(target.id)
+                                self._add_prop(target.id, type_hint)
+                    self.generic_visit(node)
+
+                def visit_AnnAssign(self, node):
+                    if self.current_class_fqn and not self.in_function and isinstance(node.target, ast.Name) and not node.target.id.startswith("_"):
+                        try:
+                            type_hint = ast.unparse(node.annotation)
+                        except:
+                            type_hint = "Any"
+                        self._add_prop(node.target.id, type_hint)
+                    self.generic_visit(node)
                 
                 def visit_ImportFrom(self, node):
                     if relative_path.name == "__init__.py":
@@ -327,8 +403,8 @@ def list_prioritized_targets(tool_context: ToolContext, limit: int = 20) -> str:
 
         # 2. Identify Seeds (Usage > 0)
         seeds = [t for t in targets_data if t.get("usage_score", 0) > 0]
-        # Sort seeds by usage desc, complexity desc
-        seeds.sort(key=lambda t: (t.get("usage_score", 0), t.get("complexity_score", 0)), reverse=True)
+        # Sort seeds by usage desc
+        seeds.sort(key=lambda t: t.get("usage_score", 0), reverse=True)
         
         ordered_ids = []
         visited = set()
@@ -354,8 +430,8 @@ def list_prioritized_targets(tool_context: ToolContext, limit: int = 20) -> str:
                     
         # 4. Add Orphans (Unvisited Public Entities)
         orphans = [t for t in targets_data if t["id"] not in visited]
-        # Sort orphans by complexity (prioritize meatier code among unused)
-        orphans.sort(key=lambda t: t.get("complexity_score", 0), reverse=True)
+        # Sort orphans by name
+        orphans.sort(key=lambda t: t.get("id"))
         
         for o in orphans:
             ordered_ids.append(o["id"])
@@ -381,8 +457,7 @@ def list_prioritized_targets(tool_context: ToolContext, limit: int = 20) -> str:
         if t:
             results.append({
                 "id": t["id"],
-                "usage": t.get("usage_score", 0),
-                "complexity": t.get("complexity_score", 0)
+                "usage": t.get("usage_score", 0)
             })
             
     return json.dumps(results)
@@ -528,7 +603,6 @@ def select_target(target_id: str, tool_context: ToolContext) -> str:
         logger.log_trace("TARGET_SELECTED", {
             "target_id": best.id,
             "target_type": best.type,
-            "complexity": best.complexity_score,
             "queue_stats": {
                 "total_scanned": total_scanned,
                 "processed": len(processed_list),
