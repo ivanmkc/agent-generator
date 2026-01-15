@@ -955,3 +955,187 @@ benchmarks:
     or tool calls. It is distinct from the runners that generate these events or the
     summarizers that consume them.
   benchmark_type: multiple_choice
+- question: What is the primary responsibility of the `LongRunningFunctionTool` class?
+  options:
+    A: It wraps a callable function to mark it as a long-running operation by setting
+      an asynchronous flag and appending a specific usage warning to the tool's description.
+    B: It functions as a schema enforcement layer that validates the model's generated
+      arguments against the tool's type definitions before execution begins.
+    C: It automatically offloads the function to a separate worker thread and implements
+      a complex state machine for retries and partial result streaming.
+    D: It acts as a passive logging decorator that records execution timestamps without
+      modifying the tool's definition or scheduling.
+  correct_answer: A
+  explanation: The `LongRunningFunctionTool` class sets the `is_long_running` attribute
+    to `True` and modifies the tool's description in `_get_declaration` to include
+    a note warning the model not to call the tool again if it has returned an intermediate
+    or pending status.
+  benchmark_type: multiple_choice
+- question: What is the primary responsibility of the `setup_adk_logger` function?
+  options:
+    A: It initializes the logging environment for the Google ADK by configuring the
+      root logger and the specific 'google_adk' namespace with a default level and
+      format.
+    D: It establishes a secure, encrypted telemetry stream that automatically uploads
+      all system events and stack traces to a centralized Google Cloud Logging bucket
+      for real-time remote monitoring.
+    C: It simply prints a static welcome message to the standard output to verify
+      that the library is imported, without actually configuring the logging handlers
+      or formatters.
+    B: It manages the hardware handshake protocol between the ADK accessory and the
+      host machine, ensuring that USB accessory mode is correctly negotiated prior
+      to data transmission.
+  correct_answer: A
+  explanation: The `setup_adk_logger` function initializes the logging configuration
+    for the application. It calls `logging.basicConfig` to set the logging format
+    and level for the root logger, and it retrieves and configures the specific 'google_adk'
+    logger instance to the specified level (defaulting to INFO).
+  benchmark_type: multiple_choice
+- question: What is the primary responsibility of the `DatabaseSessionService` class?
+  options:
+    A: It functions as an ephemeral in-memory state manager that relies on distributed
+      caching systems like Redis for shared storage, bypassing relational databases
+      to optimize for high-throughput, non-hierarchical session access.
+    B: It provides a simple CRUD interface for a single database table, storing session
+      payloads as monolithic blobs without support for hierarchical state merging,
+      schema validation, or concurrency checks.
+    C: It acts as a synchronous migration engine that uses pessimistic locking to
+      enforce strict serialization on all session updates, blocking the application
+      during startup to ensure all database schemas are fully pre-provisioned.
+    D: It implements a persistent session management service backed by a relational
+      database, handling hierarchical state merging across application, user, and
+      session levels, lazy schema initialization, and optimistic concurrency control.
+  correct_answer: D
+  explanation: "The `DatabaseSessionService` class is designed to persist session\
+    \ data in a relational database (using SQLAlchemy). \n\nKey features in the code\
+    \ include:\n1.  **Hierarchical State Management:** Methods like `create_session`\
+    \ and `get_session` fetch and merge states from `StorageAppState`, `StorageUserState`,\
+    \ and `StorageSession`.\n2.  **Lazy Schema Initialization:** The `_prepare_tables`\
+    \ method uses an `asyncio.Lock` (`_table_creation_lock` and `_db_schema_lock`)\
+    \ to check schema versions and create tables only when needed, rather than blocking\
+    \ synchronously at startup.\n3.  **Optimistic Concurrency Control:** The `append_event`\
+    \ method compares `session.last_update_time` with the database's `storage_session.update_timestamp_tz`\
+    \ to prevent updates to stale sessions."
+  benchmark_type: multiple_choice
+- question: What is the primary responsibility of the `database_session_service` module?
+  options:
+    A: It acts as a transient in-memory cache that simulates database interactions
+      for testing purposes, discarding all session data immediately after the agent
+      execution cycle completes.
+    B: It functions as a complete backend infrastructure manager that automatically
+      provisions new database instances, handles schema migrations, and balances load
+      across multiple servers.
+    C: It implements a persistent session management service that stores and retrieves
+      agent session data using a database backend.
+    D: It is a lightweight configuration helper designed solely to validate connection
+      strings and authentication credentials, leaving storage logic to the execution
+      runner.
+  correct_answer: C
+  explanation: The `database_session_service` module provides the `DatabaseSessionService`
+    class, which is responsible for persisting agent session data to a database. This
+    contrasts with in-memory services by offering durable storage integration via
+    `google.adk.sessions.schemas.v0.Base`.
+  benchmark_type: multiple_choice
+- question: What is the primary responsibility of the `ContextCacheConfig` class?
+  options:
+    A: It acts as the persistent storage layer, directly managing the serialization
+      of context data to an external database like Redis to ensure conversation history
+      survives application restarts.
+    B: It serves as an automated optimization agent that uses machine learning to
+      dynamically compress context windows and rewrite prompts in real-time to minimize
+      token usage.
+    C: It defines configuration settings, such as Time-to-Live (TTL) and reuse limits,
+      to enable and manage context caching behavior for LLM agents within an application.
+    D: It functions as a simple boolean flag wrapper used strictly to turn the caching
+      feature on or off, without offering granular controls for expiration times or
+      token thresholds.
+  correct_answer: C
+  explanation: The `ContextCacheConfig` class is responsible for defining the configuration
+    settings required to enable and manage context caching. It provides granular controls
+    such as `ttl_seconds` (Time-to-Live), `cache_intervals` (reuse count), and `min_tokens`
+    to balance cost and performance. Its presence acts as the toggle to enable caching.
+  benchmark_type: multiple_choice
+- question: What is the primary responsibility of the `cache_performance_analyzer`
+    module?
+  options:
+    C: This module serves as a basic schema definition utility that strictly outlines
+      the JSON structure for cache logs without containing functional code for data
+      analysis.
+    D: This module operates as an autonomous load balancer that actively reroutes
+      network traffic and dynamically scales server infrastructure to improve cache
+      hit rates.
+    B: This module acts as the primary storage engine for the ADK, directly managing
+      the serialization of agent states and handling database connections for context
+      persistence.
+    A: This module provides analysis utilities to evaluate the efficiency of the ADK
+      context caching system by processing event history data to calculate metrics
+      like hit ratios and cost savings.
+  correct_answer: A
+  explanation: The `cache_performance_analyzer` module is explicitly described in
+    its docstring as providing utilities to analyze cache performance metrics (such
+    as hit ratios and cost savings) based on event history. It does not handle storage/serialization
+    (Distractor B), isn't just a schema definition (Distractor C), and does not perform
+    active load balancing (Distractor D).
+  benchmark_type: multiple_choice
+- question: What is the primary responsibility of the `CachePerformanceAnalyzer` class?
+  options:
+    A: Calculates and reports cache performance metrics for specific agents by analyzing
+      metadata within session event history.
+    B: Manages the underlying caching infrastructure by directly reading and writing
+      key-value pairs to the storage layer, ensuring that frequently accessed agent
+      contexts are preserved.
+    C: Actively intercepts agent execution in real-time to dynamically rewrite prompts
+      and enforce token limits, automatically preventing cache misses before they
+      occur.
+    D: Serves as a basic logging utility that simply appends raw text strings to a
+      daily log file, providing a chronological record of events without parsing metadata.
+  correct_answer: A
+  explanation: The `CachePerformanceAnalyzer` class retrieves session history via
+    a `BaseSessionService` and iterates through events to aggregate `usage_metadata`
+    and `cache_metadata`. It calculates statistics such as cache hit ratios, token
+    usage, and invocation counts, rather than managing the cache storage itself or
+    intercepting execution.
+  benchmark_type: multiple_choice
+- question: What is the primary responsibility of the `BaseAgent` class in the Agent
+    Development Kit?
+  options:
+    A: It serves as the foundational abstract component that defines the common interface,
+      configuration schema, and hierarchical structure for all specific agent implementations,
+      while managing the execution lifecycle.
+    B: It acts as the primary network interface layer, directly managing WebSocket
+      connections to LLM providers, handling API rate limiting, and serializing JSON
+      payloads for inter-service communication.
+    C: It serves strictly as a static configuration container, designed solely to
+      validate JSON schemas and store property values without influencing the execution
+      lifecycle or the hierarchical organization of agent instances.
+    D: It functions as the centralized controller for the entire application ecosystem,
+      automatically detecting available resources, deploying containerized microservices
+      for each sub-agent, and managing distributed database transactions.
+  correct_answer: A
+  explanation: The `BaseAgent` class provides the abstract foundation for all agents.
+    It defines essential properties like `name`, `sub_agents`, and `parent_agent`
+    to establish a hierarchical structure. It also manages the execution lifecycle
+    through methods like `run_async` and `run_live`, which handle context creation,
+    tracing, and callbacks (`before_agent_callback`, `after_agent_callback`), while
+    delegating specific execution logic to abstract methods like `_run_async_impl`
+    that subclasses must implement.
+  benchmark_type: multiple_choice
+- question: What is the primary responsibility of the `ContextCacheConfig` class within
+    the `google.adk.agents.context_cache_config` module?
+  options:
+    D: It is a simple logging utility used exclusively to output the file paths of
+      temporary cache directories to the console for debugging.
+    A: It acts as the active runtime engine that directly manages the physical serialization,
+      encryption, and writing of conversation history to the underlying database.
+    B: It serves as a configuration container for specifying settings and strategies
+      related to context caching within LLM agents to optimize performance and reduce
+      token costs.
+    C: It functions as a semantic search module that creates vector embeddings of
+      user queries to retrieve relevant documents from a long-term knowledge base.
+  correct_answer: B
+  explanation: The `ContextCacheConfig` class is responsible for defining the configuration
+    settings and strategies for context caching within LLM agents. It is used by the
+    `App` and `LlmAgent` classes to determine how agent context should be cached to
+    optimize performance and reduce token costs, rather than performing the actual
+    physical serialization or managing vector embeddings directly.
+  benchmark_type: multiple_choice
