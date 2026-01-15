@@ -1,12 +1,2062 @@
 benchmarks:
-- id: prismatic_concepts:what_is_the_primary_responsibility_of_the_agenttoo
+- id: prismatic_1768446742_0
   benchmark_type: multiple_choice
   code_snippet_ref: null
-  question: What is the primary responsibility of the `AgentTool` class?
+  question: What is the primary role of the `AgentTool` class within the Google ADK
+    architecture?
   options:
-    A: Wrapping an agent, allowing it to be called as a tool within a larger application, using the agent's input and output schemas to define the tool's input parameters and process the tool's result.
-    B: Simplifying the deployment of agents to Google Kubernetes Engine (GKE) by automatically generating the necessary YAML configuration files and managing the deployment process.
-    C: Converting a natural language query into a structured API call, using the agent's defined schema to ensure the query is valid.
-    D: Orchestrating the interaction between multiple agents, allowing them to communicate and share data seamlessly within a complex workflow, and managing their lifecycle.
+    A: It serves as the abstract base class that establishes a unified interface for
+      defining, registering, and executing tools within an agent, including handling
+      schema generation for the LLM.
+    B: It acts as the primary prompt engineering utility, responsible for injecting
+      system instructions and safety settings into the context window rather than
+      defining functional interfaces for external tools.
+    C: It is a simple Python dataclass used exclusively to store string constants
+      for a tool's name and version, leaving the complex tasks of schema generation
+      and argument validation to the user's manual implementation.
+    D: It functions as an automated infrastructure manager that dynamically provisions
+      serverless cloud functions and sets up global load balancing for every tool
+      defined during the agent's runtime.
   correct_answer: A
-  explanation: The `AgentTool` class is designed to wrap an agent, enabling it to function as a tool within a broader application. It utilizes the agent's input schema to define the tool's input parameters and returns the agent's output as the tool's result. Options B, C, and D are plausible but incorrect; they describe functionalities outside the scope of the `AgentTool`'s primary responsibility. Specifically, option B refers to simplifying agent deployment on GKE, option C mentions converting natural language queries to API calls, and option D describes orchestrating interactions between multiple agents, none of which accurately reflect the core function of `AgentTool`.
+  explanation: The `AgentTool` class is the abstract base class for all tools in the
+    ADK (e.g., `VertexAiSearchTool`, `LangchainTool`). Its main responsibility is
+    to define the contract that all tools must follow, such as the `execute` method,
+    and to handle common logic like generating the JSON schema required for LLM function
+    calling.
+- id: prismatic_1768446896_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary responsibility of the `VertexAiSearchTool` class?
+  options:
+    A: This class configures an LLM request to utilize Vertex AI Search as a built-in
+      retrieval tool, enabling Gemini models to ground their responses using specific
+      data stores or search engines.
+    B: This class acts as a client-side RAG orchestrator that executes search queries
+      against a data store, retrieves relevant documents, and manually appends them
+      as context to the system prompt before the model is called.
+    C: This component serves as a universal tool chain manager, allowing any Vertex
+      AI model to utilize Vertex AI Search simultaneously with other retrieval tools
+      like Google Search and custom Python functions.
+    D: This utility functions primarily as a schema validator, ensuring that the provided
+      `data_store_id` string adheres to Google Cloud resource naming conventions without
+      modifying the underlying LLM request configuration.
+  correct_answer: A
+  explanation: The `VertexAiSearchTool` is designed to inject a configuration object
+    into the LLM request (specifically for Gemini models) to enable server-side retrieval
+    via Vertex AI Search. It does not execute the search client-side (Distractor B),
+    it has strict limitations regarding simultaneous tool usage (Distractor C), and
+    it performs configuration injection rather than just validation (Distractor D).
+- id: prismatic_1768446969_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary responsibility of the `google.adk.agents.llm_agent`
+    module?
+  options:
+    C: It is a lightweight data class designed solely to validate and structure input
+      configuration parameters for the LiteLlm library, devoid of execution logic.
+    D: It handles the complete fine-tuning lifecycle of the underlying model, performing
+      gradient descent optimizations to adapt the model to specific tool usage patterns
+      during runtime.
+    B: It functions as a specialized vector database connector that manages the embedding
+      generation and retrieval of context chunks exclusively for Retrieval Augmented
+      Generation (RAG) workflows.
+    A: It acts as an autonomous agent implementation that orchestrates interactions
+      between Large Language Models and external capabilities to reason and execute
+      tasks.
+  correct_answer: A
+  explanation: The `google.adk.agents.llm_agent` module defines the `LlmAgent` class,
+    which serves as an autonomous agent. It orchestrates the reasoning loop by interacting
+    with Large Language Models (abstracted via `LiteLlm`) and executing external tools
+    (via the Model Context Protocol components like `MCPToolset` and `ToolContext`)
+    to accomplish tasks. It is not responsible for vector database management, mere
+    configuration validation, or model fine-tuning.
+- id: prismatic_1768447043_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary responsibility of the `VertexAiSearchTool` class?
+  options:
+    A: It enables agents to query Google Cloud Vertex AI Search data stores to retrieve
+      grounded information for generation tasks.
+    B: It functions as a SQL generation engine that translates natural language requests
+      into BigQuery syntax for querying structured databases.
+    C: It serves as a lightweight configuration validator that checks for the Vertex
+      AI API key but relies on external libraries for actual search operations.
+    D: It acts as a full-stack RAG orchestrator that automatically provisions new
+      Google Cloud projects and manages the auto-scaling of search infrastructure.
+  correct_answer: A
+  explanation: The `VertexAiSearchTool` connects agents to Google Cloud Vertex AI
+    Search data stores, enabling them to retrieve relevant, grounded information to
+    support RAG (Retrieval Augmented Generation) workflows. It handles the API interaction
+    logic, distinguishing it from public web search tools or infrastructure management
+    tools.
+- id: prismatic_1768447129_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary responsibility of the `LangchainTool` class?
+  options:
+    A: It serves as an adapter that wraps existing LangChain tools to conform to the
+      standard `AgentTool` interface, allowing ADK agents to discover and execute
+      them alongside native tools.
+    B: It acts as a comprehensive runtime engine that replaces the standard `LlmAgent`
+      entirely, autonomously managing the full lifecycle of LangChain chains and vector
+      store indexing.
+    C: It functions as a prompt translation utility that converts LangChain's specific
+      prompt template syntax into generic text strings, focusing exclusively on string
+      formatting rather than wrapping executable logic.
+    D: It operates as a static metadata extractor that generates read-only documentation
+      from LangChain libraries for logging purposes, lacking the capability to actually
+      invoke the tools.
+  correct_answer: A
+  explanation: The `LangchainTool` class functions as an adapter/wrapper. It takes
+    tools defined in the LangChain ecosystem and adapts their interface (inputs, outputs,
+    execution methods) to match the `AgentTool` interface required by the Google ADK.
+    This allows ADK agents (like `LlmAgent`) to utilize LangChain tools seamlessly.
+- id: prismatic_1768447197_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary responsibility of the `CrewaiTool` class within the
+    `google.adk` library?
+  options:
+    A: It serves as an adapter that wraps CrewAI-native tools to make them compatible
+      with the ADK `AgentTool` protocol.
+    B: It functions as a complete orchestration engine for managing CrewAI swarms
+      and agent communication within the ADK runtime.
+    C: It acts as a reverse-compatibility layer allowing Google ADK agents to be exported
+      and executed as tasks within an external CrewAI ecosystem.
+    D: It is a static utility class responsible for validating tool naming conventions
+      by parsing `crewai.yaml` configuration files.
+  correct_answer: A
+  explanation: The `CrewaiTool` class facilitates the integration of existing CrewAI
+    tools into the Google ADK ecosystem. It acts as a wrapper that translates the
+    specific interface of a CrewAI tool into the standard `AgentTool` protocol required
+    by ADK agents, allowing developers to reuse CrewAI logic.
+- id: prismatic_1768447294_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary responsibility of the `LangchainTool` class?
+  options:
+    A: It functions as a model wrapper that encapsulates Google's Generative AI models
+      to make them usable as standard LLMs within LangChain agents and chains.
+    B: It serves as a stateful manager that handles the entire execution loop for
+      LangChain agents, automatically persisting conversation memory and optimizing
+      prompt templates for Google's models.
+    C: It acts as an adapter that wraps existing LangChain tools, converting their
+      schemas into a format compatible with Google's generative AI function calling
+      interface while preserving functionality.
+    D: It is a simple execution harness that runs LangChain tools but requires the
+      developer to manually write and inject the Google-compatible JSON schema, as
+      it cannot automatically extract argument types from the tool instance.
+  correct_answer: C
+  explanation: The `LangchainTool` class explicitly wraps a LangChain tool (either
+    a `BaseTool` or an object with a `run` method) and adapts it for use with the
+    ADK. The source code demonstrates that it overrides `_get_declaration` to automatically
+    convert the tool's `args_schema` into a Google-compatible `FunctionDeclaration`,
+    enabling the tool to be used with Google's generative AI models without manual
+    schema injection. It is an adapter for tools, not a wrapper for models or a manager
+    of agent loops.
+- id: prismatic_1768447366_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary responsibility of the `FilesRetrieval` class?
+  options:
+    A: It initializes a retrieval tool that indexes and retrieves information from
+      files located in a specified local directory using vector embeddings.
+    B: It acts as a connector for Google Cloud Storage, automatically syncing and
+      indexing files from a remote bucket into a managed Vertex AI Vector Search instance
+      rather than local storage.
+    C: It serves as the primary conversational engine, managing the chat session state
+      and directly generating responses using the Gemini Pro model based on user inputs.
+    D: It simply reads text files from a local folder and returns their raw string
+      content as a list for immediate processing, skipping any vectorization or indexing
+      steps.
+  correct_answer: A
+  explanation: The `FilesRetrieval` class is designed to create a retrieval tool based
+    on local files. It takes an `input_dir`, uses `SimpleDirectoryReader` to load
+    documents from that directory, and builds a `VectorStoreIndex` using an embedding
+    model (defaulting to 'text-embedding-004') to enable vector-based retrieval.
+- id: prismatic_1768447426_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary role of the `google.adk` module within the Google
+    Agent Development Kit framework?
+  options:
+    A: It operates as a full-stack deployment manager that automatically provisions
+      cloud infrastructure, handles Kubernetes scaling, and manages SQL database migrations.
+    B: It serves as the top-level package namespace, organizing core components such
+      as `agents`, `runners`, `tools`, and `planners` for building LLM-based agents.
+    C: It acts as the dedicated runtime engine, strictly handling the synchronous
+      event loop and low-level socket management for agent-to-server communication.
+    D: It is a lightweight utility library restricted to defining global error classes
+      and version constants, lacking any structural components for agent architecture.
+  correct_answer: B
+  explanation: The `google.adk` module serves as the top-level package namespace for
+    the framework. It organizes and exposes the core submodules required for building
+    agents, including `agents`, `runners`, `tools`, `planners`, and `sessions`.
+- id: prismatic_1768447499_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary responsibility of the `vertex_ai_rag_retrieval` module?
+  options:
+    A: It implements a local file system crawler that indexes documents stored on
+      the host machine into an in-memory database for offline retrieval.
+    B: It defines a specialized retrieval tool that enables agents to access and query
+      data via Google Cloud's Vertex AI RAG service, wrapping the capabilities into
+      a standardized ADK tool format.
+    C: It serves strictly as a configuration helper that stores authentication credentials,
+      requiring developers to manually construct HTTP requests for the Vertex AI RAG
+      service.
+    D: It is an infrastructure manager that automatically provisions new Vector Search
+      clusters and trains custom embedding models in real-time whenever an agent accesses
+      a new dataset.
+  correct_answer: B
+  explanation: The `vertex_ai_rag_retrieval` module provides a specific tool implementation
+    (likely `VertexAiRagRetrieval`) that interfaces with Google Cloud's Vertex AI
+    RAG service. It wraps the specific API calls and logic required to query the RAG
+    service into a standard tool structure that ADK agents can utilize, distinguishing
+    it from local retrieval or generic search tools.
+- id: prismatic_1768447573_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary responsibility of the `files_retrieval` module?
+  options:
+    A: It retrieves and supplies data specifically from file sources to be consumed
+      by an agent.
+    B: It acts as a specialized HTTP client that streams real-time data from remote
+      web services to the agent, bypassing local storage entirely.
+    C: It functions solely as a file existence checker, returning a boolean value
+      to the agent to indicate if a specific resource is present, without retrieving
+      the actual data.
+    D: It performs deep static analysis and syntax parsing on source code files to
+      generate abstract syntax trees, rather than simply supplying the raw file content.
+  correct_answer: A
+  explanation: The `files_retrieval` module is located within the retrieval toolset
+    and, as its docstring states, "Provides data for the agent." Given its name, this
+    entails retrieving data from local files rather than network sources or performing
+    static analysis.
+- id: prismatic_1768447641_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary responsibility of the `CrewaiTool` class?
+  options:
+    C: It serves as a passive alias for the standard `FunctionTool` class, designed
+      purely for semantic labeling within the codebase without implementing any custom
+      argument handling or name formatting logic.
+    A: It adapts third-party CrewAI tools for the ADK framework, enforcing name sanitization
+      and overriding argument handling to strip reserved parameters like `self` and
+      `tool_context` before invoking the underlying tool.
+    B: It acts as the central security gateway for the ADK, responsible for validating
+      API tokens and enforcing rate limits on all third-party tool executions to prevent
+      unauthorized access.
+    D: It utilizes an embedded language model to dynamically refactor and optimize
+      the Python source code of imported tools at runtime, automatically fixing syntax
+      errors and improving execution speed before they are registered.
+  correct_answer: A
+  explanation: The `CrewaiTool` class wraps CrewAI tools to make them compatible with
+    the ADK `FunctionTool` interface. It specifically handles argument filtering to
+    remove framework-reserved keys (like `self` and `tool_context`) from `**kwargs`
+    and normalizes tool names by replacing spaces with underscores to ensure compatibility
+    with the ADK framework.
+- id: prismatic_1768447738_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary responsibility of the `VertexAiRagRetrieval` class?
+  options:
+    B: It operates as a full-lifecycle data pipeline manager that automatically creates
+      new corpora, uploads and chunks local documents, and manages background indexing
+      jobs.
+    A: It integrates Google Vertex AI's RAG service into LLM workflows, automatically
+      adapting its implementation (native tool injection for Gemini 2.0+, standard
+      function for others) to retrieve context from specified corpora.
+    C: It functions primarily as a connector for third-party vector databases (like
+      Weaviate or Pinecone), utilizing Vertex AI solely for embedding generation while
+      delegating storage and retrieval to external infrastructure.
+    D: It serves as a passive configuration object that simply stores corpus IDs and
+      similarity thresholds, requiring developers to manually write API calls to `vertexai.rag.retrieval_query`.
+  correct_answer: A
+  explanation: 'The `VertexAiRagRetrieval` class is designed to integrate Google Vertex
+    AI''s RAG service into LLM workflows. It encapsulates the `VertexRagStore` configuration
+    and provides model-adaptive behavior: for Gemini 2.0 and above, it injects the
+    configuration as a native tool, while for other models, it functions as a standard
+    tool. When executed via `run_async`, it performs the actual retrieval query using
+    `vertexai.rag.retrieval_query`.'
+- id: prismatic_1768447831_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary responsibility of the `google.adk.models.llm_response`
+    module?
+  options:
+    A: It serves as a lightweight wrapper that stores only the generated text string,
+      explicitly discarding provider-specific metadata like token usage or finish
+      reasons to save memory.
+    B: It acts as the prompt engineering engine, responsible for concatenating system
+      instructions with user input to generate the final formatted string sent to
+      the model.
+    C: It defines the `LlmResponse` class, which provides a standardized data model
+      for encapsulating LLM outputs, including text and metadata, abstracting away
+      provider-specific differences.
+    D: It is an autonomous response validator that scores the model's output against
+      safety guidelines and automatically triggers a retry loop if the content is
+      deemed toxic or low-quality.
+  correct_answer: C
+  explanation: The `google.adk.models.llm_response` module defines the `LlmResponse`
+    class. This class serves as the standardized data model (contract) for encapsulating
+    outputs generated by Large Language Models within the ADK framework. It normalizes
+    provider-specific responses into a consistent interface that includes not just
+    the generated text, but also metadata such as token usage and finish reasons,
+    ensuring that agents can consume outputs from various underlying models (e.g.,
+    Gemini, Ollama) uniformly.
+- id: prismatic_1768447922_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary purpose of the `CallbackContext` class in the `google.adk`
+    framework?
+  options:
+    C: It functions as the central infrastructure manager that handles the containerization
+      of the agent, automatically scaling server resources and managing database migrations
+      before the workflow begins.
+    B: It serves as a container for the runtime state passed to agent lifecycle hooks
+      (callbacks), allowing these functions to inspect or modify the agent's workflow,
+      typically holding references to the agent, request, and response.
+    A: It is the isolated container used specifically within custom tools to store
+      temporary variables, ensuring that data persists between different tool executions
+      but remains hidden from the main agent's logic.
+    D: It is a static, read-only string buffer used strictly for writing debug logs
+      to a local file, offering no capability to inspect or modify the live agent
+      instance or the current LLM request.
+  correct_answer: B
+  explanation: The `CallbackContext` is specifically designed to encapsulate the state
+    of an agent (including the agent instance, LLM request, and LLM response) during
+    specific lifecycle events (callbacks). This allows the callback functions to inspect
+    the current state or modify the workflow. It is distinct from `ToolContext` (used
+    inside tools) or infrastructure management classes.
+- id: prismatic_1768448005_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary responsibility of the `CallbackContext` class?
+  options:
+    A: It serves as the primary database controller for the agent, directly managing
+      schema migrations, connection pooling, and storage indices for long-term memory
+      persistence.
+    B: It serves as the interface for lifecycle callbacks to interact with an active
+      agent session, enabling read access to session data and controlled write access
+      to state and artifacts while tracking changes.
+    C: It acts as a passive logging utility that captures a read-only snapshot of
+      the agent's history for debugging purposes, explicitly preventing any modifications
+      to the session state or the creation of new artifacts.
+    D: It is the specialized runtime environment designed for tool execution, responsible
+      for automatically mapping natural language arguments to function parameters
+      and validating return types.
+  correct_answer: B
+  explanation: '`CallbackContext` is designed for use within agent execution hooks
+    (like `after_agent_callback`). It wraps the `InvocationContext` to provide helper
+    methods for loading/saving artifacts and credentials. Crucially, unlike a purely
+    read-only context, it exposes a mutable `state` property and methods that record
+    changes (deltas) into an `EventActions` object.'
+- id: prismatic_1768448085_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary responsibility of the `LlmRequest` class within the
+    Google ADK?
+  options:
+    A: It acts as the primary execution engine for the ADK, directly managing HTTP
+      connection pools, retry logic, and raw byte streaming from the LLM provider.
+    B: It serves as a structured container for encapsulating parameters, content,
+      and configurations for LLM calls, managing instruction processing, tool definitions,
+      and state metadata.
+    C: It is a read-only Data Transfer Object (DTO) that passes the final prompt and
+      model name to the API without any internal logic for content modification or
+      state management.
+    D: It functions as an automated prompt optimizer that intercepts inputs to rewrite
+      them using chain-of-thought reasoning and validates tool arguments against a
+      schema registry.
+  correct_answer: B
+  explanation: The `LlmRequest` class is designed to encapsulate all necessary data
+    for an LLM generation call, including the model name, contents, configuration,
+    and tools. It includes logic for processing system instructions (e.g., extracting
+    non-text parts into user content via `append_instructions`), managing tool definitions
+    (`append_tools`), and handling context caching metadata. It prepares the request
+    state rather than executing the network call or optimizing prompts via rewriting.
+- id: prismatic_1768448260_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary role of the `google.adk.plugins` module in the ADK
+    framework?
+  options:
+    D: It is a static registry containing only JSON-formatted metadata used to list
+      available third-party extensions, lacking any actual Python classes or executable
+      code.
+    A: It serves as the central entry point and namespace aggregator for the ADK's
+      plugin system, unifying access to plugin implementations and the base abstraction
+      for extending agent functionality.
+    B: It acts as the primary execution engine for the ADK, responsible for managing
+      the main event loop, thread concurrency, and the asynchronous scheduling of
+      agent tasks.
+    C: It functions as a deployment manager that automatically containerizes agent
+      skills and provisions Google Cloud infrastructure resources to support plugin
+      requirements.
+  correct_answer: A
+  explanation: The `google.adk.plugins` module functions as a namespace aggregator,
+    exposing the `BasePlugin` class and specific implementations like `LoggingPlugin`,
+    `ContextFilterPlugin`, and `ReflectAndRetryToolPlugin` to simplify access and
+    imports for extending agent functionality.
+- id: prismatic_1768448374_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary responsibility of the `LlmRequest` class in the `google.adk`
+    library?
+  options:
+    A: "A standardized data container that encapsulates all parameters and context\u2014\
+      such as prompts, chat history, and configuration settings\u2014required to execute\
+      \ a generation call against a Large Language Model (LLM)."
+    C: A lightweight utility strictly designed to calculate the token usage of a prompt
+      string, preventing the system from sending requests that exceed the model's
+      context window.
+    D: An autonomous prompt optimization engine that automatically rewrites user inputs
+      using advanced techniques like Chain-of-Thought and retrieves vector embeddings
+      before processing.
+    B: A low-level network client that directly executes HTTP transactions, handling
+      connection pooling, authentication headers, and retry logic for communication
+      with LLM provider APIs.
+  correct_answer: A
+  explanation: The `LlmRequest` class acts as a standardized data container that encapsulates
+    all parameters and context (prompts, history, configuration) required to execute
+    a generation call against an LLM. It serves as an abstraction layer to keep agents
+    model-agnostic and functions as the direct input counterpart to `LlmResponse`.
+    It is not responsible for the low-level HTTP networking, strictly token counting,
+    or autonomous prompt rewriting.
+- id: prismatic_1768448455_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary responsibility of the `BasePlugin` class in the Google
+    ADK?
+  options:
+    A: It serves as the abstract base interface for creating global plugins that intercept,
+      monitor, and modify the execution lifecycle of agents, tools, and LLMs within
+      the ADK Runner.
+    B: It acts as the abstract base for defining individual tools, requiring developers
+      to implement a `run` method that executes the specific API calls or logic the
+      agent invokes.
+    C: It functions as the primary dependency injection container for the ADK, responsible
+      for instantiating all agent objects, managing memory allocation, and handling
+      underlying network connections.
+    D: It serves as a read-only monitoring interface designed strictly for asynchronous
+      telemetry collection, allowing observation without the ability to block execution
+      or modify payloads.
+  correct_answer: A
+  explanation: The `BasePlugin` class is the abstract base for plugins in the ADK.
+    Unlike agent callbacks, plugins are global (applying to all agents in a runner)
+    and execute sequentially. Crucially, they have the power to intercept, monitor,
+    and modify data (such as tool inputs or LLM responses) passing through the execution
+    lifecycle. They can also short-circuit execution. This distinguishes them from
+    read-only monitors (Option D), specific tool definitions (Option B, which describes
+    `BaseTool`), or the system's dependency injection mechanisms (Option C).
+- id: prismatic_1768448527_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary responsibility of the `App` class within the Google
+    ADK framework?
+  options:
+    A: It functions as a dedicated prompt engineering interface that parses natural
+      language inputs and maps them directly to vector database queries, bypassing
+      the need for hierarchical agents.
+    B: It serves as the top-level container for an LLM-backed agentic system, encapsulating
+      the root agent and coordinating application-wide resources and plugins.
+    C: It acts as a monolithic infrastructure manager that automatically provisions
+      cloud servers, handles database scaling, and performs continuous fine-tuning
+      of LLM model weights.
+    D: It is a passive configuration loader used solely to read environment variables
+      and API keys during initialization, without participating in the runtime execution
+      or management of agents.
+  correct_answer: B
+  explanation: The `App` class acts as the top-level container for the agentic system.
+    Its main duties include managing a single `root_agent` (which serves as the entry
+    point for the hierarchy of agents) and centralizing global components and configurations
+    such as `plugins`, `context_cache_config`, and `resumability_config`.
+- id: prismatic_1768448602_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary responsibility of the `google.adk.models` module?
+  options:
+    A: It defines the standard interface and abstractions for integrating machine
+      learning models, acting as a unifying namespace for implementations like Gemini
+      and Claude.
+    B: It acts as the central workflow engine responsible for managing the execution
+      state machine and determining the sequence of tool usage.
+    C: It serves solely as a secure configuration utility for storing API keys and
+      endpoint URLs, without providing code abstractions for model interaction.
+    D: It functions as a comprehensive local inference engine that manages low-level
+      GPU resource allocation and real-time model fine-tuning.
+  correct_answer: A
+  explanation: The `google.adk.models` module defines the core interfaces and abstractions
+    (such as request and response structures) that unify interactions with various
+    Large Language Models (LLMs) like Google's Gemini and Anthropic's Claude. It is
+    not responsible for agent workflow orchestration, mere configuration storage,
+    or low-level local inference management.
+- id: prismatic_1768448667_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary responsibility of the `BasePlugin` class in the `google.adk.plugins.base_plugin`
+    module?
+  options:
+    A: It functions as the central plugin registry, responsible for scanning the file
+      system to automatically discover, load, and resolve version conflicts for extensions
+      at runtime.
+    B: It serves as the abstract foundation and interface for creating modular extensions,
+      enforcing a standard structure and providing lifecycle hooks to interact with
+      agent execution.
+    C: It acts as the primary orchestration engine for the ADK, replacing the standard
+      event loop to control thread management and memory allocation for high-performance
+      execution.
+    D: It is a lightweight string formatting utility designed strictly to standardize
+      timestamp and log level prefixes in console output.
+  correct_answer: B
+  explanation: The `BasePlugin` class serves as the abstract base class for all plugins
+    within the ADK framework. It defines the standard interface and lifecycle hooks
+    that allow extensions (like logging or context filtering) to interact with the
+    agent's execution flow and modify its behavior dynamically.
+- id: prismatic_1768448740_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary role of the `google.adk.agents` module within the
+    ADK library?
+  options:
+    A: It serves as the initialization entry point that aggregates and exposes agent
+      implementations (like `LlmAgent`, `SequentialAgent`, `ParallelAgent`) and shared
+      operational contexts to unify access across the framework.
+    B: It acts as the secure transport layer responsible for the encryption and serialization
+      of `InvocationContext` payloads during communication between local environments
+      and remote LLM providers.
+    C: It functions exclusively as a type definition interface that exports the `RunConfig`
+      data class to facilitate static type checking without importing the underlying
+      agent logic or runtime dependencies.
+    D: It operates as the runtime scheduler that monitors system resources and dynamically
+      toggles between `SequentialAgent` and `ParallelAgent` execution modes to optimize
+      throughput.
+  correct_answer: A
+  explanation: The `google.adk.agents` module (via its `__init__.py`) serves as the
+    central entry point for the package. It imports and exposes key agent classes
+    (`LlmAgent`, `SequentialAgent`, `ParallelAgent`) and shared infrastructure components
+    (`RunConfig`, `InvocationContext`, `CallbackContext`), unifying access to the
+    agent framework.
+- id: prismatic_1768448807_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary role of the `ToolContext` class defined in the `google.adk.tools.tool_context`
+    module?
+  options:
+    A: It serves as a container for runtime dependencies and state (such as sessions,
+      user authentication, or artifact services) required by tools during their execution,
+      allowing stateless tools to access execution-specific context.
+    B: It functions as a dynamic registry service that scans the codebase for available
+      functions, automatically generating JSON schemas for function calling and routing
+      requests based on semantic similarity.
+    C: It acts as a heavy-weight sandbox manager that provisions isolated execution
+      environments, handling virtualization of network interfaces and file systems
+      to ensure secure tool execution.
+    D: It provides a simple dictionary interface strictly for accessing read-only
+      configuration settings loaded from environment variables, preventing tools from
+      interacting with dynamic runtime state.
+  correct_answer: A
+  explanation: The `ToolContext` class is designed to pass runtime dependencies (like
+    the current session, authentication credentials, and artifact services) to tools
+    when they are executed. This allows tools to remain stateless in their implementation
+    while still having access to the necessary context provided by the runner or agent
+    at runtime. It is not responsible for discovering functions (registry), strictly
+    enforcing sandboxing (virtualization), or limiting access to read-only configuration.
+- id: prismatic_1768448889_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary responsibility of the `google.adk.apps.app` module
+    within the Agent Development Kit (ADK) architecture?
+  options:
+    A: It defines the `App` class, acting as the central entry point for orchestrating
+      ADK applications by binding components like Agents, Runners, and Plugins, and
+      managing application-level state and services.
+    B: It is exclusively responsible for the tokenization and vector embedding process,
+      directly managing connections to vector databases to convert natural language
+      inputs for agents.
+    C: It serves as a fully autonomous infrastructure orchestrator that automatically
+      provisions cloud servers, configures firewalls, and manages Kubernetes deployments
+      without developer intervention.
+    D: It functions as a passive configuration container used solely to store static
+      variables such as API keys and model names, playing no active role in runtime
+      execution or component binding.
+  correct_answer: A
+  explanation: The `google.adk.apps.app` module contains the `App` class, which is
+    the high-level orchestrator for ADK applications. It is responsible for initializing
+    the runtime environment, binding agents to runners and plugins, and managing application-wide
+    configurations and services (such as session management), rather than handling
+    low-level tokenization or infrastructure provisioning.
+- id: prismatic_1768448989_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: In the `ToolContext` class, which attribute must be set to allow the methods
+    `request_credential` and `request_confirmation` to function, and what exception
+    is raised if this attribute is missing?
+  options:
+    A: The `function_call_id` attribute; a `ValueError` is raised because this ID
+      is required to map the side-effect interaction to the specific function call.
+    B: The `registry_schema` attribute; a `ValidationError` is raised because the
+      context must validate the tool's intent against registered signatures before
+      execution.
+    C: The `write_permission` attribute; a `PermissionError` is raised because the
+      context acts as a read-only container unless explicitly authorized for side
+      effects.
+    D: The `orchestrator_connection` attribute; a `RuntimeError` is raised because
+      the context manages the memory bank lifecycle and requires a database connection.
+  correct_answer: A
+  explanation: The `ToolContext` class facilitates interactions like authentication
+    requests and user confirmations that are side effects of a tool's execution. These
+    interactions need to be associated with the specific function call that triggered
+    them. The `function_call_id` serves as this unique identifier. The source code
+    for `request_credential` and `request_confirmation` explicitly checks `if not
+    self.function_call_id:` and raises a `ValueError('function_call_id is not set.')`
+    if it is missing.
+- id: prismatic_1768449058_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary responsibility of the `InvocationContext` class within
+    the `google.adk.agents` module?
+  options:
+    C: It acts as the central process scheduler for the runtime, responsible for spawning
+      background threads and allocating CPU resources to ensure high-performance parallel
+      execution.
+    A: It encapsulates the runtime state, parameters, and dependencies required for
+      a single specific execution of an agent, acting as a transient scope distinct
+      from global configuration.
+    D: It is a static utility that parses environment variables and local configuration
+      files to load immutable settings, such as API keys and model IDs, during application
+      startup.
+    B: It manages the long-term persistence of conversation history, automatically
+      serializing agent interactions to a vector database to enable retrieval-augmented
+      generation.
+  correct_answer: A
+  explanation: The `InvocationContext` class is designed to encapsulate the runtime
+    state, parameters, and dependencies (such as the agent instance) required for
+    a single specific execution of an agent. It creates a transient scope limited
+    to that invocation, distinguishing it from persistent configuration or global
+    application state.
+- id: prismatic_1768449123_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary role of the `InvocationContext` class within the agent
+    system's architecture?
+  options:
+    B: It acts as a static configuration blueprint used solely to validate the structural
+      integrity of an agent's tools and model hyperparameters before any runtime execution
+      begins.
+    C: It functions as a transient, read-only wrapper designed to transport the user's
+      initial input string to the first agent, after which it is immediately discarded
+      to minimize memory overhead.
+    D: It operates as a global infrastructure orchestrator responsible for server-side
+      resource provisioning, database connection pooling, and the autoscaling of agent
+      instances across the application cluster.
+    A: It serves as the central state container for a single execution cycle, managing
+      lifecycle status, data persistence across multiple agent transfers, and flow
+      control mechanisms from the initial user message to the final response.
+  correct_answer: A
+  explanation: The `InvocationContext` acts as the state container for a single execution
+    cycle (invocation). It persists throughout the lifecycle of the invocation (from
+    user message to final response), managing state across multiple agent transfers
+    (via `agent_states`), enforcing limits, and handling flow control (such as pausing
+    for long-running tools). It is neither a static configuration validator, a transient
+    input wrapper, nor a global infrastructure orchestrator.
+- id: prismatic_1768449200_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary responsibility of the `google.adk.runners` module?
+  options:
+    A: It acts as a prompt engineering engine, responsible specifically for managing
+      text templates and dynamically injecting context variables into prompt strings.
+    B: It is a minimal utility package that simply parses command-line arguments into
+      a dictionary object, leaving execution logic entirely to the developer's main
+      script.
+    C: It provides the execution framework for running agents, defining the base `Runner`
+      abstraction and concrete implementations to orchestrate agent workflows, sessions,
+      and lifecycle events.
+    D: It is a distributed cluster management system that handles container orchestration,
+      auto-scaling of agent instances, and automated disaster recovery across multi-region
+      cloud environments.
+  correct_answer: C
+  explanation: The `google.adk.runners` module is responsible for the execution framework
+    of agents. It defines the `Runner` base class and implementations such as `InMemoryRunner`
+    to set up services (session, artifacts) and orchestrate the agent's run loop.
+- id: prismatic_1768449280_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary responsibility of the `run_config` module?
+  options:
+    A: It defines the `RunConfig` class, acting as a configuration container for runtime
+      parameters required to execute an agent workflow, primarily consumed by `Runner`
+      implementations.
+    B: It serves as the primary persistence layer, responsible for managing database
+      connections and serializing the agent's memory state to disk after every interaction.
+    C: It acts as the central execution engine that directly triggers the agent's
+      workflow loop, calls the LLM, and processes tool outputs.
+    D: It is a minimal utility class restricted to loading the library's version number
+      and license information, playing no role in defining runtime behavior.
+  correct_answer: A
+  explanation: The `run_config` module defines the `RunConfig` class, which encapsulates
+    the specific runtime parameters and settings required to execute an agent workflow.
+    This configuration object is primarily consumed by `Runner` classes (like `InMemoryRunner`
+    or `Runner`) to instantiate and control the execution environment, separating
+    configuration from agent logic.
+- id: prismatic_1768449346_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary responsibility of the `google.adk.cli.utils.logs`
+    module?
+  options:
+    A: It serves as a lightweight wrapper around standard output to simply colorize
+      terminal text, acting solely as a UI helper without managing log levels or file
+      persistence.
+    B: It configures and initializes the logging infrastructure for the ADK CLI and
+      runtime components, providing functions to standardize levels and direct output
+      to temporary directories.
+    C: It handles the parsing and validation of global configuration files (YAML/JSON),
+      ensuring that environment variables are correctly injected into the runtime
+      context before execution.
+    D: It orchestrates a centralized telemetry pipeline that automatically aggregates
+      metrics from distributed runners and transmits real-time performance data to
+      a remote backend.
+  correct_answer: B
+  explanation: The `google.adk.cli.utils.logs` module is responsible for setting up
+    the logging context (via `setup_adk_logger`) and managing log output destinations,
+    such as temporary folders for session-based debugging (via `log_to_tmp_folder`).
+    It is utilized by components like `InMemoryRunner` to standardize logging across
+    the application.
+- id: prismatic_1768449419_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary responsibility of the `InMemorySessionService` class?
+  options:
+    A: It is a production-grade, thread-safe state manager capable of synchronizing
+      user sessions across distributed clusters using shared memory segments to handle
+      high-concurrency traffic.
+    B: It provides a volatile, in-memory backend for managing the full lifecycle of
+      user sessions, including the storage of event history and the handling of hierarchical
+      state (application, user, and session levels).
+    C: It serves as a write-through caching layer that temporarily holds session data
+      in RAM before asynchronously committing it to a persistent database to ensure
+      data durability during server restarts.
+    D: It is a stateless utility responsible solely for generating unique session
+      identifiers, requiring the developer to implement their own mechanisms for storing
+      event history and variable state elsewhere.
+  correct_answer: B
+  explanation: The `InMemorySessionService` is explicitly implemented using Python
+    dictionaries (`self.sessions`, `self.user_state`, `self.app_state`) to store session
+    data, event history, and state state in memory. The source code and docstrings
+    indicate it is designed for testing and development, is volatile (data is lost
+    on restart), and handles the merging of application, user, and session state.
+    It is not thread-safe for production environments, does not persist data to a
+    database, and is not merely a stateless ID generator.
+- id: prismatic_1768449498_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary responsibility of the `google.adk.cli.utils` module?
+  options:
+    B: It acts as the primary command-line argument parser, interpreting user flags
+      and routing execution flow to the main application logic.
+    C: It is a passive marker file strictly used to define the directory as a Python
+      package, intentionally devoid of any imports or functional code.
+    D: It manages the security layer of the CLI, handling OAuth token generation and
+      encryption key management for network requests.
+    A: It serves as the initialization entry point for the ADK CLI utility package,
+      aggregating and exposing common helper functions such as logging configurations.
+  correct_answer: A
+  explanation: The module `google.adk.cli.utils` serves as the package initializer
+    (`__init__.py`) for CLI utilities. Based on the associated context, it imports
+    and exposes logging functionality (specifically from the `logs` submodule), making
+    it an active namespace for common helpers rather than a passive marker file or
+    a core logic handler like an argument parser or security manager.
+- id: prismatic_1768449559_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary responsibility of the `InMemorySessionService` class?
+  options:
+    B: It manages the lifecycle and retrieval of session objects using volatile, in-memory
+      storage, suitable for non-persistent contexts like local testing.
+    D: It serves strictly as a temporary cache for authentication tokens to prevent
+      frequent re-login attempts during a single user interaction.
+    C: It is responsible for orchestrating the execution of workflow steps and isolating
+      the runtime environment for individual tasks within memory.
+    A: It acts as a high-performance write-through cache that automatically synchronizes
+      volatile memory states with the `DatabaseSessionService` to ensure data durability.
+  correct_answer: B
+  explanation: The `InMemorySessionService` class provides a mechanism to store and
+    retrieve session objects entirely in memory. As the name suggests, this storage
+    is volatile (non-persistent), making it suitable for local testing, debugging,
+    or ephemeral environments where a database setup is not required. It does not
+    synchronize with a persistent database (like a write-through cache), orchestrate
+    workflow execution steps, or serve exclusively as an authentication token cache.
+- id: prismatic_1768449634_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary responsibility of the `Session` class?
+  options:
+    D: It serves as an active database supervisor that automatically creates, migrates,
+      and indexes SQL tables for every new user interaction to ensure strict ACID
+      compliance.
+    A: It defines the data model for a conversational session, inheriting from Pydantic's
+      `BaseModel` to encapsulate identity, mutable state, and a chronological history
+      of interaction events.
+    B: It acts as the runtime engine responsible for executing the agent's logic loop,
+      actively managing thread pools to call LLM API endpoints and directly parsing
+      raw JSON responses.
+    C: It functions as a stateless utility object restricted to holding only the user's
+      unique ID string, purposefully excluding message history to minimize memory
+      footprint during processing.
+  correct_answer: A
+  explanation: The `Session` class is a Pydantic `BaseModel` designed to represent
+    the data structure of a conversational session. It encapsulates the session's
+    identity (`id`, `user_id`), mutable context (`state`), and the history of interactions
+    (`events`). It is not an execution engine (Runner), a stateless utility, or a
+    direct database manager.
+- id: prismatic_1768449788_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary responsibility of the `google.adk.sessions.session`
+    module?
+  options:
+    A: It functions as the backend persistence driver, directly managing database
+      connections and performing the serialization operations required to write agent
+      history to long-term storage systems.
+    B: It serves as the active runtime orchestrator for the framework, responsible
+      for driving the execution loop, scheduling threads, and determining the sequence
+      of next steps for the agent.
+    C: It defines the `Session` class, which serves as the core data model representing
+      the state, identity, and context of a specific agent interaction, acting as
+      a state container distinct from persistence services.
+    D: It acts strictly as a static configuration object defined at startup, containing
+      only immutable environment variables and credentials without the ability to
+      track dynamic state.
+  correct_answer: C
+  explanation: The `google.adk.sessions.session` module is responsible for defining
+    the `Session` class. This class functions as the central data model (state container)
+    representing the context and identity of an agent's execution lifecycle. It is
+    decoupled from the actual persistence logic (handled by `SessionService` implementations)
+    and the execution logic (handled by `Runner` components).
+- id: prismatic_1768449849_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary responsibility of the `log_to_tmp_folder` function?
+  options:
+    D: Initializes a comprehensive log rotation daemon that automatically compresses,
+      encrypts, and archives old log files into a local SQLite database to prevent
+      storage exhaustion during long-running agent sessions.
+    C: Simply creates a uniquely named subfolder within the system's temporary directory
+      to prepare the environment for potential file I/O, without actually modifying
+      any active logger configurations or attaching new handlers to the root logger.
+    A: Configures the global logging system to redirect all log output to a timestamped
+      file within the system's temporary directory, replacing default console (stderr)
+      logging.
+    B: Configures a remote telemetry hook that streams all stderr output to a centralized
+      cloud monitoring service via a WebSocket connection, ensuring that local temporary
+      files are immediately deleted.
+  correct_answer: A
+  explanation: The function specifically calculates a temporary path using `tempfile.gettempdir()`,
+    creates a `FileHandler` for that path, and crucially replaces the root logger's
+    handlers (`root_logger.handlers = []`) with this new file handler. This effectively
+    stops the default stderr logging and captures all output in the file instead.
+    It does not perform cloud streaming (Option B), log rotation/compression (Option
+    D), and performs significant logger configuration unlike Option C.
+- id: prismatic_1768449918_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary responsibility of the `InMemoryArtifactService` class?
+  options:
+    A: It functions as a transparent caching proxy that intercepts artifact requests
+      to remote object stores (like S3) to improve read performance in production
+      pipelines.
+    B: It provides a volatile, in-memory implementation of the artifact service to
+      manage the lifecycle (saving, loading, listing, deleting) of artifacts specifically
+      for testing and local development.
+    C: It provides a high-availability storage solution that synchronizes in-memory
+      artifacts across multiple parallel processes using shared memory segments to
+      support multi-threaded production workloads.
+    D: It is a lightweight utility strictly used to validate artifact URIs during
+      unit tests, but it does not actually store data or support read/write operations.
+  correct_answer: B
+  explanation: The `InMemoryArtifactService` is defined as an in-memory implementation
+    of the artifact service, storing data in a local dictionary (`self.artifacts`).
+    The source code explicitly states it is not suitable for multi-threaded production
+    environments and should be used for testing and development only. It implements
+    full lifecycle methods (save, load, list, delete) and simulates versioning, contradicting
+    the options suggesting it is merely a validator, a caching proxy, or a shared-memory
+    production tool.
+- id: prismatic_1768450002_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary responsibility of the `LongRunningFunctionTool` class?
+  options:
+    A: It acts as a synchronous wrapper that merely increases the default HTTP timeout
+      configuration for specific tool calls to ensure clients wait longer for responses.
+    B: It serves as a specialized infrastructure manager that dynamically provisions
+      and deploys ephemeral serverless instances to execute agent code securely.
+    C: It wraps and manages functions that require extended execution time, enabling
+      agents to initiate, monitor, and retrieve results for asynchronous tasks rather
+      than blocking immediately.
+    D: It functions as a recursive execution engine designed to execute a function
+      repeatedly in an infinite loop until a specific mathematical convergence criterion
+      is met.
+  correct_answer: C
+  explanation: The `LongRunningFunctionTool` is designed to support asynchronous or
+    stateful operations where a task takes a significant amount of time to complete.
+    Instead of blocking the agent's execution flow (like a standard synchronous tool)
+    or just increasing a timeout, it manages the lifecycle of initiating the task
+    and handling the retrieval of results once the long-running operation finishes.
+- id: prismatic_1768450137_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary responsibility of the `Event` class?
+  options:
+    A: It represents a discrete interaction unit within a conversation session, encapsulating
+      content, metadata, and actions such as function calls, while implementing logic
+      to determine response completion.
+    C: It acts as a simple, passive data container used exclusively for logging raw
+      text strings, lacking any internal methods for state evaluation or handling
+      complex objects.
+    B: It serves as the central orchestration engine for the framework, responsible
+      for establishing network connections to LLM providers and executing retry logic
+      for failed API calls.
+    D: It manages the persistent storage layer of the conversation, automatically
+      handling database transactions, schema migrations, and the cryptographic serialization
+      of message history.
+  correct_answer: A
+  explanation: The `Event` class inherits from `LlmResponse` and is designed to store
+    the content of a conversation interaction, including metadata (like `author`,
+    `invocation_id`) and specific actions (like function calls). It also contains
+    logic (e.g., `is_final_response`) to determine the state of an agent's turn.
+- id: prismatic_1768450205_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary responsibility of the `Event` class in `google.adk.events.event`?
+  options:
+    A: It defines the fundamental data structure for capturing discrete occurrences,
+      such as agent actions or tool outputs, serving as the standardized unit of observability
+      for recording and analyzing execution history.
+    C: It serves as the primary execution controller that directly invokes LLM API
+      calls, processes raw model tensors, and manages retry logic for failed tool
+      executions.
+    D: It functions as a simple string wrapper used exclusively for formatting text-based
+      error messages within the CLI output, without the capability to store structured
+      data.
+    B: It acts as a central dispatch engine that runs on a background thread to poll
+      the agent's state and automatically route high-priority alerts to subscribers
+      upon runtime exceptions.
+  correct_answer: A
+  explanation: The `Event` class acts as the base schema or container for capturing
+    specific occurrences during an agent's workflow, such as user inputs, model responses,
+    or tool calls. It is distinct from the runners that generate these events or the
+    summarizers that consume them.
+- id: prismatic_1768450285_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary responsibility of the `LongRunningFunctionTool` class?
+  options:
+    A: It wraps a callable function to mark it as a long-running operation by setting
+      an asynchronous flag and appending a specific usage warning to the tool's description.
+    B: It functions as a schema enforcement layer that validates the model's generated
+      arguments against the tool's type definitions before execution begins.
+    C: It automatically offloads the function to a separate worker thread and implements
+      a complex state machine for retries and partial result streaming.
+    D: It acts as a passive logging decorator that records execution timestamps without
+      modifying the tool's definition or scheduling.
+  correct_answer: A
+  explanation: The `LongRunningFunctionTool` class sets the `is_long_running` attribute
+    to `True` and modifies the tool's description in `_get_declaration` to include
+    a note warning the model not to call the tool again if it has returned an intermediate
+    or pending status.
+- id: prismatic_1768450341_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary responsibility of the `setup_adk_logger` function?
+  options:
+    A: It initializes the logging environment for the Google ADK by configuring the
+      root logger and the specific 'google_adk' namespace with a default level and
+      format.
+    D: It establishes a secure, encrypted telemetry stream that automatically uploads
+      all system events and stack traces to a centralized Google Cloud Logging bucket
+      for real-time remote monitoring.
+    C: It simply prints a static welcome message to the standard output to verify
+      that the library is imported, without actually configuring the logging handlers
+      or formatters.
+    B: It manages the hardware handshake protocol between the ADK accessory and the
+      host machine, ensuring that USB accessory mode is correctly negotiated prior
+      to data transmission.
+  correct_answer: A
+  explanation: The `setup_adk_logger` function initializes the logging configuration
+    for the application. It calls `logging.basicConfig` to set the logging format
+    and level for the root logger, and it retrieves and configures the specific 'google_adk'
+    logger instance to the specified level (defaulting to INFO).
+- id: prismatic_1768450420_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary responsibility of the `DatabaseSessionService` class?
+  options:
+    A: It functions as an ephemeral in-memory state manager that relies on distributed
+      caching systems like Redis for shared storage, bypassing relational databases
+      to optimize for high-throughput, non-hierarchical session access.
+    B: It provides a simple CRUD interface for a single database table, storing session
+      payloads as monolithic blobs without support for hierarchical state merging,
+      schema validation, or concurrency checks.
+    C: It acts as a synchronous migration engine that uses pessimistic locking to
+      enforce strict serialization on all session updates, blocking the application
+      during startup to ensure all database schemas are fully pre-provisioned.
+    D: It implements a persistent session management service backed by a relational
+      database, handling hierarchical state merging across application, user, and
+      session levels, lazy schema initialization, and optimistic concurrency control.
+  correct_answer: D
+  explanation: "The `DatabaseSessionService` class is designed to persist session\
+    \ data in a relational database (using SQLAlchemy). \n\nKey features in the code\
+    \ include:\n1.  **Hierarchical State Management:** Methods like `create_session`\
+    \ and `get_session` fetch and merge states from `StorageAppState`, `StorageUserState`,\
+    \ and `StorageSession`.\n2.  **Lazy Schema Initialization:** The `_prepare_tables`\
+    \ method uses an `asyncio.Lock` (`_table_creation_lock` and `_db_schema_lock`)\
+    \ to check schema versions and create tables only when needed, rather than blocking\
+    \ synchronously at startup.\n3.  **Optimistic Concurrency Control:** The `append_event`\
+    \ method compares `session.last_update_time` with the database's `storage_session.update_timestamp_tz`\
+    \ to prevent updates to stale sessions."
+- id: prismatic_1768450495_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary responsibility of the `database_session_service` module?
+  options:
+    A: It acts as a transient in-memory cache that simulates database interactions
+      for testing purposes, discarding all session data immediately after the agent
+      execution cycle completes.
+    B: It functions as a complete backend infrastructure manager that automatically
+      provisions new database instances, handles schema migrations, and balances load
+      across multiple servers.
+    C: It implements a persistent session management service that stores and retrieves
+      agent session data using a database backend.
+    D: It is a lightweight configuration helper designed solely to validate connection
+      strings and authentication credentials, leaving storage logic to the execution
+      runner.
+  correct_answer: C
+  explanation: The `database_session_service` module provides the `DatabaseSessionService`
+    class, which is responsible for persisting agent session data to a database. This
+    contrasts with in-memory services by offering durable storage integration via
+    `google.adk.sessions.schemas.v0.Base`.
+- id: prismatic_1768450603_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary responsibility of the `ContextCacheConfig` class?
+  options:
+    A: It acts as the persistent storage layer, directly managing the serialization
+      of context data to an external database like Redis to ensure conversation history
+      survives application restarts.
+    B: It serves as an automated optimization agent that uses machine learning to
+      dynamically compress context windows and rewrite prompts in real-time to minimize
+      token usage.
+    C: It defines configuration settings, such as Time-to-Live (TTL) and reuse limits,
+      to enable and manage context caching behavior for LLM agents within an application.
+    D: It functions as a simple boolean flag wrapper used strictly to turn the caching
+      feature on or off, without offering granular controls for expiration times or
+      token thresholds.
+  correct_answer: C
+  explanation: The `ContextCacheConfig` class is responsible for defining the configuration
+    settings required to enable and manage context caching. It provides granular controls
+    such as `ttl_seconds` (Time-to-Live), `cache_intervals` (reuse count), and `min_tokens`
+    to balance cost and performance. Its presence acts as the toggle to enable caching.
+- id: prismatic_1768450678_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary responsibility of the `cache_performance_analyzer`
+    module?
+  options:
+    C: This module serves as a basic schema definition utility that strictly outlines
+      the JSON structure for cache logs without containing functional code for data
+      analysis.
+    D: This module operates as an autonomous load balancer that actively reroutes
+      network traffic and dynamically scales server infrastructure to improve cache
+      hit rates.
+    B: This module acts as the primary storage engine for the ADK, directly managing
+      the serialization of agent states and handling database connections for context
+      persistence.
+    A: This module provides analysis utilities to evaluate the efficiency of the ADK
+      context caching system by processing event history data to calculate metrics
+      like hit ratios and cost savings.
+  correct_answer: A
+  explanation: The `cache_performance_analyzer` module is explicitly described in
+    its docstring as providing utilities to analyze cache performance metrics (such
+    as hit ratios and cost savings) based on event history. It does not handle storage/serialization
+    (Distractor B), isn't just a schema definition (Distractor C), and does not perform
+    active load balancing (Distractor D).
+- id: prismatic_1768450747_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary responsibility of the `CachePerformanceAnalyzer` class?
+  options:
+    A: Calculates and reports cache performance metrics for specific agents by analyzing
+      metadata within session event history.
+    B: Manages the underlying caching infrastructure by directly reading and writing
+      key-value pairs to the storage layer, ensuring that frequently accessed agent
+      contexts are preserved.
+    C: Actively intercepts agent execution in real-time to dynamically rewrite prompts
+      and enforce token limits, automatically preventing cache misses before they
+      occur.
+    D: Serves as a basic logging utility that simply appends raw text strings to a
+      daily log file, providing a chronological record of events without parsing metadata.
+  correct_answer: A
+  explanation: The `CachePerformanceAnalyzer` class retrieves session history via
+    a `BaseSessionService` and iterates through events to aggregate `usage_metadata`
+    and `cache_metadata`. It calculates statistics such as cache hit ratios, token
+    usage, and invocation counts, rather than managing the cache storage itself or
+    intercepting execution.
+- id: prismatic_1768450823_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary responsibility of the `BaseAgent` class in the Agent
+    Development Kit?
+  options:
+    A: It serves as the foundational abstract component that defines the common interface,
+      configuration schema, and hierarchical structure for all specific agent implementations,
+      while managing the execution lifecycle.
+    B: It acts as the primary network interface layer, directly managing WebSocket
+      connections to LLM providers, handling API rate limiting, and serializing JSON
+      payloads for inter-service communication.
+    C: It serves strictly as a static configuration container, designed solely to
+      validate JSON schemas and store property values without influencing the execution
+      lifecycle or the hierarchical organization of agent instances.
+    D: It functions as the centralized controller for the entire application ecosystem,
+      automatically detecting available resources, deploying containerized microservices
+      for each sub-agent, and managing distributed database transactions.
+  correct_answer: A
+  explanation: The `BaseAgent` class provides the abstract foundation for all agents.
+    It defines essential properties like `name`, `sub_agents`, and `parent_agent`
+    to establish a hierarchical structure. It also manages the execution lifecycle
+    through methods like `run_async` and `run_live`, which handle context creation,
+    tracing, and callbacks (`before_agent_callback`, `after_agent_callback`), while
+    delegating specific execution logic to abstract methods like `_run_async_impl`
+    that subclasses must implement.
+- id: prismatic_1768450907_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary responsibility of the `ContextCacheConfig` class within
+    the `google.adk.agents.context_cache_config` module?
+  options:
+    D: It is a simple logging utility used exclusively to output the file paths of
+      temporary cache directories to the console for debugging.
+    A: It acts as the active runtime engine that directly manages the physical serialization,
+      encryption, and writing of conversation history to the underlying database.
+    B: It serves as a configuration container for specifying settings and strategies
+      related to context caching within LLM agents to optimize performance and reduce
+      token costs.
+    C: It functions as a semantic search module that creates vector embeddings of
+      user queries to retrieve relevant documents from a long-term knowledge base.
+  correct_answer: B
+  explanation: The `ContextCacheConfig` class is responsible for defining the configuration
+    settings and strategies for context caching within LLM agents. It is used by the
+    `App` and `LlmAgent` classes to determine how agent context should be cached to
+    optimize performance and reduce token costs, rather than performing the actual
+    physical serialization or managing vector embeddings directly.
+- id: prismatic_1768450986_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary responsibility of the `Gemini` class within the ADK
+    framework?
+  options:
+    A: It functions as centralized routing middleware that intercepts outgoing requests
+      to select the provider (OpenAI, Anthropic, or Google) with the lowest latency.
+    B: It acts as a passive configuration object that stores project credentials and
+      region settings, relying entirely on a generic HTTP client to structure requests
+      without provider-specific logic.
+    C: It serves as the concrete integration for Google's Gemini models, wrapping
+      the underlying GenAI SDK to standardize request execution, support dual backends
+      (Vertex AI and Google AI Studio), and manage specialized modes like the Interactions
+      and Live APIs.
+    D: It manages the complete MLOps lifecycle, including automatically triggering
+      fine-tuning jobs on Vertex AI based on conversation history and deploying custom
+      model endpoints.
+  correct_answer: C
+  explanation: The `Gemini` class integrates Google's Gemini models by wrapping the
+    GenAI SDK. It handles standard request execution and streaming, dynamically supports
+    both Vertex AI and Google AI Studio backends, and includes logic for specialized
+    features like the Interactions API (for stateful conversations), Live API (for
+    real-time sessions), and Context Caching.
+- id: prismatic_1768451070_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary architectural role of the `BaseAgent` class defined
+    within the `base_agent` module?
+  options:
+    A: It serves as the abstract foundational interface that standardizes agent initialization,
+      state management, and lifecycle hooks, while requiring subclasses to implement
+      specific operational logic.
+    B: It functions as a central thread orchestrator that exclusively manages the
+      event loop, task scheduling, and parallel execution of requests.
+    C: It acts solely as a static data container for holding API keys and model names,
+      strictly preventing the inclusion of any execution logic or state management.
+    D: It operates as an automated infrastructure manager that provisions cloud resources,
+      handles containerization, and establishes database connections.
+  correct_answer: A
+  explanation: The `BaseAgent` class provides the foundational API for all agents
+    in the framework (such as `LlmAgent` and `SequentialAgent`). It encapsulates common
+    logic for configuration (`RunConfig`), state management, and lifecycle callbacks
+    (`BeforeAgentCallback`), while leaving the specific execution logic to be implemented
+    by concrete subclasses.
+- id: prismatic_1768451154_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary responsibility of the `BuiltInPlanner` class defined
+    in the `google.adk.planners.built_in_planner` module?
+  options:
+    A: It manages the agent's long-term memory by converting user queries into vector
+      embeddings and retrieving relevant documents from a local database to augment
+      the context window before any planning occurs.
+    B: It functions as a deterministic execution engine that runs a pre-defined sequence
+      of tools specified by the developer in a configuration file, ignoring the LLM's
+      dynamic reasoning capabilities to ensure a strictly linear workflow.
+    C: It determines the execution plan of an agent by leveraging the underlying Large
+      Language Model's native reasoning and tool-use capabilities, delegating tool
+      selection and sequencing directly to the model's intrinsic logic.
+    D: It implements a rigid "Chain of Thought" prompting strategy that forces the
+      model to output a step-by-step reasoning trace text before every action, explicitly
+      bypassing the model's native function calling API in favor of regex-based output
+      parsing.
+  correct_answer: C
+  explanation: The `BuiltInPlanner` is designed to rely on the specific Large Language
+    Model's native ability to plan and execute function calls (tool use), rather than
+    injecting a manual prompting strategy like ReAct.
+- id: prismatic_1768451230_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary responsibility of the `google.adk.tools.base_tool`
+    module?
+  options:
+    C: It is a passive data class designed solely to store static metadata strings,
+      such as the tool's name and description, without defining any executable methods
+      or processing logic.
+    D: It acts as the central orchestration engine for the framework, managing thread
+      pools, persistent database connections, and automatic dependency resolution
+      for all unrelated modules.
+    B: It serves as the abstract base class or interface for defining tools, standardizing
+      the structure, initialization, and execution flow for specific tool implementations.
+    A: It functions as the global configuration manager for the ADK, responsible exclusively
+      for parsing JSON settings files and injecting environment variables into the
+      runtime state.
+  correct_answer: B
+  explanation: The `base_tool` module acts as the foundational interface or abstract
+    base class for tools within the ADK. It defines the contract that concrete tool
+    implementations must follow, ensuring consistent initialization, structure, and
+    execution patterns across the toolkit.
+- id: prismatic_1768451300_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary responsibility of the `google.adk.models.google_llm`
+    module?
+  options:
+    A: It integrates Google's Gemini Large Language Models into the Agent Development
+      Kit (ADK), providing the `Gemini` class to handle model interaction and configuration.
+    B: It serves as a training harness that implements the underlying transformer
+      architecture for Gemini, allowing users to pre-train their own large language
+      models from scratch using local GPU resources.
+    C: It is responsible for the localized deployment of Google's open-source Gemma
+      models, specifically handling weight quantization and on-device inference to
+      ensure data does not leave the local environment.
+    D: It acts as a static configuration parser that validates API quotas and formats
+      JSON payloads for Google Cloud requests, but delegates the actual model interaction
+      and response handling to the generic `base_model` class.
+  correct_answer: A
+  explanation: The module `google.adk.models.google_llm` is specifically designed
+    to integrate Google's Gemini models into the ADK. It defines the `Gemini` class,
+    which manages the connection and configuration for these hosted models, distinguishing
+    it from local deployment modules or generic base classes.
+- id: prismatic_1768451387_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary responsibility of the `BuiltInPlanner` class?
+  options:
+    A: It functions strictly as a pass-through logger that records the user's intent
+      for debugging purposes without applying any specific configuration or planning
+      strategies.
+    D: It acts as an autonomous agent supervisor that spins up multiple parallel LLM
+      instances to debate strategies and aggregates their outputs via voting.
+    C: It creates a structured execution plan by querying the kernel's function registry
+      and constructing a rigid sequence of API calls using a generic XML schema for
+      client-side validation.
+    B: It configures the LLM to use its native "thinking" capabilities for planning
+      by injecting a `ThinkingConfig` and bypassing manual planning logic.
+  correct_answer: B
+  explanation: The `BuiltInPlanner` relies on the model's built-in thinking features
+    rather than external prompting or loop management. It initializes with a `ThinkingConfig`
+    and applies this configuration to the `LlmRequest`. Crucially, it overrides `build_planning_instruction`
+    and `process_planning_response` to return nothing, thereby bypassing the manual
+    planning steps typical of other planners and letting the model's native reasoning
+    capabilities handle the planning process.
+- id: prismatic_1768451461_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary role of the `google.adk.events` module within the
+    Google ADK framework?
+  options:
+    A: It acts as the primary network gateway, exclusively handling OAuth2 authentication
+      and serializing JSON-RPC requests sent to external APIs.
+    B: It serves as the initialization and namespace entry point for the event handling
+      system, exporting core components like the `Event` class to enable event propagation.
+    C: It is a simple logging utility that outputs static text strings to the console
+      for debugging purposes, without defining complex event mechanisms.
+    D: It serves as the infrastructure orchestrator, responsible for provisioning
+      server resources, managing database migrations, and auto-scaling agent runners.
+  correct_answer: B
+  explanation: The `google.adk.events` module (specifically the `__init__.py` file)
+    initializes the events package and exports the core `Event` class. This allows
+    other components of the framework, such as agents and runners, to import event-related
+    functionality from a central namespace to define and handle execution events.
+- id: prismatic_1768451546_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary responsibility of the `LlmAgent` class within the
+    Google Agent Development Kit?
+  options:
+    A: It serves as a read-only configuration interface that defines model parameters
+      but relies entirely on the client application to manually implement the chat
+      loop and tool execution.
+    B: It functions primarily as a semantic memory manager, responsible for embedding
+      incoming messages and storing them in a local vector database for context retrieval.
+    C: It orchestrates the lifecycle of an LLM-driven agent, managing the interaction
+      loop between a specified language model, tools, instructions, and session state
+      to execute tasks or conduct conversations.
+    D: It dynamically fine-tunes the underlying language model in real-time by updating
+      model weights based on session interactions, allowing for permanent learning
+      without external pipelines.
+  correct_answer: C
+  explanation: The `LlmAgent` class is responsible for the execution lifecycle of
+    an agent. It manages the interaction loop (via methods like `_run_async_impl`
+    and `_llm_flow`), integrates tools, handles context optimization (distinguishing
+    between static and dynamic instructions), and provides lifecycle hooks (callbacks).
+    It is not merely a configuration interface, a memory manager, or a fine-tuning
+    engine.
+- id: prismatic_1768451640_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary responsibility of the `BaseTool` class within the
+    framework?
+  options:
+    A: It serves as the abstract foundation for all agent tools, defining the standard
+      interface for tool execution, metadata definition, and integration into LLM
+      requests.
+    B: It serves as the primary decision engine for the framework, responsible for
+      managing the agent's thought loop, parsing natural language into intent, and
+      executing LLM inference requests.
+    C: It acts strictly as a passive data interface for defining function signatures,
+      requiring the developer to manually implement all configuration injection and
+      schema generation logic.
+    D: It is a concrete networking utility specifically designed to manage secure
+      HTTP tunneling, connection pooling, and authentication handshakes for remote
+      APIs.
+  correct_answer: A
+  explanation: '`BaseTool` is the abstract base class for all tools. It defines the
+    interface for running tools (`run_async`), obtaining OpenAPI declarations (`_get_declaration`),
+    and processing LLM requests (`process_llm_request`). It also provides `from_config`
+    for reflective instantiation.'
+- id: prismatic_1768451713_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary responsibility of the `google.adk.tools` module?
+  options:
+    A: It acts as the runtime security engine for the ADK, responsible for creating
+      sandboxed environments to execute untrusted code and enforcing resource quotas
+      on CPU and memory usage.
+    B: It serves strictly as a static collection of pre-built standard utilities (such
+      as a calculator and basic file reader), without providing the abstract base
+      classes or interfaces necessary for developers to define custom tools.
+    C: It serves as the central entry point for the tool ecosystem, aggregating and
+      exporting core classes like `BaseTool`, `FunctionTool`, and `McpToolset` to
+      unify local, agent-based, and MCP tool paradigms.
+    D: Its primary role is to function as an automated API gateway that deploys and
+      auto-scales microservices for defined tools, managing the underlying cloud infrastructure
+      and load balancing.
+  correct_answer: C
+  explanation: The `google.adk.tools` module functions as the main entry point for
+    the ADK's tool system. It exposes essential classes such as `BaseTool`, `FunctionTool`,
+    `AgentTool`, and `McpToolset` from their respective submodules, thereby simplifying
+    imports and unifying access to different types of tools (local functions, other
+    agents, and MCP servers) under a single namespace.
+- id: prismatic_1768451881_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary responsibility of the `get_google_llm_variant` function?
+  options:
+    C: This function simply retrieves the version string of the installed Google Generative
+      AI SDK to ensure compatibility with the current runtime environment.
+    B: This function validates the integrity of the provided API key against Google
+      Cloud IAM permissions to authorize the request before establishing a connection
+      to the backend.
+    D: This function serves as an intelligent load balancer, dynamically routing requests
+      between Vertex AI and Gemini API based on real-time latency metrics and cost
+      optimization strategies.
+    A: This function determines the active Google LLM backend service (Vertex AI or
+      Gemini API) based on the current environment configuration, specifically checking
+      the `GOOGLE_GENAI_USE_VERTEXAI` variable.
+  correct_answer: A
+  explanation: The function `get_google_llm_variant` checks the environment variable
+    `GOOGLE_GENAI_USE_VERTEXAI`. If this variable is enabled, it returns `GoogleLLMVariant.VERTEX_AI`.
+    Otherwise, it defaults to returning `GoogleLLMVariant.GEMINI_API`. This logic
+    determines which Google LLM backend service to use based on the configuration.
+- id: prismatic_1768451958_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary responsibility of the `google.adk.planners` module?
+  options:
+    A: It serves as the initialization point and namespace container for planning
+      algorithms and strategies, organizing and exposing specific planner implementations.
+    B: It functions as the low-level hardware driver that converts high-level motion
+      commands into raw serial byte streams for controlling connected USB accessories.
+    C: It is a standalone utility script limited to calculating basic Euclidean distance
+      between two points, without any capability to manage or import complex algorithms.
+    D: Its primary responsibility is to manage the SQL database schema and handle
+      data migrations for persistently storing historical planning logs and user session
+      statistics.
+  correct_answer: A
+  explanation: The `google.adk.planners` module, defined by its `__init__.py` file,
+    functions as a package root. Its main purpose is to serve as a namespace container
+    that organizes and exposes specific planning algorithms and strategies for use
+    by other parts of the Google ADK library.
+- id: prismatic_1768452029_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary responsibility of the `GoogleLLMVariant` class?
+  options:
+    D: It is a basic text string used strictly to tag the model name in system logs
+      for debugging purposes, having no functional impact on which API endpoint is
+      actually contacted.
+    C: It is a dedicated authentication handler class that executes the OAuth 2.0
+      token refresh cycles and manages secure connection handshakes for the Google
+      Vertex AI gateway.
+    B: It is an enumeration responsible for defining the specific Google Large Language
+      Model (LLM) backend service to be used within the application.
+    A: It is a high-level orchestration engine that automatically provisions Google
+      Cloud infrastructure, manages billing quotas, and sets up auto-scaling rules
+      for deployed LLM endpoints.
+  correct_answer: B
+  explanation: 'The `GoogleLLMVariant` class is an enumeration (Enum) that specifies
+    which Google LLM backend service to use. It defines two options: `VERTEX_AI` (for
+    Google Vertex AI) and `GEMINI_API` (for Google AI Studio), allowing the application
+    to select the appropriate configuration and credentials.'
+- id: prismatic_1768452088_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary responsibility of the `google.adk.utils.variant_utils`
+    module?
+  options:
+    C: It functions as a static text file that simply lists the compatible version
+      numbers of the Google Cloud SDK, devoid of any Python classes or execution logic.
+    B: "It parses and formats the raw JSON output from Google\u2019s Gemini models\
+      \ to convert unstructured text into strongly typed data objects for the agent's\
+      \ memory system."
+    D: It acts as an intelligent load balancer that dynamically routes API traffic
+      between Vertex AI and other Google endpoints to automatically optimize inference
+      latency and reduce cloud costs.
+    A: It defines enumerations and helper functions to identify and manage specific
+      Google LLM variants (such as Vertex AI) for internal ADK use.
+  correct_answer: A
+  explanation: The `google.adk.utils.variant_utils` module contains the `GoogleLLMVariant`
+    class and the `get_google_llm_variant` function. Its docstring explicitly states
+    it provides utilities for Google LLM variants and is intended for ADK internal
+    use only, rather than serving as a parser, load balancer, or version file.
+- id: prismatic_1768452170_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary responsibility of the `BigQueryToolset` class?
+  options:
+    C: It acts as a passive configuration holder that simply stores Google Cloud credentials
+      and project IDs, without any internal logic to instantiate tools or execute
+      queries.
+    B: It functions as a dedicated Object-Relational Mapper (ORM) for BigQuery, primarily
+      responsible for translating Python class instances into table rows and managing
+      schema migrations rather than exposing tools for agents.
+    A: It acts as a configurable factory that aggregates BigQuery capabilities (such
+      as metadata inspection, SQL execution, and advanced analysis like forecasting)
+      into `GoogleTool` instances, providing a filtered suite of tools for agents
+      to interact with BigQuery.
+    D: It operates as an autonomous database administrator that proactively monitors
+      query logs in the background to automatically create indexes and optimize SQL
+      costs without agent intervention.
+  correct_answer: A
+  explanation: The `BigQueryToolset` class is designed to provide a suite of tools
+    for interacting with BigQuery. Its `get_tools` method aggregates specific functions
+    (like `get_dataset_info`, `execute_sql`, `forecast`, etc.) into `GoogleTool` instances.
+    It allows for configuration via `BigQueryCredentialsConfig` and `BigQueryToolConfig`,
+    and supports filtering which tools are exposed via the `tool_filter` parameter.
+    It is not an ORM, a passive config holder, or an autonomous background optimizer.
+- id: prismatic_1768452243_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary responsibility of the `WriteMode` class?
+  options:
+    A: It acts as an active transaction manager that automatically locks target tables
+      during write operations to prevent race conditions and ensures ACID compliance
+      across concurrent BigQuery sessions.
+    B: It serves as a simple binary toggle that strictly enforces a read-only environment
+      when disabled, lacking any intermediate capability to distinguish between temporary
+      session tables and permanent production datasets.
+    C: "It defines and enumerates specific permission levels\u2014`BLOCKED`, `PROTECTED`,\
+      \ and `ALLOWED`\u2014to control the scope of allowed write operations, with\
+      \ `PROTECTED` mode specifically allowing modifications only to temporary tables\
+      \ in an anonymous session dataset."
+    D: It determines the serialization format of data being uploaded to BigQuery,
+      offering options like `JSON`, `AVRO`, and `PARQUET` to optimize network throughput
+      during batch ingestion.
+  correct_answer: C
+  explanation: 'The `WriteMode` class is an Enum that defines the scope of allowed
+    write operations in a BigQuery session. It provides three modes: `BLOCKED` (read-only),
+    `ALLOWED` (unrestricted writes), and `PROTECTED`. The `PROTECTED` mode is distinct
+    in that it permits write operations (like creating or deleting temporary tables)
+    within an anonymous session dataset while strictly preventing modifications to
+    permanent tables.'
+- id: prismatic_1768452325_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary responsibility of the `BigQueryCredentialsConfig`
+    class?
+  options:
+    A: It functions as the primary driver for data ingestion, handling the serialization
+      of local objects into BigQuery-compatible JSON formats and managing the upload
+      stream.
+    B: It is a robust, production-ready security manager that automates the entire
+      OAuth 2.0 lifecycle, including automatic key rotation and connection pooling.
+    C: It serves as a basic container for a static API key, lacking capabilities for
+      OAuth scopes, token caching, or dynamic credential generation.
+    D: It configures authentication parameters specifically for BigQuery tools, automatically
+      assigning default OAuth scopes and a token cache key, while noting its experimental
+      nature.
+  correct_answer: D
+  explanation: The class `BigQueryCredentialsConfig` is designed to configure authentication
+    for BigQuery tools. In its `__post_init__` method, it automatically sets default
+    BigQuery scopes if none are provided and defines a specific token cache key. The
+    class docstring also explicitly warns that it is experimental and not intended
+    for production use.
+- id: prismatic_1768452398_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary responsibility of the `bigquery_credentials` module
+    within the ADK framework?
+  options:
+    A: It acts as the core execution engine for the ADK, responsible for dispatching
+      raw SQL queries to the BigQuery API and serializing the resulting data streams.
+    B: It serves as an automated infrastructure orchestrator that dynamically provisions
+      BigQuery datasets, manages table schemas, and updates IAM access policies prior
+      to query execution.
+    C: It defines the `BigQueryCredentialsConfig` class, which manages the configuration
+      and credentials required to authenticate with Google BigQuery, serving as a
+      specialized container for secure connection initialization.
+    D: It is a simple file utility that reads the path to a JSON key file, strictly
+      validating the file extension without loading credentials or managing authentication
+      scopes.
+  correct_answer: C
+  explanation: The module defines the `BigQueryCredentialsConfig` class, which is
+    responsible for holding configuration details and credentials necessary for authenticating
+    and initializing connections to Google BigQuery, distinct from generic authentication
+    mechanisms.
+- id: prismatic_1768452470_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary responsibility of the `google.adk.tools.bigquery.config`
+    module?
+  options:
+    A: It acts as an automated governance system that dynamically optimizes SQL query
+      performance, manages active schema migrations, and enforces strict billing caps
+      across all associated Google Cloud projects.
+    B: It serves as the primary execution engine for SQL queries, handling the direct
+      transmission of query strings to the BigQuery API and parsing the resulting
+      JSON rows into Python objects.
+    C: It defines the configuration parameters and behavior modes for the BigQuery
+      toolset, specifically providing the `BigQueryToolConfig` class and `WriteMode`
+      enum to control settings such as data writing permissions.
+    D: It is a static utility that solely defines the hardcoded string constants for
+      the BigQuery API versioning and endpoint URLs, without providing any logical
+      behavior or user-configurable settings.
+  correct_answer: C
+  explanation: The `google.adk.tools.bigquery.config` module is responsible for defining
+    the configuration structures used by the BigQuery toolset. It includes the `BigQueryToolConfig`
+    class and the `WriteMode` enum, which allow users to specify settings like whether
+    the tool is permitted to write data (e.g., `WriteMode.ALLOWED` vs `WriteMode.BLOCKED`).
+- id: prismatic_1768452551_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary responsibility of the `bigquery_toolset` module?
+  options:
+    A: It acts as a natural language processing engine that directly translates user
+      prompts into SQL syntax, using `BigQueryToolConfig` to validate dialect compliance
+      before passing the generated code to the agent for execution.
+    B: It implements the `BigQueryToolset` class, which aggregates and configures
+      tools for BigQuery interaction, utilizing `BigQueryToolConfig` to enforce permission
+      constraints like `WriteMode`.
+    C: It functions as an automated database administration framework that utilizes
+      `BigQueryToolConfig` to proactively manage schema migrations, auto-indexing,
+      and compute cluster scaling independent of the agent's specific queries.
+    D: It serves as a simple configuration loader that strictly passes `BigQueryCredentialsConfig`
+      to the standard Google Cloud Python client, acting only as a credential wrapper
+      without defining specific tools or enforcing permission constraints.
+  correct_answer: B
+  explanation: The `bigquery_toolset` module implements the `BigQueryToolset` class.
+    Its main role is to provide a configured set of tools (e.g., for executing SQL,
+    inspecting schemas) to an agent. It manages client initialization and enforces
+    operational constraints (such as `WriteMode`) via `BigQueryToolConfig`.
+- id: prismatic_1768452620_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary responsibility of the `google.adk.auth.auth_credential`
+    module within the ADK framework?
+  options:
+    A: It defines standard data structures and enumerations for representing authentication
+      credentials, such as OAuth2 tokens and Service Account keys, to enable secure
+      access for agents and tools.
+    B: It acts as an active identity management service that automatically provisions,
+      rotates, and revokes Google Cloud Service Account keys on the fly, functioning
+      as a complete IAM replacement.
+    C: It serves as the policy enforcement point for the framework, defining Role-Based
+      Access Control (RBAC) rules to restrict which specific tools an agent is allowed
+      to load based on group membership.
+    D: It is a basic string validation utility that checks if a provided API key matches
+      standard alphanumeric formatting requirements, without providing structures
+      for complex objects.
+  correct_answer: A
+  explanation: The module is designed to provide the necessary abstractions (`AuthCredential`,
+    `OAuth2Auth`, `ServiceAccountCredential`) and enumerations (`AuthCredentialTypes`)
+    to standardize how authentication data is structured and passed to tools like
+    `BigQueryToolset` or `AuthenticatedFunctionTool`. It does not handle active provisioning
+    (IAM), policy enforcement (RBAC), or simple string validation.
+- id: prismatic_1768452717_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary responsibility of the `AuthCredentialTypes` class
+    in the `google.adk.auth.auth_credential` module?
+  options:
+    A: It defines a string-based enumeration of supported authentication credential
+      types, such as "apiKey", "oauth2", and "serviceAccount", used to categorize
+      authentication schemes.
+    C: It is a comprehensive security engine that implements the full cryptographic
+      logic for every protocol, automatically handling token negotiation, rotation,
+      and expiration.
+    B: It functions as a secure storage container that holds the actual encrypted
+      values of API keys and client secrets to prevent them from being exposed in
+      plain text.
+    D: It is a single static string identifier used exclusively to tag requests made
+      by the internal `SERVICE_ACCOUNT`, ignoring user-based protocols like OAuth2.
+  correct_answer: A
+  explanation: The `AuthCredentialTypes` class inherits from `str` and `Enum` and
+    serves as a collection of string constants (e.g., `API_KEY`, `OAUTH2`, `SERVICE_ACCOUNT`)
+    that identify the specific type of authentication credential being used. It does
+    not store secrets or implement the authentication logic itself.
+- id: prismatic_1768452813_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary responsibility of the `google.adk.tools.mcp_tool`
+    module?
+  options:
+    A: It serves as the initialization entry point for the Model Context Protocol
+      (MCP) tool package, aggregating and re-exporting core classes like `McpToolset`
+      and connection parameters to simplify integration.
+    B: It manages the agent's long-term memory persistence by serializing conversation
+      history into a local vector store for improved retrieval within the Model Context
+      Protocol.
+    C: It operates as an autonomous service mesh that scans the local network to discover,
+      install, and patch external tool dependencies for the agent framework.
+    D: It functions as a registry for integer status codes used in MCP connections,
+      containing only type definitions without any executable code or class exports.
+  correct_answer: A
+  explanation: The `google.adk.tools.mcp_tool` module (specifically its `__init__.py`)
+    defines the public API surface for the MCP tool package. It aggregates and re-exports
+    core components such as `McpToolset` and connection parameters (e.g., `StdioConnectionParams`,
+    `SseConnectionParams`) to make them easily accessible to consumers without requiring
+    deep imports into submodules.
+- id: prismatic_1768452902_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary responsibility of the `mcp_session_manager` module?
+  options:
+    A: It manages the configuration and establishment of client sessions with Model
+      Context Protocol (MCP) servers, facilitating communication between the agent
+      and external tools using specific transport parameters.
+    B: It acts as a comprehensive container orchestration engine that automatically
+      provisions, deploys, and scales Docker containers for MCP servers to ensure
+      high availability during tool execution.
+    C: It analyzes the user's prompt to determine intent and dynamically routes the
+      request to the most appropriate tool, filtering out irrelevant tools based on
+      semantic similarity before execution begins.
+    D: It serves as a simple configuration file reader that loads server URLs into
+      memory, acting solely as a passive lookup table without managing active connections
+      or transport protocols.
+  correct_answer: A
+  explanation: The `mcp_session_manager` module is responsible for managing the low-level
+    details of connecting to MCP servers. It handles the configuration (using classes
+    like `StdioConnectionParams` and `SseConnectionParams`) and establishment of client
+    sessions, serving as the connection backend for the `MCPToolset`.
+- id: prismatic_1768452983_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary responsibility of the `google.adk.models.lite_llm`
+    module?
+  options:
+    A: It provides a mechanism for running lightweight, local-only inference using
+      quantized weights, enabling offline agent functionality.
+    B: It acts as an integration wrapper for the external `litellm` library, allowing
+      ADK agents to interface with multiple LLM providers through a unified model
+      implementation.
+    C: It serves as a specialized adapter exclusively for Google's proprietary 'Lite'
+      series of low-latency models, restricting access to third-party foundation models.
+    D: It functions as a simplified mock interface for unit testing, returning static
+      or randomized responses to simulate LLM behavior without API costs.
+  correct_answer: B
+  explanation: The module uses the external `litellm` library to provide a unified
+    interface for various Large Language Model providers (such as OpenAI, Anthropic,
+    and VertexAI). This adapter pattern allows ADK agents to switch between different
+    models easily without altering their core logic, rather than being limited to
+    local inference, mocks, or specific proprietary 'Lite' models.
+- id: prismatic_1768453055_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary responsibility of the `LiteLlm` class in the context
+    of the provided framework?
+  options:
+    A: It is an autonomous load-balancing system that dynamically routes traffic across
+      multiple providers to minimize cost and automatically fine-tunes model weights
+      in the background.
+    B: It acts as an asynchronous adapter that integrates the `litellm` library, translating
+      internal `LlmRequest` objects into `litellm` arguments and aggregating streaming
+      response chunks into the framework's standard `LlmResponse` format.
+    C: It is a vector database manager that uses the `litellm` library to generate
+      embeddings for incoming text, automatically indexing them into a local FAISS
+      store for semantic search.
+    D: It is a lightweight logging utility designed solely to capture and serialize
+      raw HTTP payloads for debugging purposes, without participating in request transmission
+      or response parsing.
+  correct_answer: B
+  explanation: The `LiteLlm` class serves as a wrapper around the `litellm` library.
+    It implements the `generate_content_async` method to convert the framework's `LlmRequest`
+    into arguments compatible with `litellm`, handles constraints (like tool/function
+    exclusivity), processes streaming chunks (including text, function calls, and
+    reasoning), and returns the results as `LlmResponse` objects.
+- id: prismatic_1768453120_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary responsibility of the `MCPToolset` class?
+  options:
+    C: It functions solely as a schema validator for MCP JSON messages, ensuring that
+      tool definitions match the required syntax without establishing connections
+      or managing execution.
+    B: It acts as the primary MCP server host, allowing developers to register local
+      Python functions and expose them as API endpoints for external applications.
+    D: It is responsible for optimizing the Large Language Model's context window
+      by compressing conversation history and managing token limits according to the
+      Model Context Protocol.
+    A: It serves as a client that connects to remote MCP servers to dynamically discover
+      tools and translates them into the framework's native format for use by an AI
+      agent.
+  correct_answer: A
+  explanation: The `MCPToolset` class functions as a client bridge. It connects to
+    external Model Context Protocol (MCP) servers (using transports like Stdio or
+    SSE), discovers the tools those servers offer, and wraps them into the framework's
+    native `AgentTool` format so that an AI agent can execute them. It is not a server
+    host, a standalone validator, or a context window optimizer.
+- id: prismatic_1768453179_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary responsibility of the `ServiceAccountCredential` class?
+  options:
+    A: It serves as a centralized control plane for provisioning new Service Accounts
+      on Google Cloud Platform, utilizing Terraform modules to dynamically generate
+      and download the associated JSON key files.
+    B: It manages the OAuth 2.0 handshake and token refresh cycle for Google Cloud
+      services, automatically rotating the private key when it expires to ensure uninterrupted
+      API access.
+    C: It acts as a simple wrapper for the file path string pointing to the credentials
+      JSON file, without parsing or validating the internal contents or structure
+      of the key itself.
+    D: It represents the data model for Google Service Account authentication credentials,
+      encapsulating configuration details like project ID and private key to mirror
+      the standard JSON key file structure.
+  correct_answer: D
+  explanation: The class inherits from `BaseModelWithConfig` and defines fields such
+    as `project_id`, `private_key`, `client_email`, and `token_uri`. These fields
+    correspond directly to the structure of a standard Google Service Account JSON
+    key file. It specifically handles the `type` field using an alias (`type_`) to
+    avoid conflict with the Python reserved keyword, indicating its role as a structured
+    data model for configuration validation and loading rather than an active authentication
+    manager or provisioning tool.
+- id: prismatic_1768453244_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary responsibility of the `ServiceAccount` class?
+  options:
+    A: It defines the configuration schema for a Google Service Account, encapsulating
+      the necessary fields required to set up authentication credentials and access
+      permissions.
+    C: It acts as a basic string container used solely to store the file path of a
+      JSON key, lacking the ability to parse credential contents or define specific
+      access scopes.
+    B: It serves as the runtime authentication handler, actively managing the OAuth
+      2.0 handshake, refreshing expired access tokens, and injecting authorization
+      headers into outgoing HTTP requests.
+    D: It functions as a cloud provisioning tool that automatically creates new Service
+      Accounts in the Google Cloud Console and assigns administrative IAM roles via
+      the API.
+  correct_answer: A
+  explanation: The `ServiceAccount` class inherits from `BaseModelWithConfig` and
+    defines a data structure with specific fields (`service_account_credential`, `scopes`,
+    `use_default_credential`). Its purpose is to validate and hold the configuration
+    parameters required for a Google Service Account, rather than performing active
+    runtime authentication logic or provisioning cloud resources.
+- id: prismatic_1768453312_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary purpose of the `AuthCredential` class?
+  options:
+    A: It is an autonomous background service that actively executes authentication
+      protocols, automatically rotating secrets and refreshing expired OAuth2 tokens
+      without external intervention.
+    B: It functions as a server-side validation module that decrypts incoming authorization
+      headers to verify user permissions against a local database before allowing
+      request processing.
+    C: It acts as a unified data container for holding static configuration details
+      for various authentication mechanisms (e.g., API keys, OAuth2), intended to
+      be processed by an exchanger to generate usable credentials.
+    D: It is a primitive data wrapper restricted to holding static API keys, lacking
+      the structural capacity to support dynamic schemes like HTTP Bearer tokens or
+      OAuth2 flows.
+  correct_answer: C
+  explanation: The `AuthCredential` class is designed as a data container (inheriting
+    from `BaseModelWithConfig`) to hold configuration details for authentication methods
+    like API keys, HTTP auth, or OAuth2. It is a static configuration object, not
+    an active service, and the docstring explicitly notes that it must be exchanged
+    for an actual credential using `CredentialExchanger.exchange_credential()`.
+- id: prismatic_1768453394_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary responsibility of the `McpInstructionProvider` class?
+  options:
+    A: It executes tools defined on the MCP server by intercepting tool calls from
+      the LLM and sending them via the `call_tool` interface.
+    B: It retrieves agent instructions by connecting to an MCP server to execute a
+      named prompt, utilizing the agent's local state to supply required arguments.
+    C: It serves as a centralized prompt optimization engine that analyzes local state
+      to autonomously rewrite and improve remote MCP prompt definitions.
+    D: It acts as a connection health monitor that pings the MCP server to ensure
+      availability and prevents the application from hanging.
+  correct_answer: B
+  explanation: The `McpInstructionProvider` class is responsible for fetching agent
+    instructions from an MCP server. It does this by connecting to the server, inspecting
+    the definition of a specific named prompt to determine necessary arguments, extracting
+    matching values from the agent's local `context.state`, calling `get_prompt`,
+    and finally concatenating the text content of the returned messages to form the
+    instruction string.
+- id: prismatic_1768453448_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary responsibility of the `mcp_instruction_provider` module?
+  options:
+    D: It manages the fine-tuning pipeline for language models, dynamically adjusting
+      weights based on real-time metrics.
+    A: It supplies operational instructions to agents by retrieving prompts from a
+      Model Context Protocol (MCP) server.
+    B: It acts as a central semantic router to analyze user requests and determine
+      which agent capability or tool to invoke.
+    C: It functions as a local file reader that loads static text files from the repository's
+      assets folder for unchangeable system instructions.
+  correct_answer: A
+  explanation: The `mcp_instruction_provider` module is explicitly designed to provide
+    instructions to an agent by fetching prompts from a Model Context Protocol (MCP)
+    server, as indicated by its name and docstring. It serves as a bridge for external
+    prompt retrieval rather than local definition or routing logic.
+- id: prismatic_1768453513_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary responsibility of the `SseConnectionParams` class?
+  options:
+    A: It defines the configuration parameters required to establish and manage a
+      Server-Sent Events (SSE) connection to a Model Context Protocol (MCP) server.
+    B: It acts as a simple string validation utility that checks if the provided server
+      address is a properly formatted URL, ignoring complex metadata like headers
+      or timeouts.
+    C: It actively maintains the persistent network connection, automatically handling
+      SSL handshake negotiation, stream parsing, and exponential backoff strategies
+      for reconnection.
+    D: It manages the lifecycle of local child processes, handling standard input/output
+      redirection and environment variable injection for CLI-based MCP servers.
+  correct_answer: A
+  explanation: The `SseConnectionParams` class functions as a data model (inheriting
+    from `BaseModel`) that specifies essential connection details including the `url`,
+    optional `headers`, connection `timeout`, and `sse_read_timeout` for network-based
+    SSE transport configurations.
+- id: prismatic_1768453599_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary responsibility of the `ApplicationIntegrationToolset`
+    class defined in the `google.adk.tools.application_integration_tool.application_integration_toolset`
+    module?
+  options:
+    A: It functions as a continuous delivery module that interfaces with Google Cloud
+      Build to automate the deployment of container images to Cloud Run.
+    B: It provides a suite of tools enabling an AI agent to discover, trigger, and
+      manage integration workflows within the Google Cloud Application Integration
+      platform.
+    C: It acts as a passive monitoring utility designed solely to retrieve the health
+      status and quota usage of Google Cloud services without executing workflows.
+    D: It serves as an autonomous architectural engine that dynamically provisions
+      Google Cloud projects and generates Terraform scripts for infrastructure.
+  correct_answer: B
+  explanation: The `ApplicationIntegrationToolset` is designed to allow AI agents
+    to interact with Google Cloud Application Integration. Its main purpose is to
+    expose tools that can search for, examine, and trigger integration workflows,
+    using the ADK's authentication framework to authorize these operations.
+- id: prismatic_1768453666_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary responsibility of the `OAuth2Auth` class?
+  options:
+    B: It serves as a structured data model that encapsulates configuration parameters,
+      secrets, and token state required to manage an OAuth2 authentication flow, spanning
+      from static credentials to dynamic session tokens.
+    C: It acts as a static configuration container strictly for immutable credentials
+      like `client_id` and `client_secret`, excluding dynamic session data such as
+      access tokens or refresh intervals.
+    A: It functions as a network middleware that automatically intercepts all outgoing
+      HTTP traffic to inject `Authorization` headers and execute the handshake protocol
+      logic.
+    D: It is a comprehensive identity management system that provisions user accounts
+      on the remote Identity Provider, validates security compliance, and manages
+      database encryption for stored user profiles.
+  correct_answer: B
+  explanation: The `OAuth2Auth` class is designed as a data model (inheriting from
+    `BaseModelWithConfig`) to store the complete state of an OAuth2 credential. This
+    includes configuration like `client_id` and `client_secret`, as well as dynamic
+    lifecycle data such as `access_token`, `refresh_token`, `auth_code`, and expiration
+    times. It is not a network interceptor, strictly static container, or identity
+    provisioning system.
+- id: prismatic_1768453821_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary responsibility of the `google.adk.tools.openapi_tool.auth.auth_helpers`
+    module?
+  options:
+    A: It provides utility functions to parse and convert raw authentication configurations,
+      such as dictionaries or OpenID URLs, into structured authentication schemes
+      and credentials.
+    B: It manages the active runtime negotiation of OAuth2 exchanges, specifically
+      handling the local redirect server to capture authorization codes and swap them
+      for access tokens.
+    C: It serves as a static registry containing only the string literals for standard
+      HTTP header keys, providing no executable logic or data conversion capabilities.
+    D: It acts as a centralized identity governance engine that automatically provisions
+      Google Cloud Service Accounts and assigns IAM roles based on API security requirements.
+  correct_answer: A
+  explanation: The module is responsible for parsing and converting authentication
+    configurations (e.g., from dictionaries or OpenID URLs) into internal structured
+    schemes, as evidenced by functions like `dict_to_auth_scheme` and `openid_url_to_scheme_credential`.
+- id: prismatic_1768453899_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary responsibility of the `dict_to_auth_scheme` function?
+  options:
+    A: It acts as the runtime authentication middleware that actively validates incoming
+      request headers against the provider's security definition, raising a 401 Unauthorized
+      error if the credentials do not match.
+    B: It serves as a cryptographic helper that sanitizes and encrypts sensitive fields
+      within a security dictionary to ensure that API keys and secrets are never stored
+      in plain text within the application memory.
+    C: It functions as a factory that converts a dictionary configuration into a specific
+      concrete `AuthScheme` Pydantic model (such as `APIKey`, `OAuth2`, or `HTTPBearer`)
+      based on the mandatory "type" field.
+    D: It performs a generic conversion of any input dictionary into a base `AuthScheme`
+      object, ignoring the specific "type" discriminator and treating distinct schemes
+      like OAuth2 and APIKey as identical data structures.
+  correct_answer: C
+  explanation: The function analyzes the "type" field in the input dictionary and
+    instantiates the corresponding Pydantic model (e.g., `APIKey`, `HTTPBearer`, `OAuth2`),
+    using `model_validate` to ensure structural correctness. It does not perform runtime
+    validation of requests, encryption, or generic "type-ignoring" conversion.
+- id: prismatic_1768453972_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary responsibility of the `google.adk.tools.google_search_tool`
+    module?
+  options:
+    A: To manage the indexing pipeline for Vertex AI Data Stores, enabling agents
+      to retrieve proprietary enterprise documents from Google Cloud Storage rather
+      than querying the public web.
+    B: To provide a specific tool implementation, such as the `GoogleSearchTool` class,
+      that enables agents within the ADK framework to perform public web searches
+      using the Google Search API.
+    C: To act as a string formatter that validates and constructs Google Search URL
+      syntax, requiring a separate HTTP client module to actually execute the network
+      request.
+    D: To serve as a fully autonomous web crawler that scrapes, parses, and summarizes
+      linked pages from search results to build a persistent local database for the
+      agent's long-term memory.
+  correct_answer: B
+  explanation: The `google.adk.tools.google_search_tool` module encapsulates the functionality
+    required for agents to perform public web searches. It typically provides the
+    `GoogleSearchTool` class (or similar), integrating the Google Search API with
+    the Agent Development Kit's tool interface, allowing LLM agents to retrieve search
+    results from the web.
+- id: prismatic_1768454091_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary responsibility of the `GoogleSearchTool` class?
+  options:
+    A: It configures the LLM request to use the built-in Google Search capability,
+      dynamically selecting the retrieval configuration based on the Gemini model
+      version and enforcing tool exclusivity constraints for Gemini 1.x.
+    B: It executes client-side HTTP requests to the Google Custom Search JSON API,
+      returning raw JSON results that the developer must parse and inject into the
+      prompt context manually before inference.
+    C: It acts as model-agnostic middleware that intercepts prompts for any ADK-supported
+      model, performs a web search, and rewrites the prompt with retrieved context
+      to simulate retrieval-augmented generation.
+    D: It connects the model specifically to a private enterprise data store using
+      Vertex AI Search, limiting retrieval to internal documents and preventing access
+      to public internet results.
+  correct_answer: A
+  explanation: The `GoogleSearchTool` modifies the `llm_request.config` to include
+    the appropriate Google Search tool configuration (`GoogleSearchRetrieval` for
+    Gemini 1.x or `GoogleSearch` for newer Gemini models) and enforces constraints,
+    such as preventing the use of other tools with Gemini 1.x. It does not execute
+    client-side searches or handle manual prompt injection.
+- id: prismatic_1768454181_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary responsibility of the `SequentialAgent` class?
+  options:
+    A: It coordinates the execution of a defined list of sub-agents in a strict linear
+      order, managing state to allow for resumable execution and injecting tools to
+      signal task completion in live contexts.
+    B: It dynamically routes incoming requests to the most appropriate sub-agent using
+      semantic intent classification, allowing for non-linear, parallel execution
+      of multiple child agents simultaneously.
+    C: It functions as a static configuration wrapper that groups agents together
+      for organizational purposes, requiring the developer to manually implement the
+      loop logic and state management to pass data between them.
+    D: It acts as an autonomous optimizer that analyzes conversation history to rewrite
+      sub-agent prompts in real-time and automatically generates new Python tools
+      to resolve dependencies between the agents.
+  correct_answer: A
+  explanation: The `SequentialAgent` is designed to run a list of sub-agents in a
+    specific sequence. It handles state management (via `SequentialAgentState`) to
+    track which sub-agent is currently running, allowing the process to be paused
+    and resumed. Additionally, in live/streaming modes (`_run_live_impl`), it dynamically
+    injects a `task_completed` tool into `LlmAgent` sub-agents to allow them to explicitly
+    signal when they are done so the sequence can proceed.
+- id: prismatic_1768454303_0
+  benchmark_type: multiple_choice
+  code_snippet_ref: null
+  question: What is the primary responsibility of the `SequentialAgent` class in the
+    `google.adk.agents.sequential_agent` module?
+  options:
+    A: It acts as a passive configuration parser that validates the syntax of tool
+      definitions without managing the runtime execution lifecycle.
+    B: It executes multiple high-latency sub-agents concurrently using asynchronous
+      event loops to minimize overall response latency.
+    C: It implements an agent designed to execute a series of tasks, sub-agents, or
+      tools in a strict, linear order, enforcing serial execution where each step
+      completes before the next begins.
+    D: It utilizes an embedded predictive engine to dynamically re-rank and skip steps
+      in the execution chain in real-time based on heuristic analysis.
+  correct_answer: C
+  explanation: The `SequentialAgent` is specifically designed to execute components
+    (tasks, tools, or sub-agents) one after another in a linear sequence. This contrasts
+    with parallel execution or dynamic re-ranking approaches, ensuring that the state
+    or output of one step can potentially be passed to the next in a deterministic
+    order.

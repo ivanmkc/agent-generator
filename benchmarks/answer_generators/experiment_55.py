@@ -17,7 +17,7 @@ from benchmarks.api_key_manager import ApiKeyManager, KeyType
 from benchmarks.data_models import GeneratedAnswer, BenchmarkGenerationError, FixErrorAnswerOutput, ApiUnderstandingAnswerOutput, MultipleChoiceAnswerOutput, BaseBenchmarkCase, FixErrorBenchmarkCase, ApiUnderstandingBenchmarkCase, MultipleChoiceBenchmarkCase
 from benchmarks.answer_generators.adk_context import adk_execution_context
 
-from google.adk.agents import LlmAgent, SequentialAgent, Agent
+from google.adk.agents import LlmAgent, SequentialAgent, Agent, InvocationContext
 from google.adk.events import Event
 from google.genai import types, Client
 from benchmarks.answer_generators.setup_utils import create_standard_setup_hook
@@ -73,7 +73,7 @@ class AdkAnswerGeneratorV35(AdkAnswerGenerator):
         try:
             # 3. Run Agent (Produces Text)
             # We assume the agent simply returns the answer in natural language/code
-            response_text, trace_logs, usage_metadata = await self._run_agent_async(
+            response_text, trace_logs, usage_metadata, session_id = await self._run_agent_async(
                 prompt, 
                 api_key_id=api_key_id,
                 benchmark_type=benchmark_type
@@ -92,11 +92,15 @@ class AdkAnswerGeneratorV35(AdkAnswerGenerator):
             if trace_logs is None:
                 trace_logs = []
             
-            from benchmarks.data_models import TraceLogEvent
+            from benchmarks.data_models import TraceLogEvent, TraceEventType
+            import datetime
+            now_iso = datetime.datetime.now().isoformat()
+            
             trace_logs.append(TraceLogEvent(
-                timestamp=0, # Will be filled if needed, or we can use generic
+                timestamp=now_iso,
+                type=TraceEventType.ADK_EVENT,
                 source="formatter_input",
-                text=formatting_prompt
+                content=formatting_prompt
             ))
 
             # Use the injected formatter model (no longer hardcoded)
@@ -111,9 +115,10 @@ class AdkAnswerGeneratorV35(AdkAnswerGenerator):
             
             # Log Formatter Output
             trace_logs.append(TraceLogEvent(
-                timestamp=0,
+                timestamp=datetime.datetime.now().isoformat(),
+                type=TraceEventType.ADK_EVENT,
                 source="formatter_output",
-                text=format_response.text
+                content=format_response.text
             ))
             
             # Parse output
@@ -157,6 +162,20 @@ class AdkAnswerGeneratorV35(AdkAnswerGenerator):
             if self.api_key_manager:
                 self.api_key_manager.release_run(run_id)
 
+class RawExpertResponseFinalizer(Agent):
+    """Simply moves final_expert_output to final_response for the generator to pick up."""
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    async def _run_async_impl(self, ctx: InvocationContext) -> AsyncGenerator[Event, None]:
+        output_str = ctx.session.state.get("final_expert_output", "")
+        ctx.session.state["final_response"] = output_str
+        yield Event(
+            invocation_id=ctx.invocation_id,
+            author=self.name, 
+            content=types.Content(role="model", parts=[types.Part(text=output_str)])
+        )
+
 def create_debug_structured_adk_agent_v35(
     tools_helper: AdkTools,
     model_name: str,
@@ -186,19 +205,21 @@ def create_debug_structured_adk_agent_v35(
         "Request: {sanitized_user_request}\n"
         "TASK TYPE: {benchmark_type}\n"
         "CONTEXT:\n"
-        "{knowledge_context}\n\n"
-        "GOAL: Answer the question accurately based on the context.\n"
-        "- For Multiple Choice: Explicitly state the correct option letter (e.g., 'Answer: A') and explain why.\n"
-        "- For API Questions: Provide the code snippet and the rationale.\n"
-        "- For Fix Errors: Provide the corrected code.\n\n"
-        "Do NOT try to output JSON. Just give the answer clearly."
+        "{knowledge_context}"
     )
 
     qa_solver = LlmAgent(
         name="qa_solver",
         model=model,
         include_contents='none',
-        instruction=qa_instr
+        instruction=qa_instr,
+        generate_content_config=types.GenerateContentConfig(
+            tool_config=types.ToolConfig(
+                function_calling_config=types.FunctionCallingConfig(
+                    mode='NONE'
+                )
+            )
+        )
     )
     knowledge_agent = SequentialAgent(name="knowledge_specialist", sub_agents=[*retrieval_agents, qa_solver])
 
@@ -214,14 +235,13 @@ def create_debug_structured_adk_agent_v35(
     setup_agent = SetupAgentCodeBased(name="setup_agent", workspace_root=tools_helper.workspace_root, tools_helper=tools_helper)
     prompt_sanitizer_agent = PromptSanitizerAgent(model=model, include_contents='none', output_key="sanitized_user_request")
     
-    # REMOVED: finalizer
-    # finalizer = ExpertResponseFinalizer(name="finalizer", tools_helper=tools_helper)
+    finalizer = RawExpertResponseFinalizer(name="finalizer")
     
     teardown_agent = CodeBasedTeardownAgent(name="teardown_agent", workspace_root=tools_helper.workspace_root, tools_helper=tools_helper)
 
     return SequentialAgent(
         name="adk_statistical_v35",
-        sub_agents=[setup_agent, prompt_sanitizer_agent, delegator_agent, teardown_agent],
+        sub_agents=[setup_agent, prompt_sanitizer_agent, delegator_agent, finalizer, teardown_agent],
     )
 
 def create_statistical_v35_generator(

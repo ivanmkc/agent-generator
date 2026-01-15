@@ -936,13 +936,6 @@ def _create_index_retrieval_agents(
         model=model,
         tools=[save_modules_tool],
         include_contents="none",
-        generate_content_config=types.GenerateContentConfig(
-            tool_config=types.ToolConfig(
-                function_calling_config=types.FunctionCallingConfig(
-                    mode='ANY'
-                )
-            )
-        ),
         instruction=(
             f"You are the Module Selector Agent. Select the relevant ADK modules for the request from the index below.\n"
             f"Index:\n{adk_index_content}\n"

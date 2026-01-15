@@ -106,13 +106,6 @@ def _create_fast_prismatic_retrieval_agents_v33(tools_helper: AdkTools, model) -
         model=model,
         tools=[save_modules_tool],
         include_contents="none",
-        generate_content_config=types.GenerateContentConfig(
-            tool_config=types.ToolConfig(
-                function_calling_config=types.FunctionCallingConfig(
-                    mode='ANY'
-                )
-            )
-        ),
         instruction=(
             f"You are the Seed Selector. Select the 1-2 most relevant ADK modules for the request from the index below.\n"
             f"Index:\n{adk_index_content}\n"
@@ -144,6 +137,8 @@ class RoutingDelegatorAgent(Agent):
         # Tool definition for routing
         def route_task(category: str, tool_context: ToolContext) -> str:
             """Routes the task to the specified category."""
+            # Save decision to state to avoid re-routing loop
+            tool_context.session.state["route_category"] = category
             return f"Routed to {category}"
 
         route_tool = FunctionTool(route_task)
@@ -153,13 +148,6 @@ class RoutingDelegatorAgent(Agent):
             model=model,
             tools=[route_tool],
             include_contents='none',
-            generate_content_config=types.GenerateContentConfig(
-                tool_config=types.ToolConfig(
-                    function_calling_config=types.FunctionCallingConfig(
-                        mode='ANY'
-                    )
-                )
-            ),
             instruction=(
                 "You are the Request Router. Classify the user request.\n"
                 "1. CODING: User wants to implement an agent, fix code, or write scripts.\n"
@@ -171,25 +159,29 @@ class RoutingDelegatorAgent(Agent):
         self._knowledge_agent = knowledge_agent
 
     async def _run_async_impl(self, ctx) -> AsyncGenerator[Event, None]:
-        # 1. Route
-        route_decision = "KNOWLEDGE" # Default
+        # 1. Check if routing decision already exists in state
+        route_decision = ctx.session.state.get("route_category")
         
-        async for event in self._router.run_async(ctx):
-            yield event # Show the routing thought/result
-            
-            # Capture tool call
-            if event.content and event.content.parts:
-                for part in event.content.parts:
-                    if part.function_call and part.function_call.name == "route_task":
-                        args = part.function_call.args
-                        if args and "category" in args:
-                            route_decision = args["category"]
-        
+        if not route_decision:
+            # Not routed yet, run the router
+            async for event in self._router.run_async(ctx):
+                yield event 
+                # Note: The tool execution (route_task) happens in the Runner via yield.
+                # The Runner executes it, calls route_task (saving state), and calls us back.
+                # When called back, we start from top, find state, and proceed below.
+                
+            # If router finished without tool call (unexpected), fallback default
+            # But normally we yield until tool call, then Runner takes over.
+            # If we are here, it means router yielded text or finished.
+            # We check state again just in case (though unlikely if tool calling worked)
+            route_decision = ctx.session.state.get("route_category", "KNOWLEDGE")
+
+        # 2. Delegate based on decision
         target_agent = self._knowledge_agent
         if "CODING" in route_decision.upper():
             target_agent = self._coding_agent
         
-        # 2. Delegate and YIELD ALL EVENTS
+        # 3. Delegate and YIELD ALL EVENTS
         result_str = ""
         async for event in target_agent.run_async(ctx):
             yield event
