@@ -1,150 +1,285 @@
+create_adk_web_server:
+  args: {}
+  total_calls: 2
 google.adk.Agent:
   args:
     after_model_callback:
-      count: 1
-      freq: 0.06
+      count: 2
+      freq: 0.04
     after_tool_callback:
       count: 1
-      freq: 0.06
+      freq: 0.02
     before_agent_callback:
       count: 1
-      freq: 0.06
+      freq: 0.02
     before_model_callback:
       count: 1
-      freq: 0.06
+      freq: 0.02
     before_tool_callback:
       count: 1
-      freq: 0.06
+      freq: 0.02
     description:
-      count: 2
-      freq: 0.12
+      count: 18
+      freq: 0.38
+    flow:
+      count: 14
+      freq: 0.29
     generate_content_config:
-      count: 1
-      freq: 0.06
+      count: 15
+      freq: 0.31
     global_instruction:
-      count: 1
-      freq: 0.06
+      count: 2
+      freq: 0.04
+    input_schema:
+      count: 2
+      freq: 0.04
     instruction:
-      count: 16
-      freq: 1.0
+      count: 44
+      freq: 0.92
     model:
-      count: 16
-      freq: 1.0
+      count: 45
+      freq: 0.94
     name:
-      count: 16
+      count: 48
       freq: 1.0
     output_key:
       count: 9
-      freq: 0.56
-    sub_agents:
+      freq: 0.19
+    output_schema:
+      count: 2
+      freq: 0.04
+    planner:
       count: 1
-      freq: 0.06
+      freq: 0.02
+    sub_agents:
+      count: 8
+      freq: 0.17
     tools:
-      count: 9
-      freq: 0.56
-  total_calls: 16
+      count: 18
+      freq: 0.38
+  total_calls: 48
+google.adk.a2a.converters.event_converter.convert_a2a_message_to_event:
+  args: {}
+  total_calls: 9
+google.adk.a2a.converters.event_converter.convert_a2a_task_to_event:
+  args: {}
+  total_calls: 7
+google.adk.a2a.converters.event_converter.convert_event_to_a2a_events:
+  args: {}
+  total_calls: 8
+google.adk.a2a.converters.part_converter.convert_a2a_part_to_genai_part:
+  args: {}
+  total_calls: 22
+google.adk.a2a.converters.part_converter.convert_genai_part_to_a2a_part:
+  args: {}
+  total_calls: 18
+google.adk.a2a.converters.request_converter.AgentRunRequest:
+  args:
+    new_message:
+      count: 11
+      freq: 1.0
+    run_config:
+      count: 11
+      freq: 1.0
+    session_id:
+      count: 11
+      freq: 1.0
+    user_id:
+      count: 11
+      freq: 1.0
+  total_calls: 11
+google.adk.a2a.converters.request_converter.convert_a2a_request_to_agent_run_request:
+  args: {}
+  total_calls: 8
+google.adk.a2a.executor.a2a_agent_executor.A2aAgentExecutor:
+  args:
+    config:
+      count: 10
+      freq: 1.0
+    runner:
+      count: 10
+      freq: 1.0
+  total_calls: 10
+google.adk.a2a.logs.log_utils.build_a2a_request_log:
+  args: {}
+  total_calls: 4
+google.adk.a2a.logs.log_utils.build_a2a_response_log:
+  args: {}
+  total_calls: 6
+google.adk.a2a.logs.log_utils.build_message_part_log:
+  args: {}
+  total_calls: 6
+google.adk.a2a.utils.agent_card_builder.AgentCardBuilder:
+  args:
+    agent:
+      count: 7
+      freq: 1.0
+    agent_version:
+      count: 2
+      freq: 0.29
+    capabilities:
+      count: 1
+      freq: 0.14
+    doc_url:
+      count: 2
+      freq: 0.29
+    provider:
+      count: 2
+      freq: 0.29
+    rpc_url:
+      count: 2
+      freq: 0.29
+    security_schemes:
+      count: 2
+      freq: 0.29
+  total_calls: 7
+google.adk.a2a.utils.agent_to_a2a.to_a2a:
+  args:
+    agent_card:
+      count: 3
+      freq: 0.14
+    host:
+      count: 4
+      freq: 0.19
+    port:
+      count: 4
+      freq: 0.19
+    runner:
+      count: 1
+      freq: 0.05
+  total_calls: 21
 google.adk.agents.Agent:
   args:
     after_agent_callback:
       count: 3
-      freq: 0.04
-    before_agent_callback:
-      count: 2
       freq: 0.03
+    after_model_callback:
+      count: 13
+      freq: 0.13
+    after_tool_callback:
+      count: 1
+      freq: 0.01
+    before_agent_callback:
+      count: 5
+      freq: 0.05
     before_model_callback:
-      count: 6
-      freq: 0.08
+      count: 14
+      freq: 0.14
     code_executor:
       count: 1
       freq: 0.01
     description:
-      count: 61
-      freq: 0.78
+      count: 52
+      freq: 0.54
     disallow_transfer_to_parent:
       count: 8
-      freq: 0.1
+      freq: 0.08
     disallow_transfer_to_peers:
       count: 8
-      freq: 0.1
+      freq: 0.08
     generate_content_config:
-      count: 17
-      freq: 0.22
+      count: 25
+      freq: 0.26
     global_instruction:
-      count: 2
+      count: 3
       freq: 0.03
+    include_contents:
+      count: 13
+      freq: 0.13
     instruction:
-      count: 78
-      freq: 1.0
+      count: 84
+      freq: 0.87
     model:
-      count: 78
+      count: 97
       freq: 1.0
     name:
-      count: 78
+      count: 97
       freq: 1.0
     output_key:
-      count: 30
-      freq: 0.38
+      count: 18
+      freq: 0.19
     output_schema:
-      count: 11
-      freq: 0.14
+      count: 8
+      freq: 0.08
     sub_agents:
-      count: 11
-      freq: 0.14
+      count: 9
+      freq: 0.09
     tools:
-      count: 49
-      freq: 0.63
-  total_calls: 78
+      count: 47
+      freq: 0.48
+  total_calls: 97
+google.adk.agents.LiveRequestQueue:
+  args: {}
+  total_calls: 13
 google.adk.agents.LlmAgent:
   args:
     after_agent_callback:
-      count: 7
-      freq: 0.32
-    after_tool_callback:
-      count: 1
-      freq: 0.05
-    before_agent_callback:
-      count: 7
-      freq: 0.32
-    code_executor:
-      count: 1
-      freq: 0.05
+      count: 3
+      freq: 0.15
     description:
-      count: 14
-      freq: 0.64
-    generate_content_config:
-      count: 13
-      freq: 0.59
+      count: 10
+      freq: 0.5
+    disallow_transfer_to_parent:
+      count: 1
+      freq: 0.05
+    disallow_transfer_to_peers:
+      count: 1
+      freq: 0.05
+    include_contents:
+      count: 1
+      freq: 0.05
     instruction:
-      count: 22
-      freq: 1.0
+      count: 12
+      freq: 0.6
     model:
-      count: 22
+      count: 20
       freq: 1.0
     name:
-      count: 22
+      count: 20
       freq: 1.0
     output_key:
-      count: 11
-      freq: 0.5
+      count: 9
+      freq: 0.45
     output_schema:
-      count: 2
-      freq: 0.09
-    planner:
       count: 1
       freq: 0.05
+    planner:
+      count: 2
+      freq: 0.1
+    sub_agents:
+      count: 5
+      freq: 0.25
     tools:
-      count: 12
-      freq: 0.55
-  total_calls: 22
+      count: 7
+      freq: 0.35
+  total_calls: 20
 google.adk.agents.LoopAgent:
   args:
     after_agent_callback:
       count: 1
+      freq: 0.06
+    before_agent_callback:
+      count: 5
+      freq: 0.31
+    description:
+      count: 14
+      freq: 0.88
+    max_iterations:
+      count: 15
+      freq: 0.94
+    name:
+      count: 16
+      freq: 1.0
+    sub_agents:
+      count: 16
+      freq: 1.0
+  total_calls: 16
+google.adk.agents.ParallelAgent:
+  args:
+    before_agent_callback:
+      count: 1
       freq: 0.5
     description:
-      count: 2
-      freq: 1.0
-    max_iterations:
       count: 2
       freq: 1.0
     name:
@@ -157,72 +292,942 @@ google.adk.agents.LoopAgent:
 google.adk.agents.SequentialAgent:
   args:
     after_agent_callback:
+      count: 6
+      freq: 0.35
+    before_agent_callback:
+      count: 6
+      freq: 0.35
+    description:
+      count: 17
+      freq: 1.0
+    name:
+      count: 17
+      freq: 1.0
+    sub_agents:
+      count: 14
+      freq: 0.82
+  total_calls: 17
+google.adk.agents.agent_config.AgentConfig.model_validate:
+  args: {}
+  total_calls: 8
+google.adk.agents.base_agent.BaseAgent:
+  args:
+    name:
+      count: 11
+      freq: 1.0
+    sub_agents:
+      count: 2
+      freq: 0.18
+  total_calls: 11
+google.adk.agents.base_agent.BaseAgentState:
+  args: {}
+  total_calls: 17
+google.adk.agents.callback_context.CallbackContext:
+  args:
+    invocation_context:
+      count: 1
+      freq: 0.06
+  total_calls: 16
+google.adk.agents.common_configs.AgentRefConfig:
+  args:
+    config_path:
+      count: 2
+      freq: 1.0
+  total_calls: 2
+google.adk.agents.config_agent_utils.from_config:
+  args: {}
+  total_calls: 9
+google.adk.agents.config_agent_utils.resolve_agent_reference:
+  args: {}
+  total_calls: 2
+google.adk.agents.context_cache_config.ContextCacheConfig:
+  args:
+    cache_intervals:
+      count: 20
+      freq: 0.57
+    extra_field:
+      count: 1
+      freq: 0.03
+    min_tokens:
+      count: 17
+      freq: 0.49
+    ttl_seconds:
+      count: 20
+      freq: 0.57
+  total_calls: 35
+google.adk.agents.invocation_context.InvocationContext:
+  args:
+    agent:
+      count: 39
+      freq: 1.0
+    artifact_service:
+      count: 3
+      freq: 0.08
+    branch:
+      count: 3
+      freq: 0.08
+    context_cache_config:
+      count: 1
+      freq: 0.03
+    invocation_id:
+      count: 39
+      freq: 1.0
+    memory_service:
+      count: 3
+      freq: 0.08
+    plugin_manager:
+      count: 5
+      freq: 0.13
+    resumability_config:
+      count: 6
+      freq: 0.15
+    run_config:
+      count: 8
+      freq: 0.21
+    session:
+      count: 39
+      freq: 1.0
+    session_service:
+      count: 36
+      freq: 0.92
+    user_content:
+      count: 2
+      freq: 0.05
+  total_calls: 39
+google.adk.agents.invocation_context.RealtimeCacheEntry:
+  args:
+    data:
+      count: 2
+      freq: 1.0
+    role:
+      count: 2
+      freq: 1.0
+    timestamp:
+      count: 2
+      freq: 1.0
+  total_calls: 2
+google.adk.agents.live_request_queue.LiveRequest:
+  args:
+    blob:
+      count: 5
+      freq: 0.56
+    close:
       count: 1
       freq: 0.11
-    description:
-      count: 9
-      freq: 1.0
-    name:
-      count: 9
-      freq: 1.0
-    sub_agents:
-      count: 9
-      freq: 1.0
+    content:
+      count: 3
+      freq: 0.33
   total_calls: 9
+google.adk.agents.live_request_queue.LiveRequestQueue:
+  args: {}
+  total_calls: 22
 google.adk.agents.llm_agent.Agent:
   args:
+    after_agent_callback:
+      count: 1
+      freq: 0.0
+    after_model_callback:
+      count: 7
+      freq: 0.03
+    after_tool_callback:
+      count: 5
+      freq: 0.02
+    before_agent_callback:
+      count: 3
+      freq: 0.01
+    before_model_callback:
+      count: 10
+      freq: 0.05
+    before_tool_callback:
+      count: 6
+      freq: 0.03
+    code_executor:
+      count: 2
+      freq: 0.01
     description:
-      count: 6
-      freq: 1.0
+      count: 21
+      freq: 0.1
+    disallow_transfer_to_parent:
+      count: 9
+      freq: 0.04
+    disallow_transfer_to_peers:
+      count: 9
+      freq: 0.04
+    global_instruction:
+      count: 5
+      freq: 0.02
+    include_contents:
+      count: 4
+      freq: 0.02
+    input_schema:
+      count: 4
+      freq: 0.02
     instruction:
-      count: 6
-      freq: 1.0
+      count: 22
+      freq: 0.1
     model:
-      count: 6
-      freq: 1.0
+      count: 209
+      freq: 0.95
     name:
-      count: 6
+      count: 221
+      freq: 1.0
+    on_model_error_callback:
+      count: 2
+      freq: 0.01
+    on_tool_error_callback:
+      count: 4
+      freq: 0.02
+    output_key:
+      count: 1
+      freq: 0.0
+    output_schema:
+      count: 5
+      freq: 0.02
+    parent_agent:
+      count: 2
+      freq: 0.01
+    planner:
+      count: 4
+      freq: 0.02
+    sub_agents:
+      count: 22
+      freq: 0.1
+    tools:
+      count: 77
+      freq: 0.35
+  total_calls: 221
+google.adk.agents.llm_agent.LlmAgent:
+  args:
+    after_agent_callback:
+      count: 2
+      freq: 0.01
+    after_model_callback:
+      count: 2
+      freq: 0.01
+    after_tool_callback:
+      count: 2
+      freq: 0.01
+    before_agent_callback:
+      count: 2
+      freq: 0.01
+    before_model_callback:
+      count: 3
+      freq: 0.02
+    before_tool_callback:
+      count: 2
+      freq: 0.01
+    description:
+      count: 23
+      freq: 0.13
+    disallow_transfer_to_parent:
+      count: 1
+      freq: 0.01
+    disallow_transfer_to_peers:
+      count: 1
+      freq: 0.01
+    generate_content_config:
+      count: 4
+      freq: 0.02
+    global_instruction:
+      count: 4
+      freq: 0.02
+    include_contents:
+      count: 4
+      freq: 0.02
+    instruction:
+      count: 18
+      freq: 0.1
+    model:
+      count: 81
+      freq: 0.44
+    name:
+      count: 183
+      freq: 1.0
+    output_key:
+      count: 10
+      freq: 0.05
+    output_schema:
+      count: 15
+      freq: 0.08
+    static_instruction:
+      count: 22
+      freq: 0.12
+    sub_agents:
+      count: 13
+      freq: 0.07
+    tools:
+      count: 54
+      freq: 0.3
+  total_calls: 183
+google.adk.agents.loop_agent.LoopAgent:
+  args:
+    description:
+      count: 1
+      freq: 0.11
+    max_iterations:
+      count: 5
+      freq: 0.56
+    name:
+      count: 9
       freq: 1.0
     sub_agents:
+      count: 7
+      freq: 0.78
+  total_calls: 9
+google.adk.agents.loop_agent.LoopAgentState:
+  args:
+    current_sub_agent:
+      count: 7
+      freq: 1.0
+    times_looped:
       count: 3
-      freq: 0.5
-    tools:
-      count: 2
-      freq: 0.33
-  total_calls: 6
+      freq: 0.43
+  total_calls: 7
+google.adk.agents.parallel_agent.ParallelAgent:
+  args:
+    description:
+      count: 1
+      freq: 0.08
+    name:
+      count: 12
+      freq: 1.0
+    sub_agents:
+      count: 11
+      freq: 0.92
+  total_calls: 12
+google.adk.agents.readonly_context.ReadonlyContext:
+  args: {}
+  total_calls: 15
+google.adk.agents.remote_a2a_agent.RemoteA2aAgent:
+  args:
+    a2a_client_factory:
+      count: 9
+      freq: 0.24
+    a2a_part_converter:
+      count: 4
+      freq: 0.11
+    a2a_request_meta_provider:
+      count: 1
+      freq: 0.03
+    agent_card:
+      count: 38
+      freq: 1.0
+    description:
+      count: 1
+      freq: 0.03
+    genai_part_converter:
+      count: 3
+      freq: 0.08
+    httpx_client:
+      count: 4
+      freq: 0.11
+    name:
+      count: 38
+      freq: 1.0
+    timeout:
+      count: 1
+      freq: 0.03
+  total_calls: 38
 google.adk.agents.run_config.RunConfig:
   args:
+    context_window_compression:
+      count: 1
+      freq: 0.04
     enable_affective_dialog:
-      count: 1
-      freq: 0.33
+      count: 4
+      freq: 0.14
     input_audio_transcription:
-      count: 3
-      freq: 1.0
+      count: 4
+      freq: 0.14
     output_audio_transcription:
-      count: 3
-      freq: 1.0
+      count: 4
+      freq: 0.14
     proactivity:
-      count: 1
-      freq: 0.33
+      count: 2
+      freq: 0.07
     realtime_input_config:
-      count: 1
-      freq: 0.33
-    response_modalities:
-      count: 3
-      freq: 1.0
+      count: 5
+      freq: 0.18
     session_resumption:
-      count: 3
-      freq: 1.0
-    speech_config:
       count: 1
-      freq: 0.33
+      freq: 0.04
     streaming_mode:
+      count: 2
+      freq: 0.07
+    support_cfc:
+      count: 1
+      freq: 0.04
+  total_calls: 28
+google.adk.agents.run_config.RunConfig.validate_max_llm_calls:
+  args: {}
+  total_calls: 4
+google.adk.agents.sequential_agent.SequentialAgent:
+  args:
+    before_agent_callback:
+      count: 1
+      freq: 0.04
+    description:
+      count: 3
+      freq: 0.11
+    name:
+      count: 27
+      freq: 1.0
+    sub_agents:
+      count: 15
+      freq: 0.56
+  total_calls: 27
+google.adk.agents.sequential_agent.SequentialAgentState:
+  args:
+    current_sub_agent:
+      count: 12
+      freq: 1.0
+  total_calls: 12
+google.adk.apps.ResumabilityConfig:
+  args:
+    is_resumable:
+      count: 19
+      freq: 1.0
+  total_calls: 19
+google.adk.apps.app.App:
+  args:
+    context_cache_config:
+      count: 10
+      freq: 0.23
+    events_compaction_config:
+      count: 4
+      freq: 0.09
+    name:
+      count: 43
+      freq: 1.0
+    plugins:
+      count: 2
+      freq: 0.05
+    resumability_config:
+      count: 18
+      freq: 0.42
+    root_agent:
+      count: 43
+      freq: 1.0
+  total_calls: 43
+google.adk.apps.app.EventsCompactionConfig:
+  args:
+    compaction_interval:
+      count: 4
+      freq: 1.0
+    overlap_size:
+      count: 4
+      freq: 1.0
+    summarizer:
+      count: 4
+      freq: 1.0
+  total_calls: 4
+google.adk.apps.app.ResumabilityConfig:
+  args:
+    is_resumable:
+      count: 20
+      freq: 0.95
+  total_calls: 21
+google.adk.artifacts.InMemoryArtifactService:
+  args: {}
+  total_calls: 3
+google.adk.artifacts.artifact_util.get_artifact_uri:
+  args:
+    app_name:
+      count: 2
+      freq: 1.0
+    filename:
+      count: 2
+      freq: 1.0
+    session_id:
+      count: 1
+      freq: 0.5
+    user_id:
+      count: 2
+      freq: 1.0
+    version:
+      count: 2
+      freq: 1.0
+  total_calls: 2
+google.adk.artifacts.artifact_util.is_artifact_ref:
+  args: {}
+  total_calls: 2
+google.adk.artifacts.artifact_util.parse_artifact_uri:
+  args: {}
+  total_calls: 3
+google.adk.artifacts.base_artifact_service.ArtifactVersion:
+  args:
+    canonical_uri:
+      count: 4
+      freq: 1.0
+    create_time:
+      count: 2
+      freq: 0.5
+    custom_metadata:
+      count: 3
+      freq: 0.75
+    mime_type:
+      count: 3
+      freq: 0.75
+    version:
+      count: 4
+      freq: 1.0
+  total_calls: 4
+google.adk.artifacts.file_artifact_service.FileArtifactService:
+  args:
+    root_dir:
       count: 3
       freq: 1.0
   total_calls: 3
-google.adk.artifacts.InMemoryArtifactService:
+google.adk.artifacts.in_memory_artifact_service.InMemoryArtifactService:
+  args: {}
+  total_calls: 18
+google.adk.auth.auth_credential.AuthCredential:
+  args:
+    api_key:
+      count: 16
+      freq: 0.14
+    auth_type:
+      count: 116
+      freq: 0.99
+    http:
+      count: 13
+      freq: 0.11
+    oauth2:
+      count: 67
+      freq: 0.57
+    service_account:
+      count: 5
+      freq: 0.04
+    token:
+      count: 2
+      freq: 0.02
+  total_calls: 117
+google.adk.auth.auth_credential.HttpAuth:
+  args:
+    credentials:
+      count: 12
+      freq: 1.0
+    scheme:
+      count: 12
+      freq: 1.0
+  total_calls: 12
+google.adk.auth.auth_credential.HttpCredentials:
+  args:
+    password:
+      count: 2
+      freq: 0.17
+    token:
+      count: 10
+      freq: 0.83
+    username:
+      count: 2
+      freq: 0.17
+  total_calls: 12
+google.adk.auth.auth_credential.OAuth2Auth:
+  args:
+    access_token:
+      count: 17
+      freq: 0.25
+    auth_code:
+      count: 5
+      freq: 0.07
+    auth_response_uri:
+      count: 8
+      freq: 0.12
+    auth_uri:
+      count: 3
+      freq: 0.04
+    client_id:
+      count: 61
+      freq: 0.91
+    client_secret:
+      count: 59
+      freq: 0.88
+    expires_at:
+      count: 3
+      freq: 0.04
+    redirect_uri:
+      count: 27
+      freq: 0.4
+    refresh_token:
+      count: 4
+      freq: 0.06
+    state:
+      count: 4
+      freq: 0.06
+    token_endpoint_auth_method:
+      count: 1
+      freq: 0.01
+  total_calls: 67
+google.adk.auth.auth_credential.ServiceAccount:
+  args:
+    scopes:
+      count: 8
+      freq: 1.0
+    service_account_credential:
+      count: 6
+      freq: 0.75
+    use_default_credential:
+      count: 1
+      freq: 0.12
+  total_calls: 8
+google.adk.auth.auth_credential.ServiceAccountCredential:
+  args:
+    auth_provider_x509_cert_url:
+      count: 6
+      freq: 1.0
+    auth_uri:
+      count: 6
+      freq: 1.0
+    client_email:
+      count: 6
+      freq: 1.0
+    client_id:
+      count: 6
+      freq: 1.0
+    client_x509_cert_url:
+      count: 6
+      freq: 1.0
+    private_key:
+      count: 6
+      freq: 1.0
+    private_key_id:
+      count: 6
+      freq: 1.0
+    project_id:
+      count: 6
+      freq: 1.0
+    token_uri:
+      count: 6
+      freq: 1.0
+    type:
+      count: 3
+      freq: 0.5
+    type_:
+      count: 3
+      freq: 0.5
+    universe_domain:
+      count: 6
+      freq: 1.0
+  total_calls: 6
+google.adk.auth.auth_handler.AuthHandler:
+  args: {}
+  total_calls: 22
+google.adk.auth.auth_schemes.OpenIdConnectWithConfig:
+  args:
+    authorization_endpoint:
+      count: 18
+      freq: 1.0
+    grant_types_supported:
+      count: 2
+      freq: 0.11
+    openIdConnectUrl:
+      count: 1
+      freq: 0.06
+    openId_connect_url:
+      count: 14
+      freq: 0.78
+    scopes:
+      count: 16
+      freq: 0.89
+    token_endpoint:
+      count: 18
+      freq: 1.0
+    type_:
+      count: 15
+      freq: 0.83
+  total_calls: 18
+google.adk.auth.auth_tool.AuthConfig:
+  args:
+    auth_scheme:
+      count: 35
+      freq: 1.0
+    credential_key:
+      count: 7
+      freq: 0.2
+    exchanged_auth_credential:
+      count: 26
+      freq: 0.74
+    raw_auth_credential:
+      count: 32
+      freq: 0.91
+  total_calls: 35
+google.adk.auth.credential_manager.CredentialManager:
+  args: {}
+  total_calls: 29
+google.adk.auth.credential_service.in_memory_credential_service.InMemoryCredentialService:
+  args: {}
+  total_calls: 3
+google.adk.auth.exchanger.credential_exchanger_registry.CredentialExchangerRegistry:
+  args: {}
+  total_calls: 14
+google.adk.auth.exchanger.oauth2_credential_exchanger.OAuth2CredentialExchanger:
+  args: {}
+  total_calls: 11
+google.adk.auth.oauth2_credential_util.create_oauth2_session:
   args: {}
   total_calls: 6
+google.adk.auth.oauth2_discovery.AuthorizationServerMetadata:
+  args:
+    authorization_endpoint:
+      count: 2
+      freq: 1.0
+    issuer:
+      count: 2
+      freq: 1.0
+    scopes_supported:
+      count: 2
+      freq: 1.0
+    token_endpoint:
+      count: 2
+      freq: 1.0
+  total_calls: 2
+google.adk.auth.oauth2_discovery.OAuth2DiscoveryManager:
+  args: {}
+  total_calls: 9
+google.adk.auth.refresher.credential_refresher_registry.CredentialRefresherRegistry:
+  args: {}
+  total_calls: 12
+google.adk.auth.refresher.oauth2_credential_refresher.OAuth2CredentialRefresher:
+  args: {}
+  total_calls: 5
+google.adk.cli.adk_web_server.AdkWebServer:
+  args:
+    agent_loader:
+      count: 2
+      freq: 1.0
+    agents_dir:
+      count: 2
+      freq: 1.0
+    artifact_service:
+      count: 2
+      freq: 1.0
+    credential_service:
+      count: 2
+      freq: 1.0
+    eval_set_results_manager:
+      count: 2
+      freq: 1.0
+    eval_sets_manager:
+      count: 2
+      freq: 1.0
+    memory_service:
+      count: 2
+      freq: 1.0
+    session_service:
+      count: 2
+      freq: 1.0
+  total_calls: 2
+google.adk.cli.cli.run_cli:
+  args:
+    agent_folder_name:
+      count: 5
+      freq: 1.0
+    agent_parent_dir:
+      count: 5
+      freq: 1.0
+    artifact_service_uri:
+      count: 1
+      freq: 0.2
+    input_file:
+      count: 5
+      freq: 1.0
+    save_session:
+      count: 5
+      freq: 1.0
+    saved_session_file:
+      count: 5
+      freq: 1.0
+    session_service_uri:
+      count: 1
+      freq: 0.2
+  total_calls: 5
+google.adk.cli.cli_create.run_cmd:
+  args:
+    google_api_key:
+      count: 2
+      freq: 1.0
+    google_cloud_project:
+      count: 2
+      freq: 1.0
+    google_cloud_region:
+      count: 2
+      freq: 1.0
+    model:
+      count: 2
+      freq: 1.0
+    type:
+      count: 2
+      freq: 1.0
+  total_calls: 2
+google.adk.cli.cli_eval.get_eval_sets_manager:
+  args:
+    agents_dir:
+      count: 2
+      freq: 1.0
+    eval_storage_uri:
+      count: 2
+      freq: 1.0
+  total_calls: 2
+google.adk.cli.cli_tools_click.validate_exclusive:
+  args: {}
+  total_calls: 3
+google.adk.cli.conformance.adk_web_server_client.AdkWebServerClient:
+  args:
+    base_url:
+      count: 2
+      freq: 0.2
+    timeout:
+      count: 1
+      freq: 0.1
+  total_calls: 10
+google.adk.cli.fast_api.get_fast_api_app:
+  args:
+    a2a:
+      count: 2
+      freq: 0.67
+    agents_dir:
+      count: 2
+      freq: 0.67
+    allow_origins:
+      count: 2
+      freq: 0.67
+    artifact_service_uri:
+      count: 2
+      freq: 0.67
+    host:
+      count: 2
+      freq: 0.67
+    memory_service_uri:
+      count: 2
+      freq: 0.67
+    port:
+      count: 2
+      freq: 0.67
+    session_service_uri:
+      count: 2
+      freq: 0.67
+    web:
+      count: 2
+      freq: 0.67
+  total_calls: 3
+google.adk.cli.utils.agent_loader.AgentLoader:
+  args:
+    agents_dir:
+      count: 1
+      freq: 0.04
+  total_calls: 25
+google.adk.cli.utils.dot_adk_folder.dot_adk_folder_for_agent:
+  args:
+    agents_root:
+      count: 2
+      freq: 1.0
+    app_name:
+      count: 2
+      freq: 1.0
+  total_calls: 2
+google.adk.cli.utils.evals.create_gcs_eval_managers_from_uri:
+  args: {}
+  total_calls: 2
+google.adk.cli.utils.local_storage.PerAgentDatabaseSessionService:
+  args:
+    agents_root:
+      count: 2
+      freq: 1.0
+  total_calls: 2
+google.adk.cli.utils.service_factory.create_artifact_service_from_options:
+  args:
+    artifact_service_uri:
+      count: 4
+      freq: 0.67
+    base_dir:
+      count: 6
+      freq: 1.0
+    strict_uri:
+      count: 1
+      freq: 0.17
+  total_calls: 6
+google.adk.cli.utils.service_factory.create_memory_service_from_options:
+  args:
+    base_dir:
+      count: 3
+      freq: 1.0
+    memory_service_uri:
+      count: 2
+      freq: 0.67
+  total_calls: 3
+google.adk.cli.utils.service_factory.create_session_service_from_options:
+  args:
+    app_name_to_dir:
+      count: 1
+      freq: 0.25
+    base_dir:
+      count: 4
+      freq: 1.0
+    session_db_kwargs:
+      count: 1
+      freq: 0.25
+    session_service_uri:
+      count: 2
+      freq: 0.5
+  total_calls: 4
+google.adk.code_executors.agent_engine_sandbox_code_executor.AgentEngineSandboxCodeExecutor:
+  args:
+    agent_engine_resource_name:
+      count: 1
+      freq: 0.25
+    sandbox_resource_name:
+      count: 3
+      freq: 0.75
+  total_calls: 4
+google.adk.code_executors.built_in_code_executor.BuiltInCodeExecutor:
+  args: {}
+  total_calls: 2
+google.adk.code_executors.code_execution_utils.CodeExecutionInput:
+  args:
+    code:
+      count: 10
+      freq: 1.0
+  total_calls: 10
+google.adk.code_executors.code_execution_utils.File:
+  args:
+    content:
+      count: 2
+      freq: 1.0
+    mime_type:
+      count: 2
+      freq: 1.0
+    name:
+      count: 2
+      freq: 1.0
+  total_calls: 2
+google.adk.code_executors.code_executor_context.CodeExecutorContext:
+  args: {}
+  total_calls: 14
+google.adk.code_executors.gke_code_executor.GkeCodeExecutor:
+  args:
+    cpu_limit:
+      count: 1
+      freq: 0.14
+    image:
+      count: 2
+      freq: 0.29
+    namespace:
+      count: 2
+      freq: 0.29
+    timeout_seconds:
+      count: 2
+      freq: 0.29
+  total_calls: 7
+google.adk.code_executors.unsafe_local_code_executor.UnsafeLocalCodeExecutor:
+  args:
+    optimize_data_file:
+      count: 1
+      freq: 0.12
+    stateful:
+      count: 1
+      freq: 0.12
+  total_calls: 8
 google.adk.evaluation.AgentEvaluator.evaluate:
   args:
     num_runs:
@@ -232,180 +1237,2439 @@ google.adk.evaluation.AgentEvaluator.evaluate:
 google.adk.evaluation.agent_evaluator.AgentEvaluator.evaluate:
   args:
     agent_module:
-      count: 3
-      freq: 0.2
-    eval_dataset_file_path_or_dir:
-      count: 3
-      freq: 0.2
-    num_runs:
       count: 14
-      freq: 0.93
-  total_calls: 15
-google.adk.events.Event:
+      freq: 0.56
+    agent_name:
+      count: 1
+      freq: 0.04
+    eval_dataset_file_path_or_dir:
+      count: 14
+      freq: 0.56
+    num_runs:
+      count: 23
+      freq: 0.92
+  total_calls: 25
+google.adk.evaluation.app_details.AgentDetails:
   args:
-    actions:
+    instructions:
+      count: 17
+      freq: 0.68
+    name:
+      count: 25
+      freq: 1.0
+    tool_declarations:
+      count: 21
+      freq: 0.84
+  total_calls: 25
+google.adk.evaluation.app_details.AppDetails:
+  args:
+    agent_details:
+      count: 21
+      freq: 1.0
+  total_calls: 21
+google.adk.evaluation.base_eval_service.EvaluateConfig:
+  args:
+    eval_metrics:
+      count: 5
+      freq: 1.0
+    parallelism:
+      count: 5
+      freq: 1.0
+  total_calls: 5
+google.adk.evaluation.base_eval_service.EvaluateRequest:
+  args:
+    evaluate_config:
       count: 2
-      freq: 0.5
-    author:
+      freq: 1.0
+    inference_results:
+      count: 2
+      freq: 1.0
+  total_calls: 2
+google.adk.evaluation.base_eval_service.InferenceConfig:
+  args:
+    parallelism:
       count: 4
       freq: 1.0
   total_calls: 4
-google.adk.events.EventActions:
+google.adk.evaluation.base_eval_service.InferenceRequest:
   args:
-    escalate:
-      count: 2
-      freq: 1.0
-  total_calls: 2
-google.adk.events.event.get:
-  args: {}
-  total_calls: 6
-google.adk.events.event.is_final_response:
-  args: {}
-  total_calls: 2
-google.adk.models.llm_response.LlmResponse:
-  args:
-    content:
-      count: 3
-      freq: 0.38
-  total_calls: 8
-google.adk.runners.InMemoryRunner:
-  args:
-    agent:
+    app_name:
       count: 4
       freq: 1.0
-    app_name:
-      count: 3
-      freq: 0.75
-    plugins:
+    eval_case_ids:
       count: 1
       freq: 0.25
-  total_calls: 4
-google.adk.runners.Runner:
-  args:
-    agent:
-      count: 7
+    eval_set_id:
+      count: 4
       freq: 1.0
+    inference_config:
+      count: 4
+      freq: 1.0
+  total_calls: 4
+google.adk.evaluation.base_eval_service.InferenceResult:
+  args:
     app_name:
-      count: 7
+      count: 6
       freq: 1.0
-    artifact_service:
-      count: 4
-      freq: 0.57
-    session_service:
-      count: 7
+    eval_case_id:
+      count: 6
       freq: 1.0
+    eval_set_id:
+      count: 6
+      freq: 1.0
+    inferences:
+      count: 6
+      freq: 1.0
+    session_id:
+      count: 6
+      freq: 1.0
+  total_calls: 6
+google.adk.evaluation.conversation_scenarios.ConversationScenario:
+  args:
+    conversation_plan:
+      count: 3
+      freq: 1.0
+    starting_prompt:
+      count: 3
+      freq: 1.0
+  total_calls: 3
+google.adk.evaluation.eval_case.EvalCase:
+  args:
+    conversation:
+      count: 35
+      freq: 0.92
+    conversation_scenario:
+      count: 3
+      freq: 0.08
+    creation_timestamp:
+      count: 6
+      freq: 0.16
+    eval_id:
+      count: 38
+      freq: 1.0
+  total_calls: 38
+google.adk.evaluation.eval_case.IntermediateData:
+  args:
+    intermediate_responses:
+      count: 1
+      freq: 0.03
+    tool_responses:
+      count: 6
+      freq: 0.17
+    tool_uses:
+      count: 34
+      freq: 0.97
+  total_calls: 35
+google.adk.evaluation.eval_case.Invocation:
+  args:
+    app_details:
+      count: 15
+      freq: 0.17
+    creation_timestamp:
+      count: 1
+      freq: 0.01
+    final_response:
+      count: 44
+      freq: 0.5
+    intermediate_data:
+      count: 38
+      freq: 0.43
+    invocation_id:
+      count: 15
+      freq: 0.17
+    user_content:
+      count: 88
+      freq: 1.0
+  total_calls: 88
+google.adk.evaluation.eval_case.InvocationEvent:
+  args:
+    author:
+      count: 30
+      freq: 1.0
+    content:
+      count: 30
+      freq: 1.0
+  total_calls: 30
+google.adk.evaluation.eval_case.InvocationEvents:
+  args:
+    invocation_events:
+      count: 19
+      freq: 1.0
+  total_calls: 19
+google.adk.evaluation.eval_case.get_all_tool_calls:
+  args: {}
   total_calls: 7
-google.adk.sessions.InMemorySessionService:
+google.adk.evaluation.eval_case.get_all_tool_calls_with_responses:
   args: {}
-  total_calls: 10
-google.adk.sessions.VertexAiSessionService:
+  total_calls: 6
+google.adk.evaluation.eval_case.get_all_tool_responses:
   args: {}
+  total_calls: 5
+google.adk.evaluation.eval_config.EvalConfig:
+  args:
+    criteria:
+      count: 3
+      freq: 1.0
+  total_calls: 3
+google.adk.evaluation.eval_config.get_eval_metrics_from_config:
+  args: {}
+  total_calls: 2
+google.adk.evaluation.eval_config.get_evaluation_criteria_or_default:
+  args: {}
+  total_calls: 3
+google.adk.evaluation.eval_metrics.EvalMetric:
+  args:
+    criterion:
+      count: 13
+      freq: 0.57
+    metric_name:
+      count: 23
+      freq: 1.0
+    threshold:
+      count: 23
+      freq: 1.0
+  total_calls: 23
+google.adk.evaluation.eval_metrics.EvalMetricResult:
+  args:
+    eval_status:
+      count: 3
+      freq: 1.0
+    metric_name:
+      count: 3
+      freq: 1.0
+    score:
+      count: 2
+      freq: 0.67
+    threshold:
+      count: 3
+      freq: 1.0
+  total_calls: 3
+google.adk.evaluation.eval_metrics.EvalMetricResultPerInvocation:
+  args:
+    actual_invocation:
+      count: 2
+      freq: 1.0
+    eval_metric_results:
+      count: 2
+      freq: 1.0
+    expected_invocation:
+      count: 2
+      freq: 1.0
+  total_calls: 2
+google.adk.evaluation.eval_metrics.HallucinationsCriterion:
+  args:
+    evaluate_intermediate_nl_responses:
+      count: 3
+      freq: 1.0
+    judge_model_options:
+      count: 3
+      freq: 1.0
+    threshold:
+      count: 3
+      freq: 1.0
+  total_calls: 3
+google.adk.evaluation.eval_metrics.Interval:
+  args:
+    max_value:
+      count: 4
+      freq: 1.0
+    min_value:
+      count: 4
+      freq: 1.0
   total_calls: 4
-google.adk.tools.FunctionTool:
+google.adk.evaluation.eval_metrics.JudgeModelOptions:
   args:
-    func:
-      count: 8
+    judge_model:
+      count: 6
+      freq: 0.67
+    judge_model_config:
+      count: 9
       freq: 1.0
-  total_calls: 8
-google.adk.tools.agent_tool.AgentTool:
+    num_samples:
+      count: 9
+      freq: 1.0
+  total_calls: 9
+google.adk.evaluation.eval_metrics.LlmAsAJudgeCriterion:
   args:
-    agent:
-      count: 29
-      freq: 0.94
-  total_calls: 31
-google.adk.tools.apihub_tool.apihub_toolset.APIHubToolset:
+    judge_model_options:
+      count: 2
+      freq: 1.0
+    threshold:
+      count: 2
+      freq: 1.0
+  total_calls: 2
+google.adk.evaluation.eval_metrics.MetricInfo:
   args:
-    apihub_resource_name:
-      count: 4
-      freq: 1.0
-    auth_credential:
-      count: 4
-      freq: 1.0
-    auth_scheme:
-      count: 4
-      freq: 1.0
     description:
       count: 4
       freq: 1.0
-    name:
+    metric_name:
+      count: 4
+      freq: 1.0
+    metric_value_info:
       count: 4
       freq: 1.0
   total_calls: 4
+google.adk.evaluation.eval_metrics.MetricValueInfo:
+  args:
+    interval:
+      count: 4
+      freq: 1.0
+  total_calls: 4
+google.adk.evaluation.eval_metrics.RubricsBasedCriterion:
+  args:
+    judge_model_options:
+      count: 3
+      freq: 1.0
+    rubrics:
+      count: 3
+      freq: 1.0
+    threshold:
+      count: 3
+      freq: 1.0
+  total_calls: 3
+google.adk.evaluation.eval_metrics.ToolTrajectoryCriterion:
+  args:
+    match_type:
+      count: 3
+      freq: 1.0
+    threshold:
+      count: 3
+      freq: 1.0
+  total_calls: 3
+google.adk.evaluation.eval_result.EvalCaseResult:
+  args:
+    eval_id:
+      count: 4
+      freq: 1.0
+    eval_metric_result_per_invocation:
+      count: 4
+      freq: 1.0
+    eval_metric_results:
+      count: 2
+      freq: 0.5
+    eval_set_file:
+      count: 2
+      freq: 0.5
+    eval_set_id:
+      count: 4
+      freq: 1.0
+    final_eval_status:
+      count: 4
+      freq: 1.0
+    overall_eval_metric_results:
+      count: 4
+      freq: 1.0
+    session_id:
+      count: 4
+      freq: 1.0
+  total_calls: 4
+google.adk.evaluation.eval_result.EvalSetResult:
+  args:
+    creation_timestamp:
+      count: 1
+      freq: 0.5
+    eval_case_results:
+      count: 2
+      freq: 1.0
+    eval_set_id:
+      count: 2
+      freq: 1.0
+    eval_set_result_id:
+      count: 2
+      freq: 1.0
+    eval_set_result_name:
+      count: 2
+      freq: 1.0
+  total_calls: 2
+google.adk.evaluation.eval_rubrics.Rubric:
+  args:
+    rubric_content:
+      count: 7
+      freq: 1.0
+    rubric_id:
+      count: 7
+      freq: 1.0
+  total_calls: 7
+google.adk.evaluation.eval_rubrics.RubricContent:
+  args:
+    text_property:
+      count: 7
+      freq: 1.0
+  total_calls: 7
+google.adk.evaluation.eval_rubrics.RubricScore:
+  args:
+    rationale:
+      count: 2
+      freq: 0.05
+    rubric_id:
+      count: 37
+      freq: 1.0
+    score:
+      count: 37
+      freq: 1.0
+  total_calls: 37
+google.adk.evaluation.eval_set.EvalCase:
+  args:
+    conversation:
+      count: 6
+      freq: 1.0
+    eval_id:
+      count: 6
+      freq: 1.0
+    session_input:
+      count: 5
+      freq: 0.83
+  total_calls: 6
+google.adk.evaluation.eval_set.EvalSet:
+  args:
+    creation_timestamp:
+      count: 3
+      freq: 0.1
+    eval_cases:
+      count: 30
+      freq: 1.0
+    eval_set_id:
+      count: 30
+      freq: 1.0
+    name:
+      count: 3
+      freq: 0.1
+  total_calls: 30
+google.adk.evaluation.evaluation_generator.EvaluationGenerator.convert_events_to_eval_invocations:
+  args: {}
+  total_calls: 6
+google.adk.evaluation.evaluator.EvaluationResult:
+  args:
+    overall_eval_status:
+      count: 3
+      freq: 1.0
+    overall_score:
+      count: 3
+      freq: 1.0
+    per_invocation_results:
+      count: 2
+      freq: 0.67
+  total_calls: 3
+google.adk.evaluation.evaluator.PerInvocationResult:
+  args:
+    actual_invocation:
+      count: 54
+      freq: 1.0
+    eval_status:
+      count: 54
+      freq: 1.0
+    expected_invocation:
+      count: 29
+      freq: 0.54
+    rubric_scores:
+      count: 2
+      freq: 0.04
+    score:
+      count: 54
+      freq: 1.0
+  total_calls: 54
+google.adk.evaluation.hallucinations_v1.HallucinationsV1Evaluator:
+  args: {}
+  total_calls: 3
+google.adk.evaluation.in_memory_eval_sets_manager.InMemoryEvalSetsManager:
+  args: {}
+  total_calls: 2
+google.adk.evaluation.llm_as_judge.AutoRaterScore:
+  args:
+    score:
+      count: 6
+      freq: 0.6
+  total_calls: 10
+google.adk.evaluation.llm_as_judge_utils.get_average_rubric_score:
+  args: {}
+  total_calls: 7
+google.adk.evaluation.llm_as_judge_utils.get_eval_status:
+  args:
+    score:
+      count: 9
+      freq: 1.0
+    threshold:
+      count: 9
+      freq: 1.0
+  total_calls: 9
+google.adk.evaluation.llm_as_judge_utils.get_text_from_content:
+  args: {}
+  total_calls: 8
+google.adk.evaluation.llm_as_judge_utils.get_tool_calls_and_responses_as_json_str:
+  args: {}
+  total_calls: 4
+google.adk.evaluation.llm_as_judge_utils.get_tool_declarations_as_json_str:
+  args: {}
+  total_calls: 4
+google.adk.evaluation.local_eval_service.LocalEvalService:
+  args:
+    eval_set_results_manager:
+      count: 1
+      freq: 0.5
+    eval_sets_manager:
+      count: 2
+      freq: 1.0
+    root_agent:
+      count: 2
+      freq: 1.0
+  total_calls: 2
+google.adk.evaluation.local_eval_set_results_manager.LocalEvalSetResultsManager:
+  args:
+    agents_dir:
+      count: 2
+      freq: 0.67
+  total_calls: 3
+google.adk.evaluation.local_eval_sets_manager.LocalEvalSetsManager:
+  args:
+    agents_dir:
+      count: 2
+      freq: 1.0
+  total_calls: 2
+google.adk.evaluation.local_eval_sets_manager.convert_eval_set_to_pydantic_schema:
+  args: {}
+  total_calls: 5
+google.adk.evaluation.local_eval_sets_manager.load_eval_set_from_file:
+  args: {}
+  total_calls: 5
+google.adk.evaluation.metric_evaluator_registry.DEFAULT_METRIC_EVALUATOR_REGISTRY.register_evaluator:
+  args:
+    evaluator:
+      count: 2
+      freq: 1.0
+    metric_info:
+      count: 2
+      freq: 1.0
+  total_calls: 2
+google.adk.evaluation.response_evaluator.ResponseEvaluator:
+  args:
+    metric_name:
+      count: 2
+      freq: 1.0
+    threshold:
+      count: 2
+      freq: 1.0
+  total_calls: 2
+google.adk.evaluation.response_evaluator.ResponseEvaluator.get_metric_info:
+  args: {}
+  total_calls: 3
+google.adk.evaluation.rubric_based_evaluator.DefaultAutoRaterResponseParser:
+  args: {}
+  total_calls: 8
+google.adk.evaluation.rubric_based_evaluator.MajorityVotePerInvocationResultsAggregator:
+  args: {}
+  total_calls: 6
+google.adk.evaluation.rubric_based_evaluator.MeanInvocationResultsSummarizer:
+  args: {}
+  total_calls: 6
+google.adk.evaluation.simulation.llm_backed_user_simulator.LlmBackedUserSimulator:
+  args:
+    config:
+      count: 2
+      freq: 1.0
+    conversation_scenario:
+      count: 2
+      freq: 1.0
+  total_calls: 2
+google.adk.evaluation.simulation.llm_backed_user_simulator.LlmBackedUserSimulatorConfig:
+  args:
+    max_allowed_invocations:
+      count: 1
+      freq: 0.33
+    model:
+      count: 2
+      freq: 0.67
+    model_configuration:
+      count: 1
+      freq: 0.33
+  total_calls: 3
+google.adk.evaluation.simulation.user_simulator.NextUserMessage:
+  args:
+    status:
+      count: 6
+      freq: 1.0
+    user_message:
+      count: 3
+      freq: 0.5
+  total_calls: 6
+google.adk.evaluation.simulation.user_simulator_provider.UserSimulatorProvider:
+  args:
+    user_simulator_config:
+      count: 1
+      freq: 0.33
+  total_calls: 3
+google.adk.evaluation.trajectory_evaluator.TrajectoryEvaluator:
+  args:
+    eval_metric:
+      count: 3
+      freq: 1.0
+  total_calls: 3
+google.adk.events.Event:
+  args:
+    actions:
+      count: 4
+      freq: 0.4
+    author:
+      count: 10
+      freq: 1.0
+    content:
+      count: 4
+      freq: 0.4
+  total_calls: 10
+google.adk.events.EventActions:
+  args:
+    escalate:
+      count: 4
+      freq: 1.0
+  total_calls: 4
+google.adk.events.event.Event:
+  args:
+    actions:
+      count: 32
+      freq: 0.1
+    author:
+      count: 336
+      freq: 1.0
+    branch:
+      count: 49
+      freq: 0.15
+    cache_metadata:
+      count: 14
+      freq: 0.04
+    citation_metadata:
+      count: 1
+      freq: 0.0
+    content:
+      count: 273
+      freq: 0.81
+    custom_metadata:
+      count: 2
+      freq: 0.01
+    error_code:
+      count: 2
+      freq: 0.01
+    error_message:
+      count: 2
+      freq: 0.01
+    grounding_metadata:
+      count: 2
+      freq: 0.01
+    id:
+      count: 15
+      freq: 0.04
+    input_transcription:
+      count: 3
+      freq: 0.01
+    interaction_id:
+      count: 5
+      freq: 0.01
+    interrupted:
+      count: 3
+      freq: 0.01
+    invocation_id:
+      count: 301
+      freq: 0.9
+    long_running_tool_ids:
+      count: 4
+      freq: 0.01
+    output_transcription:
+      count: 3
+      freq: 0.01
+    partial:
+      count: 3
+      freq: 0.01
+    timestamp:
+      count: 21
+      freq: 0.06
+    turn_complete:
+      count: 2
+      freq: 0.01
+    usage_metadata:
+      count: 8
+      freq: 0.02
+  total_calls: 336
+google.adk.events.event.Event.new_id:
+  args: {}
+  total_calls: 5
+google.adk.events.event.EventActions:
+  args:
+    artifact_delta:
+      count: 4
+      freq: 0.67
+    state_delta:
+      count: 6
+      freq: 1.0
+  total_calls: 6
+google.adk.events.event.get:
+  args: {}
+  total_calls: 4
+google.adk.events.event_actions.EventActions:
+  args:
+    agent_state:
+      count: 7
+      freq: 0.26
+    artifact_delta:
+      count: 1
+      freq: 0.04
+    compaction:
+      count: 1
+      freq: 0.04
+    end_of_agent:
+      count: 7
+      freq: 0.26
+    escalate:
+      count: 2
+      freq: 0.07
+    requested_auth_configs:
+      count: 1
+      freq: 0.04
+    rewind_before_invocation_id:
+      count: 1
+      freq: 0.04
+    skip_summarization:
+      count: 1
+      freq: 0.04
+    state_delta:
+      count: 9
+      freq: 0.33
+    transfer_to_agent:
+      count: 9
+      freq: 0.33
+  total_calls: 27
+google.adk.flows.llm_flows.agent_transfer.request_processor.run_async:
+  args: {}
+  total_calls: 4
+google.adk.flows.llm_flows.audio_cache_manager.AudioCacheConfig:
+  args:
+    auto_flush_threshold:
+      count: 1
+      freq: 0.33
+    max_cache_duration_seconds:
+      count: 1
+      freq: 0.33
+    max_cache_size_bytes:
+      count: 1
+      freq: 0.33
+  total_calls: 3
+google.adk.flows.llm_flows.base_llm_flow.BaseLlmFlow:
+  args: {}
+  total_calls: 2
+google.adk.flows.llm_flows.contents.request_processor.run_async:
+  args: {}
+  total_calls: 35
+google.adk.flows.llm_flows.functions.find_matching_function_call:
+  args: {}
+  total_calls: 5
+google.adk.flows.llm_flows.functions.handle_function_calls_async:
+  args: {}
+  total_calls: 8
+google.adk.flows.llm_flows.functions.handle_function_calls_live:
+  args: {}
+  total_calls: 4
+google.adk.flows.llm_flows.functions.merge_parallel_function_response_events:
+  args: {}
+  total_calls: 3
+google.adk.flows.llm_flows.identity.request_processor.run_async:
+  args: {}
+  total_calls: 2
+google.adk.flows.llm_flows.instructions.request_processor.run_async:
+  args: {}
+  total_calls: 26
+google.adk.flows.llm_flows.interactions_processor.InteractionsRequestProcessor:
+  args: {}
+  total_calls: 10
+google.adk.flows.llm_flows.request_confirmation.request_processor.run_async:
+  args: {}
+  total_calls: 5
+google.adk.memory.in_memory_memory_service.InMemoryMemoryService:
+  args: {}
+  total_calls: 12
+google.adk.models.LLMRegistry.resolve:
+  args: {}
+  total_calls: 6
+google.adk.models.LlmResponse:
+  args:
+    turn_complete:
+      count: 13
+      freq: 1.0
+  total_calls: 13
+google.adk.models.anthropic_llm.Claude:
+  args:
+    max_tokens:
+      count: 1
+      freq: 0.2
+    model:
+      count: 5
+      freq: 1.0
+  total_calls: 5
+google.adk.models.anthropic_llm.part_to_message_block:
+  args: {}
+  total_calls: 3
+google.adk.models.apigee_llm.ApigeeLlm:
+  args:
+    custom_headers:
+      count: 1
+      freq: 0.12
+    model:
+      count: 8
+      freq: 1.0
+    proxy_url:
+      count: 7
+      freq: 0.88
+  total_calls: 8
+google.adk.models.cache_metadata.CacheMetadata:
+  args:
+    cache_name:
+      count: 23
+      freq: 0.88
+    contents_count:
+      count: 25
+      freq: 0.96
+    created_at:
+      count: 7
+      freq: 0.27
+    expire_time:
+      count: 23
+      freq: 0.88
+    fingerprint:
+      count: 25
+      freq: 0.96
+    invocations_used:
+      count: 23
+      freq: 0.88
+  total_calls: 26
+google.adk.models.gemini_context_cache_manager.GeminiContextCacheManager:
+  args: {}
+  total_calls: 2
+google.adk.models.gemini_llm_connection.GeminiLlmConnection:
+  args:
+    api_backend:
+      count: 2
+      freq: 1.0
+  total_calls: 2
+google.adk.models.gemma_llm.Gemma:
+  args:
+    model:
+      count: 1
+      freq: 0.06
+  total_calls: 16
+google.adk.models.gemma_llm.Gemma3Ollama:
+  args:
+    model:
+      count: 1
+      freq: 0.5
+  total_calls: 2
+google.adk.models.google_llm.Gemini:
+  args:
+    model:
+      count: 17
+      freq: 0.74
+  total_calls: 23
+google.adk.models.interactions_utils.build_generation_config:
+  args: {}
+  total_calls: 3
+google.adk.models.interactions_utils.convert_content_to_turn:
+  args: {}
+  total_calls: 4
+google.adk.models.interactions_utils.convert_contents_to_turns:
+  args: {}
+  total_calls: 3
+google.adk.models.interactions_utils.convert_interaction_output_to_part:
+  args: {}
+  total_calls: 9
+google.adk.models.interactions_utils.convert_interaction_to_llm_response:
+  args: {}
+  total_calls: 3
+google.adk.models.interactions_utils.convert_part_to_interaction_content:
+  args: {}
+  total_calls: 18
+google.adk.models.interactions_utils.convert_tools_config_to_interactions_format:
+  args: {}
+  total_calls: 4
+google.adk.models.interactions_utils.extract_system_instruction:
+  args: {}
+  total_calls: 3
+google.adk.models.lite_llm.FunctionChunk:
+  args:
+    args:
+      count: 3
+      freq: 1.0
+    id:
+      count: 3
+      freq: 1.0
+    index:
+      count: 2
+      freq: 0.67
+    name:
+      count: 3
+      freq: 1.0
+  total_calls: 3
+google.adk.models.lite_llm.LiteLlm:
+  args:
+    api_base:
+      count: 2
+      freq: 0.15
+    api_key:
+      count: 2
+      freq: 0.15
+    api_version:
+      count: 2
+      freq: 0.15
+    custom_llm_provider:
+      count: 1
+      freq: 0.08
+    drop_params:
+      count: 2
+      freq: 0.15
+    functions:
+      count: 1
+      freq: 0.08
+    llm_client:
+      count: 7
+      freq: 0.54
+    messages:
+      count: 2
+      freq: 0.15
+    model:
+      count: 13
+      freq: 1.0
+    stream:
+      count: 2
+      freq: 0.15
+    tools:
+      count: 2
+      freq: 0.15
+  total_calls: 13
+google.adk.models.lite_llm.TextChunk:
+  args:
+    text:
+      count: 3
+      freq: 1.0
+  total_calls: 3
+google.adk.models.lite_llm.UsageMetadataChunk:
+  args:
+    completion_tokens:
+      count: 7
+      freq: 1.0
+    prompt_tokens:
+      count: 7
+      freq: 1.0
+    total_tokens:
+      count: 7
+      freq: 1.0
+  total_calls: 7
+google.adk.models.llm_request.LlmRequest:
+  args:
+    cache_config:
+      count: 7
+      freq: 0.02
+    cache_metadata:
+      count: 2
+      freq: 0.01
+    config:
+      count: 128
+      freq: 0.42
+    contents:
+      count: 106
+      freq: 0.35
+    model:
+      count: 189
+      freq: 0.62
+    previous_interaction_id:
+      count: 1
+      freq: 0.0
+  total_calls: 304
+google.adk.models.llm_response.LlmResponse:
+  args:
+    content:
+      count: 92
+      freq: 0.74
+    custom_metadata:
+      count: 1
+      freq: 0.01
+    error_code:
+      count: 1
+      freq: 0.01
+    finish_reason:
+      count: 4
+      freq: 0.03
+    grounding_metadata:
+      count: 2
+      freq: 0.02
+    interaction_id:
+      count: 1
+      freq: 0.01
+    partial:
+      count: 8
+      freq: 0.06
+    turn_complete:
+      count: 28
+      freq: 0.22
+    usage_metadata:
+      count: 3
+      freq: 0.02
+  total_calls: 125
+google.adk.models.llm_response.LlmResponse.create:
+  args: {}
+  total_calls: 12
+google.adk.models.registry.LLMRegistry.new_llm:
+  args: {}
+  total_calls: 2
+google.adk.planners.BuiltInPlanner:
+  args:
+    thinking_config:
+      count: 2
+      freq: 1.0
+  total_calls: 2
+google.adk.planners.built_in_planner.BuiltInPlanner:
+  args:
+    thinking_config:
+      count: 2
+      freq: 1.0
+  total_calls: 2
+google.adk.planners.plan_re_act_planner.PlanReActPlanner:
+  args: {}
+  total_calls: 3
+google.adk.plugins.bigquery_agent_analytics_plugin.BigQueryAgentAnalyticsPlugin:
+  args:
+    config:
+      count: 14
+      freq: 0.7
+    dataset_id:
+      count: 4
+      freq: 0.2
+    project_id:
+      count: 4
+      freq: 0.2
+    table_id:
+      count: 20
+      freq: 1.0
+  total_calls: 20
+google.adk.plugins.bigquery_agent_analytics_plugin.TraceManager.get_current_span_id:
+  args: {}
+  total_calls: 3
+google.adk.plugins.bigquery_agent_analytics_plugin.TraceManager.push_span:
+  args: {}
+  total_calls: 33
+google.adk.plugins.context_filter_plugin.ContextFilterPlugin:
+  args:
+    custom_filter:
+      count: 3
+      freq: 0.43
+    num_invocations_to_keep:
+      count: 4
+      freq: 0.57
+  total_calls: 7
+google.adk.plugins.global_instruction_plugin.GlobalInstructionPlugin:
+  args:
+    global_instruction:
+      count: 5
+      freq: 1.0
+  total_calls: 5
+google.adk.plugins.plugin_manager.PluginManager:
+  args:
+    close_timeout:
+      count: 1
+      freq: 0.12
+    plugins:
+      count: 5
+      freq: 0.62
+  total_calls: 8
+google.adk.plugins.reflect_retry_tool_plugin.ReflectAndRetryToolPlugin:
+  args:
+    max_retries:
+      count: 7
+      freq: 0.88
+    name:
+      count: 2
+      freq: 0.25
+    throw_exception_if_retry_exceeded:
+      count: 5
+      freq: 0.62
+  total_calls: 8
+google.adk.plugins.save_files_as_artifacts_plugin.SaveFilesAsArtifactsPlugin:
+  args: {}
+  total_calls: 2
+google.adk.runners.InMemoryRunner:
+  args:
+    agent:
+      count: 30
+      freq: 1.0
+    app_name:
+      count: 3
+      freq: 0.1
+  total_calls: 30
+google.adk.runners.Runner:
+  args:
+    agent:
+      count: 18
+      freq: 0.69
+    app:
+      count: 8
+      freq: 0.31
+    app_name:
+      count: 18
+      freq: 0.69
+    artifact_service:
+      count: 25
+      freq: 0.96
+    memory_service:
+      count: 2
+      freq: 0.08
+    plugin_close_timeout:
+      count: 1
+      freq: 0.04
+    plugins:
+      count: 3
+      freq: 0.12
+    session_service:
+      count: 26
+      freq: 1.0
+  total_calls: 26
+google.adk.sessions.InMemorySessionService:
+  args: {}
+  total_calls: 5
+google.adk.sessions.VertexAiSessionService:
+  args:
+    location:
+      count: 2
+      freq: 0.33
+    project:
+      count: 2
+      freq: 0.33
+  total_calls: 6
+google.adk.sessions.base_session_service.GetSessionConfig:
+  args:
+    after_timestamp:
+      count: 4
+      freq: 0.8
+    num_recent_events:
+      count: 2
+      freq: 0.4
+  total_calls: 5
+google.adk.sessions.database_session_service.DatabaseSessionService:
+  args: {}
+  total_calls: 5
+google.adk.sessions.in_memory_session_service.InMemorySessionService:
+  args: {}
+  total_calls: 44
+google.adk.sessions.session.Session:
+  args:
+    app_name:
+      count: 52
+      freq: 0.93
+    artifacts:
+      count: 1
+      freq: 0.02
+    context:
+      count: 4
+      freq: 0.07
+    events:
+      count: 32
+      freq: 0.57
+    id:
+      count: 52
+      freq: 0.93
+    last_update_time:
+      count: 8
+      freq: 0.14
+    state:
+      count: 19
+      freq: 0.34
+    user_id:
+      count: 52
+      freq: 0.93
+  total_calls: 56
+google.adk.sessions.state.State:
+  args: {}
+  total_calls: 3
+google.adk.telemetry.tracing.trace_call_llm:
+  args: {}
+  total_calls: 3
+google.adk.telemetry.tracing.trace_merged_tool_calls:
+  args:
+    function_response_event:
+      count: 2
+      freq: 1.0
+    response_event_id:
+      count: 2
+      freq: 1.0
+  total_calls: 2
+google.adk.telemetry.tracing.trace_tool_call:
+  args:
+    args:
+      count: 3
+      freq: 1.0
+    function_response_event:
+      count: 3
+      freq: 1.0
+    tool:
+      count: 3
+      freq: 1.0
+  total_calls: 3
+google.adk.tools.FunctionTool:
+  args:
+    func:
+      count: 3
+      freq: 0.43
+  total_calls: 7
+google.adk.tools.agent_tool.AgentTool:
+  args:
+    agent:
+      count: 45
+      freq: 0.94
+    include_plugins:
+      count: 2
+      freq: 0.04
+  total_calls: 48
+google.adk.tools.api_registry.ApiRegistry:
+  args:
+    api_registry_project_id:
+      count: 10
+      freq: 1.0
+    location:
+      count: 10
+      freq: 1.0
+  total_calls: 10
+google.adk.tools.api_registry.get_toolset:
+  args:
+    tool_filter:
+      count: 1
+      freq: 0.2
+    tool_name_prefix:
+      count: 1
+      freq: 0.2
+  total_calls: 5
+google.adk.tools.apihub_tool.apihub_toolset.APIHubToolset:
+  args:
+    apihub_client:
+      count: 7
+      freq: 0.64
+    apihub_resource_name:
+      count: 11
+      freq: 1.0
+    auth_credential:
+      count: 5
+      freq: 0.45
+    auth_scheme:
+      count: 5
+      freq: 0.45
+    description:
+      count: 4
+      freq: 0.36
+    lazy_load_spec:
+      count: 2
+      freq: 0.18
+    name:
+      count: 4
+      freq: 0.36
+  total_calls: 11
+google.adk.tools.apihub_tool.clients.apihub_client.APIHubClient:
+  args:
+    access_token:
+      count: 1
+      freq: 0.17
+    service_account_json:
+      count: 1
+      freq: 0.17
+  total_calls: 6
+google.adk.tools.apihub_tool.clients.secret_client.SecretManagerClient:
+  args:
+    auth_token:
+      count: 1
+      freq: 0.12
+    service_account_json:
+      count: 2
+      freq: 0.25
+  total_calls: 8
 google.adk.tools.application_integration_tool.application_integration_toolset.ApplicationIntegrationToolset:
   args:
+    actions:
+      count: 3
+      freq: 0.21
+    auth_credential:
+      count: 2
+      freq: 0.14
+    auth_scheme:
+      count: 2
+      freq: 0.14
+    connection:
+      count: 6
+      freq: 0.43
+    entity_operations:
+      count: 2
+      freq: 0.14
+    integration:
+      count: 6
+      freq: 0.43
+    service_account_json:
+      count: 1
+      freq: 0.07
+    tool_instructions:
+      count: 5
+      freq: 0.36
+    tool_name_prefix:
+      count: 5
+      freq: 0.36
+    triggers:
+      count: 6
+      freq: 0.43
+  total_calls: 14
+google.adk.tools.application_integration_tool.clients.connections_client.ConnectionsClient:
+  args: {}
+  total_calls: 22
+google.adk.tools.application_integration_tool.clients.integration_client.IntegrationClient:
+  args:
+    actions:
+      count: 15
+      freq: 1.0
+    connection:
+      count: 15
+      freq: 1.0
+    entity_operations:
+      count: 15
+      freq: 1.0
+    integration:
+      count: 15
+      freq: 1.0
+    location:
+      count: 15
+      freq: 1.0
+    project:
+      count: 15
+      freq: 1.0
+    service_account_json:
+      count: 15
+      freq: 1.0
+    triggers:
+      count: 15
+      freq: 1.0
+  total_calls: 15
+google.adk.tools.application_integration_tool.integration_connector_tool.IntegrationConnectorTool:
+  args:
+    action:
+      count: 2
+      freq: 1.0
     auth_credential:
       count: 1
       freq: 0.5
     auth_scheme:
       count: 1
       freq: 0.5
-    connection:
-      count: 1
-      freq: 0.5
-    entity_operations:
-      count: 1
-      freq: 0.5
-    integration:
-      count: 1
-      freq: 0.5
-    location:
+    connection_host:
       count: 2
       freq: 1.0
-    project:
+    connection_name:
       count: 2
       freq: 1.0
-    tool_instructions:
+    connection_service_name:
       count: 2
       freq: 1.0
-    tool_name_prefix:
-      count: 1
-      freq: 0.5
-    triggers:
-      count: 1
-      freq: 0.5
+    description:
+      count: 2
+      freq: 1.0
+    entity:
+      count: 2
+      freq: 1.0
+    name:
+      count: 2
+      freq: 1.0
+    operation:
+      count: 2
+      freq: 1.0
+    rest_api_tool:
+      count: 2
+      freq: 1.0
   total_calls: 2
+google.adk.tools.authenticated_function_tool.AuthenticatedFunctionTool:
+  args:
+    auth_config:
+      count: 16
+      freq: 0.7
+    func:
+      count: 23
+      freq: 1.0
+    response_for_auth_required:
+      count: 2
+      freq: 0.09
+  total_calls: 23
 google.adk.tools.bigquery.BigQueryCredentialsConfig:
+  args:
+    client_id:
+      count: 9
+      freq: 0.64
+    client_secret:
+      count: 9
+      freq: 0.64
+    credentials:
+      count: 3
+      freq: 0.21
+    non_existent_field:
+      count: 1
+      freq: 0.07
+    scopes:
+      count: 2
+      freq: 0.14
+  total_calls: 14
+google.adk.tools.bigquery.BigQueryToolset:
+  args:
+    bigquery_tool_config:
+      count: 5
+      freq: 0.71
+    credentials_config:
+      count: 5
+      freq: 0.71
+    tool_filter:
+      count: 5
+      freq: 0.71
+  total_calls: 7
+google.adk.tools.bigquery.bigquery_credentials.BigQueryCredentialsConfig:
+  args:
+    client_id:
+      count: 2
+      freq: 0.67
+    client_secret:
+      count: 2
+      freq: 0.67
+    credentials:
+      count: 1
+      freq: 0.33
+    scopes:
+      count: 2
+      freq: 0.67
+  total_calls: 3
+google.adk.tools.bigquery.client.get_bigquery_client:
+  args:
+    credentials:
+      count: 9
+      freq: 0.69
+    location:
+      count: 1
+      freq: 0.08
+    project:
+      count: 9
+      freq: 0.69
+    user_agent:
+      count: 2
+      freq: 0.15
+  total_calls: 13
+google.adk.tools.bigquery.config.BigQueryToolConfig:
+  args:
+    application_name:
+      count: 12
+      freq: 0.18
+    compute_project_id:
+      count: 2
+      freq: 0.03
+    job_labels:
+      count: 7
+      freq: 0.1
+    max_query_result_rows:
+      count: 7
+      freq: 0.1
+    maximum_bytes_billed:
+      count: 3
+      freq: 0.04
+    non_existent_field:
+      count: 1
+      freq: 0.01
+    write_mode:
+      count: 35
+      freq: 0.52
+  total_calls: 67
+google.adk.tools.bigquery.data_insights_tool.ask_data_insights:
   args:
     credentials:
       count: 2
       freq: 1.0
+    project_id:
+      count: 2
+      freq: 1.0
+    settings:
+      count: 2
+      freq: 1.0
+    table_references:
+      count: 2
+      freq: 1.0
+    user_query_with_context:
+      count: 2
+      freq: 1.0
   total_calls: 2
-google.adk.tools.bigquery.BigQueryToolset:
+google.adk.tools.bigquery.metadata_tool.get_dataset_info:
+  args: {}
+  total_calls: 2
+google.adk.tools.bigquery.metadata_tool.get_job_info:
+  args: {}
+  total_calls: 2
+google.adk.tools.bigquery.metadata_tool.get_table_info:
+  args: {}
+  total_calls: 2
+google.adk.tools.bigquery.metadata_tool.list_dataset_ids:
+  args: {}
+  total_calls: 2
+google.adk.tools.bigquery.metadata_tool.list_table_ids:
+  args: {}
+  total_calls: 2
+google.adk.tools.bigquery.query_tool.analyze_contribution:
   args:
-    bigquery_tool_config:
+    contribution_metric:
+      count: 8
+      freq: 1.0
+    credentials:
+      count: 8
+      freq: 1.0
+    dimension_id_cols:
+      count: 8
+      freq: 1.0
+    input_data:
+      count: 8
+      freq: 1.0
+    is_test_col:
+      count: 8
+      freq: 1.0
+    project_id:
+      count: 8
+      freq: 1.0
+    settings:
+      count: 8
+      freq: 1.0
+    tool_context:
+      count: 8
+      freq: 1.0
+  total_calls: 8
+google.adk.tools.bigquery.query_tool.detect_anomalies:
+  args:
+    anomaly_prob_threshold:
+      count: 2
+      freq: 0.2
+    credentials:
+      count: 10
+      freq: 1.0
+    history_data:
+      count: 10
+      freq: 1.0
+    horizon:
+      count: 2
+      freq: 0.2
+    project_id:
+      count: 10
+      freq: 1.0
+    settings:
+      count: 10
+      freq: 1.0
+    target_data:
+      count: 2
+      freq: 0.2
+    times_series_data_col:
+      count: 10
+      freq: 1.0
+    times_series_id_cols:
+      count: 3
+      freq: 0.3
+    times_series_timestamp_col:
+      count: 10
+      freq: 1.0
+    tool_context:
+      count: 10
+      freq: 1.0
+  total_calls: 10
+google.adk.tools.bigquery.query_tool.execute_sql:
+  args:
+    credentials:
+      count: 2
+      freq: 0.12
+    dry_run:
+      count: 3
+      freq: 0.18
+    project_id:
+      count: 2
+      freq: 0.12
+    query:
+      count: 2
+      freq: 0.12
+    settings:
+      count: 2
+      freq: 0.12
+    tool_context:
+      count: 2
+      freq: 0.12
+  total_calls: 17
+google.adk.tools.bigquery.query_tool.forecast:
+  args:
+    credentials:
+      count: 8
+      freq: 1.0
+    data_col:
+      count: 8
+      freq: 1.0
+    history_data:
+      count: 8
+      freq: 1.0
+    horizon:
+      count: 1
+      freq: 0.12
+    id_cols:
+      count: 2
+      freq: 0.25
+    project_id:
+      count: 8
+      freq: 1.0
+    settings:
+      count: 8
+      freq: 1.0
+    timestamp_col:
+      count: 8
+      freq: 1.0
+    tool_context:
+      count: 8
+      freq: 1.0
+  total_calls: 8
+google.adk.tools.bigtable.BigtableCredentialsConfig:
+  args:
+    client_id:
       count: 4
       freq: 1.0
-    credentials_config:
-      count: 2
+    client_secret:
+      count: 4
+      freq: 1.0
+  total_calls: 4
+google.adk.tools.bigtable.bigtable_credentials.BigtableCredentialsConfig:
+  args:
+    client_id:
+      count: 3
       freq: 0.5
+    client_secret:
+      count: 2
+      freq: 0.33
+    credentials:
+      count: 3
+      freq: 0.5
+  total_calls: 6
+google.adk.tools.bigtable.bigtable_toolset.BigtableToolset:
+  args:
+    credentials_config:
+      count: 4
+      freq: 1.0
     tool_filter:
       count: 2
       freq: 0.5
   total_calls: 4
-google.adk.tools.bigquery.client.get_bigquery_client:
+google.adk.tools.bigtable.client.get_api:
   args: {}
-  total_calls: 4
-google.adk.tools.bigquery.config.BigQueryToolConfig:
+  total_calls: 2
+google.adk.tools.bigtable.client.get_api_version:
+  args: {}
+  total_calls: 2
+google.adk.tools.bigtable.client.get_secret:
+  args: {}
+  total_calls: 2
+google.adk.tools.bigtable.client.get_spec_content:
+  args: {}
+  total_calls: 9
+google.adk.tools.bigtable.client.list_apis:
+  args: {}
+  total_calls: 3
+google.adk.tools.bigtable.metadata_tool.list_instances:
+  args: {}
+  total_calls: 2
+google.adk.tools.bigtable.query_tool.execute_sql:
   args:
-    application_name:
-      count: 2
-      freq: 0.5
+    credentials:
+      count: 3
+      freq: 1.0
+    instance_id:
+      count: 3
+      freq: 1.0
+    project_id:
+      count: 3
+      freq: 1.0
+    query:
+      count: 3
+      freq: 1.0
+    settings:
+      count: 3
+      freq: 1.0
+    tool_context:
+      count: 3
+      freq: 1.0
+  total_calls: 3
+google.adk.tools.bigtable.settings.BigtableToolSettings:
+  args:
     max_query_result_rows:
       count: 1
+      freq: 0.33
+  total_calls: 3
+google.adk.tools.computer_use.base_computer.ComputerState:
+  args:
+    screenshot:
+      count: 24
+      freq: 0.6
+    url:
+      count: 37
+      freq: 0.93
+  total_calls: 40
+google.adk.tools.computer_use.computer_use_tool.ComputerUseTool:
+  args:
+    func:
+      count: 27
+      freq: 1.0
+    screen_size:
+      count: 27
+      freq: 1.0
+    virtual_screen_size:
+      count: 10
+      freq: 0.37
+  total_calls: 27
+google.adk.tools.computer_use.computer_use_toolset.ComputerUseToolset:
+  args:
+    computer:
+      count: 6
+      freq: 1.0
+  total_calls: 6
+google.adk.tools.computer_use.computer_use_toolset.ComputerUseToolset.adapt_computer_use_tool:
+  args: {}
+  total_calls: 5
+google.adk.tools.crewai_tool.CrewaiTool:
+  args:
+    description:
+      count: 7
+      freq: 1.0
+    name:
+      count: 7
+      freq: 1.0
+    tool:
+      count: 1
+      freq: 0.14
+  total_calls: 7
+google.adk.tools.discovery_engine_search_tool.DiscoveryEngineSearchTool:
+  args:
+    data_store_id:
+      count: 6
+      freq: 0.75
+    data_store_specs:
+      count: 1
+      freq: 0.12
+    search_engine_id:
+      count: 2
       freq: 0.25
-    write_mode:
+  total_calls: 8
+google.adk.tools.enterprise_search_tool.EnterpriseWebSearchTool:
+  args: {}
+  total_calls: 3
+google.adk.tools.function_tool.FunctionTool:
+  args:
+    func:
+      count: 24
+      freq: 0.35
+    require_confirmation:
+      count: 5
+      freq: 0.07
+  total_calls: 69
+google.adk.tools.google_api_tool.google_api_tool.GoogleApiTool:
+  args:
+    additional_headers:
+      count: 1
+      freq: 0.17
+  total_calls: 6
+google.adk.tools.google_api_tool.google_api_toolset.GoogleApiToolset:
+  args:
+    additional_headers:
+      count: 2
+      freq: 0.22
+    api_name:
+      count: 9
+      freq: 1.0
+    api_version:
+      count: 9
+      freq: 1.0
+    client_id:
+      count: 2
+      freq: 0.22
+    client_secret:
+      count: 2
+      freq: 0.22
+    service_account:
+      count: 1
+      freq: 0.11
+    tool_filter:
+      count: 2
+      freq: 0.22
+    tool_name_prefix:
+      count: 1
+      freq: 0.11
+  total_calls: 9
+google.adk.tools.google_api_tool.googleapi_to_openapi_converter.GoogleApiToOpenApiConverter:
+  args: {}
+  total_calls: 4
+google.adk.tools.google_search_agent_tool.GoogleSearchAgentTool:
+  args:
+    agent:
+      count: 2
+      freq: 1.0
+  total_calls: 2
+google.adk.tools.google_search_tool.GoogleSearchTool:
+  args:
+    bypass_multi_tools_limit:
+      count: 3
+      freq: 0.14
+  total_calls: 21
+google.adk.tools.google_tool.GoogleTool:
+  args:
+    credentials_config:
+      count: 8
+      freq: 0.8
+    func:
+      count: 10
+      freq: 1.0
+    tool_settings:
+      count: 2
+      freq: 0.2
+  total_calls: 10
+google.adk.tools.langchain_tool.LangchainTool:
+  args:
+    tool:
+      count: 4
+      freq: 0.67
+  total_calls: 6
+google.adk.tools.long_running_tool.LongRunningFunctionTool:
+  args:
+    func:
+      count: 12
+      freq: 0.55
+  total_calls: 22
+google.adk.tools.mcp_tool.conversion_utils.adk_to_mcp_tool_type:
+  args: {}
+  total_calls: 6
+google.adk.tools.mcp_tool.mcp_session_manager.MCPSessionManager:
+  args: {}
+  total_calls: 14
+google.adk.tools.mcp_tool.mcp_session_manager.SseConnectionParams:
+  args:
+    headers:
+      count: 3
+      freq: 0.75
+    timeout:
+      count: 1
+      freq: 0.25
+    url:
       count: 4
       freq: 1.0
   total_calls: 4
 google.adk.tools.mcp_tool.mcp_session_manager.StdioConnectionParams:
   args:
     server_params:
-      count: 3
+      count: 4
       freq: 1.0
-  total_calls: 3
+    timeout:
+      count: 4
+      freq: 1.0
+  total_calls: 4
+google.adk.tools.mcp_tool.mcp_session_manager.StreamableHTTPConnectionParams:
+  args:
+    headers:
+      count: 5
+      freq: 0.83
+    timeout:
+      count: 1
+      freq: 0.17
+    url:
+      count: 6
+      freq: 1.0
+  total_calls: 6
+google.adk.tools.mcp_tool.mcp_tool.MCPTool:
+  args:
+    auth_credential:
+      count: 6
+      freq: 0.19
+    auth_scheme:
+      count: 6
+      freq: 0.19
+    header_provider:
+      count: 2
+      freq: 0.06
+    mcp_session_manager:
+      count: 29
+      freq: 0.94
+    mcp_tool:
+      count: 30
+      freq: 0.97
+    require_confirmation:
+      count: 4
+      freq: 0.13
+  total_calls: 31
 google.adk.tools.mcp_tool.mcp_toolset.MCPToolset:
   args:
+    auth_credential:
+      count: 1
+      freq: 0.06
+    auth_scheme:
+      count: 1
+      freq: 0.06
     connection_params:
+      count: 16
+      freq: 1.0
+    header_provider:
+      count: 1
+      freq: 0.06
+    tool_filter:
+      count: 4
+      freq: 0.25
+  total_calls: 16
+google.adk.tools.openapi_tool.auth.auth_helpers.credential_to_param:
+  args: {}
+  total_calls: 10
+google.adk.tools.openapi_tool.auth.auth_helpers.dict_to_auth_scheme:
+  args: {}
+  total_calls: 10
+google.adk.tools.openapi_tool.auth.auth_helpers.openid_dict_to_scheme_credential:
+  args: {}
+  total_calls: 6
+google.adk.tools.openapi_tool.auth.auth_helpers.openid_url_to_scheme_credential:
+  args: {}
+  total_calls: 4
+google.adk.tools.openapi_tool.auth.auth_helpers.token_to_scheme_credential:
+  args: {}
+  total_calls: 10
+google.adk.tools.openapi_tool.auth.credential_exchangers.auto_auth_credential_exchanger.AutoAuthCredentialExchanger:
+  args:
+    custom_exchangers:
+      count: 1
+      freq: 0.5
+  total_calls: 2
+google.adk.tools.openapi_tool.common.common.ApiParameter:
+  args:
+    description:
+      count: 7
+      freq: 0.17
+    is_required:
+      count: 3
+      freq: 0.07
+    original_name:
+      count: 41
+      freq: 1.0
+    param_location:
+      count: 41
+      freq: 1.0
+    param_schema:
+      count: 41
+      freq: 1.0
+    py_name:
+      count: 21
+      freq: 0.51
+  total_calls: 41
+google.adk.tools.openapi_tool.common.common.PydocHelper.generate_param_doc:
+  args: {}
+  total_calls: 4
+google.adk.tools.openapi_tool.common.common.PydocHelper.generate_return_doc:
+  args: {}
+  total_calls: 6
+google.adk.tools.openapi_tool.common.common.TypeHintHelper.get_type_hint:
+  args: {}
+  total_calls: 2
+google.adk.tools.openapi_tool.common.common.TypeHintHelper.get_type_value:
+  args: {}
+  total_calls: 2
+google.adk.tools.openapi_tool.openapi_spec_parser.openapi_spec_parser.OperationEndpoint:
+  args:
+    base_url:
+      count: 6
+      freq: 1.0
+    method:
+      count: 6
+      freq: 1.0
+    path:
+      count: 6
+      freq: 1.0
+  total_calls: 6
+google.adk.tools.openapi_tool.openapi_spec_parser.openapi_toolset.OpenAPIToolset:
+  args:
+    auth_credential:
+      count: 1
+      freq: 0.1
+    auth_scheme:
+      count: 1
+      freq: 0.1
+    header_provider:
+      count: 1
+      freq: 0.1
+    spec_dict:
+      count: 9
+      freq: 0.9
+    spec_str:
+      count: 1
+      freq: 0.1
+    spec_str_type:
+      count: 1
+      freq: 0.1
+    ssl_verify:
+      count: 1
+      freq: 0.1
+    tool_name_prefix:
+      count: 1
+      freq: 0.1
+  total_calls: 10
+google.adk.tools.openapi_tool.openapi_spec_parser.operation_parser.OperationParser:
+  args:
+    should_parse:
+      count: 11
+      freq: 0.42
+  total_calls: 26
+google.adk.tools.openapi_tool.openapi_spec_parser.rest_api_tool.RestApiTool:
+  args:
+    auth_credential:
+      count: 27
+      freq: 0.9
+    auth_scheme:
+      count: 27
+      freq: 0.9
+    description:
+      count: 30
+      freq: 1.0
+    endpoint:
+      count: 30
+      freq: 1.0
+    header_provider:
+      count: 3
+      freq: 0.1
+    name:
+      count: 30
+      freq: 1.0
+    operation:
+      count: 30
+      freq: 1.0
+    should_parse_operation:
+      count: 1
+      freq: 0.03
+    ssl_verify:
+      count: 1
+      freq: 0.03
+  total_calls: 30
+google.adk.tools.openapi_tool.openapi_spec_parser.rest_api_tool.snake_to_lower_camel:
+  args: {}
+  total_calls: 5
+google.adk.tools.openapi_tool.openapi_spec_parser.tool_auth_handler.AuthPreparationResult:
+  args:
+    auth_credential:
+      count: 2
+      freq: 1.0
+    state:
+      count: 2
+      freq: 1.0
+  total_calls: 2
+google.adk.tools.openapi_tool.openapi_spec_parser.tool_auth_handler.ToolAuthHandler:
+  args:
+    credential_exchanger:
+      count: 2
+      freq: 0.5
+    credential_store:
+      count: 4
+      freq: 1.0
+  total_calls: 4
+google.adk.tools.openapi_tool.openapi_spec_parser.tool_auth_handler.ToolContextCredentialStore:
+  args:
+    tool_context:
+      count: 4
+      freq: 1.0
+  total_calls: 4
+google.adk.tools.pubsub.PubSubCredentialsConfig:
+  args:
+    client_id:
+      count: 3
+      freq: 1.0
+    client_secret:
       count: 3
       freq: 1.0
   total_calls: 3
+google.adk.tools.pubsub.PubSubToolset:
+  args:
+    credentials_config:
+      count: 3
+      freq: 1.0
+    pubsub_tool_config:
+      count: 1
+      freq: 0.33
+    tool_filter:
+      count: 2
+      freq: 0.67
+  total_calls: 3
+google.adk.tools.pubsub.client.get_publisher_client:
+  args:
+    credentials:
+      count: 5
+      freq: 1.0
+    publisher_options:
+      count: 1
+      freq: 0.2
+  total_calls: 5
+google.adk.tools.pubsub.client.get_subscriber_client:
+  args:
+    credentials:
+      count: 4
+      freq: 1.0
+  total_calls: 4
+google.adk.tools.pubsub.config.PubSubToolConfig:
+  args:
+    project_id:
+      count: 10
+      freq: 0.83
+  total_calls: 12
+google.adk.tools.pubsub.message_tool.acknowledge_messages:
+  args: {}
+  total_calls: 2
+google.adk.tools.pubsub.message_tool.publish_message:
+  args:
+    attributes:
+      count: 1
+      freq: 0.25
+    ordering_key:
+      count: 1
+      freq: 0.25
+  total_calls: 4
+google.adk.tools.pubsub.message_tool.pull_messages:
+  args:
+    auto_ack:
+      count: 1
+      freq: 0.33
+    max_messages:
+      count: 1
+      freq: 0.33
+  total_calls: 3
+google.adk.tools.pubsub.pubsub_credentials.PubSubCredentialsConfig:
+  args:
+    client_id:
+      count: 3
+      freq: 0.6
+    client_secret:
+      count: 3
+      freq: 0.6
+    credentials:
+      count: 4
+      freq: 0.8
+  total_calls: 5
+google.adk.tools.retrieval.files_retrieval.FilesRetrieval:
+  args:
+    description:
+      count: 4
+      freq: 1.0
+    embedding_model:
+      count: 1
+      freq: 0.25
+    input_dir:
+      count: 4
+      freq: 1.0
+    name:
+      count: 4
+      freq: 1.0
+  total_calls: 4
+google.adk.tools.retrieval.vertex_ai_rag_retrieval.VertexAiRagRetrieval:
+  args:
+    description:
+      count: 7
+      freq: 1.0
+    name:
+      count: 7
+      freq: 1.0
+    rag_corpora:
+      count: 6
+      freq: 0.86
+    rag_resources:
+      count: 1
+      freq: 0.14
+    similarity_top_k:
+      count: 1
+      freq: 0.14
+    vector_distance_threshold:
+      count: 1
+      freq: 0.14
+  total_calls: 7
+google.adk.tools.set_model_response_tool.SetModelResponseTool:
+  args: {}
+  total_calls: 13
+google.adk.tools.spanner.SpannerCredentialsConfig:
+  args:
+    client_id:
+      count: 5
+      freq: 1.0
+    client_secret:
+      count: 5
+      freq: 1.0
+  total_calls: 5
+google.adk.tools.spanner.SpannerToolset:
+  args:
+    credentials_config:
+      count: 5
+      freq: 1.0
+    spanner_tool_settings:
+      count: 4
+      freq: 0.8
+    tool_filter:
+      count: 3
+      freq: 0.6
+  total_calls: 5
+google.adk.tools.spanner.client.get_action_schema:
+  args: {}
+  total_calls: 3
+google.adk.tools.spanner.client.get_connection_details:
+  args: {}
+  total_calls: 4
+google.adk.tools.spanner.client.get_entity_schema_and_operations:
+  args: {}
+  total_calls: 3
+google.adk.tools.spanner.client.get_openapi_spec_for_connection:
+  args: {}
+  total_calls: 4
+google.adk.tools.spanner.client.get_openapi_spec_for_integration:
+  args: {}
+  total_calls: 5
+google.adk.tools.spanner.client.get_spanner_client:
+  args:
+    credentials:
+      count: 5
+      freq: 1.0
+    project:
+      count: 5
+      freq: 1.0
+  total_calls: 5
+google.adk.tools.spanner.metadata_tool.list_table_names:
+  args: {}
+  total_calls: 2
+google.adk.tools.spanner.search_tool.similarity_search:
+  args:
+    columns:
+      count: 10
+      freq: 1.0
+    credentials:
+      count: 10
+      freq: 1.0
+    database_id:
+      count: 10
+      freq: 1.0
+    embedding_column_to_search:
+      count: 10
+      freq: 1.0
+    embedding_options:
+      count: 10
+      freq: 1.0
+    instance_id:
+      count: 10
+      freq: 1.0
+    project_id:
+      count: 10
+      freq: 1.0
+    query:
+      count: 10
+      freq: 1.0
+    search_options:
+      count: 3
+      freq: 0.3
+    table_name:
+      count: 10
+      freq: 1.0
+  total_calls: 10
+google.adk.tools.spanner.settings.SpannerToolSettings:
+  args:
+    capabilities:
+      count: 1
+      freq: 0.08
+    max_executed_query_result_rows:
+      count: 2
+      freq: 0.17
+    query_result_mode:
+      count: 1
+      freq: 0.08
+    vector_store_settings:
+      count: 1
+      freq: 0.08
+  total_calls: 12
+google.adk.tools.spanner.settings.SpannerVectorStoreSettings:
+  args:
+    content_column:
+      count: 1
+      freq: 0.25
+    database_id:
+      count: 1
+      freq: 0.25
+    embedding_column:
+      count: 1
+      freq: 0.25
+    instance_id:
+      count: 1
+      freq: 0.25
+    project_id:
+      count: 1
+      freq: 0.25
+    table_name:
+      count: 1
+      freq: 0.25
+    vector_length:
+      count: 1
+      freq: 0.25
+    vertex_ai_embedding_model_name:
+      count: 3
+      freq: 0.75
+  total_calls: 4
+google.adk.tools.spanner.spanner_credentials.SpannerCredentialsConfig:
+  args:
+    client_id:
+      count: 1
+      freq: 0.5
+    client_secret:
+      count: 1
+      freq: 0.5
+    credentials:
+      count: 1
+      freq: 0.5
+  total_calls: 2
+google.adk.tools.tool_confirmation.ToolConfirmation:
+  args:
+    confirmed:
+      count: 6
+      freq: 1.0
+    hint:
+      count: 2
+      freq: 0.33
+  total_calls: 6
+google.adk.tools.tool_context.ToolContext:
+  args:
+    function_call_id:
+      count: 1
+      freq: 0.03
+    invocation_context:
+      count: 13
+      freq: 0.42
+  total_calls: 31
+google.adk.tools.transfer_to_agent_tool.TransferToAgentTool:
+  args:
+    agent_names:
+      count: 10
+      freq: 1.0
+  total_calls: 10
+google.adk.tools.url_context_tool.UrlContextTool:
+  args: {}
+  total_calls: 14
+google.adk.tools.vertex_ai_search_tool.VertexAiSearchTool:
+  args:
+    bypass_multi_tools_limit:
+      count: 2
+      freq: 0.12
+    data_store_id:
+      count: 12
+      freq: 0.75
+    data_store_specs:
+      count: 3
+      freq: 0.19
+    filter:
+      count: 2
+      freq: 0.12
+    max_results:
+      count: 2
+      freq: 0.12
+    search_engine_id:
+      count: 4
+      freq: 0.25
+  total_calls: 16
+google.adk.utils.context_utils.Aclosing:
+  args: {}
+  total_calls: 3
+google.adk.utils.env_utils.is_env_enabled:
+  args:
+    default:
+      count: 1
+      freq: 0.5
+  total_calls: 2
+google.adk.utils.feature_decorator.experimental:
+  args: {}
+  total_calls: 4
+google.adk.utils.feature_decorator.working_in_progress:
+  args: {}
+  total_calls: 2
+google.adk.utils.instructions_utils.inject_session_state:
+  args: {}
+  total_calls: 14
+google.adk.utils.model_name_utils.extract_model_name:
+  args: {}
+  total_calls: 28
+google.adk.utils.model_name_utils.is_gemini_1_model:
+  args: {}
+  total_calls: 34
+google.adk.utils.model_name_utils.is_gemini_2_or_above:
+  args: {}
+  total_calls: 26
+google.adk.utils.model_name_utils.is_gemini_model:
+  args: {}
+  total_calls: 36
+google.adk.utils.output_schema_utils.can_use_output_schema_with_tools.assert_called_once_with:
+  args: {}
+  total_calls: 3
+google.adk.utils.streaming_utils.StreamingResponseAggregator:
+  args: {}
+  total_calls: 12
+google.adk.utils.vertex_ai_utils.get_express_mode_api_key:
+  args:
+    express_mode_api_key:
+      count: 4
+      freq: 1.0
+    location:
+      count: 4
+      freq: 1.0
+    project:
+      count: 4
+      freq: 1.0
+  total_calls: 4
+google.adk.utils.yaml_utils.dump_pydantic_to_yaml:
+  args: {}
+  total_calls: 5
+src.google.adk.cli.cli_deploy.to_cloud_run:
+  args:
+    adk_version:
+      count: 4
+      freq: 1.0
+    agent_folder:
+      count: 4
+      freq: 1.0
+    allow_origins:
+      count: 1
+      freq: 0.25
+    app_name:
+      count: 4
+      freq: 1.0
+    artifact_service_uri:
+      count: 3
+      freq: 0.75
+    extra_gcloud_args:
+      count: 1
+      freq: 0.25
+    log_level:
+      count: 4
+      freq: 1.0
+    memory_service_uri:
+      count: 3
+      freq: 0.75
+    port:
+      count: 4
+      freq: 1.0
+    project:
+      count: 4
+      freq: 1.0
+    region:
+      count: 4
+      freq: 1.0
+    service_name:
+      count: 4
+      freq: 1.0
+    session_service_uri:
+      count: 3
+      freq: 0.75
+    temp_folder:
+      count: 4
+      freq: 1.0
+    trace_to_cloud:
+      count: 4
+      freq: 1.0
+    verbosity:
+      count: 4
+      freq: 1.0
+    with_ui:
+      count: 4
+      freq: 1.0
+  total_calls: 4

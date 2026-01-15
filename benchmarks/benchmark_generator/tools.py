@@ -108,6 +108,10 @@ def scan_repository(repo_path: str, tool_context: ToolContext, coverage_file: Op
             if namespace and not module_fqn.startswith(namespace):
                 continue
             
+            # Public API Filter: Skip modules with private components
+            if any(part.startswith("_") for part in module_fqn.split(".")):
+                continue
+            
             # Blacklist modules known to cause crashes (e.g. segfaults in trace_execution)
             if "spanner" in module_fqn:
                 continue
@@ -168,7 +172,7 @@ def scan_repository(repo_path: str, tool_context: ToolContext, coverage_file: Op
                     self.current_class_fqn = old_class
 
                 def visit_FunctionDef(self, node):
-                    if node.name.startswith("_") and node.name != "__init__": return
+                    if node.name.startswith("_"): return
                     parent_fqn = self.current_class_fqn or self.mod_fqn
                     func_fqn = f"{parent_fqn}.{node.name}"
                     
@@ -221,6 +225,29 @@ def scan_repository(repo_path: str, tool_context: ToolContext, coverage_file: Op
             EntityVisitor(module_fqn, str(relative_path)).visit(tree)
         except Exception: pass
     
+    # --- Post-Scan Usage Correction ---
+    # Fix 0 usage scores by resolving aliases (Public FQN vs Physical FQN)
+    # The stats file uses Public FQNs (e.g. google.adk.agents.LlmAgent),
+    # but the scanner produces Physical FQNs (e.g. google.adk.agents.llm_agent.LlmAgent).
+    
+    # 1. Build Reverse Alias Map (Canonical -> Alias)
+    # alias_map has {Alias -> Canonical}, we need {Canonical -> Alias}
+    # Note: Multiple aliases might map to one canonical, we take the first found.
+    reverse_alias_map = {v: k for k, v in alias_map.items()}
+    
+    # 2. Iterate and Fix
+    for entity in entities:
+        if entity.usage_score == 0:
+            # Check if this entity's ID (Physical FQN) is a canonical target of an alias
+            public_fqn = reverse_alias_map.get(entity.id)
+            if public_fqn:
+                # Look up stats using the Public FQN
+                stats = usage_stats.get(public_fqn, {})
+                calls = stats.get("total_calls", 0)
+                if calls > 0:
+                    print(f"[DEBUG] Correcting usage for {entity.id}: 0 -> {calls} (via alias {public_fqn})")
+                    entity.usage_score = calls
+
     # Save scanned data to session state for the Strategist
     tool_context.session.state["scanned_targets"] = [e.model_dump() for e in entities]
     tool_context.session.state["structure_map"] = structure_map

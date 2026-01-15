@@ -72,7 +72,9 @@ class UsageVisitor(ast.NodeVisitor):
         if isinstance(node, ast.Name):
             return node.id
         elif isinstance(node, ast.Attribute):
-            return self._get_func_name(node.value) + "." + node.attr
+            val = self._get_func_name(node.value)
+            if val:
+                return val + "." + node.attr
         return None
 
     def _resolve_name(self, name):
@@ -86,8 +88,12 @@ class UsageVisitor(ast.NodeVisitor):
 
 def analyze_directory(path: Path) -> Dict[str, Any]:
     visitor = UsageVisitor()
+    ignore_dirs = {'.git', '.venv', 'venv', 'env', '__pycache__', 'site-packages', 'node_modules'}
     
-    for root, _, files in os.walk(path):
+    for root, dirs, files in os.walk(path):
+        # Modify dirs in-place to skip ignored directories
+        dirs[:] = [d for d in dirs if d not in ignore_dirs]
+        
         for file in files:
             if file.endswith(".py"):
                 file_path = Path(root) / file
@@ -151,11 +157,24 @@ def main():
     
     try:
         for source in sources:
-            url = source.get("url")
-            branch = source.get("branch", "main")
-            repo_dir = clone_repo(url, branch)
+            repo_dir = None
+            is_temp = False
+            
+            if "local_path" in source:
+                repo_dir = Path(source["local_path"]).resolve()
+                if not repo_dir.exists():
+                     logger.warning(f"Local path {repo_dir} does not exist.")
+                     continue
+                logger.info(f"Using local path: {repo_dir}")
+            else:
+                url = source.get("url")
+                branch = source.get("branch", "main")
+                repo_dir = clone_repo(url, branch)
+                is_temp = True
+                
             if repo_dir:
-                temp_dirs.append(repo_dir)
+                if is_temp:
+                    temp_dirs.append(repo_dir)
                 
                 include_paths = source.get("include_paths")
                 if include_paths:
@@ -184,6 +203,17 @@ def main():
     for func, data in global_stats.items():
         # Heuristic filter
         if not any(p in func for p in target_prefixes):
+            continue
+            
+        # Public API Filter: Exclude anything with a component starting with '_'
+        # (but allow dunders like __init__ if they were captured)
+        components = func.split('.')
+        is_private = False
+        for part in components:
+            if part.startswith('_') and not (part.startswith('__') and part.endswith('__')):
+                is_private = True
+                break
+        if is_private:
             continue
             
         total = data["call_count"]
