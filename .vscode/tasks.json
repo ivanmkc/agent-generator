@@ -38,6 +38,18 @@
             "detail": "Executes benchmarks for pure Python ADK-based agents (ADK_ prefix)."
         },
         {
+            "label": "Run ADK Benchmarks: api_understanding suite only",
+            "type": "shell",
+            "command": "./notebooks/run_benchmarks.sh --generator-filter ADK_ --suite-filter api_understanding",
+            "group": "test",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": [],
+            "detail": "Executes benchmarks for API Understanding suite only."
+        },
+        {
             "label": "Run GeminiCliPodman Benchmarks: All suites",
             "type": "shell",
             "command": "./notebooks/run_benchmarks.sh --generator-filter GeminiCliPodman",

@@ -286,57 +286,39 @@ class AdkTools:
         return "\n".join(output)
 
     async def _get_runtime_module_help(self, module_name: str, depth: int = 0) -> str:
-        """Existing inspect-based discovery tool."""
+        """
+        Performs a deep-dive runtime inspection of a Python module using the `inspect` tool.
+
+        Methodology:
+        1. Validates the module name to prevent shell injection.
+        2. Executes a standalone utility script `tools/utils/inspect_module.py` in the workspace context.
+        3. The utility uses the `inspect` and `pkgutil` modules to traverse the module's 
+           classes, methods, and properties.
+        4. It extracts docstrings, function signatures, and Pydantic field definitions 
+           (if applicable) to provide a high-fidelity summary for the agent.
+
+        Args:
+            module_name: The fully qualified name of the module to inspect (e.g., 'google.adk.agents').
+            depth: The recursion depth for inspecting submodules. 0 means only the top-level module.
+
+        Returns:
+            A formatted string containing the module's API documentation and structure.
+        """
+        # Security: strictly validate the module name characters
         if not module_name.replace(".", "").replace("_", "").isalnum():
-             return "Error: Invalid module name."
-        script_content = r'''
-import sys, inspect, pkgutil, importlib
-def get_summary(obj, max_len=300):
-    doc = inspect.getdoc(obj)
-    if not doc: return ""
-    summary = " ".join(doc.split('\n\n')[0].strip().split())
-    return summary[:max_len-3] + "..." if len(summary) > max_len else summary
-def print_help(name, current_depth=0, max_depth=0):
-    indent = "  " * current_depth
-    try: mod = importlib.import_module(name)
-    except Exception as e: return
-    print(f"{indent}Module: {name}\n{indent}Doc: {get_summary(mod)}\n")
-    for n, o in inspect.getmembers(mod, inspect.isclass):
-        if n.startswith("_"): continue
-        # Pydantic support
-        fields_str = ""
-        if hasattr(o, "model_fields"):
-            req = [fn for fn, f in o.model_fields.items() if f.is_required()]
-            opt = [fn for fn, f in o.model_fields.items() if not f.is_required()]
-            fields_str = f" [Pydantic Model - Required: {req}, Optional: {opt}]"
+             return "Error: Invalid module name provided for runtime inspection."
+
+        # The inspection logic is decoupled into a standalone utility script for better 
+        # maintainability and to avoid embedding complex logic as a string.
+        inspector_script = "tools/utils/inspect_module.py"
         
-        try: sig = inspect.signature(o)
-        except: sig = "(...)"
-        print(f"{indent}  class {n}{sig}{fields_str}: {get_summary(o)}")
-        methods = [(mn, mo) for mn, mo in inspect.getmembers(o) if not mn.startswith("_") and (inspect.isfunction(mo) or inspect.ismethod(mo))]
-        for mn, mo in sorted(methods, key=lambda x: (0 if x[0] == "__init__" else 1, x[0]))[:5]:
-            try: msig = inspect.signature(mo)
-            except: msig = "(...)"
-            print(f"{indent}    def {mn}{msig}")
+        # Build the execution command
+        # We assume 'python3' is available and correctly configured in the environment path.
+        cmd = f"python3 {inspector_script} {module_name} --depth {depth}"
         
-        # Add Properties
-        props = [(pn, po) for pn, po in inspect.getmembers(o) if isinstance(po, property) and not pn.startswith("_")]
-        for pn, po in sorted(props)[:5]:
-            print(f"{indent}    @property {pn}")
-    if current_depth < max_depth and hasattr(mod, "__path__"):
-        for _, subname, _ in pkgutil.iter_modules(mod.__path__):
-            if not subname.startswith("_"): print_help(f"{name}.{subname}", current_depth + 1, max_depth)
-if __name__ == "__main__":
-    print_help(sys.argv[1], 0, int(sys.argv[2]) if len(sys.argv) > 2 else 0)
-'''
-        run_id = uuid.uuid4().hex
-        script_name = f"_help_runner_{run_id}.py"
-        self.write_file(script_name, script_content)
-        cmd = f"python3 {script_name} {module_name} {depth}"
-        output = await self.run_shell_command(cmd)
-        try: (self.workspace_root / script_name).unlink(missing_ok=True)
-        except Exception: pass
-        return output
+        # Execute the command in the workspace. The run_shell_command method handles 
+        # environment variables (like GEMINI_API_KEY) and virtualenv activation.
+        return await self.run_shell_command(cmd)
 
     def read_definitions(self, file_path: str) -> str:
         """Reads simplified python definitions using AST."""
@@ -365,43 +347,79 @@ if __name__ == "__main__":
     async def read_full_execution_logs(self) -> str:
         return self.read_file("_last_run.log", limit=-1)
 
-    async def run_adk_agent(self, prompt: str, model_name: str, agent_code: Optional[str] = None, agent_file: Optional[str] = None, initial_state: Optional[str] = None, api_key: Optional[str] = None) -> str:
-        if agent_code and agent_file: return "Error: Provide only one."
-        if not agent_code and not agent_file: return "Error: Provide code or file."
-        initial_state_dict = json.loads(initial_state) if initial_state else None
-        runner_script = r'''
-import sys, argparse, importlib.util, asyncio, io, traceback, uuid, os, json
-try: from google.adk.apps import App; from google.adk.runners import InMemoryRunner; from google.genai import types
-except ImportError: sys.exit(1)
-async def main():
-    parser = argparse.ArgumentParser(); parser.add_argument("--agent-file"); parser.add_argument("--prompt"); parser.add_argument("--model-name"); parser.add_argument("--initial-state", default="{}"); args = parser.parse_args()
-    try:
-        spec = importlib.util.spec_from_file_location("mod", os.path.abspath(args.agent_file)); module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
-        agent = module.create_agent(model_name=args.model_name); stdout = io.StringIO(); stderr = io.StringIO(); original_stdout = sys.stdout; original_stderr = sys.stderr
-        sys.stdout = stdout; sys.stderr = stderr; app = App(name="app", root_agent=agent); runner = InMemoryRunner(app=app)
-        session = await runner.session_service.create_session(app_name=app.name, user_id="user", state=json.loads(args.initial_state))
-        result = ""
-        async for event in runner.run_async(user_id=session.user_id, session_id=session.id, new_message=types.Content(role="user", parts=[types.Part(text=args.prompt)])):
-            if event.content and event.content.parts:
-                for part in event.content.parts:
-                    if hasattr(part, "text") and part.text: result += part.text
-        sys.stdout = original_stdout; sys.stderr = original_stderr
-        print(f"Response: {result}\n\n--- Logs ---\nStdout:\n{stdout.getvalue()}\nStderr:\n{stderr.getvalue()}")
-    except Exception: print(traceback.format_exc())
-asyncio.run(main())
-'''
+    async def run_adk_agent(
+        self, 
+        prompt: str, 
+        model_name: str, 
+        agent_code: Optional[str] = None, 
+        agent_file: Optional[str] = None, 
+        initial_state: Optional[str] = None, 
+        api_key: Optional[str] = None
+    ) -> str:
+        """
+        Executes a candidate ADK agent in a sandboxed runtime environment.
+
+        Methodology:
+        1. Validates input (must provide either agent_code or an agent_file path).
+        2. If agent_code is provided, writes it to a temporary file in the workspace.
+        3. Invokes the standalone `tools/utils/adk_agent_runner.py` script.
+        4. The runner utility dynamically imports the agent, sets up an `InMemoryRunner`, 
+           and executes the provided prompt.
+        5. It captures all stdout/stderr from the agent's execution for forensic debugging.
+
+        Args:
+            prompt: The text instruction to send to the agent.
+            model_name: The name of the LLM to use (e.g., 'gemini-2.0-flash').
+            agent_code: The Python source code for the agent (defining create_agent).
+            agent_file: A relative path to an existing agent file.
+            initial_state: An optional JSON string representing the starting session state.
+            api_key: An optional Gemini API key to override the environment default.
+
+        Returns:
+            A string containing the agent's response and its execution logs.
+        """
+        if agent_code and agent_file:
+             return "Error: Provide either `agent_code` OR `agent_file`, not both."
+        if not agent_code and not agent_file:
+             return "Error: You must provide either `agent_code` or `agent_file` to run an agent."
+        
+        # Security/Tracing ID
         run_id = uuid.uuid4().hex
-        runner_file = f"_ad_run_{run_id}.py"
-        self.write_file(runner_file, runner_script)
+        
+        # Prepare the agent file
+        target_agent_file = agent_file
         if agent_code:
-            agent_file = f"ag_{run_id}.py"
-            self.write_file(agent_file, agent_code)
-        state_arg = f"--initial-state {shlex.quote(json.dumps(initial_state_dict))}" if initial_state_dict else ""
-        cmd = f"python3 {runner_file} --agent-file {agent_file} --prompt {shlex.quote(prompt)} --model-name {shlex.quote(model_name)} {state_arg}"
+            target_agent_file = f"ag_tmp_{run_id}.py"
+            self.write_file(target_agent_file, agent_code)
+        
+        # Decouple execution into a standalone script
+        runner_script = "tools/utils/adk_agent_runner.py"
+        
+        # Construct CLI arguments
+        state_arg = f"--initial-state {shlex.quote(initial_state)}" if initial_state else ""
+        
+        # Build the command string
+        cmd = (
+            f"python3 {runner_script} "
+            f"--agent-file {shlex.quote(target_agent_file)} "
+            f"--prompt {shlex.quote(prompt)} "
+            f"--model-name {shlex.quote(model_name)} "
+            f"{state_arg}"
+        )
+        
+        # Run the command. The run_shell_command method ensures virtualenv 
+        # pathing is correct and captures result parts.
         output = await self.run_shell_command(cmd, extra_env={"GEMINI_API_KEY": api_key} if api_key else None)
-        self.write_file("_last_run.log", output)
+        
+        # Persist the full output for forensic trace analysis
+        self.write_file("_last_agent_run.log", output)
+        
+        # Cleanup temporary code file
         try:
-             Path(runner_file).unlink(missing_ok=True)
-             if agent_code: Path(agent_file).unlink(missing_ok=True)
-        except: pass
+             if agent_code:
+                 (self.workspace_root / target_agent_file).unlink(missing_ok=True)
+        except Exception:
+             pass
+             
+        # Return a snippet of the result to keep the agent's context window clean
         return output[:2000] + "..." if len(output) > 2000 else output

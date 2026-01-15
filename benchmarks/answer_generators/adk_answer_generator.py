@@ -23,6 +23,7 @@ from google.adk.tools.base_tool import BaseTool
 from google.adk.tools.tool_context import ToolContext
 from google.adk.agents.invocation_context import InvocationContext
 from google.adk.agents.base_agent import BaseAgent
+from google.adk.events.event import Event
 
 class TraceCollectorPlugin(BasePlugin):
     """
@@ -39,6 +40,22 @@ class TraceCollectorPlugin(BasePlugin):
         self._current_agent_start = time.time()
         self._current_agent_prompt_tokens = 0
         self._current_agent_completion_tokens = 0
+
+    async def on_user_message_callback(self, *, invocation_context: InvocationContext, user_message: types.Content) -> Optional[types.Content]:
+        """Log the initial user message."""
+        timestamp = datetime.datetime.now().isoformat()
+        if user_message and user_message.parts:
+            content = "".join([p.text for p in user_message.parts if p.text])
+            self.logs.append(TraceLogEvent(
+                type=TraceEventType.MESSAGE,
+                source="adk",
+                timestamp=timestamp,
+                role="user",
+                author="user", # The user is the author
+                content=content,
+                details={"step": "Initial User Prompt"}
+            ))
+        return None
 
     async def before_agent_callback(self, *, agent: BaseAgent, callback_context: CallbackContext) -> Optional[types.Content]:
         now = time.time()
@@ -94,7 +111,7 @@ class TraceCollectorPlugin(BasePlugin):
         return None
 
     async def after_model_callback(self, *, callback_context: CallbackContext, llm_response: LlmResponse) -> Optional[LlmResponse]:
-        if llm_response.usage_metadata:
+        if llm_response.usage_metadata and not llm_response.partial:
             pmt = llm_response.usage_metadata.prompt_token_count or 0
             cpt = llm_response.usage_metadata.candidates_token_count or 0
             tt = llm_response.usage_metadata.total_token_count or 0
@@ -283,7 +300,7 @@ class AdkAnswerGenerator(LlmAnswerGenerator):
 
         try:
             # Run the agent asynchronously.
-            response_text, trace_logs, usage_metadata = await self._run_agent_async(
+            response_text, trace_logs, usage_metadata, session_id = await self._run_agent_async(
                 prompt, 
                 api_key_id=api_key_id,
                 benchmark_type=benchmark_type
@@ -570,15 +587,12 @@ class AdkAnswerGenerator(LlmAnswerGenerator):
             if token:
                 adk_execution_context.reset(token)
             
-            # Release the run mapping
-            self.api_key_manager.release_run(run_id)
-
     async def _run_agent_async(
         self,
         prompt: str,
         api_key_id: Optional[str] = None,
         benchmark_type: str = "unknown"
-    ) -> tuple[str, list[TraceLogEvent], UsageMetadata]:
+    ) -> tuple[str, list[TraceLogEvent], UsageMetadata, str]:
         """Helper to run the agent using a fresh Runner and TraceCollectorPlugin."""
 
         # 1. Create fresh infrastructure for this run to ensure isolation
@@ -662,7 +676,7 @@ class AdkAnswerGenerator(LlmAnswerGenerator):
 
         self._print_timing_report(session_id, collector.execution_sequence)
 
-        return final_response, collector.logs, usage_metadata
+        return final_response, collector.logs, usage_metadata, session_id
 
     def _print_timing_report(self, session_id: str, execution_sequence: list):
         print(f"\n--- Agent Timing & Token Report [{session_id}] ---")

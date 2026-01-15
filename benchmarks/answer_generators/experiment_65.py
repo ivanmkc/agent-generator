@@ -42,6 +42,7 @@ from benchmarks.answer_generators.adk_context import adk_execution_context
 # --- Models ---
 
 class UniversalAnswer(BaseModel):
+    benchmark_type: str = Field(description="The type of benchmark: 'api_understanding', 'fix_error', or 'multiple_choice'.")
     rationale: str = Field(description="Reasoning for the answer, citing specific files/code.")
     answer: Optional[str] = Field(None, description="For Multiple Choice: The selected option (A, B, C, etc).")
     code: Optional[str] = Field(None, description="For Code/API: The requested code snippet or symbol name.")
@@ -94,7 +95,7 @@ class FileBasedAdkAnswerGenerator(AdkAnswerGenerator):
 
         try:
             # 1. Run the agent (standard execution)
-            response_text, trace_logs, usage_metadata = await self._run_agent_async(
+            response_text, trace_logs, usage_metadata, session_id = await self._run_agent_async(
                 prompt, 
                 api_key_id=api_key_id,
                 benchmark_type=benchmark_type
@@ -105,13 +106,11 @@ class FileBasedAdkAnswerGenerator(AdkAnswerGenerator):
             if "```json" in response_text:
                 json_str = response_text.split("```json", 1)[1].split("```", 1)[0].strip()
             
-            # Try to find a file if one was written
+            # Try to find the specific file for this session
             try:
-                answer_files = list(self.workspace_root.glob("answer_*.json"))
-                if answer_files:
-                    # We'll just look for the most recently modified answer_*.json in this workspace
-                    latest_file = max(answer_files, key=os.path.getmtime)
-                    with open(latest_file, "r", encoding="utf-8") as f:
+                answer_file = self.workspace_root / f"answer_{session_id}.json"
+                if answer_file.exists():
+                    with open(answer_file, "r", encoding="utf-8") as f:
                         json_str = f.read()
             except Exception:
                 pass
@@ -264,12 +263,13 @@ Review the conversation history above, especially the 'RESEARCH SUMMARY'.
 Extract the final answer and format it strictly as JSON adhering to `UniversalAnswer` schema.
 
 **CRITICAL INSTRUCTION:**
-1.  Generate the JSON object.
-2.  Call the `write_answer_file` tool with the JSON string.
-3.  **IMPORTANT:**
-    *   For `api_understanding`: Ensure `fully_qualified_class_name` is the verified path.
-    *   For `fix_error`: Ensure `code` contains the complete python file content.
-    *   For `multiple_choice`: Ensure `answer` is just the letter (A, B, C, D, or E).
+1.  **Set `benchmark_type` to "{benchmark_type}" exactly.**
+2.  Generate the JSON object.
+3.  Call the `write_answer_file` tool with the JSON string.
+4.  **Field Requirements per Type:**
+    *   **api_understanding**: `benchmark_type`="api_understanding". Required: `fully_qualified_class_name`, `code` (snippet).
+    *   **fix_error**: `benchmark_type`="fix_error". Required: `code` (full file content).
+    *   **multiple_choice**: `benchmark_type`="multiple_choice". Required: `answer` (Letter A-E).
 """
             ),
             **kwargs
@@ -289,23 +289,23 @@ def create_task_aware_generator_v45(
     tools_helper = AdkTools(workspace_root, venv_path=workspace_root/'venv')
     
     if api_key_manager:
-        model_flash = RotatingKeyGemini(model=model_name, api_key_manager=api_key_manager)
+        model = RotatingKeyGemini(model=model_name, api_key_manager=api_key_manager)
     else:
-        model_flash = model_name
+        model = model_name
 
     setup_agent = SetupAgentCodeBased(name='setup_agent', workspace_root=workspace_root, tools_helper=tools_helper)
     sanitizer = PromptSanitizerAgent(
-        model=model_flash, 
+        model=model, 
         include_contents='none', 
         output_key='sanitized_user_request',
         instruction="Sanitize this {benchmark_type} request: {user_request}" # Placeholder ensures variable is 'used'
     )
     
-    solver = TaskAwareSolverV45(model=model_flash, tools_helper=tools_helper)
-    loop = LoopAgent(name="research_loop", sub_agents=[solver], max_iterations=8)
+    solver = TaskAwareSolverV45(model=model, tools_helper=tools_helper)
+    loop = LoopAgent(name="research_loop", sub_agents=[solver], max_iterations=12)
     
     trigger = TriggerAgent()
-    formatter = AnswerFormatter(model=model_flash, tools_helper=tools_helper)
+    formatter = AnswerFormatter(model=model, tools_helper=tools_helper)
     
     teardown = CodeBasedTeardownAgent(name='teardown', workspace_root=workspace_root, tools_helper=tools_helper)
 
