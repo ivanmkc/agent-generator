@@ -1,0 +1,153 @@
+import json
+import os
+
+notebook_content = {
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# Forensic Root Cause Analysis Report (Granular)\n",
+    "\n",
+    "This report provides a hierarchical view of benchmark failures from the **last 10 runs**, analyzed by Gemini 2.0. \n",
+    "The analysis uses a **Granular Taxonomy** to distinguish between Retrieval Failures (Bad Query vs. Shallow) and Reasoning Failures (Ignored Context vs. Fabrication)."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "import sqlite3\n",
+    "import pandas as pd\n",
+    "import matplotlib.pyplot as plt\n",
+    "import json\n",
+    "from IPython.display import display, HTML, Markdown\n",
+    "\n",
+    "# Connect to Database\n",
+    "DB_PATH = \"/Users/ivanmkc/Documents/code/agent-generator/benchmarks/analysis_cache.db\"\n",
+    "conn = sqlite3.connect(DB_PATH)\n",
+    "\n",
+    "# Load Data\n",
+    "query = \"\"\"\n",
+    "SELECT \n",
+    "    run_id, \n",
+    "    generator, \n",
+    "    suite, \n",
+    "    benchmark_name, \n",
+    "    attempt_number, \n",
+    "    llm_root_cause,\n",
+    "    llm_analysis\n",
+    "FROM failures\n",
+    "WHERE llm_root_cause IS NOT NULL\n",
+    "ORDER BY run_id DESC, generator, suite, benchmark_name, attempt_number\n",
+    "\"\"\"\n",
+    "df = pd.read_sql_query(query, conn)\n",
+    "\n",
+    "# Parse JSON forensics\n",
+    "def parse_forensics(row):\n",
+    "    try:\n",
+    "        data = json.loads(row['llm_analysis'])\n",
+    "        return pd.Series({\n",
+    "            'narrative': data.get('explanation', 'N/A'),\n",
+    "            'citations': \" | \".join(data.get('evidence', data.get('citations', []))),\n",
+    "            'tool_audit': str(data.get('tool_audit', ''))\n",
+    "        })\n",
+    "    except:\n",
+    "        return pd.Series({'narrative': 'Parse Error', 'citations': 'N/A', 'tool_audit': 'N/A'})\n",
+    "\n",
+    "forensics = df.apply(parse_forensics, axis=1)\n",
+    "df = pd.concat([df, forensics], axis=1)\n",
+    "\n",
+    "print(f\"Total failures analyzed: {len(df)}\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Global Failure Trends"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "if not df.empty:\n",
+    "    plt.figure(figsize=(14, 8))\n",
+    "    df['llm_root_cause'].value_counts().plot(kind='bar', color='#2ca02c')\n",
+    "    plt.title('Global Root Cause Distribution (Granular)')\n",
+    "    plt.ylabel('Count')\n",
+    "    plt.xticks(rotation=45, ha='right')\n",
+    "    plt.grid(axis='y', alpha=0.3)\n",
+    "    plt.tight_layout()\n",
+    "    plt.show()\n",
+    "else:\n",
+    "    print(\"No analyzed failures found.\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Analysis by Benchmark Suite\n",
+    "Breakdown of root causes for each test suite."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "if not df.empty:\n",
+    "    suites = df['suite'].unique()\n",
+    "    for suite in suites:\n",
+    "        display(Markdown(f\"### Suite: `{suite}`\"))\n",
+    "        suite_df = df[df['suite'] == suite]\n",
+    "        \n",
+    "        # Chart\n",
+    "        plt.figure(figsize=(10, 5))\n",
+    "        suite_df['llm_root_cause'].value_counts().plot(kind='barh', color='salmon')\n",
+    "        plt.title(f'Root Causes: {suite}')\n",
+    "        plt.xlabel('Count')\n",
+    "        plt.tight_layout()\n",
+    "        plt.show()\n",
+    "        \n",
+    "        # Detailed Table (Top 5 Failures)\n",
+    "        display(Markdown(f\"**Top Failure Examples ({suite}):**\"))\n",
+    "        display(suite_df[['generator', 'benchmark_name', 'llm_root_cause', 'narrative']].head(5))\n",
+    "        display(Markdown(\"---\"))\n",
+    "else:\n",
+    "    print(\"No data available.\")"
+   ]
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.10.12"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 5
+}
+
+with open("notebooks/llm_analysis_report.ipynb", "w") as f:
+    json.dump(notebook_content, f, indent=1)
