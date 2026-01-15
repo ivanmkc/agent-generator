@@ -229,6 +229,15 @@ def scan_repository(repo_path: str, tool_context: ToolContext, coverage_file: Op
                             structure_map[parent_fqn]["children"].append(func_fqn)
 
                         if node.end_lineno - node.lineno >= 3:
+                            # Reconstruct Full Signature
+                            args_str = ast.unparse(node.args)
+                            # args_str from unparse usually doesn't include parens for arguments object? 
+                            # Wait, ast.unparse(node.args) returns "arg1, arg2". We need to wrap it.
+                            # Also check if it's empty.
+                            
+                            ret_str = f" -> {ast.unparse(node.returns)}" if node.returns else ""
+                            full_sig = f"def {node.name}({args_str}){ret_str}:"
+
                             # Entity
                             func_stats = usage_stats.get(func_fqn, {})
                             entities.append(TargetEntity(
@@ -239,7 +248,8 @@ def scan_repository(repo_path: str, tool_context: ToolContext, coverage_file: Op
                                 usage_score=func_stats.get("total_calls", 0),
                                 docstring=doc,
                                 parent_id=parent_fqn,
-                                signature=f"def {node.name}(...):"
+                                signature=f"def {node.name}(...):",
+                                signature_full=full_sig
                             ))
 
                     self.generic_visit(node)

@@ -51,6 +51,7 @@ class TargetEntity(pydantic.BaseModel):
     parent_id: Optional[str] = None
     # Specific metadata for agents
     signature: Optional[str] = None
+    signature_full: Optional[str] = None
     source_code: Optional[str] = None
     # Context Expansion (Flattened list of related entities)
     associated_context: List[ContextNode] = []
