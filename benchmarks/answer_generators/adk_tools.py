@@ -180,7 +180,7 @@ class AdkTools:
         """Lists files in a specific repository directory."""
         return self.list_directory(f"repos/{repo_name}/{dir_path}", ignore=ignore)
 
-    async def run_shell_command(self, command: str, dir_path: Optional[str] = None, extra_env: Optional[dict[str, str]] = None) -> str:
+    async def run_shell_command(self, command: str | List[str], dir_path: Optional[str] = None, extra_env: Optional[dict[str, str]] = None) -> str:
         """Executes a shell command in the workspace asynchronously."""
         try:
             env = os.environ.copy()
@@ -191,9 +191,24 @@ class AdkTools:
             if extra_env: env.update(extra_env)
             cwd = self._resolve_path(dir_path) if dir_path else self.workspace_root
             if not cwd.exists(): return f"Error: Directory not found at {cwd}"
+            
+            # If command is a string, use shell=True. If list, use shell=False.
+            is_shell = isinstance(command, str)
+            
             loop = asyncio.get_running_loop()
-            result = await loop.run_in_executor(None, functools.partial(subprocess.run, command, shell=True, capture_output=True, text=True, cwd=cwd, timeout=60, env=env))
-            output_parts = [f"Command: {command}", f"Directory: {dir_path or '(root)'}", f"Stdout: {result.stdout.strip() or '(empty)'}", f"Stderr: {result.stderr.strip() or '(empty)'}", f"Exit Code: {result.returncode}"]
+            result = await loop.run_in_executor(None, functools.partial(
+                subprocess.run, 
+                command, 
+                shell=is_shell, 
+                capture_output=True, 
+                text=True, 
+                cwd=cwd, 
+                timeout=60, 
+                env=env
+            ))
+            
+            cmd_str = command if isinstance(command, str) else " ".join(command)
+            output_parts = [f"Command: {cmd_str}", f"Directory: {dir_path or '(root)'}", f"Stdout: {result.stdout.strip() or '(empty)'}", f"Stderr: {result.stderr.strip() or '(empty)'}", f"Exit Code: {result.returncode}"]
             return "\n".join(output_parts)
         except Exception as e:
             return f"Error running command: {e}"
@@ -239,7 +254,7 @@ class AdkTools:
                  return stats_help
         
         # Fallback to runtime inspection if no index or no stats for this module
-        return await self._get_runtime_module_help(module_name, depth)
+        return await self.inspect_fqn(module_name, depth)
 
     def _get_statistical_module_help(self, module_name: str, max_tokens: int = 1500) -> str:
         """Curates API help based on usage frequency from api_metadata.yaml."""
@@ -285,40 +300,74 @@ class AdkTools:
             
         return "\n".join(output)
 
-    async def _get_runtime_module_help(self, module_name: str, depth: int = 0) -> str:
+    async def inspect_fqn(self, fqn: str, depth: int = 0) -> str:
         """
-        Performs a deep-dive runtime inspection of a Python module using the `inspect` tool.
-
-        Methodology:
-        1. Validates the module name to prevent shell injection.
-        2. Executes a standalone utility script `tools/utils/inspect_module.py` in the workspace context.
-        3. The utility uses the `inspect` and `pkgutil` modules to traverse the module's 
-           classes, methods, and properties.
-        4. It extracts docstrings, function signatures, and Pydantic field definitions 
-           (if applicable) to provide a high-fidelity summary for the agent.
-
-        Args:
-            module_name: The fully qualified name of the module to inspect (e.g., 'google.adk.agents').
-            depth: The recursion depth for inspecting submodules. 0 means only the top-level module.
-
-        Returns:
-            A formatted string containing the module's API documentation and structure.
+        Inspects a Python object (class or module) given its fully qualified name.
+        Uses runtime inspection to reveal docstrings, signatures, and hierarchy.
         """
-        # Security: strictly validate the module name characters
-        if not module_name.replace(".", "").replace("_", "").isalnum():
-             return "Error: Invalid module name provided for runtime inspection."
-
-        # The inspection logic is decoupled into a standalone utility script for better 
-        # maintainability and to avoid embedding complex logic as a string.
-        inspector_script = "tools/utils/inspect_module.py"
+        project_root = Path(__file__).resolve().parent.parent.parent
+        inspector_script = project_root / "tools" / "utils" / "inspect_fqn.py"
         
-        # Build the execution command
-        # We assume 'python3' is available and correctly configured in the environment path.
-        cmd = f"python3 {inspector_script} {module_name} --depth {depth}"
+        # Build the execution command as a list to handle spaces in absolute paths safely
+        cmd = ["python3", str(inspector_script), fqn, "--depth", str(depth)]
         
-        # Execute the command in the workspace. The run_shell_command method handles 
-        # environment variables (like GEMINI_API_KEY) and virtualenv activation.
         return await self.run_shell_command(cmd)
+
+    def list_ranked_targets(self, page: int = 1, page_size: int = 100) -> str:
+        """
+        Lists ranked ADK targets from the index, paginated.
+        """
+        # Try finding the yaml file in common locations
+        candidates = [
+            self.workspace_root / "ranked_targets.yaml",
+            Path("ranked_targets.yaml"),
+            Path(__file__).resolve().parent.parent.parent / "ranked_targets.yaml"
+        ]
+        
+        index_path = None
+        for p in candidates:
+            if p.exists():
+                index_path = p
+                break
+        
+        if not index_path:
+            return "Error: ranked_targets.yaml not found."
+        
+        try:
+            if not yaml:
+                return "Error: PyYAML not installed."
+
+            with open(index_path, "r", encoding="utf-8") as f:
+                data = yaml.safe_load(f)
+            
+            total_items = len(data)
+            max_page = (total_items + page_size - 1) // page_size
+            
+            if page < 1: page = 1
+            
+            start_idx = (page - 1) * page_size
+            end_idx = start_idx + page_size
+            
+            if start_idx >= total_items:
+                return f"Page {page} is out of range. Total items: {total_items} (max page {max_page})."
+            
+            page_items = data[start_idx:end_idx]
+            
+            lines = [f"--- Ranked Targets (Page {page} of {max_page}) ---"]
+            lines.append(f"Showing items {start_idx + 1} to {min(end_idx, total_items)} of {total_items}")
+            
+            for item in page_items:
+                fqn = item.get("id", "unknown")
+                rank = item.get("rank", 0)
+                doc = item.get("docstring") or "No description."
+                doc_summary = doc.split('\n')[0].strip()
+                if len(doc_summary) > 80: doc_summary = doc_summary[:77] + "..."
+                lines.append(f"[{rank}] {fqn}: {doc_summary}")
+                
+            return "\n".join(lines)
+            
+        except Exception as e:
+            return f"Error reading ranked targets: {e}"
 
     def read_definitions(self, file_path: str) -> str:
         """Reads simplified python definitions using AST."""
@@ -393,19 +442,19 @@ class AdkTools:
             self.write_file(target_agent_file, agent_code)
         
         # Decouple execution into a standalone script
-        runner_script = "tools/utils/adk_agent_runner.py"
+        project_root = Path(__file__).resolve().parent.parent.parent
+        runner_script = project_root / "tools" / "utils" / "adk_agent_runner.py"
         
-        # Construct CLI arguments
-        state_arg = f"--initial-state {shlex.quote(initial_state)}" if initial_state else ""
-        
-        # Build the command string
-        cmd = (
-            f"python3 {runner_script} "
-            f"--agent-file {shlex.quote(target_agent_file)} "
-            f"--prompt {shlex.quote(prompt)} "
-            f"--model-name {shlex.quote(model_name)} "
-            f"{state_arg}"
-        )
+        # Build the command as a list for safe path handling
+        cmd = [
+            "python3", 
+            str(runner_script), 
+            "--agent-file", target_agent_file, 
+            "--prompt", prompt, 
+            "--model-name", model_name
+        ]
+        if initial_state:
+            cmd.extend(["--initial-state", initial_state])
         
         # Run the command. The run_shell_command method ensures virtualenv 
         # pathing is correct and captures result parts.
