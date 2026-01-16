@@ -22,8 +22,123 @@ from google.adk.events import Event
 from google.genai import types, Client
 from benchmarks.answer_generators.setup_utils import create_standard_setup_hook
 from benchmarks.answer_generators.experiment_49 import create_debug_structured_adk_agent_v29
-from benchmarks.answer_generators.experiment_53 import _create_fast_prismatic_retrieval_agents_v33, RoutingDelegatorAgent
+from benchmarks.answer_generators.experiment_53 import _create_fast_prismatic_retrieval_agents_v33, RoutingDelegatorAgent, ContextExpanderCodeBased
 from benchmarks.answer_generators.adk_agents import SetupAgentCodeBased, PromptSanitizerAgent, CodeBasedTeardownAgent, RotatingKeyGemini, DocstringFetcherAgent
+from google.adk.tools import FunctionTool, ToolContext
+
+# --- Helpers ---
+
+def format_adk_index(yaml_content: str) -> str:
+    """Formats the ADK index YAML into a concise list: <fqn>: <description>"""
+    try:
+        import yaml
+        data = yaml.safe_load(yaml_content)
+        modules = data.get("modules", [])
+        lines = []
+        for mod in modules:
+            path = mod.get("path", "unknown")
+            desc = mod.get("description", "No description")
+            lines.append(f"{path}: {desc}")
+        return "\n".join(lines)
+    except Exception as e:
+        return f"Error formatting index: {e}\nRaw Content:\n{yaml_content}"
+
+# --- Agents ---
+
+class RuntimeDocstringFetcherAgent(Agent):
+    """
+    Fetches help for selected modules using runtime inspection to ensure docstrings are included.
+    (Replaces DocstringFetcherAgent which relied on stats that lacked docstrings).
+    """
+    def __init__(self, tools_helper: AdkTools, **kwargs):
+        super().__init__(**kwargs)
+        self._tools_helper = tools_helper
+
+    async def _run_async_impl(self, ctx: InvocationContext) -> AsyncGenerator[Event, None]:
+        # 1. Retrieve selected modules
+        # Import RelevantModules locally to avoid circular imports if possible, or assume it's in schemas
+        from benchmarks.answer_generators.adk_schemas import RelevantModules
+        
+        relevant_modules_json = ctx.session.state.get("relevant_modules_json", "{}")
+        try:
+            if isinstance(relevant_modules_json, str):
+                if "```json" in relevant_modules_json:
+                    relevant_modules_json = relevant_modules_json.split("```json", 1)[1].split("```", 1)[0].strip()
+                elif "```" in relevant_modules_json:
+                    relevant_modules_json = relevant_modules_json.split("```", 1)[1].split("```", 1)[0].strip()
+                relevant_modules = RelevantModules.model_validate_json(relevant_modules_json)
+            elif isinstance(relevant_modules_json, dict):
+                relevant_modules = RelevantModules.model_validate(relevant_modules_json)
+            else:
+                relevant_modules = relevant_modules_json
+        except Exception as e:
+            ctx.session.state["knowledge_context"] = f"Error retrieving knowledge context: {e}"
+            yield Event(invocation_id=ctx.invocation_id, author=self.name, content=types.Content(role="model", parts=[types.Part(text=f"Error: {e}")]))
+            return
+
+        # 2. Fetch runtime help (docstrings included)
+        knowledge_context_parts = []
+        for module_name in relevant_modules.modules:
+            try:
+                # Force runtime inspection
+                help_text = await self._tools_helper._get_runtime_module_help(module_name)
+                knowledge_context_parts.append(f"--- Help for {module_name} ---\n{help_text}\n")
+            except Exception as e:
+                knowledge_context_parts.append(f"Error fetching help for {module_name}: {e}\n")
+
+        full_context = "\n".join(knowledge_context_parts)
+        ctx.session.state["knowledge_context"] = full_context
+        
+        yield Event(
+            invocation_id=ctx.invocation_id,
+            author=self.name,
+            content=types.Content(role="model", parts=[types.Part(text=f"Fetched runtime docs for {len(relevant_modules.modules)} modules.")])
+        )
+
+def _create_retrieval_agents_v35(tools_helper: AdkTools, model) -> list[Agent]:
+    """
+    Creates the V35 retrieval chain with formatted index and runtime docstrings.
+    """
+    # Load and format index
+    index_path = Path("benchmarks/adk_index.yaml")
+    if index_path.exists():
+        with open(index_path, "r") as f:
+            raw_index = f.read()
+            formatted_index = format_adk_index(raw_index)
+    else:
+        formatted_index = "Error: adk_index.yaml not found."
+
+    def save_relevant_modules(modules: list[str], tool_context: ToolContext) -> str:
+        tool_context.session.state["relevant_modules_json"] = json.dumps({"modules": modules})
+        return f"Saved seeds: {modules}"
+
+    save_modules_tool = FunctionTool(save_relevant_modules)
+
+    # 1. Seed Selector (LLM)
+    seed_selector_agent = LlmAgent(
+        name="seed_selector_agent",
+        model=model,
+        tools=[save_modules_tool],
+        include_contents="none",
+        instruction=(
+            f"You are the Seed Selector. Select the 1-2 most relevant ADK modules for the request from the index below.\n"
+            f"Index (Module: Description):\n{formatted_index}\n"
+            "Request: {sanitized_user_request}\n"
+        ),
+    )
+
+    # 2. Context Expander (Code - reused from V33)
+    context_expander_agent = ContextExpanderCodeBased(
+        name="context_expander_agent",
+        tools_helper=tools_helper
+    )
+    
+    # 3. Docstring Fetcher (Runtime)
+    docstring_fetcher_agent = RuntimeDocstringFetcherAgent(
+        name="docstring_fetcher_agent", tools_helper=tools_helper
+    )
+    
+    return [seed_selector_agent, context_expander_agent, docstring_fetcher_agent]
 
 # We need a new generator class that handles external formatting
 class AdkAnswerGeneratorV35(AdkAnswerGenerator):
@@ -196,8 +311,8 @@ def create_debug_structured_adk_agent_v35(
     # Pass model_name string so v29 creates its own wrapper and CodeBasedRunner gets the string.
     coding_agent = create_debug_structured_adk_agent_v29(tools_helper, model_name, api_key_manager)
     
-    # Knowledge Specialist: Updated instruction to NOT use JSON
-    retrieval_agents = _create_fast_prismatic_retrieval_agents_v33(tools_helper, model)
+    # Knowledge Specialist: Updated to use formatted index and runtime docstrings
+    retrieval_agents = _create_retrieval_agents_v35(tools_helper, model)
     
     # Instruction for QA Solver
     qa_instr = (
@@ -205,7 +320,12 @@ def create_debug_structured_adk_agent_v35(
         "Request: {sanitized_user_request}\n"
         "TASK TYPE: {benchmark_type}\n"
         "CONTEXT:\n"
-        "{knowledge_context}"
+        "{knowledge_context}\n\n"
+        "GOAL: Answer the question accurately based on the context.\n"
+        "- For Multiple Choice: Explicitly state the correct option letter (e.g., 'Answer: A') and explain why.\n"
+        "- For API Questions: Provide the code snippet and the rationale.\n"
+        "- For Fix Errors: Provide the corrected code.\n\n"
+        "Do NOT try to output JSON. Just give the answer clearly."
     )
 
     qa_solver = LlmAgent(
@@ -233,7 +353,23 @@ def create_debug_structured_adk_agent_v35(
 
     # 3. Root Pipeline
     setup_agent = SetupAgentCodeBased(name="setup_agent", workspace_root=tools_helper.workspace_root, tools_helper=tools_helper)
-    prompt_sanitizer_agent = PromptSanitizerAgent(model=model, include_contents='none', output_key="sanitized_user_request")
+    
+    sanitizer_instruction = (
+        "You are a prompt sanitization expert.\n"
+        "Original Request: {user_request}\n\n"
+        "Task: Extract the core ADK question/task into the following template:\n\n"
+        "Question: <user question>\n"
+        "Examples: <1 - 2 exemplary examples if applicable, else None>\n"
+        "Answer format: <answer format and required parameters and 1 example>\n\n"
+        "Remove explicit tool-calling instructions."
+    )
+    
+    prompt_sanitizer_agent = PromptSanitizerAgent(
+        model=model, 
+        include_contents='none', 
+        output_key="sanitized_user_request",
+        instruction=sanitizer_instruction
+    )
     
     finalizer = RawExpertResponseFinalizer(name="finalizer")
     

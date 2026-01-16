@@ -4,6 +4,7 @@ import time
 import uuid
 import json
 import tempfile
+import re
 from pathlib import Path
 from typing import AsyncGenerator, Optional, Callable, Awaitable
 
@@ -52,7 +53,7 @@ class UniversalAnswer(BaseModel):
 
 class FileBasedAdkAnswerGenerator(AdkAnswerGenerator):
     """
-    A robust generator that reads the final answer from a file 'final_answer.json'
+    A robust generator that reads the final answer from a file 'answer_{session_id}.json'
     instead of relying on the last agent event, avoiding teardown interference.
     """
     def __init__(self, workspace_root: Path, **kwargs):
@@ -103,20 +104,33 @@ class FileBasedAdkAnswerGenerator(AdkAnswerGenerator):
             
             # 2. Read 'answer_{session_id}.json' from workspace
             json_str = response_text
-            if "```json" in response_text:
-                json_str = response_text.split("```json", 1)[1].split("```", 1)[0].strip()
             
-            # Try to find the specific file for this session
+            # Search for the session-specific file recursively in the workspace
             try:
-                answer_file = self.workspace_root / f"answer_{session_id}.json"
-                if answer_file.exists():
-                    with open(answer_file, "r", encoding="utf-8") as f:
+                # SetupAgent creates directories like task_<hash>/
+                matching_files = list(self.workspace_root.rglob(f"answer_{session_id}.json"))
+                if matching_files:
+                    matching_files.sort(key=lambda f: f.stat().st_mtime, reverse=True)
+                    with open(matching_files[0], "r", encoding="utf-8") as f:
                         json_str = f.read()
+                else:
+                    # Fallback: look for JSON block in response_text
+                    if "```json" in response_text:
+                        json_str = response_text.split("```json", 1)[1].split("```", 1)[0].strip()
             except Exception:
                 pass
 
-            # 3. Parse JSON
-            output = output_schema_class.model_validate_json(json_str)
+            # 3. Parse JSON with Robust Sanitization
+            try:
+                output = output_schema_class.model_validate_json(json_str)
+            except Exception as parse_err:
+                # Attempt to sanitize the JSON (escape literal control characters like newlines)
+                try:
+                    # Replace literal control characters (\u0000-\u001f) with escaped versions
+                    sanitized_json = re.sub(r'[\x00-\x1f]', lambda m: f"\\u{ord(m.group()):04x}", json_str)
+                    output = output_schema_class.model_validate_json(sanitized_json)
+                except Exception:
+                    raise parse_err
 
             self.api_key_manager.report_result(KeyType.GEMINI_API, api_key_id, success=True)
 
@@ -128,7 +142,8 @@ class FileBasedAdkAnswerGenerator(AdkAnswerGenerator):
             )
                 
         except Exception as e:
-            self.api_key_manager.report_result(KeyType.GEMINI_API, api_key_id, success=False, error_message=str(e))
+            if self.api_key_manager:
+                self.api_key_manager.report_result(KeyType.GEMINI_API, api_key_id, success=False, error_message=str(e))
             if isinstance(e, BenchmarkGenerationError):
                 raise e
             raise BenchmarkGenerationError(
@@ -141,8 +156,8 @@ class FileBasedAdkAnswerGenerator(AdkAnswerGenerator):
         finally:
             if token:
                 adk_execution_context.reset(token)
-            self.api_key_manager.release_run(run_id)
-
+            if self.api_key_manager:
+                self.api_key_manager.release_run(run_id)
 
 # --- Agents ---
 
@@ -247,7 +262,7 @@ class AnswerFormatter(LlmAgent):
     def __init__(self, model, tools_helper: AdkTools, **kwargs):
         
         async def write_answer_file(json_content: str, tool_context: ToolContext) -> str:
-            """Writes the final JSON answer to a unique session file."""
+            """Writes the final JSON answer to a session-specific filename."""
             sid = tool_context.session.id
             return tools_helper.write_file(f"answer_{sid}.json", json_content)
 
@@ -264,9 +279,10 @@ Extract the final answer and format it strictly as JSON adhering to `UniversalAn
 
 **CRITICAL INSTRUCTION:**
 1.  **Set `benchmark_type` to "{benchmark_type}" exactly.**
-2.  Generate the JSON object.
-3.  Call the `write_answer_file` tool with the JSON string.
-4.  **Field Requirements per Type:**
+2.  Generate the JSON object. 
+3.  **JSON ESCAPING:** You MUST escape all special characters in string values. Use `\\n` for newlines and `\\"` for double quotes. Literal control characters (like raw newlines) will break the parser.
+4.  Call the `write_answer_file` tool with the JSON string.
+5.  **Field Requirements per Type:**
     *   **api_understanding**: `benchmark_type`="api_understanding". Required: `fully_qualified_class_name`, `code` (snippet).
     *   **fix_error**: `benchmark_type`="fix_error". Required: `code` (full file content).
     *   **multiple_choice**: `benchmark_type`="multiple_choice". Required: `answer` (Letter A-E).
@@ -322,4 +338,3 @@ def create_task_aware_generator_v45(
         api_key_manager=api_key_manager, 
         model_name=model_name
     )
-

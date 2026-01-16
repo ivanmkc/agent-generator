@@ -674,55 +674,48 @@ class AdkAnswerGenerator(LlmAnswerGenerator):
             extra_tags=extra_tags
         )
 
-        self._print_timing_report(session_id, collector.execution_sequence)
+        self._print_timing_report(session_id, collector.execution_sequence, logs=collector.logs)
 
         return final_response, collector.logs, usage_metadata, session_id
 
-    def _print_timing_report(self, session_id: str, execution_sequence: list):
-        print(f"\n--- Agent Timing & Token Report [{session_id}] ---")
+    def _print_timing_report(self, session_id: str, execution_sequence: list, logs: list[TraceLogEvent] = None):
+        print(f"\n--- Tool Execution Path [{session_id}] ---")
         
-        i = 0
-        while i < len(execution_sequence):
-            item = execution_sequence[i]
-            agent = item['agent']
-            
-            # Format token string
-            token_str = ""
-            if item.get('prompt_tokens', 0) > 0 or item.get('completion_tokens', 0) > 0:
-                token_str = f" [Tokens: {item.get('prompt_tokens', 0)} prompt + {item.get('completion_tokens', 0)} completion]"
-
-            # Check for start of loop (candidate_creator)
-            if agent == "candidate_creator":
-                # Scan ahead to capture the loop
-                loop_items = []
-                # Loop must involve candidate_creator and verifier
-                while i < len(execution_sequence) and execution_sequence[i]['agent'] in ["candidate_creator", "verifier"]:
-                    loop_items.append(execution_sequence[i])
-                    i += 1
+        # If we have the full logs, use them for a detailed trace
+        if logs:
+            indent_level = 0
+            for event in logs:
+                timestamp = event.timestamp.split("T")[1][:12] if "T" in event.timestamp else event.timestamp
                 
-                # Did we actually find a loop?
-                if len(loop_items) > 0:
-                    total_loop_time = sum(x['duration'] for x in loop_items)
-                    total_loop_prompt = sum(x.get('prompt_tokens', 0) for x in loop_items)
-                    total_loop_completion = sum(x.get('completion_tokens', 0) for x in loop_items)
+                if event.type == TraceEventType.ADK_EVENT and event.role == "system":
+                    # This often indicates an Agent starting or receiving context
+                    # heuristic: author is the agent name
+                    print(f"[{timestamp}] {event.author}")
                     
-                    # Count iterations: Number of times 'verifier' appears implies an attempt.
-                    verifier_count = sum(1 for x in loop_items if x['agent'] == "verifier")
-                    iterations = verifier_count if verifier_count > 0 else 1
+                elif event.type == TraceEventType.TOOL_USE:
+                    # Indent tool calls
+                    tool_input_summary = str(event.tool_input)[:100] + "..." if len(str(event.tool_input)) > 100 else str(event.tool_input)
+                    print(f"  -> Tool Call: {event.tool_name}({tool_input_summary})")
                     
-                    avg_time = total_loop_time / iterations if iterations else 0
+                elif event.type == TraceEventType.TOOL_RESULT:
+                    # Indent tool results
+                    tool_output_summary = str(event.tool_output)[:100] + "..." if len(str(event.tool_output)) > 100 else str(event.tool_output)
+                    print(f"  <- Tool Output: {tool_output_summary}")
                     
-                    print(f"Implementation Loop (Total: {total_loop_time:.2f}s, Tokens: {total_loop_prompt}P + {total_loop_completion}C, Iterations: {iterations}, Avg: {avg_time:.2f}s/iter):")
-                    for loop_item in loop_items:
-                         l_token_str = ""
-                         if loop_item.get('prompt_tokens', 0) > 0 or loop_item.get('completion_tokens', 0) > 0:
-                             l_token_str = f" [Tokens: {loop_item.get('prompt_tokens', 0)}P + {loop_item.get('completion_tokens', 0)}C]"
-                         print(f"  - {loop_item['agent']}: {loop_item['duration']:.2f}s{l_token_str}")
-                    
-                    continue
-            
-            # Normal item
-            print(f"{item['agent']}: {item['duration']:.2f}s{token_str}")
-            i += 1
+                elif event.type == TraceEventType.MESSAGE and event.role == "model":
+                    # Model response (often thoughts or final answer)
+                    # We can show token usage if available in details/usage_metadata, but it's hard to link exactly here without state tracking
+                    # Just show that the agent spoke
+                    content_preview = event.content[:50].replace("\n", " ") + "..." if len(event.content) > 50 else event.content
+                    print(f"  [Model] {event.author}: \"{content_preview}\"")
+
+        else:
+            # Fallback to the simple agent sequence if logs aren't provided (legacy behavior)
+            print("(Detailed logs not available, showing agent sequence)")
+            for item in execution_sequence:
+                token_str = ""
+                if item.get('prompt_tokens', 0) > 0 or item.get('completion_tokens', 0) > 0:
+                    token_str = f" [Tokens: {item.get('prompt_tokens', 0)}P + {item.get('completion_tokens', 0)}C]"
+                print(f"{item['agent']}: {item['duration']:.2f}s{token_str}")
             
         print("-------------------------------------------\n")
