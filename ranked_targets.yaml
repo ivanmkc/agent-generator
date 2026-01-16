@@ -714,8 +714,8 @@
     BaseModel:
     - signature: 'model_config: ConfigDict'
   omitted_inherited_members_from:
-  - pydantic.BaseModel
   - ABC
+  - pydantic.BaseModel
 - rank: 12
   id: google.adk.sessions.in_memory_session_service.InMemorySessionService
   name: InMemorySessionService
@@ -2809,8 +2809,8 @@
   - signature: 'OPEN_ID_CONNECT: str'
   - signature: 'SERVICE_ACCOUNT: str'
   omitted_inherited_members_from:
-  - Enum
   - str
+  - Enum
 - rank: 93
   id: google.adk.agents.sequential_agent
   name: sequential_agent
@@ -6759,8 +6759,8 @@
   - signature: 'IMPLICIT: str'
   - signature: 'PASSWORD: str'
   omitted_inherited_members_from:
-  - Enum
   - str
+  - Enum
 - rank: 380
   id: google.adk.auth.auth_schemes.OAuthGrantType.from_flow
   name: from_flow
@@ -19151,8 +19151,8 @@
   - signature: 'ENVIRONMENT_BROWSER: str'
     docstring: Operates in a web browser.
   omitted_inherited_members_from:
-  - Enum
   - str
+  - Enum
 - rank: 1482
   id: google.adk.tools.computer_use.base_computer.ComputerState
   name: ComputerState
