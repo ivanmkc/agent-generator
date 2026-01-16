@@ -71,3 +71,22 @@ PYTHONPATH=. env/bin/python benchmarks/benchmark_generator/run_generator.py \
 *   `tools.py`: Core logic (Cartographer, BFS Strategist, Truth Lab, Sandbox).
 *   `logger.py`: Colored console logging and structured file tracing.
 *   `irt.py`: IRT-based prioritization scoring (Legacy support).
+
+## Tooling & Outputs
+
+The system relies on a set of specialized tools to map the codebase and prioritize testing targets.
+
+### Primary Tools
+*   **`benchmarks/benchmark_generator/target_ranker.py`**: The main orchestrator. It triggers the repository scan, resolves inheritance hierarchies, applies filtering logic (like exclusion phrases), and generates the final reports.
+*   **`benchmarks/benchmark_generator/tools.py`**: Contains the core `scan_repository` logic. It uses a specialized AST visitor to map the framework's physical structure, extract full signatures, and identify property types.
+*   **`tools/api_indexer.py`**: An AST-based usage scanner. It analyzes consumer code (samples and tests) to count how many times each class and method is called.
+
+### Data & Artifacts (`benchmarks/benchmark_generator/data/`)
+*   **`ranked_targets.yaml`**: The definitive dataset. 1,703 public ADK entities enriched with full signatures, typed properties, clean docstrings, and grouped by inheritance. It is ranked by statistical relevance (usage in samples).
+*   **`ranked_targets.md`**: A human-readable prioritized list of the top targets (Seeds) and their internal reachability.
+
+### Supporting Configuration
+*   **`indexer_config_comprehensive.yaml`**: Configures the indexer to scan both `adk-samples/python` and `adk-python/contributing/samples` for a broad statistical base.
+*   **`.vscode/tasks.json`**: Contains automated tasks:
+    *   `Recalculate API Usage Stats`: Runs the indexer.
+    *   `Regenerate Ranked Targets`: Runs the ranker to update the data files.

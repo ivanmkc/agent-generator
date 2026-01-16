@@ -70,7 +70,10 @@ class TargetRanker:
                 return False
         return True
 
-    async def generate(self, output_yaml_path: str = "ranked_targets.yaml", output_md_path: str = "ranked_targets.md"):
+    async def generate(self, output_yaml_path: str = "benchmarks/benchmark_generator/data/ranked_targets.yaml", output_md_path: str = "benchmarks/benchmark_generator/data/ranked_targets.md"):
+        # Ensure output directory exists
+        Path(output_yaml_path).parent.mkdir(parents=True, exist_ok=True)
+        
         # Setup Context
         session_service = InMemorySessionService()
         session = await session_service.create_session(session_id="gen_rank", user_id="ranker", app_name="ranker")
