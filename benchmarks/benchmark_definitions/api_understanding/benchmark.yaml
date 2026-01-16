@@ -56,11 +56,12 @@ benchmarks:
   template: identifier
   answers:
   - answer_template: StringMatchAnswer
-    answer: name
-    fully_qualified_class_name:
-    - google.adk.agents.base_agent.BaseAgent
-    - google.adk.agents.BaseAgent
-  file: src/google/adk/agents/base_agent.py
+            answer: name
+            fully_qualified_class_name:
+            - google.adk.agents.base_agent.BaseAgent
+            - google.adk.agents.BaseAgent
+            - google.adk.agents.base_agent_config.BaseAgentConfig
+            - google.adk.agents.BaseAgentConfig  file: src/google/adk/agents/base_agent.py
 - id: api_understanding:which_class_is_used_to_define_a_sequence_of_agents
   category: Core Class Signatures & Initialization
   question: Which class is used to define a sequence of agents that run in order?
@@ -73,6 +74,8 @@ benchmarks:
     fully_qualified_class_name:
     - google.adk.agents.sequential_agent.SequentialAgent
     - google.adk.agents.SequentialAgent
+    - google.adk.agents.sequential_agent_config.SequentialAgentConfig
+    - google.adk.agents.SequentialAgentConfig
   file: src/google/adk/agents/sequential_agent.py
 - id: api_understanding:which_class_is_the_primary_entry_point_for_running
   category: Core Class Signatures & Initialization
@@ -124,6 +127,8 @@ benchmarks:
     fully_qualified_class_name:
     - google.adk.agents.loop_agent.LoopAgent
     - google.adk.agents.LoopAgent
+    - google.adk.agents.loop_agent_config.LoopAgentConfig
+    - google.adk.agents.LoopAgentConfig
   file: src/google/adk/agents/loop_agent.py
 - id: api_understanding:which_parameter_specifies_the_model_for_an_llmagen
   category: Configuration Parameters
@@ -137,6 +142,11 @@ benchmarks:
     fully_qualified_class_name:
     - google.adk.agents.llm_agent.LlmAgent
     - google.adk.agents.LlmAgent
+    - google.adk.agents.llm_agent.Agent
+    - google.adk.agents.Agent
+    - google.adk.Agent
+    - google.adk.agents.llm_agent_config.LlmAgentConfig
+    - google.adk.agents.LlmAgentConfig
   file: src/google/adk/agents/llm_agent.py
 - id: api_understanding:where_can_i_configure_llm_generation_parameters_li
   category: Configuration Parameters
@@ -150,6 +160,11 @@ benchmarks:
     fully_qualified_class_name:
     - google.adk.agents.llm_agent.LlmAgent
     - google.adk.agents.LlmAgent
+    - google.adk.agents.llm_agent.Agent
+    - google.adk.agents.Agent
+    - google.adk.Agent
+    - google.adk.agents.llm_agent_config.LlmAgentConfig
+    - google.adk.agents.LlmAgentConfig
   file: src/google/adk/agents/llm_agent.py
 - id: api_understanding:which_parameter_on_an_llmagent_is_used_to_attach_a
   category: Configuration Parameters
@@ -163,6 +178,11 @@ benchmarks:
     fully_qualified_class_name:
     - google.adk.agents.llm_agent.LlmAgent
     - google.adk.agents.LlmAgent
+    - google.adk.agents.llm_agent.Agent
+    - google.adk.agents.Agent
+    - google.adk.Agent
+    - google.adk.agents.llm_agent_config.LlmAgentConfig
+    - google.adk.agents.LlmAgentConfig
   file: src/google/adk/agents/llm_agent.py
 - id: api_understanding:which_method_is_used_to_register_a_new_llm_impleme
   category: Configuration Parameters
@@ -203,6 +223,13 @@ benchmarks:
     fully_qualified_class_name:
     - google.adk.agents.base_agent.BaseAgent
     - google.adk.agents.BaseAgent
+    - google.adk.agents.base_agent_config.BaseAgentConfig
+    - google.adk.agents.BaseAgentConfig
+  - answer_template: StringMatchAnswer
+    answer: before_agent_callbacks
+    fully_qualified_class_name:
+    - google.adk.agents.base_agent_config.BaseAgentConfig
+    - google.adk.agents.BaseAgentConfig
   file: src/google/adk/agents/base_agent.py
 - id: api_understanding:which_parameter_on_baseagent_defines_a_callback_th_2
   category: Hooks and Lifecycle Methods
@@ -216,6 +243,13 @@ benchmarks:
     fully_qualified_class_name:
     - google.adk.agents.base_agent.BaseAgent
     - google.adk.agents.BaseAgent
+    - google.adk.agents.base_agent_config.BaseAgentConfig
+    - google.adk.agents.BaseAgentConfig
+  - answer_template: StringMatchAnswer
+    answer: after_agent_callbacks
+    fully_qualified_class_name:
+    - google.adk.agents.base_agent_config.BaseAgentConfig
+    - google.adk.agents.BaseAgentConfig
   file: src/google/adk/agents/base_agent.py
 - id: api_understanding:which_parameter_on_llmagent_allows_for_custom_logi
   category: Hooks and Lifecycle Methods
@@ -229,6 +263,16 @@ benchmarks:
     fully_qualified_class_name:
     - google.adk.agents.llm_agent.LlmAgent
     - google.adk.agents.LlmAgent
+    - google.adk.agents.llm_agent.Agent
+    - google.adk.agents.Agent
+    - google.adk.Agent
+    - google.adk.agents.llm_agent_config.LlmAgentConfig
+    - google.adk.agents.LlmAgentConfig
+  - answer_template: StringMatchAnswer
+    answer: before_model_callbacks
+    fully_qualified_class_name:
+    - google.adk.agents.llm_agent_config.LlmAgentConfig
+    - google.adk.agents.LlmAgentConfig
   file: src/google/adk/agents/llm_agent.py
 - id: api_understanding:which_abstract_base_class_allows_for_implementing_
   category: Hooks and Lifecycle Methods
@@ -316,6 +360,11 @@ benchmarks:
     fully_qualified_class_name:
     - google.adk.agents.llm_agent.LlmAgent
     - google.adk.agents.LlmAgent
+    - google.adk.agents.llm_agent.Agent
+    - google.adk.agents.Agent
+    - google.adk.Agent
+    - google.adk.agents.llm_agent_config.LlmAgentConfig
+    - google.adk.agents.LlmAgentConfig
   file: src/google/adk/agents/llm_agent.py
 - id: api_understanding:what_is_the_abstract_base_class_for_implementing_c
   category: Data Structure Access & Best Practices
@@ -328,6 +377,7 @@ benchmarks:
     answer: BaseSessionService
     fully_qualified_class_name:
     - google.adk.sessions.base_session_service.BaseSessionService
+    - google.adk.sessions.BaseSessionService
   file: src/google/adk/sessions/base_session_service.py
 - id: api_understanding:what_is_the_invocationcontext_object
   category: Data Structure Access & Best Practices
@@ -389,6 +439,7 @@ benchmarks:
     answer: ToolContext
     fully_qualified_class_name:
     - google.adk.tools.tool_context.ToolContext
+    - google.adk.tools.ToolContext
   file: src/google/adk/tools/tool_context.py
 - id: api_understanding:what_s_the_easiest_way_to_create_a_tool_from_a_pyt
   category: Core Class Signatures & Initialization
@@ -401,6 +452,7 @@ benchmarks:
     answer: FunctionTool
     fully_qualified_class_name:
     - google.adk.tools.function_tool.FunctionTool
+    - google.adk.tools.FunctionTool
   file: src/google/adk/tools/function_tool.py
 - id: api_understanding:which_class_is_used_to_configure_tools_in_yaml_fil
   category: Configuration Parameters
@@ -450,6 +502,8 @@ benchmarks:
     fully_qualified_class_name:
     - google.adk.agents.parallel_agent.ParallelAgent
     - google.adk.agents.ParallelAgent
+    - google.adk.agents.parallel_agent_config.ParallelAgentConfig
+    - google.adk.agents.ParallelAgentConfig
   file: src/google/adk/agents/parallel_agent.py
 - id: api_understanding:which_class_provides_the_capability_to_add_plugins
   category: Core Class Signatures & Initialization
@@ -504,6 +558,7 @@ benchmarks:
     answer: BaseTool
     fully_qualified_class_name:
     - google.adk.tools.base_tool.BaseTool
+    - google.adk.tools.BaseTool
   file: src/google/adk/tools/base_tool.py
 - id: api_understanding:which_parameter_forces_an_llmagent_to_return_a_str
   category: Configuration Parameters
@@ -517,6 +572,11 @@ benchmarks:
     fully_qualified_class_name:
     - google.adk.agents.llm_agent.LlmAgent
     - google.adk.agents.LlmAgent
+    - google.adk.agents.llm_agent.Agent
+    - google.adk.agents.Agent
+    - google.adk.Agent
+    - google.adk.agents.llm_agent_config.LlmAgentConfig
+    - google.adk.agents.LlmAgentConfig
   file: src/google/adk/agents/llm_agent.py
 - id: api_understanding:which_llmagent_parameter_is_used_for_static_unchan
   category: Configuration Parameters
@@ -530,6 +590,11 @@ benchmarks:
     fully_qualified_class_name:
     - google.adk.agents.llm_agent.LlmAgent
     - google.adk.agents.LlmAgent
+    - google.adk.agents.llm_agent.Agent
+    - google.adk.agents.Agent
+    - google.adk.Agent
+    - google.adk.agents.llm_agent_config.LlmAgentConfig
+    - google.adk.agents.LlmAgentConfig
   file: src/google/adk/agents/llm_agent.py
 - id: api_understanding:which_method_finds_a_specific_agent_within_a_multi
   category: Agent-to-Agent Communication
