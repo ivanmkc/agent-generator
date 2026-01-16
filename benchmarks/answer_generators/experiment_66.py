@@ -117,8 +117,9 @@ class SingleStepSolver(LlmAgent):
                 "**GOAL:**\n"
                 "Answer the request using ONLY the provided context and the specific instructions in the Request.\n"
                 "1. **Coding Tasks:** Implement EXACTLY what is asked. Do not hallucinate factory patterns or boilerplate unless requested. Use the retrieved API signatures.\n"
-                "2. **API Questions:** Identify the Fully Qualified Name (FQN) and provide the exact import path.\n"
-                "3. **Multiple Choice:** Evaluate the options against the retrieved docstrings.\n\n"
+                "2. **API Questions:** Identify the Fully Qualified Name (FQN) and provide the exact import path. **Prefer the defining base class** (e.g., `BaseAgent` for `find_agent`, `App` for `plugins`) unless the question specifies a subclass.\n"
+                "3. **Parameter Names:** Use the EXACT field name found in the inspection output (e.g., `output_key`, not `output_to_session`).\n"
+                "4. **Multiple Choice:** Evaluate the options against the retrieved docstrings.\n\n"
                 "**OUTPUT:**\n"
                 "Provide a detailed, natural language response containing the code, FQNs, or reasoning required."
             ),
@@ -140,11 +141,16 @@ def _create_hierarchical_retrieval_agent(tools_helper: AdkTools, model) -> Agent
         """Inspects a Python object (class or module) to reveal docstrings, hierarchy, and members."""
         return await tools_helper.inspect_fqn(fqn)
 
+    async def search_ranked_targets(query: str, tool_context: ToolContext) -> str:
+        """Searches the ranked index of ADK symbols by keyword (FQN or docstring)."""
+        return tools_helper.search_ranked_targets(query)
+
     hierarchical_agent = LlmAgent(
         name="hierarchical_retrieval_agent",
         model=model,
         tools=[
              FunctionTool(list_ranked_targets),
+             FunctionTool(search_ranked_targets),
              FunctionTool(inspect_fqn),
              FunctionTool(save_selected_seeds)
         ],
@@ -152,14 +158,16 @@ def _create_hierarchical_retrieval_agent(tools_helper: AdkTools, model) -> Agent
         instruction=(
              "You are the Hierarchical Retrieval Agent. Your goal is to find the relevant ADK classes/methods for the user request.\n\n"
              "**TOOLS:**\n"
-             "1. `list_ranked_targets(page)`: Browse the ranked index of ADK symbols. Start at page 1. It shows FQN, Rank, and Docstring summary.\n"
-             "2. `inspect_fqn(fqn)`: Inspect a specific symbol. Use this to get FULL docstrings, method signatures, and class hierarchy (MRO).\n"
-             "3. `save_selected_seeds(seeds)`: Call this when you have found the necessary information to answer the user request.\n\n"
+             "1. `search_ranked_targets(query)`: Search the index by keyword. This is the FASTEST way to find symbols.\n"
+             "2. `list_ranked_targets(page)`: Browse the ranked index. Useful if keyword search fails.\n"
+             "3. `inspect_fqn(fqn)`: Inspect a specific symbol. GETS FULL DETAILS (docstrings, hierarchy, members).\n"
+             "4. `save_selected_seeds(seeds)`: Call this when you have found the necessary information to answer the user request.\n\n"
              "**STRATEGY:**\n"
-             "- **Search:** Use `list_ranked_targets` to find candidates. You may need to check multiple pages if the top results aren't relevant.\n"
-             "- **Inspect:** Once you see a promising candidate (e.g. `InMemorySessionService`), INSPECT it using `inspect_fqn`.\n"
-             "- **Expand:** If the candidate is a concrete class but you need the base interface (or vice versa), check the MRO/Bases in the inspection output and inspect those parents too.\n"
-             "- **Done:** Once you have gathered the API details (signatures, docstrings) needed to write the code or answer the question, call `save_selected_seeds`."
+             "- **Parameters? Check Configs:** If asked about a parameter (e.g., 'static instruction'), check the **CONFIG** class (e.g., `LlmAgentConfig`, `BaseAgentConfig`) in addition to the Agent class.\n"
+             "- **Search Broadly:** If 'observer' returns nothing, try synonyms like 'log', 'monitor', 'telemetry'. If 'sequence' fails, try 'sequential'.\n"
+             "- **Inspect Everything:** Never guess a parameter name. Inspect the class to see the exact field name (e.g., `output_key` vs `output_to_session`).\n"
+             "- **Inheritance:** If a method is found on a subclass but defined in a Base class (check MRO), note the Base class FQN.\n"
+             "- **Finalize:** Once you verify the exact symbol/parameter exists, call `save_selected_seeds` and stop."
              "\n\nRequest: {user_request}"
         )
     )
@@ -298,7 +306,7 @@ def create_ranked_index_generator_v46(
     setup_agent = SetupAgentCodeBased(name='setup_agent', workspace_root=workspace_root, tools_helper=tools_helper)
     
     hierarchical_agent = _create_hierarchical_retrieval_agent(tools_helper, gemini_client)
-    solver = SingleStepSolver(model=gemini_client, tools_helper=tools_helper)
+    solver = SingleStepSolver(model=gemini_client)
     teardown = CodeBasedTeardownAgent(name='teardown', workspace_root=workspace_root, tools_helper=tools_helper)
 
     # NO Formatter Agent in the chain!
