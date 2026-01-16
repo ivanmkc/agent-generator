@@ -221,23 +221,19 @@ def scan_repository(repo_path: str, tool_context: ToolContext, coverage_file: Op
                         params = {arg.arg: (ast.unparse(arg.annotation) if arg.annotation else "Any") for arg in node.args.args if arg.arg != "self"}
                         doc = ast.get_docstring(node)
                         
+                        # Reconstruct Full Signature
+                        args_str = ast.unparse(node.args)
+                        ret_str = f" -> {ast.unparse(node.returns)}" if node.returns else ""
+                        full_sig = f"def {node.name}({args_str}){ret_str}:"
+                        
                         # Structure Map
                         structure_map[func_fqn] = {
-                            "type": "Method", "name": node.name, "children": [], "params": params, "props": [], "docstring": doc
+                            "type": "Method", "name": node.name, "children": [], "params": params, "props": [], "docstring": doc, "signature": full_sig
                         }
                         if parent_fqn in structure_map:
                             structure_map[parent_fqn]["children"].append(func_fqn)
 
                         if node.end_lineno - node.lineno >= 3:
-                            # Reconstruct Full Signature
-                            args_str = ast.unparse(node.args)
-                            # args_str from unparse usually doesn't include parens for arguments object? 
-                            # Wait, ast.unparse(node.args) returns "arg1, arg2". We need to wrap it.
-                            # Also check if it's empty.
-                            
-                            ret_str = f" -> {ast.unparse(node.returns)}" if node.returns else ""
-                            full_sig = f"def {node.name}({args_str}){ret_str}:"
-
                             # Entity
                             func_stats = usage_stats.get(func_fqn, {})
                             entities.append(TargetEntity(
@@ -311,28 +307,56 @@ def scan_repository(repo_path: str, tool_context: ToolContext, coverage_file: Op
             EntityVisitor(module_fqn, str(relative_path)).visit(tree)
         except Exception: pass
     
-    # --- Post-Scan Usage Correction ---
-    # Fix 0 usage scores by resolving aliases (Public FQN vs Physical FQN)
-    # The stats file uses Public FQNs (e.g. google.adk.agents.LlmAgent),
-    # but the scanner produces Physical FQNs (e.g. google.adk.agents.llm_agent.LlmAgent).
+    # --- Post-Scan Usage Correction (Runtime Identity) ---
+    # Resolve aliases by checking if objects are identical in memory.
     
-    # 1. Build Reverse Alias Map (Canonical -> Alias)
-    # alias_map has {Alias -> Canonical}, we need {Canonical -> Alias}
-    # Note: Multiple aliases might map to one canonical, we take the first found.
-    reverse_alias_map = {v: k for k, v in alias_map.items()}
+    print("[DEBUG] Building Runtime Usage Map...")
+    runtime_usage_map = {} # {id(obj): count}
     
-    # 2. Iterate and Fix
+    # Pre-load usage stats into memory map
+    sys.path.insert(0, str(root_dir)) # Ensure we can import
+    for fqn, stats in usage_stats.items():
+        try:
+            # Import module and get object
+            parts = fqn.split(".")
+            module_name = ".".join(parts[:-1])
+            obj_name = parts[-1]
+            module = __import__(module_name, fromlist=[obj_name])
+            obj = getattr(module, obj_name)
+            obj_id = id(obj)
+            current_count = runtime_usage_map.get(obj_id, 0)
+            runtime_usage_map[obj_id] = current_count + stats.get("total_calls", 0)
+        except Exception:
+            pass # Ignore import errors for stats keys
+
+    # Fix Entities
+    print(f"[DEBUG] Correcting {len(entities)} entities using runtime identity...")
     for entity in entities:
         if entity.usage_score == 0:
-            # Check if this entity's ID (Physical FQN) is a canonical target of an alias
-            public_fqn = reverse_alias_map.get(entity.id)
-            if public_fqn:
-                # Look up stats using the Public FQN
-                stats = usage_stats.get(public_fqn, {})
-                calls = stats.get("total_calls", 0)
-                if calls > 0:
-                    print(f"[DEBUG] Correcting usage for {entity.id}: 0 -> {calls} (via alias {public_fqn})")
-                    entity.usage_score = calls
+            try:
+                # Import entity
+                parts = entity.id.split(".")
+                # Handle module vs class/func
+                if entity.type == TargetType.MODULE:
+                    obj = __import__(entity.id, fromlist=["*"])
+                else:
+                    module_name = ".".join(parts[:-1])
+                    obj_name = parts[-1]
+                    module = __import__(module_name, fromlist=[obj_name])
+                    obj = getattr(module, obj_name)
+                
+                # Check identity
+                if id(obj) in runtime_usage_map:
+                    calls = runtime_usage_map[id(obj)]
+                    if calls > 0:
+                        print(f"[DEBUG] Correcting usage for {entity.id}: 0 -> {calls} (Runtime Identity Match)")
+                        entity.usage_score = calls
+            except Exception:
+                pass # Fail silently if we can't import/find (e.g. syntax errors in file)
+    
+    # Remove from sys.path to be clean
+    if str(root_dir) in sys.path:
+        sys.path.remove(str(root_dir))
 
     # Save scanned data to session state for the Strategist
     tool_context.session.state["scanned_targets"] = [e.model_dump() for e in entities]
