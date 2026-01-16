@@ -25,6 +25,7 @@ import json
 import asyncio
 import functools
 import ast
+from benchmarks.benchmark_generator.models import RankedTarget
 
 # Try to import yaml
 try:
@@ -300,6 +301,71 @@ class AdkTools:
             
         return "\n".join(output)
 
+    def _load_ranked_targets(self) -> List[RankedTarget]:
+        candidates = [
+            self.workspace_root / "benchmarks/benchmark_generator/data/ranked_targets.yaml",
+            self.workspace_root / "ranked_targets.yaml",
+            Path("benchmarks/benchmark_generator/data/ranked_targets.yaml"),
+            Path("ranked_targets.yaml"),
+            Path(__file__).resolve().parent.parent.parent / "ranked_targets.yaml",
+            Path(__file__).resolve().parent.parent / "benchmark_generator/data/ranked_targets.yaml"
+        ]
+        
+        index_path = None
+        for p in candidates:
+            if p.exists():
+                index_path = p
+                break
+        
+        if not index_path:
+            return []
+
+        try:
+            with open(index_path, "r", encoding="utf-8") as f:
+                raw_data = yaml.safe_load(f)
+            return [RankedTarget(**item) for item in raw_data]
+        except Exception:
+            return []
+
+    def inspect_ranked_target(self, fqn: str) -> str:
+        """
+        Inspects a target using the offline ranked_targets.yaml index.
+        """
+        data = self._load_ranked_targets()
+        if not data:
+            return "Error: ranked_targets.yaml not found or empty."
+            
+        target = next((item for item in data if item.id == fqn), None)
+        if not target:
+            return f"Target '{fqn}' not found in ranked index."
+            
+        output = [f"=== Inspection: {target.id} ==="]
+        output.append(f"Type: {target.type}")
+        output.append(f"Rank: {target.rank}")
+        output.append(f"Usage Score: {target.usage_score}")
+        output.append(f"\n[Docstring]\n{target.docstring}")
+        
+        if target.methods:
+            output.append("\n[Methods]")
+            for m in target.methods:
+                doc = (m.docstring or "").split('\n')[0][:100]
+                output.append(f"  - {m.signature}\n    Doc: {doc}")
+                
+        if target.properties:
+            output.append("\n[Properties]")
+            for p in target.properties:
+                doc = (p.docstring or "").split('\n')[0][:100]
+                output.append(f"  - {p.signature}\n    Doc: {doc}")
+
+        if target.inherited_methods:
+            output.append("\n[Inherited Methods]")
+            for base, methods in target.inherited_methods.items():
+                output.append(f"  From {base}:")
+                for m in methods:
+                    output.append(f"    - {m.signature}")
+
+        return "\n".join(output)
+
     async def inspect_fqn(self, fqn: str, depth: int = 0) -> str:
         """
         Inspects a Python object (class or module) given its fully qualified name.
@@ -317,28 +383,13 @@ class AdkTools:
         """
         Lists ranked ADK targets from the index, paginated.
         """
-        # Try finding the yaml file in common locations
-        candidates = [
-            self.workspace_root / "ranked_targets.yaml",
-            Path("ranked_targets.yaml"),
-            Path(__file__).resolve().parent.parent.parent / "ranked_targets.yaml"
-        ]
-        
-        index_path = None
-        for p in candidates:
-            if p.exists():
-                index_path = p
-                break
-        
-        if not index_path:
-            return "Error: ranked_targets.yaml not found."
-        
         try:
             if not yaml:
                 return "Error: PyYAML not installed."
 
-            with open(index_path, "r", encoding="utf-8") as f:
-                data = yaml.safe_load(f)
+            data = self._load_ranked_targets()
+            if not data:
+                return "Error: ranked_targets.yaml not found or empty."
             
             total_items = len(data)
             max_page = (total_items + page_size - 1) // page_size
@@ -357,9 +408,9 @@ class AdkTools:
             lines.append(f"Showing items {start_idx + 1} to {min(end_idx, total_items)} of {total_items}")
             
             for item in page_items:
-                fqn = item.get("id", "unknown")
-                rank = item.get("rank", 0)
-                doc = item.get("docstring") or "No description."
+                fqn = item.id
+                rank = item.rank
+                doc = item.docstring or "No description."
                 doc_summary = doc.split('\n')[0].strip()
                 if len(doc_summary) > 80: doc_summary = doc_summary[:77] + "..."
                 lines.append(f"[{rank}] {fqn}: {doc_summary}")
@@ -373,28 +424,13 @@ class AdkTools:
         """
         Searches the ranked targets index for FQNs or docstrings matching the query (or list of queries), paginated.
         """
-        # Try finding the yaml file in common locations
-        candidates = [
-            self.workspace_root / "ranked_targets.yaml",
-            Path("ranked_targets.yaml"),
-            Path(__file__).resolve().parent.parent.parent / "ranked_targets.yaml"
-        ]
-        
-        index_path = None
-        for p in candidates:
-            if p.exists():
-                index_path = p
-                break
-        
-        if not index_path:
-            return "Error: ranked_targets.yaml not found."
-            
         try:
             if not yaml:
                 return "Error: PyYAML not installed."
 
-            with open(index_path, "r", encoding="utf-8") as f:
-                data = yaml.safe_load(f)
+            data = self._load_ranked_targets()
+            if not data:
+                return "Error: ranked_targets.yaml not found or empty."
             
             if isinstance(query, list):
                 queries = [str(q).lower() for q in query]
@@ -403,8 +439,8 @@ class AdkTools:
 
             results = []
             for item in data:
-                fqn = item.get("id", "").lower()
-                doc = (item.get("docstring") or "").lower()
+                fqn = item.id.lower()
+                doc = (item.docstring or "").lower()
                 # Match if ANY query term is present in FQN or docstring
                 if any(q in fqn or q in doc for q in queries):
                     results.append(item)
@@ -431,9 +467,9 @@ class AdkTools:
             output.append(f"Showing items {start_idx + 1} to {min(end_idx, total_items)}")
             
             for item in page_items:
-                fqn = item.get("id", "unknown")
-                rank = item.get("rank", 0)
-                doc = item.get("docstring") or "No description."
+                fqn = item.id
+                rank = item.rank
+                doc = item.docstring or "No description."
                 doc_summary = doc.split('\n')[0].strip()
                 if len(doc_summary) > 80: doc_summary = doc_summary[:77] + "... "
                 output.append(f"[{rank}] {fqn}: {doc_summary}")

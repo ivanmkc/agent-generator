@@ -139,7 +139,7 @@ def _create_hierarchical_retrieval_agent(tools_helper: AdkTools, model) -> Agent
 
     async def inspect_fqn(fqn: str, tool_context: ToolContext) -> str:
         """Inspects a Python object (class or module) to reveal docstrings, hierarchy, and members."""
-        return await tools_helper.inspect_fqn(fqn)
+        return tools_helper.inspect_ranked_target(fqn)
 
     async def search_ranked_targets(query: str | list[str], page: int = 1, tool_context: ToolContext = None) -> str:
         """Searches the ranked index of ADK symbols by keyword(s). Supports pagination."""
