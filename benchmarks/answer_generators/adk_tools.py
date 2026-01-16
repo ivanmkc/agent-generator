@@ -369,6 +369,79 @@ class AdkTools:
         except Exception as e:
             return f"Error reading ranked targets: {e}"
 
+    def search_ranked_targets(self, query: str | list[str], page: int = 1, page_size: int = 20) -> str:
+        """
+        Searches the ranked targets index for FQNs or docstrings matching the query (or list of queries), paginated.
+        """
+        # Try finding the yaml file in common locations
+        candidates = [
+            self.workspace_root / "ranked_targets.yaml",
+            Path("ranked_targets.yaml"),
+            Path(__file__).resolve().parent.parent.parent / "ranked_targets.yaml"
+        ]
+        
+        index_path = None
+        for p in candidates:
+            if p.exists():
+                index_path = p
+                break
+        
+        if not index_path:
+            return "Error: ranked_targets.yaml not found."
+            
+        try:
+            if not yaml:
+                return "Error: PyYAML not installed."
+
+            with open(index_path, "r", encoding="utf-8") as f:
+                data = yaml.safe_load(f)
+            
+            if isinstance(query, list):
+                queries = [str(q).lower() for q in query]
+            else:
+                queries = [str(query).lower()]
+
+            results = []
+            for item in data:
+                fqn = item.get("id", "").lower()
+                doc = (item.get("docstring") or "").lower()
+                # Match if ANY query term is present in FQN or docstring
+                if any(q in fqn or q in doc for q in queries):
+                    results.append(item)
+            
+            if not results:
+                q_str = ", ".join(queries)
+                return f"No targets found matching: {q_str}."
+            
+            total_items = len(results)
+            max_page = (total_items + page_size - 1) // page_size
+            
+            if page < 1: page = 1
+            start_idx = (page - 1) * page_size
+            end_idx = start_idx + page_size
+            
+            if start_idx >= total_items:
+                q_str = ", ".join(queries)
+                return f"Page {page} is out of range for search '{q_str}'. Total results: {total_items} (max page {max_page})."
+            
+            page_items = results[start_idx:end_idx]
+            
+            q_str = ", ".join(queries)
+            output = [f"--- Search Results for '{q_str}' (Page {page} of {max_page}, Total: {total_items}) ---"]
+            output.append(f"Showing items {start_idx + 1} to {min(end_idx, total_items)}")
+            
+            for item in page_items:
+                fqn = item.get("id", "unknown")
+                rank = item.get("rank", 0)
+                doc = item.get("docstring") or "No description."
+                doc_summary = doc.split('\n')[0].strip()
+                if len(doc_summary) > 80: doc_summary = doc_summary[:77] + "... "
+                output.append(f"[{rank}] {fqn}: {doc_summary}")
+                
+            return "\n".join(output)
+        except Exception as e:
+            return f"Error searching ranked targets: {e}"
+
     def read_definitions(self, file_path: str) -> str:
         """Reads simplified python definitions using AST."""
         try:

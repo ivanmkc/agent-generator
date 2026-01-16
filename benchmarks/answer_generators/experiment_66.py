@@ -141,9 +141,9 @@ def _create_hierarchical_retrieval_agent(tools_helper: AdkTools, model) -> Agent
         """Inspects a Python object (class or module) to reveal docstrings, hierarchy, and members."""
         return await tools_helper.inspect_fqn(fqn)
 
-    async def search_ranked_targets(query: str, tool_context: ToolContext) -> str:
-        """Searches the ranked index of ADK symbols by keyword (FQN or docstring)."""
-        return tools_helper.search_ranked_targets(query)
+    async def search_ranked_targets(query: str | list[str], page: int = 1, tool_context: ToolContext = None) -> str:
+        """Searches the ranked index of ADK symbols by keyword(s). Supports pagination."""
+        return tools_helper.search_ranked_targets(query, page=page)
 
     hierarchical_agent = LlmAgent(
         name="hierarchical_retrieval_agent",
@@ -158,11 +158,12 @@ def _create_hierarchical_retrieval_agent(tools_helper: AdkTools, model) -> Agent
         instruction=(
              "You are the Hierarchical Retrieval Agent. Your goal is to find the relevant ADK classes/methods for the user request.\n\n"
              "**TOOLS:**\n"
-             "1. `search_ranked_targets(query)`: Search the index by keyword. This is the FASTEST way to find symbols.\n"
+             "1. `search_ranked_targets(query, page)`: Search the index by keyword (or list of keywords). FASTEST way to find symbols. Use next pages if needed.\n"
              "2. `list_ranked_targets(page)`: Browse the ranked index. Useful if keyword search fails.\n"
              "3. `inspect_fqn(fqn)`: Inspect a specific symbol. GETS FULL DETAILS (docstrings, hierarchy, members).\n"
              "4. `save_selected_seeds(seeds)`: Call this when you have found the necessary information to answer the user request.\n\n"
              "**STRATEGY:**\n"
+             "- **Search First:** Use `search_ranked_targets` with a list of keywords from the request (e.g., `['logging', 'session', 'max_iterations']`).\n"
              "- **Parameters? Check Configs:** If asked about a parameter (e.g., 'static instruction'), check the **CONFIG** class (e.g., `LlmAgentConfig`, `BaseAgentConfig`) in addition to the Agent class.\n"
              "- **Search Broadly:** If 'observer' returns nothing, try synonyms like 'log', 'monitor', 'telemetry'. If 'sequence' fails, try 'sequential'.\n"
              "- **Inspect Everything:** Never guess a parameter name. Inspect the class to see the exact field name (e.g., `output_key` vs `output_to_session`).\n"
