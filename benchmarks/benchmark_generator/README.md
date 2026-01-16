@@ -23,16 +23,29 @@ The system follows a closed-loop design with specialized pipelines for different
 The **Auditor** agent orchestrates the entire process, spending compute on high-value targets via a stateful BFS strategy.
 
 ### 1. Repository Cartography
-The `scan_repository` tool maps the repository topology using AST analysis, identifying hierarchies, dependencies, and public API surfaces while calculating a Cyclomatic Complexity heuristic.
+The `scan_repository` tool maps the repository topology using AST analysis, identifying hierarchies, dependencies, and public API surfaces.
 
 ### 2. BFS Prioritization Strategy
 The system generates a deterministic queue based on the following priority:
 
-1.  **Seeds (High Usage)**: Modules/classes with `usage_score > 0` in `adk_stats.yaml`, ranked by usage frequency.
+1.  **Seeds (High Usage)**: Modules/classes with `usage_score > 0` in `adk_stats_samples.yaml`, ranked by usage frequency.
 2.  **Dependencies**: For every seed, the system performs a **Breadth-First Search (BFS)** to identify all internal dependencies. This ensures that core infrastructure is tested before edge cases.
-3.  **Orphans**: Any remaining public entities (zero usage, no internal inbound dependencies) are appended to the end, ranked by complexity.
+3.  **Orphans**: Any remaining public entities (zero usage, no internal inbound dependencies) are appended to the end.
 
 The queue is computed once per session and cached in the SQLite database for consistency and performance.
+
+## Target List Maintenance
+
+To update the ranked target list (e.g., when new samples or framework code are added), run the following VS Code tasks in sequence:
+
+1.  **`Recalculate API Usage Stats`**:
+    *   Runs `api_indexer.py` using `indexer_config_comprehensive.yaml`.
+    *   Scans `adk-samples` and `contributing/samples` to determine which APIs are actually used by developers.
+    *   Output: `benchmarks/adk_stats_samples.yaml`.
+2.  **`Regenerate Ranked Targets`**:
+    *   Runs `target_ranker.py`.
+    *   Loads the stats from step 1, performs a repository scan with runtime identity resolution, and applies the BFS ranking.
+    *   Output: `benchmarks/benchmark_generator/data/ranked_targets.yaml` and `.md`.
 
 ## Reliability & Debugging
 
