@@ -169,6 +169,7 @@ def _create_hierarchical_retrieval_agent(tools_helper: AdkTools, model) -> Agent
              "- **Search Broadly:** If 'observer' returns nothing, try synonyms like 'log', 'monitor', 'telemetry'. If 'sequence' fails, try 'sequential'.\n"
              "- **Inspect Everything:** Never guess a parameter name. Inspect the class to see the exact field name (e.g., `output_key` vs `output_to_session`).\n"
              "- **Inheritance:** If a method is found on a subclass but defined in a Base class (check MRO), note the Base class FQN.\n"
+             "- **Ambiguity:** If multiple candidates seem correct, INSPECT both to differentiate. If still ambiguous, prefer the one with the higher rank (lower number) in `list_ranked_targets` or `search_ranked_targets` results.\n"
              "- **Finalize:** Once you verify the exact symbol/parameter exists, call `save_selected_seeds` and stop."
              "\n\nRequest: {user_request}"
         )
