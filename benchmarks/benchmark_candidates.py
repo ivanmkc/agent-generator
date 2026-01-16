@@ -19,6 +19,7 @@ from benchmarks.answer_generators.experiment_58 import create_coding_v38_generat
 from benchmarks.answer_generators.experiment_62 import create_refined_knowledge_generator_v42
 from benchmarks.answer_generators.experiment_64 import create_refined_knowledge_generator_v44
 from benchmarks.answer_generators.experiment_65 import create_task_aware_generator_v45
+from benchmarks.answer_generators.experiment_66 import create_ranked_index_generator_v46
 
 from benchmarks.answer_generators.gemini_cli_docker import (
     GeminiCliPodmanAnswerGenerator,
@@ -48,10 +49,16 @@ CANDIDATE_GENERATORS = [
     # create_statistical_v34_generator(model_name=ModelName.GEMINI_2_5_FLASH, api_key_manager=api_key_manager),
     # create_statistical_v35_generator(model_name=ModelName.GEMINI_2_5_FLASH, api_key_manager=api_key_manager),
     # create_statistical_v36_generator(model_name=ModelName.GEMINI_2_5_FLASH, api_key_manager=api_key_manager),
-    create_statistical_v35_generator(
+    # create_statistical_v35_generator(
+    #     model_name=ModelName.GEMINI_2_5_FLASH,
+    #     formatter_model=ModelName.GEMINI_2_5_FLASH,
+    #     api_key_manager=api_key_manager,
+    # ),
+    
+    # Experiment 66: V46 - Ranked Index Retrieval
+    create_ranked_index_generator_v46(
         model_name=ModelName.GEMINI_2_5_FLASH,
-        formatter_model=ModelName.GEMINI_2_5_FLASH,
-        api_key_manager=api_key_manager,
+        api_key_manager=api_key_manager
     ),
     
     # # Decoupled Specialists
