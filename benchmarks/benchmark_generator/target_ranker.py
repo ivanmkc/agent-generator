@@ -30,6 +30,7 @@ from collections import defaultdict
 from typing import Optional
 
 from benchmarks.benchmark_generator.tools import scan_repository
+from benchmarks.benchmark_generator.models import RankedTarget, MemberInfo
 from google.adk.tools import ToolContext
 from google.adk.sessions.session import Session
 from google.adk.sessions.in_memory_session_service import InMemorySessionService
@@ -195,17 +196,16 @@ class TargetRanker:
                     if not sig:
                         sig = f"def {child_name}(...):"
                     
-                    method_entry = {"signature": sig}
-                    
                     m_doc = child_entity.get("docstring") if child_entity else None
                     if not m_doc and child_struct:
                          m_doc = child_struct.get("docstring")
-
+                    
+                    method_entry = {"signature": sig}
                     if m_doc:
                         method_entry["docstring"] = self.clean_text(m_doc)
                     
                     if self.should_include(method_entry):
-                        methods.append(method_entry)
+                        methods.append(MemberInfo(**method_entry))
             return methods
 
         def get_properties_for_class(cls_fqn):
@@ -216,12 +216,14 @@ class TargetRanker:
             props = struct.get("props", [])
             for p in props:
                 sig = f"{p['name']}: {p['type']}"
+                p_doc = p.get("docstring")
+                
                 prop_entry = {"signature": sig}
-                if p.get("docstring"):
-                    prop_entry["docstring"] = self.clean_text(p["docstring"])
+                if p_doc:
+                    prop_entry["docstring"] = self.clean_text(p_doc)
                 
                 if self.should_include(prop_entry):
-                    properties.append(prop_entry)
+                    properties.append(MemberInfo(**prop_entry))
             return properties
 
         logger.info(f"Writing detailed YAML to {output_yaml_path}...")
@@ -233,25 +235,25 @@ class TargetRanker:
             raw_type = t.get("type")
             type_name = raw_type.name if hasattr(raw_type, "name") else str(raw_type).split(".")[-1]
             
-            entry = {
-                "rank": rank,
-                "id": tid,
-                "name": t.get("name"),
-                "type": type_name,
-                "group": target_groups.get(tid, "Unknown"),
-                "usage_score": t.get("usage_score", 0),
-                "docstring": self.clean_text(t.get("docstring")),
-            }
+            target_model = RankedTarget(
+                rank=rank,
+                id=tid,
+                name=t.get("name"),
+                type=type_name,
+                group=target_groups.get(tid, "Unknown"),
+                usage_score=t.get("usage_score", 0),
+                docstring=self.clean_text(t.get("docstring"))
+            )
             
             if tid in structure_map:
                 # Own Members
                 own_methods = get_methods_for_class(tid)
                 if own_methods:
-                    entry["methods"] = own_methods
+                    target_model.methods = own_methods
                     
                 own_props = get_properties_for_class(tid)
                 if own_props:
-                    entry["properties"] = own_props
+                    target_model.properties = own_props
                     
                 # Inherited Members (ADK)
                 ancestors = []
@@ -283,9 +285,9 @@ class TargetRanker:
                             inherited_props_dict[anc_name] = anc_props
                     
                     if inherited_methods_dict:
-                        entry["inherited_methods"] = inherited_methods_dict
+                        target_model.inherited_methods = inherited_methods_dict
                     if inherited_props_dict:
-                        entry["inherited_properties"] = inherited_props_dict
+                        target_model.inherited_properties = inherited_props_dict
                         
                 # Omitted Bases
                 omitted = set()
@@ -296,14 +298,14 @@ class TargetRanker:
                         omitted.add(e)
                 
                 if omitted:
-                    entry["omitted_inherited_members_from"] = list(omitted)
+                    target_model.omitted_inherited_members_from = list(omitted)
                     note = f"[Note: Inherited members from {', '.join(sorted(omitted))} are omitted.]"
-                    if entry["docstring"]:
-                        entry["docstring"] += f"\n\n{note}"
+                    if target_model.docstring:
+                        target_model.docstring += f"\n\n{note}"
                     else:
-                        entry["docstring"] = note
+                        target_model.docstring = note
                     
-            yaml_data.append(entry)
+            yaml_data.append(target_model.model_dump(exclude_none=True))
             
         with open(output_yaml_path, "w") as f:
             yaml.dump(yaml_data, f, sort_keys=False, width=1000)

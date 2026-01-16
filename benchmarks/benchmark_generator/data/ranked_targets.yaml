@@ -511,7 +511,6 @@
   type: METHOD
   group: Seed
   usage_score: 14
-  docstring: null
 - rank: 9
   id: google.adk.evaluation.agent_evaluator.AgentEvaluator.evaluate
   name: evaluate
@@ -2173,7 +2172,6 @@
   type: METHOD
   group: Seed
   usage_score: 2
-  docstring: null
 - rank: 52
   id: google.adk.models.anthropic_llm.Claude
   name: Claude
@@ -2242,21 +2240,18 @@
   type: MODULE
   group: Dependency
   usage_score: 0
-  docstring: null
 - rank: 55
   id: google.adk.cli.utils
   name: utils
   type: MODULE
   group: Dependency
   usage_score: 0
-  docstring: null
 - rank: 56
   id: google.adk.cli.utils.logs
   name: logs
   type: MODULE
   group: Dependency
   usage_score: 0
-  docstring: null
   methods:
   - signature: 'def setup_adk_logger(level=logging.INFO):'
   - signature: 'def log_to_tmp_folder(level=logging.INFO, *, sub_folder: str=''agents_log'', log_file_prefix: str=''agent'', log_file_timestamp: str=time.strftime(''%Y%m%d_%H%M%S'')):'
@@ -2267,14 +2262,12 @@
   type: MODULE
   group: Dependency
   usage_score: 0
-  docstring: null
 - rank: 58
   id: google.adk.sessions.session
   name: session
   type: MODULE
   group: Dependency
   usage_score: 0
-  docstring: null
 - rank: 59
   id: google.adk.sessions.session.Session
   name: Session
@@ -2313,14 +2306,12 @@
   type: MODULE
   group: Dependency
   usage_score: 0
-  docstring: null
 - rank: 61
   id: google.adk.events.event
   name: event
   type: MODULE
   group: Dependency
   usage_score: 0
-  docstring: null
 - rank: 62
   id: google.adk.utils.cache_performance_analyzer
   name: cache_performance_analyzer
@@ -2339,14 +2330,12 @@
   type: MODULE
   group: Dependency
   usage_score: 0
-  docstring: null
 - rank: 64
   id: google.adk.apps.app
   name: app
   type: MODULE
   group: Dependency
   usage_score: 0
-  docstring: null
   methods:
   - signature: 'def validate_app_name(name: str) -> None:'
     docstring: Ensures the provided application name is safe and intuitive.
@@ -2427,14 +2416,12 @@
   type: MODULE
   group: Dependency
   usage_score: 0
-  docstring: null
 - rank: 67
   id: google.adk.planners.built_in_planner
   name: built_in_planner
   type: MODULE
   group: Dependency
   usage_score: 0
-  docstring: null
 - rank: 68
   id: google.adk.models
   name: models
@@ -2448,28 +2435,24 @@
   type: MODULE
   group: Dependency
   usage_score: 0
-  docstring: null
 - rank: 70
   id: google.adk.models.google_llm
   name: google_llm
   type: MODULE
   group: Dependency
   usage_score: 0
-  docstring: null
 - rank: 71
   id: google.adk.events
   name: events
   type: MODULE
   group: Dependency
   usage_score: 0
-  docstring: null
 - rank: 72
   id: google.adk.tools
   name: tools
   type: MODULE
   group: Dependency
   usage_score: 0
-  docstring: null
 - rank: 73
   id: google.adk.agents.loop_agent
   name: loop_agent
@@ -2483,7 +2466,6 @@
   type: MODULE
   group: Dependency
   usage_score: 0
-  docstring: null
 - rank: 75
   id: google.adk.tools.base_tool.BaseTool
   name: BaseTool
@@ -2528,21 +2510,18 @@
   type: MODULE
   group: Dependency
   usage_score: 0
-  docstring: null
 - rank: 77
   id: google.adk.agents
   name: agents
   type: MODULE
   group: Dependency
   usage_score: 0
-  docstring: null
 - rank: 78
   id: google.adk.tools.tool_context
   name: tool_context
   type: MODULE
   group: Dependency
   usage_score: 0
-  docstring: null
 - rank: 79
   id: google.adk.tools.tool_context.ToolContext
   name: ToolContext
@@ -2635,28 +2614,24 @@
   type: MODULE
   group: Dependency
   usage_score: 0
-  docstring: null
 - rank: 83
   id: google.adk.tools.vertex_ai_search_tool
   name: vertex_ai_search_tool
   type: MODULE
   group: Dependency
   usage_score: 0
-  docstring: null
 - rank: 84
   id: google.adk.tools.langchain_tool
   name: langchain_tool
   type: MODULE
   group: Dependency
   usage_score: 0
-  docstring: null
 - rank: 85
   id: google.adk.tools.crewai_tool
   name: crewai_tool
   type: MODULE
   group: Dependency
   usage_score: 0
-  docstring: null
 - rank: 86
   id: google.adk.tools.retrieval.vertex_ai_rag_retrieval
   name: vertex_ai_rag_retrieval
@@ -2784,14 +2759,12 @@
   type: MODULE
   group: Dependency
   usage_score: 0
-  docstring: null
 - rank: 91
   id: google.adk.auth.auth_credential
   name: auth_credential
   type: MODULE
   group: Dependency
   usage_score: 0
-  docstring: null
 - rank: 92
   id: google.adk.auth.auth_credential.AuthCredentialTypes
   name: AuthCredentialTypes
@@ -2809,8 +2782,8 @@
   - signature: 'OPEN_ID_CONNECT: str'
   - signature: 'SERVICE_ACCOUNT: str'
   omitted_inherited_members_from:
-  - str
   - Enum
+  - str
 - rank: 93
   id: google.adk.agents.sequential_agent
   name: sequential_agent
@@ -2824,7 +2797,6 @@
   type: MODULE
   group: Dependency
   usage_score: 0
-  docstring: null
   methods:
   - signature: 'def retry_on_errors(func):'
     docstring: "Decorator to automatically retry action when MCP session errors occur.\n\nWhen MCP session errors occur, the decorator will automatically retry the\naction once. The create_session method will handle creating a new session\nif the old one was disconnected.\n\nArgs:\n    func: The function to decorate.\n\nReturns:\n    The decorated function."
@@ -2835,7 +2807,6 @@
   type: MODULE
   group: Dependency
   usage_score: 0
-  docstring: null
 - rank: 96
   id: google.adk.tools.bigquery.config.WriteMode
   name: WriteMode
@@ -2875,42 +2846,36 @@
   type: MODULE
   group: Dependency
   usage_score: 0
-  docstring: null
 - rank: 98
   id: google.adk.tools.bigquery.config
   name: config
   type: MODULE
   group: Dependency
   usage_score: 0
-  docstring: null
 - rank: 99
   id: google.adk.tools.bigquery.bigquery_toolset
   name: bigquery_toolset
   type: MODULE
   group: Dependency
   usage_score: 0
-  docstring: null
 - rank: 100
   id: google.adk.tools.mcp_tool
   name: mcp_tool
   type: MODULE
   group: Dependency
   usage_score: 0
-  docstring: null
 - rank: 101
   id: google.adk.tools.application_integration_tool
   name: application_integration_tool
   type: MODULE
   group: Dependency
   usage_score: 0
-  docstring: null
 - rank: 102
   id: google.adk.tools.bigtable.settings
   name: settings
   type: MODULE
   group: Dependency
   usage_score: 0
-  docstring: null
 - rank: 103
   id: google.adk.tools.bigtable.bigtable_toolset.BigtableToolset
   name: BigtableToolset
@@ -2959,21 +2924,18 @@
   type: MODULE
   group: Dependency
   usage_score: 0
-  docstring: null
 - rank: 106
   id: google.adk.tools.bigtable.bigtable_credentials
   name: bigtable_credentials
   type: MODULE
   group: Dependency
   usage_score: 0
-  docstring: null
 - rank: 107
   id: google.adk.tools.api_registry
   name: api_registry
   type: MODULE
   group: Dependency
   usage_score: 0
-  docstring: null
 - rank: 108
   id: google.adk.tools.api_registry.ApiRegistry
   name: ApiRegistry
@@ -3059,7 +3021,6 @@
   type: MODULE
   group: Dependency
   usage_score: 0
-  docstring: null
 - rank: 114
   id: google.adk.planners.plan_re_act_planner.PlanReActPlanner
   name: PlanReActPlanner
@@ -3161,28 +3122,24 @@
   type: MODULE
   group: Dependency
   usage_score: 0
-  docstring: null
 - rank: 119
   id: google.adk.tools.pubsub.pubsub_credentials
   name: pubsub_credentials
   type: MODULE
   group: Dependency
   usage_score: 0
-  docstring: null
 - rank: 120
   id: google.adk.tools.pubsub.config
   name: config
   type: MODULE
   group: Dependency
   usage_score: 0
-  docstring: null
 - rank: 121
   id: google.adk.tools.google_tool
   name: google_tool
   type: MODULE
   group: Dependency
   usage_score: 0
-  docstring: null
 - rank: 122
   id: google.adk.tools.google_tool.GoogleTool
   name: GoogleTool
@@ -3251,14 +3208,12 @@
   type: MODULE
   group: Dependency
   usage_score: 0
-  docstring: null
 - rank: 124
   id: google.adk.sessions.in_memory_session_service
   name: in_memory_session_service
   type: MODULE
   group: Dependency
   usage_score: 0
-  docstring: null
 - rank: 125
   id: google.adk.sessions.database_session_service.DatabaseSessionService
   name: DatabaseSessionService
@@ -3295,21 +3250,18 @@
   type: MODULE
   group: Dependency
   usage_score: 0
-  docstring: null
 - rank: 127
   id: google.adk.models.llm_response
   name: llm_response
   type: MODULE
   group: Dependency
   usage_score: 0
-  docstring: null
 - rank: 128
   id: google.adk.agents.callback_context
   name: callback_context
   type: MODULE
   group: Dependency
   usage_score: 0
-  docstring: null
 - rank: 129
   id: google.adk.agents.callback_context.CallbackContext
   name: CallbackContext
@@ -3361,14 +3313,12 @@
   type: MODULE
   group: Dependency
   usage_score: 0
-  docstring: null
 - rank: 131
   id: google.adk.models.llm_request
   name: llm_request
   type: MODULE
   group: Dependency
   usage_score: 0
-  docstring: null
 - rank: 132
   id: google.adk.models.llm_request.LlmRequest
   name: LlmRequest
@@ -3467,14 +3417,12 @@
   type: MODULE
   group: Dependency
   usage_score: 0
-  docstring: null
 - rank: 135
   id: google.adk.agents.invocation_context
   name: invocation_context
   type: MODULE
   group: Dependency
   usage_score: 0
-  docstring: null
   methods:
   - signature: 'def new_invocation_context_id() -> str:'
 - rank: 136
@@ -3578,7 +3526,6 @@
   type: MODULE
   group: Dependency
   usage_score: 0
-  docstring: null
 - rank: 138
   id: google.adk.agents.base_agent_config.BaseAgentConfig
   name: BaseAgentConfig
@@ -3611,7 +3558,6 @@
   type: MODULE
   group: Dependency
   usage_score: 0
-  docstring: null
 - rank: 140
   id: google.adk.models.lite_llm.LiteLLMClient
   name: LiteLLMClient
@@ -3630,7 +3576,6 @@
   type: CLASS
   group: Dependency
   usage_score: 0
-  docstring: null
   methods:
   - signature: 'def user_content(self) -> Optional[types.Content]:'
     docstring: The user content that started this invocation. READONLY field.
@@ -3652,42 +3597,36 @@
   type: MODULE
   group: Dependency
   usage_score: 0
-  docstring: null
 - rank: 143
   id: google.adk.tools.example_tool
   name: example_tool
   type: MODULE
   group: Dependency
   usage_score: 0
-  docstring: null
 - rank: 144
   id: google.adk.examples.example
   name: example
   type: MODULE
   group: Dependency
   usage_score: 0
-  docstring: null
 - rank: 145
   id: google.adk.agents.remote_a2a_agent
   name: remote_a2a_agent
   type: MODULE
   group: Dependency
   usage_score: 0
-  docstring: null
 - rank: 146
   id: google.adk.tools.google_search_tool
   name: google_search_tool
   type: MODULE
   group: Dependency
   usage_score: 0
-  docstring: null
 - rank: 147
   id: google.adk.plugins.multimodal_tool_results_plugin
   name: multimodal_tool_results_plugin
   type: MODULE
   group: Dependency
   usage_score: 0
-  docstring: null
 - rank: 148
   id: google.adk.plugins.multimodal_tool_results_plugin.MultimodalToolResultsPlugin
   name: MultimodalToolResultsPlugin
@@ -3756,14 +3695,12 @@
   type: MODULE
   group: Dependency
   usage_score: 0
-  docstring: null
 - rank: 150
   id: google.adk.apps
   name: apps
   type: MODULE
   group: Dependency
   usage_score: 0
-  docstring: null
 - rank: 151
   id: google.adk.tools.tool_confirmation.ToolConfirmation
   name: ToolConfirmation
@@ -3796,7 +3733,6 @@
   type: MODULE
   group: Dependency
   usage_score: 0
-  docstring: null
 - rank: 153
   id: google.adk.tools.load_artifacts_tool.LoadArtifactsTool
   name: LoadArtifactsTool
@@ -3846,28 +3782,24 @@
   type: MODULE
   group: Dependency
   usage_score: 0
-  docstring: null
 - rank: 155
   id: google.adk.tools.authenticated_function_tool
   name: authenticated_function_tool
   type: MODULE
   group: Dependency
   usage_score: 0
-  docstring: null
 - rank: 156
   id: google.adk.auth.auth_tool
   name: auth_tool
   type: MODULE
   group: Dependency
   usage_score: 0
-  docstring: null
 - rank: 157
   id: google.adk.tools.openapi_tool.auth.auth_helpers
   name: auth_helpers
   type: MODULE
   group: Dependency
   usage_score: 0
-  docstring: null
   methods:
   - signature: 'def token_to_scheme_credential(token_type: Literal[''apikey'', ''oauth2Token''], location: Optional[Literal[''header'', ''query'', ''cookie'']]=None, name: Optional[str]=None, credential_value: Optional[str]=None) -> Tuple[AuthScheme, AuthCredential]:'
     docstring: "Creates a AuthScheme and AuthCredential for API key or bearer token.\n\nExamples:\n```\n# API Key in header\nauth_scheme, auth_credential = token_to_scheme_credential(\"apikey\", \"header\",\n\"X-API-Key\", \"your_api_key_value\")\n\n# API Key in query parameter\nauth_scheme, auth_credential = token_to_scheme_credential(\"apikey\", \"query\",\n\"api_key\", \"your_api_key_value\")\n\n# OAuth2 Bearer Token in Authorization header\nauth_scheme, auth_credential = token_to_scheme_credential(\"oauth2Token\",\n\"header\", \"Authorization\", \"your_bearer_token_value\")\n```\n\nArgs:\n    type: 'apikey' or 'oauth2Token'.\n    location: 'header', 'query', or 'cookie' (only 'header' for oauth2Token).\n    name: The name of the header, query parameter, or cookie.\n    credential_value:  The value of the API Key/ Token.\n\nReturns:\n    Tuple: (AuthScheme, AuthCredential)\n\nRaises:\n    ValueError: For invalid type or location."
@@ -3898,7 +3830,6 @@
   type: MODULE
   group: Dependency
   usage_score: 0
-  docstring: null
 - rank: 160
   id: google.adk.tools.google_api_tool
   name: google_api_tool
@@ -3917,7 +3848,6 @@
   type: MODULE
   group: Dependency
   usage_score: 0
-  docstring: null
 - rank: 162
   id: google.adk.memory.base_memory_service.BaseMemoryService
   name: BaseMemoryService
@@ -3946,14 +3876,12 @@
   type: MODULE
   group: Dependency
   usage_score: 0
-  docstring: null
 - rank: 164
   id: google.adk.tools.load_memory_tool
   name: load_memory_tool
   type: MODULE
   group: Dependency
   usage_score: 0
-  docstring: null
   methods:
   - signature: 'def load_memory(query: str, tool_context: ToolContext) -> LoadMemoryResponse:'
     docstring: "Loads the memory for the current user.\n\nArgs:\n  query: The query to load the memory for.\n\nReturns:\n  A list of memory results."
@@ -3963,14 +3891,12 @@
   type: MODULE
   group: Dependency
   usage_score: 0
-  docstring: null
 - rank: 166
   id: google.adk.tools.computer_use.computer_use_toolset
   name: computer_use_toolset
   type: MODULE
   group: Dependency
   usage_score: 0
-  docstring: null
 - rank: 167
   id: google.adk.tools.computer_use.computer_use_toolset.ComputerUseToolset
   name: ComputerUseToolset
@@ -4005,7 +3931,6 @@
   type: MODULE
   group: Dependency
   usage_score: 0
-  docstring: null
 - rank: 169
   id: google.adk.plugins.context_filter_plugin.ContextFilterPlugin
   name: ContextFilterPlugin
@@ -4128,7 +4053,6 @@
   type: MODULE
   group: Dependency
   usage_score: 0
-  docstring: null
 - rank: 172
   id: google.adk.apps.llm_event_summarizer.LlmEventSummarizer
   name: LlmEventSummarizer
@@ -4181,7 +4105,6 @@
   type: MODULE
   group: Dependency
   usage_score: 0
-  docstring: null
 - rank: 174
   id: google.adk.apps.app.EventsCompactionConfig
   name: EventsCompactionConfig
@@ -4224,7 +4147,6 @@
   type: MODULE
   group: Dependency
   usage_score: 0
-  docstring: null
   methods:
   - signature: 'def to_a2a(agent: BaseAgent, *, host: str=''localhost'', port: int=8000, protocol: str=''http'', agent_card: Optional[Union[AgentCard, str]]=None, runner: Optional[Runner]=None) -> Starlette:'
     docstring: "Convert an ADK agent to a A2A Starlette application.\n\nArgs:\n    agent: The ADK agent to convert\n    host: The host for the A2A RPC URL (default: \"localhost\")\n    port: The port for the A2A RPC URL (default: 8000)\n    protocol: The protocol for the A2A RPC URL (default: \"http\")\n    agent_card: Optional pre-built AgentCard object or path to agent card\n                JSON. If not provided, will be built automatically from the\n                agent.\n    runner: Optional pre-built Runner object. If not provided, a default\n            runner will be created using in-memory services.\n\nReturns:\n    A Starlette application that can be run with uvicorn\n\nExample:\n    agent = MyAgent()\n    app = to_a2a(agent, host=\"localhost\", port=8000, protocol=\"http\")\n    # Then run with: uvicorn module:app --host localhost --port 8000\n\n    # Or with custom agent card:\n    app = to_a2a(agent, agent_card=my_custom_agent_card)"
@@ -4280,14 +4202,12 @@
   type: MODULE
   group: Dependency
   usage_score: 0
-  docstring: null
 - rank: 179
   id: google.adk.models.gemma_llm
   name: gemma_llm
   type: MODULE
   group: Dependency
   usage_score: 0
-  docstring: null
 - rank: 180
   id: google.adk.models.gemma_llm.Gemma
   name: Gemma
@@ -4443,7 +4363,6 @@
   type: MODULE
   group: Dependency
   usage_score: 0
-  docstring: null
 - rank: 183
   id: google.adk.code_executors.agent_engine_sandbox_code_executor.AgentEngineSandboxCodeExecutor
   name: AgentEngineSandboxCodeExecutor
@@ -4488,14 +4407,12 @@
   type: MODULE
   group: Dependency
   usage_score: 0
-  docstring: null
 - rank: 185
   id: google.adk.tools.google_api_tool.google_api_toolsets
   name: google_api_toolsets
   type: MODULE
   group: Dependency
   usage_score: 0
-  docstring: null
 - rank: 186
   id: google.adk.tools.google_api_tool.google_api_toolsets.BigQueryToolset
   name: BigQueryToolset
@@ -4576,7 +4493,6 @@
   type: MODULE
   group: Dependency
   usage_score: 0
-  docstring: null
 - rank: 189
   id: google.adk.code_executors.code_execution_utils
   name: code_execution_utils
@@ -4668,35 +4584,30 @@
   type: MODULE
   group: Dependency
   usage_score: 0
-  docstring: null
 - rank: 196
   id: google.adk.code_executors
   name: code_executors
   type: MODULE
   group: Dependency
   usage_score: 0
-  docstring: null
 - rank: 197
   id: google.adk.a2a
   name: a2a
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 198
   id: google.adk.a2a.converters
   name: converters
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 199
   id: google.adk.a2a.converters.event_converter
   name: event_converter
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
   methods:
   - signature: 'def convert_a2a_task_to_event(a2a_task: Task, author: Optional[str]=None, invocation_context: Optional[InvocationContext]=None, part_converter: A2APartToGenAIPartConverter=convert_a2a_part_to_genai_part) -> Event:'
     docstring: "Converts an A2A task to an ADK event.\n\nArgs:\n  a2a_task: The A2A task to convert. Must not be None.\n  author: The author of the event. Defaults to \"a2a agent\" if not provided.\n  invocation_context: The invocation context containing session information.\n    If provided, the branch will be set from the context.\n  part_converter: The function to convert A2A part to GenAI part.\n\nReturns:\n  An ADK Event object representing the converted task.\n\nRaises:\n  ValueError: If a2a_task is None.\n  RuntimeError: If conversion of the underlying message fails."
@@ -4766,7 +4677,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
   methods:
   - signature: 'def convert_a2a_request_to_agent_run_request(request: RequestContext, part_converter: A2APartToGenAIPartConverter=convert_a2a_part_to_genai_part) -> AgentRunRequest:'
     docstring: "Converts an A2A RequestContext to an AgentRunRequest model.\n\nArgs:\n  request: The incoming request context from the A2A server.\n  part_converter: A function to convert A2A content parts to GenAI parts.\n\nReturns:\n  A AgentRunRequest object ready to be used as arguments for the ADK runner.\n\nRaises:\n  ValueError: If the request message is None."
@@ -4805,21 +4715,18 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 211
   id: google.adk.a2a.executor
   name: executor
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 212
   id: google.adk.a2a.executor.a2a_agent_executor
   name: a2a_agent_executor
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 213
   id: google.adk.a2a.executor.a2a_agent_executor.A2aAgentExecutor
   name: A2aAgentExecutor
@@ -4904,7 +4811,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 218
   id: google.adk.a2a.executor.task_result_aggregator.TaskResultAggregator
   name: TaskResultAggregator
@@ -4957,7 +4863,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 222
   id: google.adk.a2a.logs.log_utils
   name: log_utils
@@ -4999,14 +4904,12 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 227
   id: google.adk.a2a.utils.agent_card_builder
   name: agent_card_builder
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 228
   id: google.adk.a2a.utils.agent_card_builder.AgentCardBuilder
   name: AgentCardBuilder
@@ -5044,14 +4947,12 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 232
   id: google.adk.agents.active_streaming_tool
   name: active_streaming_tool
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 233
   id: google.adk.agents.active_streaming_tool.ActiveStreamingTool
   name: ActiveStreamingTool
@@ -5080,7 +4981,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
   methods:
   - signature: 'def agent_config_discriminator(v: Any) -> str:'
     docstring: Discriminator function that returns the tag name for Pydantic.
@@ -5173,7 +5073,6 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 247
   id: google.adk.agents.base_agent.BaseAgent.validate_sub_agents_unique_names
   name: validate_sub_agents_unique_names
@@ -5295,7 +5194,6 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 260
   id: google.adk.agents.common_configs.ArgumentConfig
   name: ArgumentConfig
@@ -5350,7 +5248,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
   methods:
   - signature: 'def from_config(config_path: str) -> BaseAgent:'
     docstring: "Build agent from a configfile path.\n\nArgs:\n  config: the path to a YAML config file.\n\nReturns:\n  The created agent instance.\n\nRaises:\n  FileNotFoundError: If config file doesn't exist.\n  ValidationError: If config file's content is invalid YAML.\n  ValueError: If agent type is unsupported."
@@ -5395,7 +5292,6 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 268
   id: google.adk.agents.invocation_context.InvocationContext.increment_llm_call_count
   name: increment_llm_call_count
@@ -5490,7 +5386,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 277
   id: google.adk.agents.langgraph_agent.LangGraphAgent
   name: LangGraphAgent
@@ -5574,7 +5469,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 279
   id: google.adk.agents.live_request_queue.LiveRequest
   name: LiveRequest
@@ -5720,21 +5614,18 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 292
   id: google.adk.agents.llm_agent.LlmAgent.validate_generate_content_config
   name: validate_generate_content_config
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 293
   id: google.adk.agents.llm_agent_config
   name: llm_agent_config
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 294
   id: google.adk.agents.llm_agent_config.LlmAgentConfig
   name: LlmAgentConfig
@@ -5850,21 +5741,18 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 300
   id: google.adk.agents.parallel_agent.process_an_agent
   name: process_an_agent
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 301
   id: google.adk.agents.parallel_agent.propagate_exceptions
   name: propagate_exceptions
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 302
   id: google.adk.agents.parallel_agent_config
   name: parallel_agent_config
@@ -5942,7 +5830,6 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 309
   id: google.adk.agents.run_config.StreamingMode
   name: StreamingMode
@@ -6024,7 +5911,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 315
   id: google.adk.agents.transcription_entry.TranscriptionEntry
   name: TranscriptionEntry
@@ -6098,7 +5984,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 319
   id: google.adk.apps.base_events_summarizer.BaseEventsSummarizer
   name: BaseEventsSummarizer
@@ -6127,7 +6012,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 322
   id: google.adk.apps.llm_event_summarizer.LlmEventSummarizer.maybe_summarize_events
   name: maybe_summarize_events
@@ -6141,7 +6025,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 324
   id: google.adk.artifacts.artifact_util
   name: artifact_util
@@ -6201,7 +6084,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 330
   id: google.adk.artifacts.base_artifact_service.ArtifactVersion
   name: ArtifactVersion
@@ -6306,7 +6188,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 340
   id: google.adk.artifacts.file_artifact_service.FileArtifactService
   name: FileArtifactService
@@ -6379,7 +6260,6 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 344
   id: google.adk.artifacts.file_artifact_service.FileArtifactService.list_artifact_versions
   name: list_artifact_versions
@@ -6400,7 +6280,6 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 347
   id: google.adk.artifacts.file_artifact_service.FileArtifactService.save_artifact
   name: save_artifact
@@ -6493,105 +6372,90 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 352
   id: google.adk.artifacts.gcs_artifact_service.GcsArtifactService.get_artifact_version
   name: get_artifact_version
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 353
   id: google.adk.artifacts.gcs_artifact_service.GcsArtifactService.list_artifact_keys
   name: list_artifact_keys
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 354
   id: google.adk.artifacts.gcs_artifact_service.GcsArtifactService.list_artifact_versions
   name: list_artifact_versions
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 355
   id: google.adk.artifacts.gcs_artifact_service.GcsArtifactService.list_versions
   name: list_versions
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 356
   id: google.adk.artifacts.gcs_artifact_service.GcsArtifactService.load_artifact
   name: load_artifact
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 357
   id: google.adk.artifacts.gcs_artifact_service.GcsArtifactService.save_artifact
   name: save_artifact
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 358
   id: google.adk.artifacts.in_memory_artifact_service.InMemoryArtifactService.delete_artifact
   name: delete_artifact
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 359
   id: google.adk.artifacts.in_memory_artifact_service.InMemoryArtifactService.get_artifact_version
   name: get_artifact_version
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 360
   id: google.adk.artifacts.in_memory_artifact_service.InMemoryArtifactService.list_artifact_keys
   name: list_artifact_keys
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 361
   id: google.adk.artifacts.in_memory_artifact_service.InMemoryArtifactService.list_artifact_versions
   name: list_artifact_versions
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 362
   id: google.adk.artifacts.in_memory_artifact_service.InMemoryArtifactService.list_versions
   name: list_versions
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 363
   id: google.adk.artifacts.in_memory_artifact_service.InMemoryArtifactService.load_artifact
   name: load_artifact
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 364
   id: google.adk.artifacts.in_memory_artifact_service.InMemoryArtifactService.save_artifact
   name: save_artifact
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 365
   id: google.adk.auth
   name: auth
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 366
   id: google.adk.auth.auth_credential.BaseModelWithConfig
   name: BaseModelWithConfig
@@ -6658,14 +6522,12 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 370
   id: google.adk.auth.auth_handler
   name: auth_handler
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 371
   id: google.adk.auth.auth_handler.AuthHandler
   name: AuthHandler
@@ -6690,14 +6552,12 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 373
   id: google.adk.auth.auth_handler.AuthHandler.generate_auth_request
   name: generate_auth_request
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 374
   id: google.adk.auth.auth_handler.AuthHandler.generate_auth_uri
   name: generate_auth_uri
@@ -6711,21 +6571,18 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 376
   id: google.adk.auth.auth_preprocessor
   name: auth_preprocessor
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 377
   id: google.adk.auth.auth_schemes
   name: auth_schemes
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 378
   id: google.adk.auth.auth_schemes.ExtendedOAuth2
   name: ExtendedOAuth2
@@ -6759,8 +6616,8 @@
   - signature: 'IMPLICIT: str'
   - signature: 'PASSWORD: str'
   omitted_inherited_members_from:
-  - str
   - Enum
+  - str
 - rank: 380
   id: google.adk.auth.auth_schemes.OAuthGrantType.from_flow
   name: from_flow
@@ -6825,7 +6682,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 385
   id: google.adk.auth.credential_manager.CredentialManager
   name: CredentialManager
@@ -6860,14 +6716,12 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 389
   id: google.adk.auth.credential_service.base_credential_service
   name: base_credential_service
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 390
   id: google.adk.auth.credential_service.base_credential_service.BaseCredentialService
   name: BaseCredentialService
@@ -6907,7 +6761,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 394
   id: google.adk.auth.credential_service.in_memory_credential_service.InMemoryCredentialService
   name: InMemoryCredentialService
@@ -6935,21 +6788,18 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 396
   id: google.adk.auth.credential_service.in_memory_credential_service.InMemoryCredentialService.save_credential
   name: save_credential
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 397
   id: google.adk.auth.credential_service.session_state_credential_service
   name: session_state_credential_service
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 398
   id: google.adk.auth.credential_service.session_state_credential_service.SessionStateCredentialService
   name: SessionStateCredentialService
@@ -7128,7 +6978,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
   methods:
   - signature: 'def create_oauth2_session(auth_scheme: AuthScheme, auth_credential: AuthCredential) -> Tuple[Optional[OAuth2Session], Optional[str]]:'
     docstring: "Create an OAuth2 session for token operations.\n\nArgs:\n    auth_scheme: The authentication scheme configuration.\n    auth_credential: The authentication credential.\n\nReturns:\n    Tuple of (OAuth2Session, token_endpoint) or (None, None) if cannot create session."
@@ -7154,7 +7003,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 418
   id: google.adk.auth.oauth2_discovery.AuthorizationServerMetadata
   name: AuthorizationServerMetadata
@@ -7365,14 +7213,12 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 438
   id: google.adk.cli.adk_web_server
   name: adk_web_server
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 439
   id: google.adk.cli.adk_web_server.AddSessionToEvalSetRequest
   name: AddSessionToEvalSetRequest
@@ -7461,14 +7307,12 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 442
   id: google.adk.cli.adk_web_server.AdkWebServer.create_eval_set
   name: create_eval_set
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 443
   id: google.adk.cli.adk_web_server.AdkWebServer.create_eval_set_legacy
   name: create_eval_set_legacy
@@ -7482,49 +7326,42 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 445
   id: google.adk.cli.adk_web_server.AdkWebServer.create_session_with_id
   name: create_session_with_id
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 446
   id: google.adk.cli.adk_web_server.AdkWebServer.delete_artifact
   name: delete_artifact
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 447
   id: google.adk.cli.adk_web_server.AdkWebServer.delete_eval
   name: delete_eval
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 448
   id: google.adk.cli.adk_web_server.AdkWebServer.delete_session
   name: delete_session
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 449
   id: google.adk.cli.adk_web_server.AdkWebServer.event_generator
   name: event_generator
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 450
   id: google.adk.cli.adk_web_server.AdkWebServer.forward_events
   name: forward_events
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 451
   id: google.adk.cli.adk_web_server.AdkWebServer.get_eval
   name: get_eval
@@ -7545,14 +7382,12 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 454
   id: google.adk.cli.adk_web_server.AdkWebServer.get_event_graph
   name: get_event_graph
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 455
   id: google.adk.cli.adk_web_server.AdkWebServer.get_fast_api_app
   name: get_fast_api_app
@@ -7573,56 +7408,48 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 458
   id: google.adk.cli.adk_web_server.AdkWebServer.get_session_trace
   name: get_session_trace
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 459
   id: google.adk.cli.adk_web_server.AdkWebServer.get_trace_dict
   name: get_trace_dict
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 460
   id: google.adk.cli.adk_web_server.AdkWebServer.get_ui_config
   name: get_ui_config
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 461
   id: google.adk.cli.adk_web_server.AdkWebServer.internal_lifespan
   name: internal_lifespan
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 462
   id: google.adk.cli.adk_web_server.AdkWebServer.list_apps
   name: list_apps
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 463
   id: google.adk.cli.adk_web_server.AdkWebServer.list_artifact_names
   name: list_artifact_names
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 464
   id: google.adk.cli.adk_web_server.AdkWebServer.list_artifact_versions
   name: list_artifact_versions
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 465
   id: google.adk.cli.adk_web_server.AdkWebServer.list_eval_results
   name: list_eval_results
@@ -7657,21 +7484,18 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 470
   id: google.adk.cli.adk_web_server.AdkWebServer.load_artifact
   name: load_artifact
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 471
   id: google.adk.cli.adk_web_server.AdkWebServer.load_artifact_version
   name: load_artifact_version
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 472
   id: google.adk.cli.adk_web_server.AdkWebServer.patch_memory
   name: patch_memory
@@ -7685,28 +7509,24 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 474
   id: google.adk.cli.adk_web_server.AdkWebServer.run_agent
   name: run_agent
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 475
   id: google.adk.cli.adk_web_server.AdkWebServer.run_agent_live
   name: run_agent_live
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 476
   id: google.adk.cli.adk_web_server.AdkWebServer.run_agent_sse
   name: run_agent_sse
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 477
   id: google.adk.cli.adk_web_server.AdkWebServer.run_eval
   name: run_eval
@@ -7720,21 +7540,18 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 479
   id: google.adk.cli.adk_web_server.AdkWebServer.save_artifact
   name: save_artifact
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 480
   id: google.adk.cli.adk_web_server.AdkWebServer.update_eval
   name: update_eval
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 481
   id: google.adk.cli.adk_web_server.AdkWebServer.update_session
   name: update_session
@@ -7760,7 +7577,6 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 484
   id: google.adk.cli.adk_web_server.AppInfo
   name: AppInfo
@@ -7869,14 +7685,12 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 491
   id: google.adk.cli.adk_web_server.InMemoryExporter.get_finished_spans
   name: get_finished_spans
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 492
   id: google.adk.cli.adk_web_server.ListAppsResponse
   name: ListAppsResponse
@@ -8066,7 +7880,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
   methods:
   - signature: 'def build_graph(graph: graphviz.Digraph, agent: BaseAgent, highlight_pairs, parent_agent=None):'
     docstring: "Build a graph of the agent and its sub-agents.\nArgs:\n  graph: The graph to build on.\n  agent: The agent to build the graph for.\n  highlight_pairs: A list of pairs of nodes to highlight.\n  parent_agent: The parent agent of the current agent. This is specifically used when building Workflow Agents to directly connect a node to nodes inside a Workflow Agent.\n\nReturns:\n  None"
@@ -8084,7 +7897,6 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 505
   id: google.adk.cli.agent_graph.build_graph
   name: build_graph
@@ -8098,49 +7910,42 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 507
   id: google.adk.cli.agent_graph.draw_node
   name: draw_node
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 508
   id: google.adk.cli.agent_graph.get_agent_graph
   name: get_agent_graph
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 509
   id: google.adk.cli.agent_graph.get_node_caption
   name: get_node_caption
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 510
   id: google.adk.cli.agent_graph.get_node_name
   name: get_node_name
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 511
   id: google.adk.cli.agent_graph.get_node_shape
   name: get_node_shape
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 512
   id: google.adk.cli.agent_graph.should_build_agent_cluster
   name: should_build_agent_cluster
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 513
   id: google.adk.cli.built_in_agents
   name: built_in_agents
@@ -8195,7 +8000,6 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 519
   id: google.adk.cli.built_in_agents.agent
   name: agent
@@ -8307,7 +8111,6 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 532
   id: google.adk.cli.built_in_agents.tools.explore_project.explore_project
   name: explore_project
@@ -8336,7 +8139,6 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 535
   id: google.adk.cli.built_in_agents.tools.query_schema.query_schema
   name: query_schema
@@ -8582,7 +8384,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
   methods:
   - signature: 'def run_input_file(app_name: str, user_id: str, agent_or_app: Union[LlmAgent, App], artifact_service: BaseArtifactService, session_service: BaseSessionService, credential_service: BaseCredentialService, input_path: str) -> Session:'
   - signature: 'def run_interactively(root_agent_or_app: Union[LlmAgent, App], artifact_service: BaseArtifactService, session: Session, session_service: BaseSessionService, credential_service: BaseCredentialService) -> None:'
@@ -8616,21 +8417,18 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 564
   id: google.adk.cli.cli.run_interactively
   name: run_interactively
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 565
   id: google.adk.cli.cli_create
   name: cli_create
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
   methods:
   - signature: 'def run_cmd(agent_name: str, *, model: Optional[str], google_api_key: Optional[str], google_cloud_project: Optional[str], google_cloud_region: Optional[str], type: Optional[str]):'
     docstring: "Runs `adk create` command to create agent template.\n\nArgs:\n  agent_name: str, The name of the agent.\n  google_api_key: Optional[str], The Google API key for using Google AI as\n    backend.\n  google_cloud_project: Optional[str], The Google Cloud project for using\n    VertexAI as backend.\n  google_cloud_region: Optional[str], The Google Cloud region for using\n    VertexAI as backend.\n  type: Optional[str], Whether to define agent with config file or code."
@@ -8647,7 +8445,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
   methods:
   - signature: 'def to_cloud_run(*, agent_folder: str, project: Optional[str], region: Optional[str], service_name: str, app_name: str, temp_folder: str, port: int, trace_to_cloud: bool, with_ui: bool, log_level: str, verbosity: str, adk_version: str, allow_origins: Optional[list[str]]=None, session_service_uri: Optional[str]=None, artifact_service_uri: Optional[str]=None, memory_service_uri: Optional[str]=None, a2a: bool=False, extra_gcloud_args: Optional[tuple[str, ...]]=None):'
     docstring: "Deploys an agent to Google Cloud Run.\n\n`agent_folder` should contain the following files:\n\n- __init__.py\n- agent.py\n- requirements.txt (optional, for additional dependencies)\n- ... (other required source files)\n\nThe folder structure of temp_folder will be\n\n* dist/[google_adk wheel file]\n* agents/[app_name]/\n  * agent source code from `agent_folder`\n\nArgs:\n  agent_folder: The folder (absolute path) containing the agent source code.\n  project: Google Cloud project id.\n  region: Google Cloud region.\n  service_name: The service name in Cloud Run.\n  app_name: The name of the app, by default, it's basename of `agent_folder`.\n  temp_folder: The temp folder for the generated Cloud Run source files.\n  port: The port of the ADK api server.\n  trace_to_cloud: Whether to enable Cloud Trace.\n  with_ui: Whether to deploy with UI.\n  verbosity: The verbosity level of the CLI.\n  adk_version: The ADK version to use in Cloud Run.\n  allow_origins: Origins to allow for\
@@ -8690,7 +8487,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
   methods:
   - signature: 'def get_root_agent(agent_module_file_path: str) -> Agent:'
     docstring: Returns root agent given the agent module.
@@ -8743,7 +8539,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
   methods:
   - signature: 'def main():'
     docstring: Agent Development Kit CLI tools.
@@ -8993,35 +8788,30 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 594
   id: google.adk.cli.cli_tools_click.decorator
   name: decorator
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 595
   id: google.adk.cli.cli_tools_click.decorator
   name: decorator
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 596
   id: google.adk.cli.cli_tools_click.decorator
   name: decorator
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 597
   id: google.adk.cli.cli_tools_click.decorator
   name: decorator
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 598
   id: google.adk.cli.cli_tools_click.deprecated_adk_services_options
   name: deprecated_adk_services_options
@@ -9049,14 +8839,12 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 602
   id: google.adk.cli.cli_tools_click.warn
   name: warn
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 603
   id: google.adk.cli.cli_tools_click.web_options
   name: web_options
@@ -9070,14 +8858,12 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 605
   id: google.adk.cli.conformance
   name: conformance
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 606
   id: google.adk.cli.conformance.adk_web_server_client
   name: adk_web_server_client
@@ -9204,7 +8990,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
   methods:
   - signature: 'def get_fast_api_app(*, agents_dir: str, session_service_uri: Optional[str]=None, session_db_kwargs: Optional[Mapping[str, Any]]=None, artifact_service_uri: Optional[str]=None, memory_service_uri: Optional[str]=None, eval_storage_uri: Optional[str]=None, allow_origins: Optional[list[str]]=None, web: bool, a2a: bool=False, host: str=''127.0.0.1'', port: int=8000, url_prefix: Optional[str]=None, trace_to_cloud: bool=False, otel_to_cloud: bool=False, reload_agents: bool=False, lifespan: Optional[Lifespan[FastAPI]]=None, extra_plugins: Optional[list[str]]=None, logo_text: Optional[str]=None, logo_image_url: Optional[str]=None) -> FastAPI:'
   - signature: 'def register_processors(provider: TracerProvider) -> None:'
@@ -9221,14 +9006,12 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 622
   id: google.adk.cli.fast_api.builder_cancel
   name: builder_cancel
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 623
   id: google.adk.cli.fast_api.create_a2a_runner_loader
   name: create_a2a_runner_loader
@@ -9242,35 +9025,30 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 625
   id: google.adk.cli.fast_api.get_fast_api_app
   name: get_fast_api_app
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 626
   id: google.adk.cli.fast_api.register_processors
   name: register_processors
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 627
   id: google.adk.cli.fast_api.setup_observer
   name: setup_observer
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 628
   id: google.adk.cli.plugins
   name: plugins
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 629
   id: google.adk.cli.plugins.recordings_plugin
   name: recordings_plugin
@@ -9720,35 +9498,30 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 661
   id: google.adk.cli.service_registry.agentengine_session_factory
   name: agentengine_session_factory
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 662
   id: google.adk.cli.service_registry.database_session_factory
   name: database_session_factory
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 663
   id: google.adk.cli.service_registry.file_artifact_factory
   name: file_artifact_factory
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 664
   id: google.adk.cli.service_registry.gcs_artifact_factory
   name: gcs_artifact_factory
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 665
   id: google.adk.cli.service_registry.get_service_registry
   name: get_service_registry
@@ -9777,28 +9550,24 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 668
   id: google.adk.cli.service_registry.memory_session_factory
   name: memory_session_factory
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 669
   id: google.adk.cli.service_registry.rag_memory_factory
   name: rag_memory_factory
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 670
   id: google.adk.cli.service_registry.sqlite_session_factory
   name: sqlite_session_factory
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 671
   id: google.adk.cli.utils.agent_change_handler
   name: agent_change_handler
@@ -9823,14 +9592,12 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 674
   id: google.adk.cli.utils.agent_loader
   name: agent_loader
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 675
   id: google.adk.cli.utils.agent_loader.AgentLoader
   name: AgentLoader
@@ -9882,7 +9649,6 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 680
   id: google.adk.cli.utils.base_agent_loader
   name: base_agent_loader
@@ -9914,14 +9680,12 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 683
   id: google.adk.cli.utils.cleanup
   name: cleanup
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
   methods:
   - signature: 'def close_runners(runners: List[Runner]) -> None:'
 - rank: 684
@@ -9930,14 +9694,12 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 685
   id: google.adk.cli.utils.common
   name: common
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 686
   id: google.adk.cli.utils.common.BaseModel
   name: BaseModel
@@ -9984,7 +9746,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
   methods:
   - signature: 'def load_dotenv_for_agent(agent_name: str, agent_parent_folder: str, filename: str=''.env''):'
     docstring: Loads the .env file for the agent module.
@@ -10001,7 +9762,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
   methods:
   - signature: 'def convert_session_to_eval_invocations(session: Session) -> list[Invocation]:'
     docstring: "Converts a session data into a list of Invocation.\n\nArgs:\n    session: The session that should be converted.\n\nReturns:\n    list: A list of invocation."
@@ -10087,28 +9847,24 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 699
   id: google.adk.cli.utils.local_storage.PerAgentDatabaseSessionService.delete_session
   name: delete_session
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 700
   id: google.adk.cli.utils.local_storage.PerAgentDatabaseSessionService.get_session
   name: get_session
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 701
   id: google.adk.cli.utils.local_storage.PerAgentDatabaseSessionService.list_sessions
   name: list_sessions
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 702
   id: google.adk.cli.utils.local_storage.create_local_artifact_service
   name: create_local_artifact_service
@@ -10136,7 +9892,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
   methods:
   - signature: 'def create_session_service_from_options(*, base_dir: Path | str, session_service_uri: Optional[str]=None, session_db_kwargs: Optional[dict[str, Any]]=None, app_name_to_dir: Optional[dict[str, str]]=None) -> BaseSessionService:'
     docstring: Creates a session service based on CLI/web options.
@@ -10171,7 +9926,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 710
   id: google.adk.cli.utils.shared_value.SharedValue
   name: SharedValue
@@ -10193,7 +9947,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
   methods:
   - signature: 'def create_empty_state(agent: BaseAgent, initialized_states: Optional[dict[str, Any]]=None) -> dict[str, Any]:'
     docstring: Creates empty str for non-initialized states.
@@ -10210,14 +9963,12 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 714
   id: google.adk.code_executors.base_code_executor
   name: base_code_executor
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 715
   id: google.adk.code_executors.base_code_executor.BaseCodeExecutor
   name: BaseCodeExecutor
@@ -10264,7 +10015,6 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 718
   id: google.adk.code_executors.built_in_code_executor.BuiltInCodeExecutor.process_llm_request
   name: process_llm_request
@@ -10454,7 +10204,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 740
   id: google.adk.code_executors.container_code_executor.ContainerCodeExecutor
   name: ContainerCodeExecutor
@@ -10512,14 +10261,12 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 742
   id: google.adk.code_executors.gke_code_executor
   name: gke_code_executor
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 743
   id: google.adk.code_executors.gke_code_executor.GkeCodeExecutor
   name: GkeCodeExecutor
@@ -10639,7 +10386,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 746
   id: google.adk.code_executors.unsafe_local_code_executor.UnsafeLocalCodeExecutor
   name: UnsafeLocalCodeExecutor
@@ -10688,49 +10434,42 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 748
   id: google.adk.code_executors.vertex_ai_code_executor.VertexAiCodeExecutor.execute_code
   name: execute_code
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 749
   id: google.adk.dependencies
   name: dependencies
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 750
   id: google.adk.dependencies.rouge_scorer
   name: rouge_scorer
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 751
   id: google.adk.dependencies.vertexai
   name: vertexai
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 752
   id: google.adk.errors
   name: errors
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 753
   id: google.adk.errors.already_exists_error
   name: already_exists_error
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 754
   id: google.adk.errors.already_exists_error.AlreadyExistsError
   name: AlreadyExistsError
@@ -10749,7 +10488,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 756
   id: google.adk.errors.input_validation_error.InputValidationError
   name: InputValidationError
@@ -10768,7 +10506,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 758
   id: google.adk.errors.not_found_error.NotFoundError
   name: NotFoundError
@@ -10787,14 +10524,12 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 760
   id: google.adk.evaluation.agent_evaluator
   name: agent_evaluator
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
   methods:
   - signature: 'def load_json(file_path: str) -> Union[Dict, List]:'
 - rank: 761
@@ -10834,7 +10569,6 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 765
   id: google.adk.evaluation.agent_evaluator.AgentEvaluator.migrate_eval_data_to_new_schema
   name: migrate_eval_data_to_new_schema
@@ -10848,7 +10582,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 767
   id: google.adk.evaluation.app_details.AgentDetails
   name: AgentDetails
@@ -10922,7 +10655,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 772
   id: google.adk.evaluation.base_eval_service.BaseEvalService
   name: BaseEvalService
@@ -11075,7 +10807,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 782
   id: google.adk.evaluation.common.EvalBaseModel
   name: EvalBaseModel
@@ -11093,14 +10824,12 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 784
   id: google.adk.evaluation.conversation_scenarios
   name: conversation_scenarios
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 785
   id: google.adk.evaluation.conversation_scenarios.ConversationScenario
   name: ConversationScenario
@@ -11178,7 +10907,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
   methods:
   - signature: 'def get_all_tool_calls(intermediate_data: Optional[IntermediateDataType]) -> list[genai_types.FunctionCall]:'
     docstring: A utility method to retrieve tools calls from intermediate data.
@@ -11233,7 +10961,6 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 790
   id: google.adk.evaluation.eval_case.IntermediateData
   name: IntermediateData
@@ -11388,7 +11115,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
   methods:
   - signature: 'def get_evaluation_criteria_or_default(eval_config_file_path: Optional[str]) -> EvalConfig:'
     docstring: 'Returns EvalConfig read from the config file, if present.
@@ -11442,7 +11168,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 803
   id: google.adk.evaluation.eval_metrics.BaseCriterion
   name: BaseCriterion
@@ -11775,7 +11500,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 821
   id: google.adk.evaluation.eval_result.EvalCaseResult
   name: EvalCaseResult
@@ -11839,7 +11563,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 824
   id: google.adk.evaluation.eval_rubrics.Rubric
   name: Rubric
@@ -11902,7 +11625,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 828
   id: google.adk.evaluation.eval_set.EvalSet
   name: EvalSet
@@ -11937,7 +11659,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 830
   id: google.adk.evaluation.eval_set_results_manager.EvalSetResultsManager
   name: EvalSetResultsManager
@@ -11977,7 +11698,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 834
   id: google.adk.evaluation.eval_sets_manager.EvalSetsManager
   name: EvalSetsManager
@@ -12053,7 +11773,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 842
   id: google.adk.evaluation.evaluation_constants.EvalConstants
   name: EvalConstants
@@ -12075,7 +11794,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 844
   id: google.adk.evaluation.evaluation_generator.EvalCaseResponses
   name: EvalCaseResponses
@@ -12138,7 +11856,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 850
   id: google.adk.evaluation.evaluator.EvaluationResult
   name: EvaluationResult
@@ -12211,7 +11928,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 855
   id: google.adk.evaluation.final_response_match_v1.RougeEvaluator
   name: RougeEvaluator
@@ -12243,21 +11959,18 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 857
   id: google.adk.evaluation.final_response_match_v1.RougeEvaluator.get_metric_info
   name: get_metric_info
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 858
   id: google.adk.evaluation.final_response_match_v2
   name: final_response_match_v2
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 859
   id: google.adk.evaluation.final_response_match_v2.FinalResponseMatchV2Evaluator
   name: FinalResponseMatchV2Evaluator
@@ -12328,28 +12041,24 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 863
   id: google.adk.evaluation.final_response_match_v2.FinalResponseMatchV2Evaluator.format_auto_rater_prompt
   name: format_auto_rater_prompt
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 864
   id: google.adk.evaluation.final_response_match_v2.FinalResponseMatchV2Evaluator.get_metric_info
   name: get_metric_info
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 865
   id: google.adk.evaluation.gcs_eval_set_results_manager
   name: gcs_eval_set_results_manager
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 866
   id: google.adk.evaluation.gcs_eval_set_results_manager.GcsEvalSetResultsManager
   name: GcsEvalSetResultsManager
@@ -12404,7 +12113,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 871
   id: google.adk.evaluation.gcs_eval_sets_manager.GcsEvalSetsManager
   name: GcsEvalSetsManager
@@ -12503,7 +12211,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 880
   id: google.adk.evaluation.hallucinations_v1.EvaluationStep
   name: EvaluationStep
@@ -12558,21 +12265,18 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 883
   id: google.adk.evaluation.hallucinations_v1.HallucinationsV1Evaluator.get_metric_info
   name: get_metric_info
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 884
   id: google.adk.evaluation.in_memory_eval_sets_manager
   name: in_memory_eval_sets_manager
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 885
   id: google.adk.evaluation.in_memory_eval_sets_manager.InMemoryEvalSetsManager
   name: InMemoryEvalSetsManager
@@ -12624,49 +12328,42 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 887
   id: google.adk.evaluation.in_memory_eval_sets_manager.InMemoryEvalSetsManager.create_eval_set
   name: create_eval_set
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 888
   id: google.adk.evaluation.in_memory_eval_sets_manager.InMemoryEvalSetsManager.delete_eval_case
   name: delete_eval_case
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 889
   id: google.adk.evaluation.in_memory_eval_sets_manager.InMemoryEvalSetsManager.get_eval_case
   name: get_eval_case
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 890
   id: google.adk.evaluation.in_memory_eval_sets_manager.InMemoryEvalSetsManager.list_eval_sets
   name: list_eval_sets
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 891
   id: google.adk.evaluation.in_memory_eval_sets_manager.InMemoryEvalSetsManager.update_eval_case
   name: update_eval_case
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 892
   id: google.adk.evaluation.llm_as_judge
   name: llm_as_judge
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 893
   id: google.adk.evaluation.llm_as_judge.AutoRaterScore
   name: AutoRaterScore
@@ -12735,7 +12432,6 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 899
   id: google.adk.evaluation.llm_as_judge.LlmAsJudge.format_auto_rater_prompt
   name: format_auto_rater_prompt
@@ -12749,7 +12445,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
   methods:
   - signature: 'def get_text_from_content(content: Optional[genai_types.Content]) -> Optional[str]:'
   - signature: 'def get_eval_status(score: Optional[float], threshold: float) -> EvalStatus:'
@@ -12818,14 +12513,12 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 904
   id: google.adk.evaluation.llm_as_judge_utils.get_text_from_content
   name: get_text_from_content
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 905
   id: google.adk.evaluation.llm_as_judge_utils.get_tool_calls_and_responses_as_json_str
   name: get_tool_calls_and_responses_as_json_str
@@ -12852,7 +12545,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 908
   id: google.adk.evaluation.local_eval_service.LocalEvalService
   name: LocalEvalService
@@ -12898,21 +12590,18 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 912
   id: google.adk.evaluation.local_eval_service.LocalEvalService.run_inference
   name: run_inference
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 913
   id: google.adk.evaluation.local_eval_set_results_manager
   name: local_eval_set_results_manager
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 914
   id: google.adk.evaluation.local_eval_set_results_manager.LocalEvalSetResultsManager
   name: LocalEvalSetResultsManager
@@ -12967,7 +12656,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
   methods:
   - signature: 'def convert_eval_set_to_pydantic_schema(eval_set_id: str, eval_set_in_json_format: list[dict[str, Any]]) -> EvalSet:'
     docstring: "Returns a pydantic EvalSet generated from the json representation.\n\n  Args:\n    eval_set_id: Eval set id.\n    eval_set_in_json_format: Eval set specified in JSON format.\n\n  Here is a sample eval set in JSON format:\n[\n  {\n    \"name\": \"roll_17_sided_dice_twice\",\n    \"data\": [\n      {\n        \"query\": \"What can you do?\",\n        \"expected_tool_use\": [],\n        \"expected_intermediate_agent_responses\": [],\n        \"reference\": \"I can roll dice of different sizes and check if a number\n          is prime. I can also use multiple tools in parallel.\\n\"\n      },\n      {\n        \"query\": \"Roll a 17 sided dice twice for me\",\n        \"expected_tool_use\": [\n          {\n            \"tool_name\": \"roll_die\",\n            \"tool_input\": {\n              \"sides\": 17\n            }\n          },\n          {\n            \"tool_name\": \"roll_die\",\n            \"tool_input\": {\n              \"sides\": 17\n            }\n          }\n\
@@ -13087,7 +12775,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 930
   id: google.adk.evaluation.metric_evaluator_registry.MetricEvaluatorRegistry
   name: MetricEvaluatorRegistry
@@ -13135,14 +12822,12 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 935
   id: google.adk.evaluation.response_evaluator
   name: response_evaluator
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 936
   id: google.adk.evaluation.response_evaluator.ResponseEvaluator
   name: ResponseEvaluator
@@ -13192,7 +12877,6 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 938
   id: google.adk.evaluation.response_evaluator.ResponseEvaluator.get_metric_info
   name: get_metric_info
@@ -13206,7 +12890,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 940
   id: google.adk.evaluation.rubric_based_evaluator.AutoRaterResponseParser
   name: AutoRaterResponseParser
@@ -13488,7 +13171,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 957
   id: google.adk.evaluation.rubric_based_final_response_quality_v1.RubricBasedFinalResponseQualityV1Evaluator
   name: RubricBasedFinalResponseQualityV1Evaluator
@@ -13587,14 +13269,12 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 960
   id: google.adk.evaluation.rubric_based_tool_use_quality_v1
   name: rubric_based_tool_use_quality_v1
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 961
   id: google.adk.evaluation.rubric_based_tool_use_quality_v1.RubricBasedToolUseV1Evaluator
   name: RubricBasedToolUseV1Evaluator
@@ -13701,14 +13381,12 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 964
   id: google.adk.evaluation.safety_evaluator
   name: safety_evaluator
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 965
   id: google.adk.evaluation.safety_evaluator.SafetyEvaluatorV1
   name: SafetyEvaluatorV1
@@ -13756,28 +13434,24 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 967
   id: google.adk.evaluation.safety_evaluator.SafetyEvaluatorV1.get_metric_info
   name: get_metric_info
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 968
   id: google.adk.evaluation.simulation
   name: simulation
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 969
   id: google.adk.evaluation.simulation.llm_backed_user_simulator
   name: llm_backed_user_simulator
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 970
   id: google.adk.evaluation.simulation.llm_backed_user_simulator.LlmBackedUserSimulator
   name: LlmBackedUserSimulator
@@ -13844,7 +13518,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 975
   id: google.adk.evaluation.simulation.per_turn_user_simulator_quality_v1.PerTurnUserSimulatorQualityV1
   name: PerTurnUserSimulatorQualityV1
@@ -13872,21 +13545,18 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 977
   id: google.adk.evaluation.simulation.per_turn_user_simulator_quality_v1.PerTurnUserSimulatorQualityV1.get_metric_info
   name: get_metric_info
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 978
   id: google.adk.evaluation.simulation.static_user_simulator
   name: static_user_simulator
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 979
   id: google.adk.evaluation.simulation.static_user_simulator.StaticUserSimulator
   name: StaticUserSimulator
@@ -13930,7 +13600,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 983
   id: google.adk.evaluation.simulation.user_simulator.BaseUserSimulatorConfig
   name: BaseUserSimulatorConfig
@@ -13971,7 +13640,6 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 986
   id: google.adk.evaluation.simulation.user_simulator.Status
   name: Status
@@ -14029,7 +13697,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 991
   id: google.adk.evaluation.simulation.user_simulator_provider.UserSimulatorProvider
   name: UserSimulatorProvider
@@ -14055,7 +13722,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 994
   id: google.adk.evaluation.trajectory_evaluator.TrajectoryEvaluator
   name: TrajectoryEvaluator
@@ -14092,14 +13758,12 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 997
   id: google.adk.evaluation.vertex_ai_eval_facade
   name: vertex_ai_eval_facade
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 998
   id: google.adk.events.event.Event.get_function_calls
   name: get_function_calls
@@ -14149,7 +13813,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1004
   id: google.adk.events.event_actions.EventCompaction
   name: EventCompaction
@@ -14180,14 +13843,12 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1006
   id: google.adk.examples.base_example_provider
   name: base_example_provider
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1007
   id: google.adk.examples.base_example_provider.BaseExampleProvider
   name: BaseExampleProvider
@@ -14230,7 +13891,6 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1011
   id: google.adk.examples.example_util.convert_examples_to_text
   name: convert_examples_to_text
@@ -14244,7 +13904,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1013
   id: google.adk.examples.vertex_ai_example_store.VertexAiExampleStore
   name: VertexAiExampleStore
@@ -14269,28 +13928,24 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1015
   id: google.adk.features
   name: features
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1016
   id: google.adk.flows
   name: flows
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1017
   id: google.adk.flows.llm_flows
   name: llm_flows
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1018
   id: google.adk.flows.llm_flows.agent_transfer
   name: agent_transfer
@@ -14304,7 +13959,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1020
   id: google.adk.flows.llm_flows.audio_cache_manager.AudioCacheConfig
   name: AudioCacheConfig
@@ -14353,7 +14007,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1026
   id: google.adk.flows.llm_flows.audio_transcriber.AudioTranscriber
   name: AudioTranscriber
@@ -14429,7 +14082,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1031
   id: google.adk.flows.llm_flows.base_llm_flow.BaseLlmFlow
   name: BaseLlmFlow
@@ -14486,7 +14138,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1037
   id: google.adk.flows.llm_flows.context_cache_processor
   name: context_cache_processor
@@ -14573,7 +14224,6 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1044
   id: google.adk.flows.llm_flows.functions.generate_request_confirmation_event
   name: generate_request_confirmation_event
@@ -14587,7 +14237,6 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1046
   id: google.adk.flows.llm_flows.functions.handle_function_call_list_async
   name: handle_function_call_list_async
@@ -14615,14 +14264,12 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1050
   id: google.adk.flows.llm_flows.functions.populate_client_function_call_id
   name: populate_client_function_call_id
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1051
   id: google.adk.flows.llm_flows.functions.remove_client_function_call_id
   name: remove_client_function_call_id
@@ -14636,7 +14283,6 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1053
   id: google.adk.flows.llm_flows.identity
   name: identity
@@ -14694,7 +14340,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1059
   id: google.adk.flows.llm_flows.single_flow
   name: single_flow
@@ -14733,7 +14378,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1062
   id: google.adk.flows.llm_flows.transcription_manager.TranscriptionManager
   name: TranscriptionManager
@@ -14775,7 +14419,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1067
   id: google.adk.memory.base_memory_service.BaseMemoryService.add_session_to_memory
   name: add_session_to_memory
@@ -14796,7 +14439,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1070
   id: google.adk.memory.in_memory_memory_service.InMemoryMemoryService
   name: InMemoryMemoryService
@@ -14832,21 +14474,18 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1072
   id: google.adk.memory.in_memory_memory_service.InMemoryMemoryService.search_memory
   name: search_memory
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1073
   id: google.adk.memory.vertex_ai_memory_bank_service
   name: vertex_ai_memory_bank_service
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1074
   id: google.adk.memory.vertex_ai_memory_bank_service.VertexAiMemoryBankService
   name: VertexAiMemoryBankService
@@ -14874,21 +14513,18 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1076
   id: google.adk.memory.vertex_ai_memory_bank_service.VertexAiMemoryBankService.search_memory
   name: search_memory
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1077
   id: google.adk.memory.vertex_ai_rag_memory_service
   name: vertex_ai_rag_memory_service
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1078
   id: google.adk.memory.vertex_ai_rag_memory_service.VertexAiRagMemoryService
   name: VertexAiRagMemoryService
@@ -14917,7 +14553,6 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1080
   id: google.adk.memory.vertex_ai_rag_memory_service.VertexAiRagMemoryService.search_memory
   name: search_memory
@@ -14966,7 +14601,6 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1083
   id: google.adk.models.anthropic_llm.ClaudeRequest
   name: ClaudeRequest
@@ -14989,14 +14623,12 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1085
   id: google.adk.models.anthropic_llm.content_to_message_param
   name: content_to_message_param
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1086
   id: google.adk.models.anthropic_llm.function_declaration_to_tool_param
   name: function_declaration_to_tool_param
@@ -15010,35 +14642,30 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1088
   id: google.adk.models.anthropic_llm.part_to_message_block
   name: part_to_message_block
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1089
   id: google.adk.models.anthropic_llm.to_claude_role
   name: to_claude_role
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1090
   id: google.adk.models.anthropic_llm.to_google_genai_finish_reason
   name: to_google_genai_finish_reason
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1091
   id: google.adk.models.apigee_llm
   name: apigee_llm
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1092
   id: google.adk.models.apigee_llm.ApigeeLlm
   name: ApigeeLlm
@@ -15115,7 +14742,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1096
   id: google.adk.models.base_llm.BaseLlm
   name: BaseLlm
@@ -15171,7 +14797,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1100
   id: google.adk.models.base_llm_connection.BaseLlmConnection
   name: BaseLlmConnection
@@ -15224,7 +14849,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1106
   id: google.adk.models.cache_metadata.CacheMetadata
   name: CacheMetadata
@@ -15311,7 +14935,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1114
   id: google.adk.models.gemini_llm_connection.GeminiLlmConnection
   name: GeminiLlmConnection
@@ -15450,7 +15073,6 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1125
   id: google.adk.models.gemma_llm.GemmaFunctionCallModel
   name: GemmaFunctionCallModel
@@ -15507,7 +15129,6 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1130
   id: google.adk.models.google_llm.Gemini.generate_content_async
   name: generate_content_async
@@ -15826,7 +15447,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1165
   id: google.adk.planners.base_planner.BasePlanner
   name: BasePlanner
@@ -15876,42 +15496,36 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1170
   id: google.adk.planners.built_in_planner.BuiltInPlanner.process_planning_response
   name: process_planning_response
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1171
   id: google.adk.planners.plan_re_act_planner.PlanReActPlanner.build_planning_instruction
   name: build_planning_instruction
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1172
   id: google.adk.planners.plan_re_act_planner.PlanReActPlanner.process_planning_response
   name: process_planning_response
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1173
   id: google.adk.platform
   name: platform
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1174
   id: google.adk.platform.thread
   name: thread
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
   methods:
   - signature: 'def create_thread(target: Callable[..., None], *args, **kwargs):'
     docstring: Creates a thread.
@@ -16024,7 +15638,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
   methods:
   - signature: 'def to_arrow_schema(bq_schema_list: list[bq_schema.SchemaField]) -> Optional[pa.Schema]:'
     docstring: "Converts a list of BigQuery SchemaFields to a PyArrow Schema.\n\nArgs:\n    bq_schema_list: list of bigquery.SchemaField objects.\n\nReturns:\n    pa.Schema or None if conversion fails."
@@ -16236,7 +15849,6 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1205
   id: google.adk.plugins.bigquery_agent_analytics_plugin.BigQueryAgentAnalyticsPlugin.on_model_error_callback
   name: on_model_error_callback
@@ -16264,7 +15876,6 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1209
   id: google.adk.plugins.bigquery_agent_analytics_plugin.BigQueryAgentAnalyticsPlugin.shutdown
   name: shutdown
@@ -16373,35 +15984,30 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1219
   id: google.adk.plugins.bigquery_agent_analytics_plugin.TraceManager.get_trace_id
   name: get_trace_id
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1220
   id: google.adk.plugins.bigquery_agent_analytics_plugin.TraceManager.init_trace
   name: init_trace
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1221
   id: google.adk.plugins.bigquery_agent_analytics_plugin.TraceManager.pop_span
   name: pop_span
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1222
   id: google.adk.plugins.bigquery_agent_analytics_plugin.TraceManager.push_span
   name: push_span
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1223
   id: google.adk.plugins.bigquery_agent_analytics_plugin.TraceManager.record_first_token
   name: record_first_token
@@ -16429,7 +16035,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1227
   id: google.adk.plugins.global_instruction_plugin.GlobalInstructionPlugin
   name: GlobalInstructionPlugin
@@ -16505,7 +16110,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1230
   id: google.adk.plugins.logging_plugin.LoggingPlugin
   name: LoggingPlugin
@@ -16682,7 +16286,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1246
   id: google.adk.plugins.plugin_manager.PluginManager
   name: PluginManager
@@ -16852,7 +16455,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1263
   id: google.adk.plugins.reflect_retry_tool_plugin.ReflectAndRetryToolPlugin
   name: ReflectAndRetryToolPlugin
@@ -16981,14 +16583,12 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1272
   id: google.adk.runners.Runner.execute
   name: execute
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1273
   id: google.adk.runners.Runner.rewind_async
   name: rewind_async
@@ -17034,14 +16634,12 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1279
   id: google.adk.sessions.base_session_service
   name: base_session_service
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1280
   id: google.adk.sessions.base_session_service.BaseSessionService
   name: BaseSessionService
@@ -17147,98 +16745,84 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1289
   id: google.adk.sessions.database_session_service.DatabaseSessionService.create_session
   name: create_session
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1290
   id: google.adk.sessions.database_session_service.DatabaseSessionService.delete_session
   name: delete_session
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1291
   id: google.adk.sessions.database_session_service.DatabaseSessionService.get_session
   name: get_session
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1292
   id: google.adk.sessions.database_session_service.DatabaseSessionService.list_sessions
   name: list_sessions
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1293
   id: google.adk.sessions.in_memory_session_service.InMemorySessionService.append_event
   name: append_event
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1294
   id: google.adk.sessions.in_memory_session_service.InMemorySessionService.create_session
   name: create_session
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1295
   id: google.adk.sessions.in_memory_session_service.InMemorySessionService.create_session_sync
   name: create_session_sync
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1296
   id: google.adk.sessions.in_memory_session_service.InMemorySessionService.delete_session
   name: delete_session
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1297
   id: google.adk.sessions.in_memory_session_service.InMemorySessionService.delete_session_sync
   name: delete_session_sync
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1298
   id: google.adk.sessions.in_memory_session_service.InMemorySessionService.get_session
   name: get_session
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1299
   id: google.adk.sessions.in_memory_session_service.InMemorySessionService.get_session_sync
   name: get_session_sync
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1300
   id: google.adk.sessions.in_memory_session_service.InMemorySessionService.list_sessions
   name: list_sessions
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1301
   id: google.adk.sessions.in_memory_session_service.InMemorySessionService.list_sessions_sync
   name: list_sessions_sync
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1302
   id: google.adk.sessions.migration.migrate_from_sqlalchemy_sqlite
   name: migrate_from_sqlalchemy_sqlite
@@ -17262,7 +16846,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1305
   id: google.adk.sessions.schemas.shared.DynamicJSON
   name: DynamicJSON
@@ -17287,21 +16870,18 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1307
   id: google.adk.sessions.schemas.shared.DynamicJSON.process_bind_param
   name: process_bind_param
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1308
   id: google.adk.sessions.schemas.shared.DynamicJSON.process_result_value
   name: process_result_value
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1309
   id: google.adk.sessions.schemas.shared.PreciseTimestamp
   name: PreciseTimestamp
@@ -17325,7 +16905,6 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1311
   id: google.adk.sessions.schemas.v0
   name: v0
@@ -17389,7 +16968,6 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1315
   id: google.adk.sessions.schemas.v0.DynamicPickleType.process_bind_param
   name: process_bind_param
@@ -17467,28 +17045,24 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1320
   id: google.adk.sessions.schemas.v0.StorageEvent.long_running_tool_ids
   name: long_running_tool_ids
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1321
   id: google.adk.sessions.schemas.v0.StorageEvent.long_running_tool_ids
   name: long_running_tool_ids
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1322
   id: google.adk.sessions.schemas.v0.StorageEvent.to_event
   name: to_event
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1323
   id: google.adk.sessions.schemas.v0.StorageSession
   name: StorageSession
@@ -17714,7 +17288,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1339
   id: google.adk.sessions.sqlite_session_service.SqliteSessionService
   name: SqliteSessionService
@@ -17756,42 +17329,36 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1341
   id: google.adk.sessions.sqlite_session_service.SqliteSessionService.create_session
   name: create_session
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1342
   id: google.adk.sessions.sqlite_session_service.SqliteSessionService.delete_session
   name: delete_session
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1343
   id: google.adk.sessions.sqlite_session_service.SqliteSessionService.get_session
   name: get_session
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1344
   id: google.adk.sessions.sqlite_session_service.SqliteSessionService.list_sessions
   name: list_sessions
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1345
   id: google.adk.sessions.state
   name: state
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1346
   id: google.adk.sessions.state.State
   name: State
@@ -17848,14 +17415,12 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1352
   id: google.adk.sessions.vertex_ai_session_service.VertexAiSessionService.append_event
   name: append_event
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1353
   id: google.adk.sessions.vertex_ai_session_service.VertexAiSessionService.create_session
   name: create_session
@@ -17869,35 +17434,30 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1355
   id: google.adk.sessions.vertex_ai_session_service.VertexAiSessionService.get_session
   name: get_session
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1356
   id: google.adk.sessions.vertex_ai_session_service.VertexAiSessionService.list_sessions
   name: list_sessions
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1357
   id: google.adk.telemetry
   name: telemetry
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1358
   id: google.adk.telemetry.google_cloud
   name: google_cloud
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
   methods:
   - signature: 'def get_gcp_exporters(enable_cloud_tracing: bool=False, enable_cloud_metrics: bool=False, enable_cloud_logging: bool=False, google_auth: Optional[tuple[Credentials, str]]=None) -> OTelHooks:'
     docstring: "Returns GCP OTel exporters to be used in the app.\n\nArgs:\n  enable_tracing: whether to enable tracing to Cloud Trace.\n  enable_metrics: whether to enable reporting metrics to Cloud Monitoring.\n  enable_logging: whether to enable sending logs to Cloud Logging.\n  google_auth: optional custom credentials and project_id. google.auth.default() used when this is omitted."
@@ -17923,7 +17483,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
   methods:
   - signature: 'def maybe_set_otel_providers(otel_hooks_to_setup: list[OTelHooks]=None, otel_resource: Optional[Resource]=None):'
     docstring: "Sets up OTel providers if hooks for a given telemetry type were\npassed.\n\nAdditionally adds generic OTLP exporters based on following env variables:\nOTEL_EXPORTER_OTLP_ENDPOINT\nOTEL_EXPORTER_OTLP_TRACES_ENDPOINT\nOTEL_EXPORTER_OTLP_METRICS_ENDPOINT\nOTEL_EXPORTER_OTLP_LOGS_ENDPOINT\nSee https://opentelemetry.io/docs/languages/sdk-configuration/otlp-exporter/\nfor how they are used.\n\nIf a provider for a specific telemetry type was already globally set -\nthis function will not override it or register more exporters.\n\nArgs:\n  otel_hooks_to_setup: per-telemetry-type processors and readers to be added\n  to OTel providers. If no hooks for a specific telemetry type are passed -\n  provider will not be set.\n  otel_resource: OTel resource to use in providers.\n  If empty - default OTel resource detection will be used."
@@ -17933,7 +17492,6 @@
   type: CLASS
   group: Orphan
   usage_score: 0
-  docstring: null
   properties:
   - signature: 'span_processors: list[SpanProcessor]'
   - signature: 'metric_readers: list[MetricReader]'
@@ -17951,7 +17509,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
   methods:
   - signature: 'def trace_agent_invocation(span: trace.Span, agent: BaseAgent, ctx: InvocationContext) -> None:'
     docstring: "Sets span attributes immediately available on agent invocation according to OTEL semconv version 1.37.\n\nArgs:\n  span: Span on which attributes are set.\n  agent: Agent from which attributes are gathered.\n  ctx: InvocationContext from which attributes are gathered.\n\nInference related fields are not set, due to their planned removal from invoke_agent span:\nhttps://github.com/open-telemetry/semantic-conventions/issues/2632\n\n`gen_ai.agent.id` is not set because currently it's unclear what attributes this field should have, specifically:\n- In which scope should it be unique (globally, given project, given agentic flow, given deployment).\n- Should it be unchanging between deployments, and how this should this be achieved.\n\n`gen_ai.data_source.id` is not set because it's not available.\nClosest type which could contain this information is types.GroundingMetadata, which does not have an ID.\n\n`server.*` attributes are not set pending confirmation from aabmass."
@@ -18004,14 +17561,12 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1371
   id: google.adk.tools.agent_tool.AgentTool.run_async
   name: run_async
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1372
   id: google.adk.tools.agent_tool.AgentToolConfig
   name: AgentToolConfig
@@ -18049,14 +17604,12 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1375
   id: google.adk.tools.apihub_tool.apihub_toolset
   name: apihub_toolset
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1376
   id: google.adk.tools.apihub_tool.apihub_toolset.APIHubToolset.get_tools
   name: get_tools
@@ -18070,14 +17623,12 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1378
   id: google.adk.tools.apihub_tool.clients.apihub_client
   name: apihub_client
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1379
   id: google.adk.tools.apihub_tool.clients.apihub_client.APIHubClient
   name: APIHubClient
@@ -18152,7 +17703,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1386
   id: google.adk.tools.apihub_tool.clients.secret_client.SecretManagerClient
   name: SecretManagerClient
@@ -18176,14 +17726,12 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1389
   id: google.adk.tools.application_integration_tool.clients.connections_client
   name: connections_client
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1390
   id: google.adk.tools.application_integration_tool.clients.connections_client.ConnectionsClient
   name: ConnectionsClient
@@ -18220,56 +17768,48 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1392
   id: google.adk.tools.application_integration_tool.clients.connections_client.ConnectionsClient.action_response
   name: action_response
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1393
   id: google.adk.tools.application_integration_tool.clients.connections_client.ConnectionsClient.create_operation
   name: create_operation
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1394
   id: google.adk.tools.application_integration_tool.clients.connections_client.ConnectionsClient.create_operation_request
   name: create_operation_request
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1395
   id: google.adk.tools.application_integration_tool.clients.connections_client.ConnectionsClient.delete_operation
   name: delete_operation
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1396
   id: google.adk.tools.application_integration_tool.clients.connections_client.ConnectionsClient.delete_operation_request
   name: delete_operation_request
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1397
   id: google.adk.tools.application_integration_tool.clients.connections_client.ConnectionsClient.execute_custom_query_request
   name: execute_custom_query_request
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1398
   id: google.adk.tools.application_integration_tool.clients.connections_client.ConnectionsClient.get_action_operation
   name: get_action_operation
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1399
   id: google.adk.tools.application_integration_tool.clients.connections_client.ConnectionsClient.get_action_schema
   name: get_action_schema
@@ -18290,7 +17830,6 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1402
   id: google.adk.tools.application_integration_tool.clients.connections_client.ConnectionsClient.get_entity_schema_and_operations
   name: get_entity_schema_and_operations
@@ -18304,49 +17843,42 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1404
   id: google.adk.tools.application_integration_tool.clients.connections_client.ConnectionsClient.get_operation_request
   name: get_operation_request
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1405
   id: google.adk.tools.application_integration_tool.clients.connections_client.ConnectionsClient.list_operation
   name: list_operation
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1406
   id: google.adk.tools.application_integration_tool.clients.connections_client.ConnectionsClient.list_operation_request
   name: list_operation_request
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1407
   id: google.adk.tools.application_integration_tool.clients.connections_client.ConnectionsClient.update_operation
   name: update_operation
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1408
   id: google.adk.tools.application_integration_tool.clients.connections_client.ConnectionsClient.update_operation_request
   name: update_operation_request
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1409
   id: google.adk.tools.application_integration_tool.clients.integration_client
   name: integration_client
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1410
   id: google.adk.tools.application_integration_tool.clients.integration_client.IntegrationClient
   name: IntegrationClient
@@ -18384,7 +17916,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1414
   id: google.adk.tools.application_integration_tool.integration_connector_tool.IntegrationConnectorTool
   name: IntegrationConnectorTool
@@ -18433,21 +17964,18 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1416
   id: google.adk.tools.authenticated_function_tool.AuthenticatedFunctionTool.run_async
   name: run_async
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1417
   id: google.adk.tools.base_authenticated_tool
   name: base_authenticated_tool
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1418
   id: google.adk.tools.base_authenticated_tool.BaseAuthenticatedTool
   name: BaseAuthenticatedTool
@@ -18500,7 +18028,6 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1420
   id: google.adk.tools.base_tool.BaseTool.from_config
   name: from_config
@@ -18528,7 +18055,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1424
   id: google.adk.tools.base_toolset.BaseToolset
   name: BaseToolset
@@ -18629,7 +18155,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
   methods:
   - signature: 'def get_bigquery_client(*, project: Optional[str], credentials: Credentials, location: Optional[str]=None, user_agent: Optional[Union[str, List[str]]]=None) -> bigquery.Client:'
     docstring: "Get a BigQuery client.\n\nArgs:\n  project: The GCP project ID.\n  credentials: The credentials to use for the request.\n  location: The location of the BigQuery client.\n  user_agent: The user agent to use for the request.\n\nReturns:\n  A BigQuery client."
@@ -18660,7 +18185,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
   methods:
   - signature: 'def ask_data_insights(project_id: str, user_query_with_context: str, table_references: List[Dict[str, str]], credentials: Credentials, settings: BigQueryToolConfig) -> Dict[str, Any]:'
     docstring: "Answers questions about structured data in BigQuery tables using natural language.\n\nThis function takes a user's question (which can include conversational\nhistory for context) and references to specific BigQuery tables, and sends\nthem to a stateless conversational API.\n\nThe API uses a GenAI agent to understand the question, generate and execute\nSQL queries and Python code, and formulate an answer. This function returns a\ndetailed, sequential log of this entire process, which includes any generated\nSQL or Python code, the data retrieved, and the final text answer. The final\nanswer is always in plain text, as the underlying API is instructed not to\ngenerate any charts, graphs, images, or other visualizations.\n\nUse this tool to perform data analysis, get insights, or answer complex\nquestions about the contents of specific BigQuery tables.\n\nArgs:\n    project_id (str): The project that the inquiry is performed in.\n    user_query_with_context (str): The user's\
@@ -18683,7 +18207,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
   methods:
   - signature: 'def list_dataset_ids(project_id: str, credentials: Credentials, settings: BigQueryToolConfig) -> list[str]:'
     docstring: "List BigQuery dataset ids in a Google Cloud project.\n\nArgs:\n    project_id (str): The Google Cloud project id.\n    credentials (Credentials): The credentials to use for the request.\n\nReturns:\n    list[str]: List of the BigQuery dataset ids present in the project.\n\nExamples:\n    >>> list_dataset_ids(\"bigquery-public-data\")\n    ['america_health_rankings',\n     'american_community_survey',\n     'aml_ai_input_dataset',\n     'austin_311',\n     'austin_bikeshare',\n     'austin_crime',\n     'austin_incidents',\n     'austin_waste',\n     'baseball',\n     'bbc_news']"
@@ -18766,7 +18289,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
   methods:
   - signature: 'def execute_sql(project_id: str, query: str, credentials: Credentials, settings: BigQueryToolConfig, tool_context: ToolContext, dry_run: bool=False) -> dict:'
     docstring: "Run a BigQuery or BigQuery ML SQL query in the project and return the result.\n\nArgs:\n    project_id (str): The GCP project id in which the query should be\n      executed.\n    query (str): The BigQuery SQL query to be executed.\n    credentials (Credentials): The credentials to use for the request.\n    settings (BigQueryToolConfig): The settings for the tool.\n    tool_context (ToolContext): The context for the tool.\n    dry_run (bool, default False): If True, the query will not be executed.\n      Instead, the query will be validated and information about the query\n      will be returned. Defaults to False.\n\nReturns:\n    dict: If `dry_run` is False, dictionary representing the result of the\n          query. If the result contains the key \"result_is_likely_truncated\"\n          with value True, it means that there may be additional rows matching\n          the query not returned in the result.\n          If `dry_run` is True, dictionary with \"dry_run_info\"\
@@ -18879,7 +18401,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
   methods:
   - signature: 'def get_bigtable_data_client(*, project: str, credentials: Credentials) -> bigtable.BigtableDataClient:'
     docstring: Get a Bigtable client.
@@ -18905,7 +18426,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
   methods:
   - signature: 'def list_instances(project_id: str, credentials: Credentials) -> dict:'
     docstring: "List Bigtable instance ids in a Google Cloud project.\n\nArgs:\n    project_id (str): The Google Cloud project id.\n    credentials (Credentials): The credentials to use for the request.\n\nReturns:\n    dict: Dictionary with a list of the Bigtable instance ids present in the project."
@@ -18949,7 +18469,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
   methods:
   - signature: 'def execute_sql(project_id: str, instance_id: str, query: str, credentials: Credentials, settings: BigtableToolSettings, tool_context: ToolContext) -> dict:'
     docstring: "Execute a GoogleSQL query from a Bigtable table.\n\nArgs:\n    project_id (str): The GCP project id in which the query should be\n      executed.\n    instance_id (str): The instance id of the Bigtable database.\n    query (str): The Bigtable SQL query to be executed.\n    credentials (Credentials): The credentials to use for the request.\n    settings (BigtableToolSettings): The configuration for the tool.\n    tool_context (ToolContext): The context for the tool.\nReturns:\n    dict: Dictionary containing the status and the rows read.\n          If the result contains the key \"result_is_likely_truncated\" with\n          value True, it means that there may be additional rows matching the\n          query not returned in the result.\n\nExamples:\n    Fetch data or insights from a table:\n\n        >>> execute_sql(\"my_project\", \"my_instance\",\n        ... \"SELECT * from mytable\", credentials, config, tool_context)\n        {\n          \"status\": \"SUCCESS\",\n  \
@@ -18968,14 +18487,12 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1464
   id: google.adk.tools.computer_use.base_computer
   name: base_computer
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1465
   id: google.adk.tools.computer_use.base_computer.BaseComputer
   name: BaseComputer
@@ -19151,8 +18668,8 @@
   - signature: 'ENVIRONMENT_BROWSER: str'
     docstring: Operates in a web browser.
   omitted_inherited_members_from:
-  - str
   - Enum
+  - str
 - rank: 1482
   id: google.adk.tools.computer_use.base_computer.ComputerState
   name: ComputerState
@@ -19171,7 +18688,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1484
   id: google.adk.tools.computer_use.computer_use_tool.ComputerUseTool
   name: ComputerUseTool
@@ -19255,7 +18771,6 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1489
   id: google.adk.tools.computer_use.computer_use_toolset.ComputerUseToolset.process_llm_request
   name: process_llm_request
@@ -19269,7 +18784,6 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1491
   id: google.adk.tools.crewai_tool.CrewaiTool.run_async
   name: run_async
@@ -19318,7 +18832,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1494
   id: google.adk.tools.discovery_engine_search_tool.DiscoveryEngineSearchTool
   name: DiscoveryEngineSearchTool
@@ -19377,7 +18890,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1497
   id: google.adk.tools.enterprise_search_tool.EnterpriseWebSearchTool
   name: EnterpriseWebSearchTool
@@ -19431,21 +18943,18 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1499
   id: google.adk.tools.example_tool.ExampleTool.from_config
   name: from_config
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1500
   id: google.adk.tools.example_tool.ExampleTool.process_llm_request
   name: process_llm_request
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1501
   id: google.adk.tools.example_tool.ExampleToolConfig
   name: ExampleToolConfig
@@ -19471,7 +18980,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
   methods:
   - signature: 'def exit_loop(tool_context: ToolContext):'
     docstring: 'Exits the loop.
@@ -19494,14 +19002,12 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1505
   id: google.adk.tools.get_user_choice_tool
   name: get_user_choice_tool
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
   methods:
   - signature: 'def get_user_choice(options: list[str], tool_context: ToolContext) -> Optional[str]:'
     docstring: Provides the options to the user and asks them to choose one.
@@ -19518,7 +19024,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1508
   id: google.adk.tools.google_api_tool.google_api_tool.GoogleApiTool
   name: GoogleApiTool
@@ -19566,28 +19071,24 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1510
   id: google.adk.tools.google_api_tool.google_api_tool.GoogleApiTool.configure_sa_auth
   name: configure_sa_auth
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1511
   id: google.adk.tools.google_api_tool.google_api_tool.GoogleApiTool.run_async
   name: run_async
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1512
   id: google.adk.tools.google_api_tool.google_api_toolset
   name: google_api_toolset
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1513
   id: google.adk.tools.google_api_tool.google_api_toolset.GoogleApiToolset
   name: GoogleApiToolset
@@ -19797,7 +19298,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
   methods:
   - signature: 'def main():'
     docstring: Command line interface for the converter.
@@ -19849,7 +19349,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1528
   id: google.adk.tools.google_maps_grounding_tool.GoogleMapsGroundingTool
   name: GoogleMapsGroundingTool
@@ -19908,14 +19407,12 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1530
   id: google.adk.tools.google_search_agent_tool
   name: google_search_agent_tool
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
   methods:
   - signature: 'def create_google_search_agent(model: Union[str, BaseLlm]) -> LlmAgent:'
     docstring: Create a sub-agent that only uses google_search tool.
@@ -19968,7 +19465,6 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1533
   id: google.adk.tools.google_search_agent_tool.create_google_search_agent
   name: create_google_search_agent
@@ -19982,7 +19478,6 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1535
   id: google.adk.tools.google_tool.GoogleTool.run_async
   name: run_async
@@ -20001,7 +19496,6 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1537
   id: google.adk.tools.langchain_tool.LangchainToolConfig
   name: LangchainToolConfig
@@ -20029,14 +19523,12 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1539
   id: google.adk.tools.load_artifacts_tool.LoadArtifactsTool.run_async
   name: run_async
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1540
   id: google.adk.tools.load_memory_tool.LoadMemoryResponse
   name: LoadMemoryResponse
@@ -20104,7 +19596,6 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1543
   id: google.adk.tools.load_memory_tool.load_memory
   name: load_memory
@@ -20135,7 +19626,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
   methods:
   - signature: 'def adk_to_mcp_tool_type(tool: BaseTool) -> mcp_types.Tool:'
     docstring: "Convert a Tool in ADK into MCP tool type.\n\nThis function transforms an ADK tool definition into its equivalent\nrepresentation in the MCP (Model Context Protocol) system.\n\nArgs:\n    tool: The ADK tool to convert. It should be an instance of a class derived\n      from `BaseTool`.\n\nReturns:\n    An object of MCP Tool type, representing the converted tool.\n\nExamples:\n    # Assuming 'my_tool' is an instance of a BaseTool derived class\n    mcp_tool = adk_to_mcp_tool_type(my_tool)\n    print(mcp_tool)"
@@ -20201,14 +19691,12 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1554
   id: google.adk.tools.mcp_tool.mcp_tool
   name: mcp_tool
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1555
   id: google.adk.tools.mcp_tool.mcp_tool.MCPTool
   name: MCPTool
@@ -20317,7 +19805,6 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1558
   id: google.adk.tools.mcp_tool.mcp_toolset.McpToolset.close
   name: close
@@ -20378,14 +19865,12 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1563
   id: google.adk.tools.openapi_tool.auth
   name: auth
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1564
   id: google.adk.tools.openapi_tool.auth.auth_helpers.OpenIdConfig
   name: OpenIdConfig
@@ -20445,14 +19930,12 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1571
   id: google.adk.tools.openapi_tool.auth.credential_exchangers.auto_auth_credential_exchanger
   name: auto_auth_credential_exchanger
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1572
   id: google.adk.tools.openapi_tool.auth.credential_exchangers.auto_auth_credential_exchanger.AutoAuthCredentialExchanger
   name: AutoAuthCredentialExchanger
@@ -20480,7 +19963,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1575
   id: google.adk.tools.openapi_tool.auth.credential_exchangers.base_credential_exchanger.AuthCredentialMissingError
   name: AuthCredentialMissingError
@@ -20588,14 +20070,12 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1586
   id: google.adk.tools.openapi_tool.common.common
   name: common
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
   methods:
   - signature: 'def rename_python_keywords(s: str, prefix: str=''param_'') -> str:'
     docstring: "Renames Python keywords by adding a prefix.\n\nExample:\n```\nrename_python_keywords('if') -> 'param_if'\nrename_python_keywords('for') -> 'param_for'\n```\n\nArgs:\n    s: The input string.\n    prefix: The prefix to add to the keyword.\n\nReturns:\n    The renamed string."
@@ -20637,7 +20117,6 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1589
   id: google.adk.tools.openapi_tool.common.common.PydocHelper
   name: PydocHelper
@@ -20703,14 +20182,12 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1597
   id: google.adk.tools.openapi_tool.openapi_spec_parser.openapi_spec_parser
   name: openapi_spec_parser
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1598
   id: google.adk.tools.openapi_tool.openapi_spec_parser.openapi_spec_parser.OpenApiSpecParser
   name: OpenApiSpecParser
@@ -20820,7 +20297,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1608
   id: google.adk.tools.openapi_tool.openapi_spec_parser.operation_parser.OperationParser
   name: OperationParser
@@ -20907,14 +20383,12 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1616
   id: google.adk.tools.openapi_tool.openapi_spec_parser.rest_api_tool
   name: rest_api_tool
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
   methods:
   - signature: 'def snake_to_lower_camel(snake_case_string: str):'
     docstring: "Converts a snake_case string to a lower_camel_case string.\n\nArgs:\n    snake_case_string: The input snake_case string.\n\nReturns:\n    The lower_camel_case string."
@@ -21019,7 +20493,6 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1625
   id: google.adk.tools.openapi_tool.openapi_spec_parser.rest_api_tool.snake_to_lower_camel
   name: snake_to_lower_camel
@@ -21033,7 +20506,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1627
   id: google.adk.tools.openapi_tool.openapi_spec_parser.tool_auth_handler.AuthPreparationResult
   name: AuthPreparationResult
@@ -21098,7 +20570,6 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1633
   id: google.adk.tools.openapi_tool.openapi_spec_parser.tool_auth_handler.ToolContextCredentialStore.get_credential_key
   name: get_credential_key
@@ -21112,7 +20583,6 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1635
   id: google.adk.tools.preload_memory_tool.PreloadMemoryTool
   name: PreloadMemoryTool
@@ -21169,7 +20639,6 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1637
   id: google.adk.tools.pubsub
   name: pubsub
@@ -21183,7 +20652,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
   methods:
   - signature: 'def get_publisher_client(*, credentials: Credentials, user_agent: str | list[str] | None=None, publisher_options: pubsub_v1.types.PublisherOptions | None=None) -> pubsub_v1.PublisherClient:'
     docstring: "Get a Pub/Sub Publisher client.\n\nArgs:\n  credentials: The credentials to use for the request.\n  user_agent: The user agent to use for the request.\n  publisher_options: The publisher options to use for the request.\n\nReturns:\n  A Pub/Sub Publisher client."
@@ -21218,7 +20686,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
   methods:
   - signature: 'def publish_message(topic_name: str, message: str, credentials: Credentials, settings: PubSubToolConfig, attributes: Optional[dict[str, str]]=None, ordering_key: str='''') -> dict:'
     docstring: "Publish a message to a Pub/Sub topic.\n\nArgs:\n    topic_name (str): The Pub/Sub topic name (e.g.\n      projects/my-project/topics/my-topic).\n    message (str): The message content to publish.\n    credentials (Credentials): The credentials to use for the request.\n    settings (PubSubToolConfig): The Pub/Sub tool settings.\n    attributes (Optional[dict[str, str]]): Attributes to attach to the message.\n    ordering_key (str): Ordering key for the message.\n\nReturns:\n    dict: Dictionary with the message_id of the published message."
@@ -21260,14 +20727,12 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1648
   id: google.adk.tools.retrieval.base_retrieval_tool
   name: base_retrieval_tool
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1649
   id: google.adk.tools.retrieval.base_retrieval_tool.BaseRetrievalTool
   name: BaseRetrievalTool
@@ -21357,21 +20822,18 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1653
   id: google.adk.tools.retrieval.vertex_ai_rag_retrieval.VertexAiRagRetrieval.process_llm_request
   name: process_llm_request
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1654
   id: google.adk.tools.retrieval.vertex_ai_rag_retrieval.VertexAiRagRetrieval.run_async
   name: run_async
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1655
   id: google.adk.tools.set_model_response_tool
   name: set_model_response_tool
@@ -21461,7 +20923,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1660
   id: google.adk.tools.tool_configs.BaseToolConfig
   name: BaseToolConfig
@@ -21526,7 +20987,6 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1665
   id: google.adk.tools.tool_context.ToolContext.search_memory
   name: search_memory
@@ -21540,14 +21000,12 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1667
   id: google.adk.tools.transfer_to_agent_tool
   name: transfer_to_agent_tool
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
   methods:
   - signature: 'def transfer_to_agent(agent_name: str, tool_context: ToolContext) -> None:'
     docstring: "Transfer the question to another agent.\n\nThis tool hands off control to another agent when it's more suitable to\nanswer the user's question according to the agent's description.\n\nNote:\n  For most use cases, you should use TransferToAgentTool instead of this\n  function directly. TransferToAgentTool provides additional enum constraints\n  that prevent LLMs from hallucinating invalid agent names.\n\nArgs:\n  agent_name: the agent name to transfer to."
@@ -21603,7 +21061,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1671
   id: google.adk.tools.url_context_tool.UrlContextTool
   name: UrlContextTool
@@ -21657,21 +21114,18 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1673
   id: google.adk.tools.vertex_ai_search_tool.VertexAiSearchTool.process_llm_request
   name: process_llm_request
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1674
   id: google.adk.utils
   name: utils
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1675
   id: google.adk.utils.cache_performance_analyzer.CachePerformanceAnalyzer.analyze_agent_cache_performance
   name: analyze_agent_cache_performance
@@ -21720,7 +21174,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
   methods:
   - signature: 'def decorator_factory(message_or_obj=None):'
   - signature: 'def decorator(obj: T) -> T:'
@@ -21732,35 +21185,30 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1681
   id: google.adk.utils.feature_decorator.decorator_factory
   name: decorator_factory
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1682
   id: google.adk.utils.feature_decorator.new_init
   name: new_init
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1683
   id: google.adk.utils.feature_decorator.wrapper
   name: wrapper
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1684
   id: google.adk.utils.instructions_utils
   name: instructions_utils
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
   methods:
   - signature: 'def inject_session_state(template: str, readonly_context: ReadonlyContext) -> str:'
     docstring: "Populates values in the instruction template, e.g. state, artifact, etc.\n\nThis method is intended to be used in InstructionProvider based instruction\nand global_instruction which are called with readonly_context.\n\ne.g.\n```\n...\nfrom google.adk.utils.instructions_utils import inject_session_state\n\nasync def build_instruction(\n    readonly_context: ReadonlyContext,\n) -> str:\n  return await inject_session_state(\n      'You can inject a state variable like {var_name} or an artifact '\n      '{artifact.file_name} into the instruction template.',\n      readonly_context,\n  )\n\nagent = Agent(\n    model=\"gemini-2.0-flash\",\n    name=\"agent\",\n    instruction=build_instruction,\n)\n```\n\nArgs:\n  template: The instruction template.\n  readonly_context: The read-only context\n\nReturns:\n  The instruction template with values populated."
@@ -21843,7 +21291,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1694
   id: google.adk.utils.streaming_utils.StreamingResponseAggregator
   name: StreamingResponseAggregator
@@ -21903,7 +21350,6 @@
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null
   methods:
   - signature: 'def load_yaml_file(file_path: Union[str, Path]) -> Any:'
     docstring: "Loads a YAML file and returns its content.\n\nArgs:\n  file_path: Path to the YAML file.\n\nReturns:\n  The content of the YAML file.\n\nRaises:\n  FileNotFoundError: If the file_path does not exist."
@@ -21930,11 +21376,9 @@
   type: METHOD
   group: Orphan
   usage_score: 0
-  docstring: null
 - rank: 1703
   id: google.adk.version
   name: version
   type: MODULE
   group: Orphan
   usage_score: 0
-  docstring: null

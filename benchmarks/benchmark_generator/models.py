@@ -96,3 +96,26 @@ class BenchmarkResult(pydantic.BaseModel):
     valid: bool
     validation_logs: List[str]
     uniqueness_score: float = 0.0
+
+class MemberInfo(pydantic.BaseModel):
+    """Metadata for a method or property."""
+    signature: str
+    docstring: Optional[str] = None
+
+class RankedTarget(pydantic.BaseModel):
+    """The final schema for a ranked target in the YAML file."""
+    rank: int
+    id: str
+    name: str
+    type: str # String representation of TargetType
+    group: str # "Seed", "Dependency", "Orphan"
+    usage_score: int
+    docstring: Optional[str] = None
+    
+    methods: Optional[List[MemberInfo]] = None
+    properties: Optional[List[MemberInfo]] = None
+    
+    inherited_methods: Optional[Dict[str, List[MemberInfo]]] = None
+    inherited_properties: Optional[Dict[str, List[MemberInfo]]] = None
+    
+    omitted_inherited_members_from: Optional[List[str]] = None
