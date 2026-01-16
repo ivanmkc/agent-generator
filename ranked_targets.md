@@ -1,108 +1,108 @@
-# Ranked Target List (Comprehensive Samples)
-
-**Ranking Strategy:** BFS starting from components used in `adk-samples` and `contributing/samples`.
+# Ranked Target List
 
 **Total Targets:** 1703
 **Seeds:** 53
 **Reachable:** 143
 
-1. `google.adk.runners.InMemoryRunner` (40)
-2. `google.adk.tools.agent_tool.AgentTool` (30)
-3. `google.adk.agents.llm_agent.LlmAgent` (27)
-4. `google.adk.cli.utils.logs.log_to_tmp_folder` (18)
-5. `google.adk.agents.run_config.RunConfig` (16)
-6. `google.adk.agents.loop_agent.LoopAgent` (16)
-7. `google.adk.models.llm_response.LlmResponse` (16)
-8. `google.adk.cli.utils.logs.setup_adk_logger` (14)
-9. `google.adk.evaluation.agent_evaluator.AgentEvaluator.evaluate` (14)
-10. `google.adk.events.event.Event` (14)
-11. `google.adk.artifacts.in_memory_artifact_service.InMemoryArtifactService` (12)
-12. `google.adk.sessions.in_memory_session_service.InMemorySessionService` (11)
-13. `google.adk.models.lite_llm.LiteLlm` (10)
-14. `google.adk.runners.Runner` (8)
-15. `google.adk.agents.sequential_agent.SequentialAgent` (7)
-16. `google.adk.tools.mcp_tool.mcp_toolset.MCPToolset` (6)
-17. `google.adk.sessions.vertex_ai_session_service.VertexAiSessionService` (6)
-18. `google.adk.examples.example.Example` (6)
-19. `google.adk.tools.langchain_tool.LangchainTool` (5)
-20. `google.adk.tools.bigquery.client.get_bigquery_client` (5)
-21. `google.adk.models.google_llm.Gemini` (5)
-22. `google.adk.apps.app.App` (5)
-23. `google.adk.tools.function_tool.FunctionTool` (4)
-24. `google.adk.tools.bigquery.config.BigQueryToolConfig` (4)
-25. `google.adk.tools.apihub_tool.apihub_toolset.APIHubToolset` (4)
-26. `google.adk.auth.auth_credential.AuthCredential` (4)
-27. `google.adk.agents.remote_a2a_agent.RemoteA2aAgent` (4)
-28. `google.adk.events.event_actions.EventActions` (4)
-29. `google.adk.tools.vertex_ai_search_tool.VertexAiSearchTool` (3)
-30. `google.adk.tools.example_tool.ExampleTool` (3)
-31. `google.adk.tools.bigtable.bigtable_credentials.BigtableCredentialsConfig` (3)
-32. `google.adk.tools.bigquery.bigquery_credentials.BigQueryCredentialsConfig` (3)
-33. `google.adk.tools.bigquery.bigquery_toolset.BigQueryToolset` (3)
-34. `google.adk.tools.pubsub.pubsub_credentials.PubSubCredentialsConfig` (3)
-35. `google.adk.auth.auth_credential.OAuth2Auth` (3)
-36. `google.adk.agents.parallel_agent.ParallelAgent` (3)
-37. `google.adk.tools.google_search_tool.GoogleSearchTool` (2)
-38. `google.adk.tools.authenticated_function_tool.AuthenticatedFunctionTool` (2)
-39. `google.adk.tools.long_running_tool.LongRunningFunctionTool` (2)
-40. `google.adk.tools.retrieval.vertex_ai_rag_retrieval.VertexAiRagRetrieval` (2)
-41. `google.adk.tools.application_integration_tool.application_integration_toolset.ApplicationIntegrationToolset` (2)
-42. `google.adk.tools.mcp_tool.mcp_session_manager.StdioConnectionParams` (2)
-43. `google.adk.tools.mcp_tool.mcp_session_manager.SseConnectionParams` (2)
-44. `google.adk.tools.mcp_tool.mcp_session_manager.StreamableHTTPConnectionParams` (2)
-45. `google.adk.tools.mcp_tool.mcp_toolset.McpToolset` (2)
-46. `google.adk.memory.base_memory_service.SearchMemoryResponse` (2)
-47. `google.adk.memory.memory_entry.MemoryEntry` (2)
-48. `google.adk.auth.auth_tool.AuthConfig` (2)
-49. `google.adk.agents.context_cache_config.ContextCacheConfig` (2)
-50. `google.adk.utils.cache_performance_analyzer.CachePerformanceAnalyzer` (2)
-51. `google.adk.utils.variant_utils.get_google_llm_variant` (2)
-52. `google.adk.models.anthropic_llm.Claude` (2)
-53. `google.adk.planners.built_in_planner.BuiltInPlanner` (2)
-54. `google.adk.runners` (0)
-55. `google.adk.cli.utils` (0)
-56. `google.adk.cli.utils.logs` (0)
-57. `google.adk.agents.run_config` (0)
-58. `google.adk.sessions.session` (0)
-59. `google.adk.sessions.session.Session` (0)
-60. `google.adk` (0)
-61. `google.adk.events.event` (0)
-62. `google.adk.utils.cache_performance_analyzer` (0)
-63. `google.adk.agents.context_cache_config` (0)
-64. `google.adk.apps.app` (0)
-65. `google.adk.agents.base_agent.BaseAgent` (0)
-66. `google.adk.agents.base_agent` (0)
-67. `google.adk.planners.built_in_planner` (0)
-68. `google.adk.models` (0)
-69. `google.adk.tools.base_tool` (0)
-70. `google.adk.models.google_llm` (0)
-71. `google.adk.events` (0)
-72. `google.adk.tools` (0)
-73. `google.adk.agents.loop_agent` (0)
-74. `google.adk.agents.llm_agent` (0)
-75. `google.adk.tools.base_tool.BaseTool` (0)
-76. `google.adk.planners` (0)
-77. `google.adk.agents` (0)
-78. `google.adk.tools.tool_context` (0)
-79. `google.adk.tools.tool_context.ToolContext` (0)
-80. `google.adk.utils.variant_utils.GoogleLLMVariant` (0)
-81. `google.adk.utils.variant_utils` (0)
-82. `google.adk.tools.agent_tool` (0)
-83. `google.adk.tools.vertex_ai_search_tool` (0)
-84. `google.adk.tools.langchain_tool` (0)
-85. `google.adk.tools.crewai_tool` (0)
-86. `google.adk.tools.retrieval.vertex_ai_rag_retrieval` (0)
-87. `google.adk.tools.retrieval.files_retrieval.FilesRetrieval` (0)
-88. `google.adk.tools.retrieval.files_retrieval` (0)
-89. `google.adk.tools.crewai_tool.CrewaiTool` (0)
-90. `google.adk.tools.mcp_tool.mcp_toolset` (0)
-91. `google.adk.auth.auth_credential` (0)
-92. `google.adk.auth.auth_credential.AuthCredentialTypes` (0)
-93. `google.adk.agents.sequential_agent` (0)
-94. `google.adk.tools.mcp_tool.mcp_session_manager` (0)
-95. `google.adk.models.lite_llm` (0)
-96. `google.adk.tools.bigquery.config.WriteMode` (0)
-97. `google.adk.tools.bigquery.bigquery_credentials` (0)
-98. `google.adk.tools.bigquery.config` (0)
-99. `google.adk.tools.bigquery.bigquery_toolset` (0)
-100. `google.adk.tools.mcp_tool` (0)
+| Rank | ID | Type | Usage | Group |
+| :--- | :--- | :--- | :--- | :--- |
+| 1 | `google.adk.runners.InMemoryRunner` | TargetType.CLASS | 40 | Seed |
+| 2 | `google.adk.tools.agent_tool.AgentTool` | TargetType.CLASS | 30 | Seed |
+| 3 | `google.adk.agents.llm_agent.LlmAgent` | TargetType.CLASS | 27 | Seed |
+| 4 | `google.adk.cli.utils.logs.log_to_tmp_folder` | TargetType.METHOD | 18 | Seed |
+| 5 | `google.adk.agents.run_config.RunConfig` | TargetType.CLASS | 16 | Seed |
+| 6 | `google.adk.agents.loop_agent.LoopAgent` | TargetType.CLASS | 16 | Seed |
+| 7 | `google.adk.models.llm_response.LlmResponse` | TargetType.CLASS | 16 | Seed |
+| 8 | `google.adk.cli.utils.logs.setup_adk_logger` | TargetType.METHOD | 14 | Seed |
+| 9 | `google.adk.evaluation.agent_evaluator.AgentEvaluator.evaluate` | TargetType.METHOD | 14 | Seed |
+| 10 | `google.adk.events.event.Event` | TargetType.CLASS | 14 | Seed |
+| 11 | `google.adk.artifacts.in_memory_artifact_service.InMemoryArtifactService` | TargetType.CLASS | 12 | Seed |
+| 12 | `google.adk.sessions.in_memory_session_service.InMemorySessionService` | TargetType.CLASS | 11 | Seed |
+| 13 | `google.adk.models.lite_llm.LiteLlm` | TargetType.CLASS | 10 | Seed |
+| 14 | `google.adk.runners.Runner` | TargetType.CLASS | 8 | Seed |
+| 15 | `google.adk.agents.sequential_agent.SequentialAgent` | TargetType.CLASS | 7 | Seed |
+| 16 | `google.adk.tools.mcp_tool.mcp_toolset.MCPToolset` | TargetType.CLASS | 6 | Seed |
+| 17 | `google.adk.sessions.vertex_ai_session_service.VertexAiSessionService` | TargetType.CLASS | 6 | Seed |
+| 18 | `google.adk.examples.example.Example` | TargetType.CLASS | 6 | Seed |
+| 19 | `google.adk.tools.langchain_tool.LangchainTool` | TargetType.CLASS | 5 | Seed |
+| 20 | `google.adk.tools.bigquery.client.get_bigquery_client` | TargetType.METHOD | 5 | Seed |
+| 21 | `google.adk.models.google_llm.Gemini` | TargetType.CLASS | 5 | Seed |
+| 22 | `google.adk.apps.app.App` | TargetType.CLASS | 5 | Seed |
+| 23 | `google.adk.tools.function_tool.FunctionTool` | TargetType.CLASS | 4 | Seed |
+| 24 | `google.adk.tools.bigquery.config.BigQueryToolConfig` | TargetType.CLASS | 4 | Seed |
+| 25 | `google.adk.tools.apihub_tool.apihub_toolset.APIHubToolset` | TargetType.CLASS | 4 | Seed |
+| 26 | `google.adk.auth.auth_credential.AuthCredential` | TargetType.CLASS | 4 | Seed |
+| 27 | `google.adk.agents.remote_a2a_agent.RemoteA2aAgent` | TargetType.CLASS | 4 | Seed |
+| 28 | `google.adk.events.event_actions.EventActions` | TargetType.CLASS | 4 | Seed |
+| 29 | `google.adk.tools.vertex_ai_search_tool.VertexAiSearchTool` | TargetType.CLASS | 3 | Seed |
+| 30 | `google.adk.tools.example_tool.ExampleTool` | TargetType.CLASS | 3 | Seed |
+| 31 | `google.adk.tools.bigtable.bigtable_credentials.BigtableCredentialsConfig` | TargetType.CLASS | 3 | Seed |
+| 32 | `google.adk.tools.bigquery.bigquery_credentials.BigQueryCredentialsConfig` | TargetType.CLASS | 3 | Seed |
+| 33 | `google.adk.tools.bigquery.bigquery_toolset.BigQueryToolset` | TargetType.CLASS | 3 | Seed |
+| 34 | `google.adk.tools.pubsub.pubsub_credentials.PubSubCredentialsConfig` | TargetType.CLASS | 3 | Seed |
+| 35 | `google.adk.auth.auth_credential.OAuth2Auth` | TargetType.CLASS | 3 | Seed |
+| 36 | `google.adk.agents.parallel_agent.ParallelAgent` | TargetType.CLASS | 3 | Seed |
+| 37 | `google.adk.tools.google_search_tool.GoogleSearchTool` | TargetType.CLASS | 2 | Seed |
+| 38 | `google.adk.tools.authenticated_function_tool.AuthenticatedFunctionTool` | TargetType.CLASS | 2 | Seed |
+| 39 | `google.adk.tools.long_running_tool.LongRunningFunctionTool` | TargetType.CLASS | 2 | Seed |
+| 40 | `google.adk.tools.retrieval.vertex_ai_rag_retrieval.VertexAiRagRetrieval` | TargetType.CLASS | 2 | Seed |
+| 41 | `google.adk.tools.application_integration_tool.application_integration_toolset.ApplicationIntegrationToolset` | TargetType.CLASS | 2 | Seed |
+| 42 | `google.adk.tools.mcp_tool.mcp_session_manager.StdioConnectionParams` | TargetType.CLASS | 2 | Seed |
+| 43 | `google.adk.tools.mcp_tool.mcp_session_manager.SseConnectionParams` | TargetType.CLASS | 2 | Seed |
+| 44 | `google.adk.tools.mcp_tool.mcp_session_manager.StreamableHTTPConnectionParams` | TargetType.CLASS | 2 | Seed |
+| 45 | `google.adk.tools.mcp_tool.mcp_toolset.McpToolset` | TargetType.CLASS | 2 | Seed |
+| 46 | `google.adk.memory.base_memory_service.SearchMemoryResponse` | TargetType.CLASS | 2 | Seed |
+| 47 | `google.adk.memory.memory_entry.MemoryEntry` | TargetType.CLASS | 2 | Seed |
+| 48 | `google.adk.auth.auth_tool.AuthConfig` | TargetType.CLASS | 2 | Seed |
+| 49 | `google.adk.agents.context_cache_config.ContextCacheConfig` | TargetType.CLASS | 2 | Seed |
+| 50 | `google.adk.utils.cache_performance_analyzer.CachePerformanceAnalyzer` | TargetType.CLASS | 2 | Seed |
+| 51 | `google.adk.utils.variant_utils.get_google_llm_variant` | TargetType.METHOD | 2 | Seed |
+| 52 | `google.adk.models.anthropic_llm.Claude` | TargetType.CLASS | 2 | Seed |
+| 53 | `google.adk.planners.built_in_planner.BuiltInPlanner` | TargetType.CLASS | 2 | Seed |
+| 54 | `google.adk.runners` | TargetType.MODULE | 0 | Dependency |
+| 55 | `google.adk.cli.utils` | TargetType.MODULE | 0 | Dependency |
+| 56 | `google.adk.cli.utils.logs` | TargetType.MODULE | 0 | Dependency |
+| 57 | `google.adk.agents.run_config` | TargetType.MODULE | 0 | Dependency |
+| 58 | `google.adk.sessions.session` | TargetType.MODULE | 0 | Dependency |
+| 59 | `google.adk.sessions.session.Session` | TargetType.CLASS | 0 | Dependency |
+| 60 | `google.adk` | TargetType.MODULE | 0 | Dependency |
+| 61 | `google.adk.events.event` | TargetType.MODULE | 0 | Dependency |
+| 62 | `google.adk.utils.cache_performance_analyzer` | TargetType.MODULE | 0 | Dependency |
+| 63 | `google.adk.agents.context_cache_config` | TargetType.MODULE | 0 | Dependency |
+| 64 | `google.adk.apps.app` | TargetType.MODULE | 0 | Dependency |
+| 65 | `google.adk.agents.base_agent.BaseAgent` | TargetType.CLASS | 0 | Dependency |
+| 66 | `google.adk.agents.base_agent` | TargetType.MODULE | 0 | Dependency |
+| 67 | `google.adk.planners.built_in_planner` | TargetType.MODULE | 0 | Dependency |
+| 68 | `google.adk.models` | TargetType.MODULE | 0 | Dependency |
+| 69 | `google.adk.tools.base_tool` | TargetType.MODULE | 0 | Dependency |
+| 70 | `google.adk.models.google_llm` | TargetType.MODULE | 0 | Dependency |
+| 71 | `google.adk.events` | TargetType.MODULE | 0 | Dependency |
+| 72 | `google.adk.tools` | TargetType.MODULE | 0 | Dependency |
+| 73 | `google.adk.agents.loop_agent` | TargetType.MODULE | 0 | Dependency |
+| 74 | `google.adk.agents.llm_agent` | TargetType.MODULE | 0 | Dependency |
+| 75 | `google.adk.tools.base_tool.BaseTool` | TargetType.CLASS | 0 | Dependency |
+| 76 | `google.adk.planners` | TargetType.MODULE | 0 | Dependency |
+| 77 | `google.adk.agents` | TargetType.MODULE | 0 | Dependency |
+| 78 | `google.adk.tools.tool_context` | TargetType.MODULE | 0 | Dependency |
+| 79 | `google.adk.tools.tool_context.ToolContext` | TargetType.CLASS | 0 | Dependency |
+| 80 | `google.adk.utils.variant_utils.GoogleLLMVariant` | TargetType.CLASS | 0 | Dependency |
+| 81 | `google.adk.utils.variant_utils` | TargetType.MODULE | 0 | Dependency |
+| 82 | `google.adk.tools.agent_tool` | TargetType.MODULE | 0 | Dependency |
+| 83 | `google.adk.tools.vertex_ai_search_tool` | TargetType.MODULE | 0 | Dependency |
+| 84 | `google.adk.tools.langchain_tool` | TargetType.MODULE | 0 | Dependency |
+| 85 | `google.adk.tools.crewai_tool` | TargetType.MODULE | 0 | Dependency |
+| 86 | `google.adk.tools.retrieval.vertex_ai_rag_retrieval` | TargetType.MODULE | 0 | Dependency |
+| 87 | `google.adk.tools.retrieval.files_retrieval.FilesRetrieval` | TargetType.CLASS | 0 | Dependency |
+| 88 | `google.adk.tools.retrieval.files_retrieval` | TargetType.MODULE | 0 | Dependency |
+| 89 | `google.adk.tools.crewai_tool.CrewaiTool` | TargetType.CLASS | 0 | Dependency |
+| 90 | `google.adk.tools.mcp_tool.mcp_toolset` | TargetType.MODULE | 0 | Dependency |
+| 91 | `google.adk.auth.auth_credential` | TargetType.MODULE | 0 | Dependency |
+| 92 | `google.adk.auth.auth_credential.AuthCredentialTypes` | TargetType.CLASS | 0 | Dependency |
+| 93 | `google.adk.agents.sequential_agent` | TargetType.MODULE | 0 | Dependency |
+| 94 | `google.adk.tools.mcp_tool.mcp_session_manager` | TargetType.MODULE | 0 | Dependency |
+| 95 | `google.adk.models.lite_llm` | TargetType.MODULE | 0 | Dependency |
+| 96 | `google.adk.tools.bigquery.config.WriteMode` | TargetType.CLASS | 0 | Dependency |
+| 97 | `google.adk.tools.bigquery.bigquery_credentials` | TargetType.MODULE | 0 | Dependency |
+| 98 | `google.adk.tools.bigquery.config` | TargetType.MODULE | 0 | Dependency |
+| 99 | `google.adk.tools.bigquery.bigquery_toolset` | TargetType.MODULE | 0 | Dependency |
+| 100 | `google.adk.tools.mcp_tool` | TargetType.MODULE | 0 | Dependency |

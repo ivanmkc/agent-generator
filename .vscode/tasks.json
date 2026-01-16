@@ -210,7 +210,7 @@
         {
             "label": "Recalculate API Usage Stats",
             "type": "shell",
-            "command": "env/bin/python tools/api_indexer.py --config indexer_config_local.yaml --output benchmarks/adk_stats.yaml",
+            "command": "env/bin/python tools/api_indexer.py --config indexer_config_comprehensive.yaml --output benchmarks/adk_stats_samples.yaml",
             "group": "build",
             "presentation": {
                 "reveal": "always",
@@ -218,6 +218,18 @@
             },
             "problemMatcher": [],
             "detail": "Regenerates usage frequency stats for ADK APIs using local tests and samples."
+        },
+        {
+            "label": "Regenerate Ranked Targets",
+            "type": "shell",
+            "command": "PYTHONPATH=. env/bin/python benchmarks/benchmark_generator/target_ranker.py",
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": [],
+            "detail": "Regenerates ranked_targets.yaml and ranked_targets.md based on latest stats."
         },
         {
             "label": "Prismatic: Generate Execution MCQ (Gemini 3 Pro)",
