@@ -149,9 +149,17 @@ def scan_repository(repo_path: str, tool_context: ToolContext, coverage_file: Op
                     if node.name.startswith("_"): return
                     class_fqn = f"{self.mod_fqn}.{node.name}"
                     
+                    # Extract Bases
+                    bases = []
+                    for base in node.bases:
+                        if isinstance(base, ast.Name):
+                            bases.append(base.id)
+                        elif isinstance(base, ast.Attribute):
+                            bases.append(ast.unparse(base))
+                    
                     # Structure Map
                     structure_map[class_fqn] = {
-                        "type": "Class", "name": node.name, "children": [], "params": {}, "props": []
+                        "type": "Class", "name": node.name, "children": [], "params": {}, "props": [], "bases": bases
                     }
                     structure_map[self.mod_fqn]["children"].append(class_fqn)
                     
