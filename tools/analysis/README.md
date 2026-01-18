@@ -1,47 +1,53 @@
-# Benchmark Analysis Toolkit
+# Benchmark Analysis Library
 
-This directory contains a suite of tools for analyzing agent performance, debugging failures, and managing benchmark data. The tools operate in two modes: **Database-Backed** (for aggregate analysis) and **Standalone** (for single-trace inspection).
+This directory contains the modular engine used by all diagnostic and reporting tools. It breaks down raw `trace.jsonl` data into a meaningful hierarchy.
 
-## 1. Automated Root Cause Analysis (The DB Pipeline)
+## 1. Modular Hierarchy & Mechanisms
 
-This pipeline automatically ingests benchmark traces into a SQLite database (`benchmarks/analysis_cache.db`), classifies errors using Regex, and optionally uses an LLM to perform forensic analysis on failures.
+*   **`analyze_benchmark_run.py`**: **Orchestrator**. Parses `results.json` and maps data into the hierarchical object model.
+*   **`analyze_generator.py`**: **Quantitative Stats**. Deterministic calculation of pass rates, latency, and estimated cost (blended input/output rate).
+*   **`analyze_case.py`**: **Regex Classifier**. Categorizes failures by matching validation error strings against known patterns:
+    *   `Malformed JSON`: Parsing failures in model output.
+    *   `Interface Violation`: Missing required methods (e.g., `create_agent`).
+    *   `Syntax Error`: Syntactically invalid Python code.
+    *   `Infrastructure Error`: 429 Resource Exhaustion or Quota limits.
+*   **`analyze_attempt.py`**: **Heuristic Auditor**. Scans the chronological event timeline of a single trace to detect specific agent "brain-farts":
+    *   **Early Loop Exit**: Detects when a `retrieval_worker` calls `exit_loop` and terminates the implementation sequence before code is generated.
+    *   **Sanitizer Hallucination**: Detects when the `prompt_sanitizer` outputs a JSON answer structure instead of cleaning the text.
+    *   **Router Decision**: Extracts the 'CODING' vs 'KNOWLEDGE' path chosen for the task.
 
-### Step 1: Ingest & Classify
-Scans the `benchmark_runs/` directory for new `trace.jsonl` files (last 2 days by default) and populates the database. It uses Regex to categorize errors (e.g., "ImportError", "Schema Violation").
+## 2. LLM Map-Reduce Pipeline
 
-```bash
-python tools/analysis/analyze_root_causes.py
+For complex failures, the reporter uses a multi-stage LLM pipeline (`gemini-2.0-pro-exp-02-05`) to extract semantic meaning from raw traces:
+
+### Level 1: Map (Attempt Audit)
+*   **Logic**: Every failed attempt trace is serialized (truncated if necessary) and audited.
+*   **Output**: `ForensicInsight` (Root cause category, precise narrative, and evidence list).
+
+### Level 2: Reduce (Case Synthesis)
+*   **Logic**: Aggregates all `ForensicInsight` objects for a specific benchmark.
+*   **Output**: `CaseSummary` (Recurring failure patterns and behavioral progression, e.g., "Drifting from goal", "Stuck in retrieval loop").
+
+### Level 3/4: Final Reduction (Run Summary)
+*   **Logic**: The high-level reporter consumes these structured summaries to write the final executive summary and actionable recommendations.
+
+## 3. Shared Usage
+
+These modules are designed to be imported, not run directly.
+
+```python
+from tools.analysis.analyze_benchmark_run import analyze_benchmark_run
+
+# 1. Load and process the run
+run = analyze_benchmark_run("2026-01-16_23-39-35")
+
+# 2. Access metrics
+for gen in run.generators.values():
+    print(f"{gen.name}: {gen.pass_rate}%")
+
+# 3. Check for architectural bugs
+alerts = run.get_critical_alerts()
 ```
-*   **Arguments:** None (Configured via `RUNS_DIR` and `DB_PATH` in script).
-*   **Output:** Creates/Updates `benchmarks/analysis_cache.db`.
-
-### Step 2: LLM Forensic Audit
-Queries the database for unanalyzed failures and uses Gemini to analyze the trace logs. It determines *why* the agent failed (e.g., "Hallucinated API", "Ignored Tool Output").
-
-```bash
-python tools/analysis/llm_root_cause_analysis.py
-```
-*   **Prerequisites:** Requires valid API keys in `settings.json` or env vars.
-*   **Output:** Updates the `llm_analysis` and `llm_root_cause` columns in the database.
-
-### Step 3: Generate Reports
-Once data is in the DB, use these scripts to generate insights.
-
-**A. Failure Mode Statistics**
-Prints aggregate stats on which tools are failing and why (e.g., "How many failures were due to empty search results?").
-```bash
-python tools/analysis/analyze_tool_failures.py
-```
-
-**B. Deep Dive on Tool Chains**
-Extracts the exact sequence of tool calls (e.g., `get_module_help` -> `search_files`) for failed runs to see where the agent went off track.
-```bash
-python tools/analysis/deep_dive_tool_params.py
-```
-
----
-
-## 2. Standalone Trace Inspection
 
 These tools work directly on `trace.jsonl` files without needing the database.
 

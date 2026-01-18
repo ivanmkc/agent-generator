@@ -45,7 +45,7 @@ from benchmarks.logger import (
     CompositeLogger
 )
 import benchmarks.analysis as analysis
-from notebooks.report.log_analyzer import analyze_run_logs
+from tools.cli.generate_benchmark_report import analyze_run_logs
 
 # Set pandas display options (needed for analysis functions)
 pd.set_option("display.max_colwidth", None)
@@ -345,7 +345,7 @@ async def main():
 
     # Run Log Analysis
     try:
-        await analyze_run_logs(run_output_dir)
+        await analyze_run_logs(run_output_dir, model_name="gemini-3-pro-preview")
     except Exception as e:
         logger.log_message(f"Log analysis failed: {e}")
 
