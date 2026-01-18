@@ -282,56 +282,62 @@ class CodeBasedRunner(Agent):
         ctx.session.state["agent_code"] = agent_code
 
         # 3. Retrieve verification plan directly from session state
-        verification_plan = ctx.session.state.get("verification_plan", "Error: No verification plan found in session state.")
+        verification_plan_data = ctx.session.state.get("verification_plan", {})
         
-        # Use a fixed sanity check prompt for the agent execution
-        test_prompt = "Hello! Please confirm you are working."
+        test_cases = []
+        if isinstance(verification_plan_data, dict):
+            test_cases = verification_plan_data.get("test_cases", [])
         
-        # Try to extract a specific test prompt from the verification plan if present
-        prompt_match = re.search(r"Test Prompt:\s*(.*?)(?:\n|$)", verification_plan, re.IGNORECASE)
-        if prompt_match:
-            extracted_prompt = prompt_match.group(1).strip()
-            if extracted_prompt:
-                test_prompt = extracted_prompt
+        if not test_cases:
+            # Fallback for empty or legacy plans
+            test_cases = [{"test_prompt": "Hello! Please confirm you are working.", "expected_behavior": "Agent responds."}]
 
-        # Yield fake tool call for trace logging consistency
-        run_adk_tool_id = f"call_{uuid.uuid4().hex}"
-        yield Event(
-            invocation_id=ctx.invocation_id,
-            author=self.name,
-            content=types.Content(
-                role="model",
-                parts=[types.Part(function_call=types.FunctionCall(
-                    name="run_adk_agent",
-                    args={"prompt": test_prompt, "agent_code": agent_code},
-                    id=run_adk_tool_id 
-                ))]
+        all_results = []
+        
+        for i, tc in enumerate(test_cases):
+            test_prompt = tc.get("test_prompt", "Hello")
+            
+            # Yield fake tool call for trace logging consistency
+            run_adk_tool_id = f"call_{uuid.uuid4().hex}"
+            yield Event(
+                invocation_id=ctx.invocation_id,
+                author=self.name,
+                content=types.Content(
+                    role="model",
+                    parts=[types.Part(function_call=types.FunctionCall(
+                        name="run_adk_agent",
+                        args={"prompt": test_prompt, "agent_code": agent_code, "test_case_index": i},
+                        id=run_adk_tool_id 
+                    ))]
+                )
             )
-        )
 
-        # 4. Execute the agent code using run_adk_agent
-        run_output = await self._tools_helper.run_adk_agent(
-            prompt=test_prompt,
-            model_name=self._model_name, 
-            agent_code=agent_code,
-        )
-
-        # Yield fake tool result for trace logging consistency
-        yield Event(
-            invocation_id=ctx.invocation_id,
-            author=self.name,
-            content=types.Content(
-                role="tool",
-                parts=[types.Part(function_response=types.FunctionResponse(
-                    name="run_adk_agent",
-                    response={"result": run_output}, 
-                    id=run_adk_tool_id
-                ))]
+            # 4. Execute the agent code using run_adk_agent
+            run_output = await self._tools_helper.run_adk_agent(
+                prompt=test_prompt,
+                model_name=self._model_name, 
+                agent_code=agent_code,
             )
-        )
 
-        # 5. Save output to session state for the Analyst
-        ctx.session.state["run_output"] = run_output
+            # Yield fake tool result for trace logging consistency
+            yield Event(
+                invocation_id=ctx.invocation_id,
+                author=self.name,
+                content=types.Content(
+                    role="tool",
+                    parts=[types.Part(function_response=types.FunctionResponse(
+                        name="run_adk_agent",
+                        response={"result": run_output}, 
+                        id=run_adk_tool_id
+                    ))]
+                )
+            )
+            
+            all_results.append(f"--- TEST CASE {i+1} ---\nPrompt: {test_prompt}\nExpected: {tc.get('expected_behavior')}\nOutput:\n{run_output}\n")
+
+        # 5. Save combined output to session state for the Analyst
+        combined_run_output = "\n".join(all_results)
+        ctx.session.state["run_output"] = combined_run_output
 
         # 6. Yield the logs so the Analyst can see them in history
         yield Event(
@@ -339,7 +345,7 @@ class CodeBasedRunner(Agent):
             author=self.name,
             content=types.Content(
                 role="model",
-                parts=[types.Part(text=f"Execution Logs:\n{run_output}")]
+                parts=[types.Part(text=f"Combined Execution Logs:\n{combined_run_output}")]
             )
         )
 

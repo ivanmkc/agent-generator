@@ -56,12 +56,13 @@ benchmarks:
   template: identifier
   answers:
   - answer_template: StringMatchAnswer
-            answer: name
-            fully_qualified_class_name:
-            - google.adk.agents.base_agent.BaseAgent
-            - google.adk.agents.BaseAgent
-            - google.adk.agents.base_agent_config.BaseAgentConfig
-            - google.adk.agents.BaseAgentConfig  file: src/google/adk/agents/base_agent.py
+    answer: name
+    fully_qualified_class_name:
+    - google.adk.agents.base_agent.BaseAgent
+    - google.adk.agents.BaseAgent
+    - google.adk.agents.base_agent_config.BaseAgentConfig
+    - google.adk.agents.BaseAgentConfig
+  file: src/google/adk/agents/base_agent.py
 - id: api_understanding:which_class_is_used_to_define_a_sequence_of_agents
   category: Core Class Signatures & Initialization
   question: Which class is used to define a sequence of agents that run in order?
@@ -150,7 +151,7 @@ benchmarks:
   file: src/google/adk/agents/llm_agent.py
 - id: api_understanding:where_can_i_configure_llm_generation_parameters_li
   category: Configuration Parameters
-  question: Where can I configure LLM generation parameters like temperature and safety settings?
+  question: What parameter can I pass to configure LLM generation parameters like temperature and safety settings?
   rationale: In the `LlmAgent`, these are configured through the `generate_content_config` parameter, which accepts a `types.GenerateContentConfig` object.
   benchmark_type: api_understanding
   template: identifier

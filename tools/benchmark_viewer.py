@@ -9,6 +9,7 @@ from typing import List
 from pydantic import TypeAdapter
 from benchmarks.data_models import BenchmarkRunResult, BenchmarkResultType
 from benchmarks.benchmark_candidates import CANDIDATE_GENERATORS
+from tools.analysis.analyze_benchmark_run import analyze_benchmark_run
 
 # --- Constants ---
 BENCHMARK_RUNS_DIR = Path("benchmark_runs")
@@ -72,6 +73,10 @@ def load_traces(run_id):
                 continue
     return traces
 
+@st.cache_data
+def run_forensics(run_id):
+    """Runs the forensic analysis engine on a specific run."""
+    return analyze_benchmark_run(run_id)
 
 # --- UI Components ---
 
@@ -812,6 +817,49 @@ def main():
                     st.success("No failed attempts found in the selected filter range.")
         else:
             st.info("No generation attempt history found in this dataset.")
+
+        # 7. Forensic Analysis Integration
+        st.divider()
+        st.subheader("🕵️ Forensic Diagnosis")
+        
+        if st.button("Run Deep Forensic Scan"):
+            with st.spinner("Analyzing trace logs..."):
+                run_analysis = run_forensics(selected_run)
+                
+                if run_analysis.total_failures == 0:
+                    st.success("No failures detected in this run to analyze!")
+                else:
+                    # Categories
+                    from collections import Counter
+                    all_failed_cases = [c for c in run_analysis.cases if c.result_score == 0]
+                    cats = Counter([c.primary_failure_category for c in all_failed_cases])
+                    
+                    # Heuristics
+                    alerts = run_analysis.get_critical_alerts()
+                    hallucinations = sum(1 for a in alerts if "Sanitizer Hallucination" in a["reasons"])
+                    loop_kills = sum(1 for a in alerts if "Early Loop Exit" in a["reasons"])
+                    
+                    # Layout
+                    c1, c2, c3 = st.columns(3)
+                    c1.metric("Analyzed Cases", len(run_analysis.cases))
+                    c2.metric("Critical Hallucinations", hallucinations, delta=-hallucinations if hallucinations > 0 else 0, delta_color="inverse")
+                    c3.metric("Early Loop Exits", loop_kills, delta=-loop_kills if loop_kills > 0 else 0, delta_color="inverse")
+                    
+                    st.write("**Top Failure Categories:**")
+                    cat_df = pd.DataFrame(cats.most_common(), columns=["Category", "Count"])
+                    st.dataframe(cat_df, use_container_width=True, hide_index=True)
+                    
+                    with st.expander("View Detailed Forensic Report"):
+                        for c in all_failed_cases:
+                            icon = "⚠️" if c.has_critical_heuristic_failure else "❌"
+                            st.markdown(f"**{icon} {c.benchmark_name}**")
+                            st.caption(f"Error: {c.primary_failure_category}")
+                            
+                            for i, att in enumerate(c.attempts):
+                                if len(c.attempts) > 1:
+                                    st.write(f"Attempt {i+1}")
+                                st.json(att.__dict__) # Dump analysis stats
+                            st.divider()
 
     elif selected_case_id == "AI Report":
         st.header("🤖 AI Analysis Report")

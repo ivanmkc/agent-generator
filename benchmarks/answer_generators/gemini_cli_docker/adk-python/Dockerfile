@@ -18,6 +18,10 @@ RUN git clone --branch v1.20.0 https://github.com/google/adk-python.git /workdir
 RUN mkdir -p /tmp/.gemini/
 COPY settings.json /workdir/.gemini/settings.json
 
+# Copy shared tools source
+COPY src/ /app/common/
+ENV PYTHONPATH="${PYTHONPATH}:/app/common"
+
 # Copy the INSTRUCTIONS.md for context
 COPY INSTRUCTIONS.md /workdir/INSTRUCTIONS.md
 

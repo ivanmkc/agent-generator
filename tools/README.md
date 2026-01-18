@@ -4,29 +4,76 @@ This directory contains helper scripts and tools for analyzing benchmarks, debug
 
 ## Primary Tools
 
--   **`debugging.py`**: The main debugging CLI. Use this to inspect failed benchmark cases and generate deep-dive analysis reports.
+-   **`cli/audit_failures.py`**: The "Mechanic." 
+    -   **Mechanism**: **Deterministic**. 
+    -   Uses Regex pattern matching to classify errors and Heuristic timeline analysis to detect architectural bugs (e.g., "Early Loop Exits").
     ```bash
-    python tools/debugging.py --run-dir benchmark_runs/<timestamp> --list-cases
-    python tools/debugging.py --run-dir benchmark_runs/<timestamp> --case "Case Name" --report
+    python tools/cli/audit_failures.py --inspect "case_name"
     ```
 
--   **`benchmark_viewer.py`**: A TUI (Text User Interface) for browsing benchmark results.
+-   **`cli/generate_benchmark_report.py`**: The "Journalist."
+    -   **Mechanism**: **Hybrid (Stats + LLM)**.
+    -   Uses an LLM to perform a multi-stage reduction:
+        1. **Map**: Audits every individual attempt trace in parallel.
+        2. **Reduce**: Synthesizes attempt-level insights into Case-level patterns.
+        3. **Finalize**: Aggregates all data into the high-level `log_analysis.md` executive summary.
+    -   **Output**: Includes a "Report Generation Metadata" section tracking latency, tokens, and LLM calls cost for the analysis itself.
     ```bash
-    python tools/benchmark_viewer.py
+    python tools/cli/generate_benchmark_report.py [run_id]
     ```
+
+-   **`analysis/analyze_case_quality.py`**: The "Auditor."
+    -   **Mechanism**: **Hybrid (DB + LLM)**.
+    -   Identifies repeatedly failing benchmark cases from the history database and uses an LLM to determine if the test case itself is flawed (ambiguous, incorrect ground truth) or if it's a genuine agent failure.
+    ```bash
+    python tools/analysis/analyze_case_quality.py
+    ```
+
+-   **`benchmark_viewer.py`**: Streamlit-based TUI. Integrates the Auditor engine for on-demand visual forensics.
+
+## Analysis Hierarchy & Mechanisms
+
+```text
+[TOOL]                            [BACKEND MODULE]                   [MECHANISM]
+generate_benchmark_report.py  -> analyze_benchmark_run.py ---------> Map-Reduce (LLM Reasoning)
+audit_failures.py             ->   └── analyze_generator.py -------> Deterministic Math (Stats)
+benchmark_viewer.py           ->       └── analyze_case.py --------> Regex (Error Classification)
+                                           └── analyze_attempt.py -> Heuristic (Event Auditing)
+```
+
+### Reporting Pipeline Logic (Map-Reduce)
+
+```python
+# Level 1: Map (Parallel Audit)
+for attempt in all_failed_attempts:
+    insight = LLM.analyze(
+        trace=attempt.logs,
+        prompt="Find exact failure point"
+    ) # -> ForensicInsight
+
+# Level 2: Reduce (Case Synthesis)
+for case, insights in group_by_benchmark(insights):
+    case_summary = LLM.summarize(
+        insights=insights,
+        prompt="Identify behavioral trajectory (regressing vs closer)"
+    ) # -> CaseSummary
+
+# Level 3: Final Reduce (Run Executive Summary)
+report = LLM.generate_final_report(
+    stats=deterministic_quantitative_metrics,
+    case_summaries=all_case_summaries,
+    prompt="Write executive summary and actionable recommendations"
+) # -> log_analysis.md
+```
 
 ## Subdirectories
 
 ### `analysis/`
-Specialized scripts for deep-diving into benchmark results and agent behavior. See [tools/analysis/README.md](analysis/README.md) for more details.
--   **`analyze_root_causes.py`**: Automated failure classification and DB ingestion.
--   **`llm_root_cause_analysis.py`**: LLM-powered forensic audit of failed traces.
--   **`analyze_tool_failures.py`**: Statistical reporting on failure modes.
--   **`analyze_benchmark_chunks.py`**: Per-case comparison of tokens and duration.
--   **`compare_tool_usage.py`**: Detailed token efficiency comparison between runs.
--   **`deep_dive_tool_params.py`**: Tool chain extraction for specific failures.
--   **`analyze_results_json.py`**, `analyze_traces.py`: Quick diagnostic scripts.
--   **`compare_adk_variants.py`**: Side-by-side agent performance comparison.
+The core engine for understanding agent performance. See [tools/analysis/README.md](analysis/README.md) for logic details.
+-   **`analyze_benchmark_run.py`**: Orchestrates the analysis of a complete run.
+-   **`analyze_generator.py`**: Calculates metrics (Pass Rate, Cost) per generator.
+-   **`analyze_case.py`**: Aggregates multi-attempt history for a single benchmark.
+-   **`analyze_attempt.py`**: Deep-dive heuristic audit of a single execution trace.
 
 ### `utils/`
 Miscellaneous utility scripts.

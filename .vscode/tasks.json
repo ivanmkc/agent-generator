@@ -50,6 +50,18 @@
             "detail": "Executes benchmarks for API Understanding suite only."
         },
         {
+            "label": "Run ADK Benchmarks: fix_error suite only",
+            "type": "shell",
+            "command": "./notebooks/run_benchmarks.sh --generator-filter ADK_ --suite-filter fix_error",
+            "group": "test",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": [],
+            "detail": "Executes benchmarks for fix_error suite only."
+        },
+        {
             "label": "Run GeminiCliPodman Benchmarks: All suites",
             "type": "shell",
             "command": "./notebooks/run_benchmarks.sh --generator-filter GeminiCliPodman",
@@ -244,16 +256,28 @@
             "detail": "Generates repository-specific execution benchmarks using Gemini 3 Pro (High Quality)."
         },
         {
-            "label": "Prismatic: Generate Conceptual MCQ (Gemini 3 Pro)",
+            "label": "Audit Failures (Latest Run)",
             "type": "shell",
-            "command": "PYTHONPATH=. env/bin/python benchmarks/benchmark_generator/run_generator.py --type prismatic_adk --mode concept_mcq --repo-path ../adk-python --output-dir benchmarks/benchmark_definitions/prismatic_concepts --concurrency 5 --limit 100 --session-db prismatic_sessions_concepts.db --namespace google.adk --cooccurrence-file benchmarks/adk_cooccurrence.json --model-name gemini-3-pro-preview",
+            "command": "export PYTHONPATH=$PYTHONPATH:. && env/bin/python tools/cli/audit_failures.py",
+            "group": "test",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": [],
+            "detail": "Runs forensic audit on the latest benchmark run."
+        },
+        {
+            "label": "Generate Executive Report (Latest Run)",
+            "type": "shell",
+            "command": "export PYTHONPATH=$PYTHONPATH:. && env/bin/python tools/cli/generate_benchmark_report.py --model-name gemini-3-pro-preview",
             "group": "build",
             "presentation": {
                 "reveal": "always",
                 "panel": "new"
             },
             "problemMatcher": [],
-            "detail": "Generates 100 text-based conceptual questions about the ADK architecture using Gemini 3 Pro."
+            "detail": "Generates a comprehensive log_analysis.md using Map-Reduce LLM analysis."
         }
     ]
 }

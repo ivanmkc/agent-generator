@@ -20,6 +20,7 @@ from benchmarks.answer_generators.experiment_62 import create_refined_knowledge_
 from benchmarks.answer_generators.experiment_64 import create_refined_knowledge_generator_v44
 from benchmarks.answer_generators.experiment_65 import create_task_aware_generator_v45
 from benchmarks.answer_generators.experiment_66 import create_ranked_index_generator_v46
+from benchmarks.answer_generators.experiment_67 import create_hybrid_generator_v47
 
 from benchmarks.answer_generators.gemini_cli_docker import (
     GeminiCliPodmanAnswerGenerator,
@@ -56,10 +57,47 @@ CANDIDATE_GENERATORS = [
     # ),
     
     # Experiment 66: V46 - Ranked Index Retrieval
-    create_ranked_index_generator_v46(
+    # create_ranked_index_generator_v46(
+    #     model_name=ModelName.GEMINI_2_5_FLASH,
+    #     api_key_manager=api_key_manager
+    # ),
+    
+    # # Experiment 67: V47 - Hybrid Specialist (Routed Ranked Retrieval)
+    # create_hybrid_generator_v47(
+    #     model_name=ModelName.GEMINI_2_5_FLASH,
+    #     api_key_manager=api_key_manager
+    # ),
+
+    # Historical Reproductions (Podman-based)
+    GeminiCliPodmanAnswerGenerator(
+        image_definitions=IMAGE_DEFINITIONS,
+        image_name="gemini-cli:mcp_adk_agent_runner_basic",
         model_name=ModelName.GEMINI_2_5_FLASH,
         api_key_manager=api_key_manager
     ),
+    # GeminiCliPodmanAnswerGenerator(
+    #     image_definitions=IMAGE_DEFINITIONS,
+    #     image_name="gemini-cli:mcp_adk_agent_runner_smart_search",
+    #     model_name=ModelName.GEMINI_2_5_FLASH,
+    #     api_key_manager=api_key_manager
+    # ),
+    
+    # Ranked Knowledge (V47 Port)
+    GeminiCliPodmanAnswerGenerator(
+        image_definitions=IMAGE_DEFINITIONS,
+        image_name="gemini-cli:mcp_adk_agent_runner_ranked_knowledge",
+        model_name=ModelName.GEMINI_2_5_FLASH,
+        context_instruction="You have access to a special 'adk-knowledge' toolset. Use 'list_adk_modules' to explore the API surface and 'search_adk_knowledge' to find specific functionality. Use 'inspect_adk_symbol' to read source code.",
+        api_key_manager=api_key_manager
+    ),
+    
+    # # Ripgrep Runner (Basic + rg)
+    # GeminiCliPodmanAnswerGenerator(
+    #     image_definitions=IMAGE_DEFINITIONS,
+    #     image_name="gemini-cli:mcp_adk_agent_runner_ripgrep",
+    #     model_name=ModelName.GEMINI_2_5_FLASH,
+    #     api_key_manager=api_key_manager
+    # ),
     
     # # Decoupled Specialists
     # create_knowledge_only_v37_generator(model_name=ModelName.GEMINI_2_5_PRO, api_key_manager=api_key_manager),
