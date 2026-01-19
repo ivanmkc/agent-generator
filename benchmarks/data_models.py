@@ -633,9 +633,37 @@ class BenchmarkRunResult(pydantic.BaseModel):
     ground_truth: Optional[str] = Field(
         None, description="The ground truth answer used for verification."
     )
+    prompt: Optional[str] = Field(
+        None, description="The original prompt/instruction given to the generator."
+    )
     unfixed_code: Optional[str] = Field(
         None, description="The original, unfixed code for the benchmark case (if applicable)."
     )
     generation_attempts: Optional[list[GenerationAttempt]] = Field(
         None, description="History of generation attempts for this benchmark."
     )
+
+# --- Forensic Analysis Models ---
+
+class ForensicInsight(pydantic.BaseModel):
+    root_cause_category: str = Field(..., description="The primary reason for failure (e.g. 'Hallucination', 'Retrieval Failure', 'Loop Exit').")
+    dag_failure_point: str = Field(..., description="Where in the Agent DAG did it fail? (e.g., 'Retrieval Loop -> Tool Call', 'Implementation Planner -> Plan Generation').")
+    explanation: str = Field(..., description="A precise narrative of why this specific attempt failed.")
+    evidence: list[str] = Field(..., description="Specific log events supporting the conclusion.")
+
+class CaseSummary(pydantic.BaseModel):
+    benchmark_name: str = Field(..., description="The name of the benchmark case.")
+    failure_pattern: str = Field(..., description="The recurring failure mode across attempts (e.g. 'Persistent Hallucination', 'Flaky Tool Usage').")
+    progression: str = Field(..., description="Did the agent improve, regress, or loop? (e.g. 'Regressed', 'Stuck', 'Oscillated').")
+    key_evidence: list[str] = Field(..., description="Top 3 pieces of evidence summarizing the case failure.")
+
+class GeneratorForensicSummary(pydantic.BaseModel):
+    common_failure_patterns: str = Field(..., description="Summary of the most frequent failure modes observed across all failed cases for this generator.")
+    critical_anti_patterns: str = Field(..., description="Analysis of specific anti-patterns (e.g., ignoring tool outputs, strict schema violations) that appear systemically.")
+    strategic_recommendations: list[str] = Field(..., description="High-level architectural recommendations to address these root causes.")
+
+class ForensicData(pydantic.BaseModel):
+    """Aggregated forensic data for the viewer."""
+    generators: dict[str, GeneratorForensicSummary] = Field(default_factory=dict)
+    cases: dict[str, CaseSummary] = Field(default_factory=dict)
+    attempts: dict[str, list[ForensicInsight]] = Field(default_factory=dict)

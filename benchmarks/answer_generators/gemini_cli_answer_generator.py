@@ -41,23 +41,34 @@ from benchmarks.answer_generators.gemini_answer_generator import GeminiAnswerGen
 
 
 class GeminiCliAnswerGenerator(GeminiAnswerGenerator):
-    """An AnswerGenerator that uses the gemini CLI programmatically."""
+    """
+    An AnswerGenerator that uses the gemini-cli tool.
+    """
 
-    def __init__(  # pylint: disable=super-init-not-called
+    def __init__(
         self,
-        model_name: str = "gemini-2.5-pro",
-        context: str | Path | None = None,
-        cli_path: str = "gemini",
-        api_key_manager: ApiKeyManager | None = None,
+        model_name: str,
+        context: str,
+        api_key_manager: ApiKeyManager,
     ):
-        # Call the direct parent (GeminiAnswerGenerator) and pass relevant arguments.
         super().__init__(
             model_name=model_name, context=context, api_key_manager=api_key_manager
         )
 
-        # cli_path is specific to this class and not passed up the chain.
-        self.cli_path = cli_path
-        self._setup_completed = False
+    @classmethod
+    async def create(
+        cls,
+        model_name: str,
+        context: str,
+        api_key_manager: ApiKeyManager,
+    ):
+        """Async factory for creating an instance."""
+        # This class doesn't have its own async init, so we just call the superclass create
+        # But we need to call __init__ first, then _async_init.
+        # The base class `create` method handles this.
+        instance = cls(model_name, context, api_key_manager)
+        await super(GeminiCliAnswerGenerator, instance)._async_init()
+        return instance
 
     @property
     def name(self) -> str:

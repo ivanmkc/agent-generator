@@ -41,48 +41,40 @@ class ModelName(enum.StrEnum):
 api_key_manager = ApiKeyManager()
 
 # Instantiate candidates
-CANDIDATE_GENERATORS = [
-    # # Historical baselines can be added here if needed
-    
-    # # Recent Experiments
-    # create_statistical_v32_generator(model_name=ModelName.GEMINI_2_5_FLASH, api_key_manager=api_key_manager),
-    # create_statistical_v33_generator(model_name=ModelName.GEMINI_2_5_FLASH, api_key_manager=api_key_manager),
-    # create_statistical_v34_generator(model_name=ModelName.GEMINI_2_5_FLASH, api_key_manager=api_key_manager),
-    # create_statistical_v35_generator(model_name=ModelName.GEMINI_2_5_FLASH, api_key_manager=api_key_manager),
-    # create_statistical_v36_generator(model_name=ModelName.GEMINI_2_5_FLASH, api_key_manager=api_key_manager),
-    # create_statistical_v35_generator(
-    #     model_name=ModelName.GEMINI_2_5_FLASH,
-    #     formatter_model=ModelName.GEMINI_2_5_FLASH,
-    #     api_key_manager=api_key_manager,
-    # ),
-    
-    # Experiment 66: V46 - Ranked Index Retrieval
-    # create_ranked_index_generator_v46(
-    #     model_name=ModelName.GEMINI_2_5_FLASH,
-    #     api_key_manager=api_key_manager
-    # ),
-    
-    # # Experiment 67: V47 - Hybrid Specialist (Routed Ranked Retrieval)
-    # create_hybrid_generator_v47(
-    #     model_name=ModelName.GEMINI_2_5_FLASH,
-    #     api_key_manager=api_key_manager
-    # ),
-
+async def get_candidate_generators():
+    """Asynchronously creates and returns the list of candidate generators."""
     # Historical Reproductions (Podman-based)
-    GeminiCliPodmanAnswerGenerator(
+    basic_podman_gen = await GeminiCliPodmanAnswerGenerator.create(
+        image_definitions=IMAGE_DEFINITIONS,
+        image_name="gemini-cli:mcp_adk_agent_runner_basic",
+        model_name=ModelName.GEMINI_2_5_FLASH,
+        api_key_manager=api_key_manager,
+    )
+    
+    # Ranked Knowledge (V47 Port)
+    ranked_podman_gen = await GeminiCliPodmanAnswerGenerator.create(
+        image_definitions=IMAGE_DEFINITIONS,
+        image_name="gemini-cli:mcp_adk_agent_runner_ranked_knowledge",
+        model_name=ModelName.GEMINI_2_5_FLASH,
+        context_instruction="You have access to a special 'adk-knowledge' toolset. Use 'list_adk_modules' to explore the API surface and 'search_adk_knowledge' to find specific functionality. Use 'inspect_adk_symbol' to read source code.",
+        api_key_manager=api_key_manager,
+    )
+    
+    return [
+        basic_podman_gen,
+        ranked_podman_gen,
+    ]
+
+# For synchronous contexts that need the list of names, we still define a sync list.
+# Note: This is a bit of a hack. A better solution might be to refactor all
+# downstream dependencies to be async, but that is a larger change.
+CANDIDATE_GENERATORS = [
+     GeminiCliPodmanAnswerGenerator(
         image_definitions=IMAGE_DEFINITIONS,
         image_name="gemini-cli:mcp_adk_agent_runner_basic",
         model_name=ModelName.GEMINI_2_5_FLASH,
         api_key_manager=api_key_manager
     ),
-    # GeminiCliPodmanAnswerGenerator(
-    #     image_definitions=IMAGE_DEFINITIONS,
-    #     image_name="gemini-cli:mcp_adk_agent_runner_smart_search",
-    #     model_name=ModelName.GEMINI_2_5_FLASH,
-    #     api_key_manager=api_key_manager
-    # ),
-    
-    # Ranked Knowledge (V47 Port)
     GeminiCliPodmanAnswerGenerator(
         image_definitions=IMAGE_DEFINITIONS,
         image_name="gemini-cli:mcp_adk_agent_runner_ranked_knowledge",
@@ -90,22 +82,4 @@ CANDIDATE_GENERATORS = [
         context_instruction="You have access to a special 'adk-knowledge' toolset. Use 'list_adk_modules' to explore the API surface and 'search_adk_knowledge' to find specific functionality. Use 'inspect_adk_symbol' to read source code.",
         api_key_manager=api_key_manager
     ),
-    
-    # # Ripgrep Runner (Basic + rg)
-    # GeminiCliPodmanAnswerGenerator(
-    #     image_definitions=IMAGE_DEFINITIONS,
-    #     image_name="gemini-cli:mcp_adk_agent_runner_ripgrep",
-    #     model_name=ModelName.GEMINI_2_5_FLASH,
-    #     api_key_manager=api_key_manager
-    # ),
-    
-    # # Decoupled Specialists
-    # create_knowledge_only_v37_generator(model_name=ModelName.GEMINI_2_5_PRO, api_key_manager=api_key_manager),
-    # # create_coding_v38_generator(model_name=ModelName.GEMINI_2_5_PRO, api_key_manager=api_key_manager), # Disabled (Dummy)
-    # create_refined_knowledge_generator_v42(model_name=ModelName.GEMINI_2_5_FLASH, api_key_manager=api_key_manager),
-    # create_refined_knowledge_generator_v44(model_name=ModelName.GEMINI_2_5_FLASH, api_key_manager=api_key_manager),
-    # create_task_aware_generator_v45(model_name=ModelName.GEMINI_2_5_FLASH, api_key_manager=api_key_manager),
-    
-    # # Baseline: Gemini CLI with ADK Docs Extension
-    # # GeminiCliPodmanAnswerGenerator( ... ) # Disabled due to Podman instability
 ]

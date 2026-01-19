@@ -18,7 +18,14 @@ if project_root not in sys.path:
 
 from google.genai import Client, types
 from benchmarks.api_key_manager import API_KEY_MANAGER, KeyType
-from benchmarks.data_models import BenchmarkRunResult, TraceEventType
+from benchmarks.data_models import (
+    BenchmarkRunResult, 
+    TraceEventType,
+    ForensicInsight,
+    CaseSummary,
+    GeneratorForensicSummary,
+    ForensicData
+)
 from benchmarks.analysis import (
     process_results,
     get_token_usage_stats,
@@ -28,6 +35,8 @@ from benchmarks.analysis import (
 from tools.analysis.analyze_benchmark_run import analyze_benchmark_run
 from tools.cli.audit_failures import get_report_content
 from tools.analysis.doc_generator import DOC_MANAGER
+from tools.analysis.case_summarizer import CASE_DOC_MANAGER
+from benchmarks.benchmark_candidates import get_candidate_generators
 from benchmarks.benchmark_candidates import CANDIDATE_GENERATORS
 
 # --- Pydantic Models for Structured Report ---
@@ -43,18 +52,6 @@ class HighLevelInsights(BaseModel):
     executive_summary: str = Field(..., description="High-level overview of the session, organized by Generator and Suite.")
     cross_generator_comparison: str = Field(..., description="Comparison on Quality, Efficiency, Latency, and Stability.")
     recommendations: List[str] = Field(..., description="List of actionable recommendations.")
-
-class ForensicInsight(BaseModel):
-    root_cause_category: str = Field(..., description="The primary reason for failure (e.g. 'Hallucination', 'Retrieval Failure', 'Loop Exit').")
-    dag_failure_point: str = Field(..., description="Where in the Agent DAG did it fail? (e.g., 'Retrieval Loop -> Tool Call', 'Implementation Planner -> Plan Generation').")
-    explanation: str = Field(..., description="A precise narrative of why this specific attempt failed.")
-    evidence: List[str] = Field(..., description="Specific log events supporting the conclusion.")
-
-class CaseSummary(BaseModel):
-    benchmark_name: str = Field(..., description="The name of the benchmark case.")
-    failure_pattern: str = Field(..., description="The recurring failure mode across attempts (e.g. 'Persistent Hallucination', 'Flaky Tool Usage').")
-    progression: str = Field(..., description="Did the agent improve, regress, or loop? (e.g. 'Regressed', 'Stuck', 'Oscillated').")
-    key_evidence: List[str] = Field(..., description="Top 3 pieces of evidence summarizing the case failure.")
 
 # --- Prompts ---
 
@@ -104,6 +101,23 @@ Your Goal: Identify the *persistent* root cause and the agent's behavioral traje
 Output a structured summary.
 """
 
+GENERATOR_FORENSIC_PROMPT = """You are a Chief AI Architect reviewing a forensic report for an AI Agent Generator.
+
+Generator Name: "{generator_name}"
+
+=== FAILED CASE SUMMARIES ===
+{case_summaries_json}
+=============================
+
+Your Goal: Synthesize these individual case failures into a high-level generator diagnosis.
+
+1. **Identify Systemic Issues:** specific patterns that appear across multiple cases (e.g. "The agent consistently ignores empty search results").
+2. **Highlight Anti-Patterns:** Dangerous or wasteful behaviors (e.g. "Hallucinating APIs when search fails").
+3. **Recommend Fixes:** Architectural changes to the agent logic or prompt engineering.
+
+Output a structured summary.
+"""
+
 # ---------------------------------------------
 
 class LogAnalyzer:
@@ -123,9 +137,9 @@ class LogAnalyzer:
             "errors": 0
         }
 
-    def _get_client(self):
+    async def _get_client(self):
         """Initializes the Gemini client with a rotated API key."""
-        api_key = API_KEY_MANAGER.get_next_key(KeyType.GEMINI_API)
+        api_key = await API_KEY_MANAGER.get_next_key(KeyType.GEMINI_API)
         if not api_key:
             raise ValueError("No API key available for LogAnalyzer.")
         return Client(api_key=api_key)
@@ -138,7 +152,7 @@ class LogAnalyzer:
     async def _generate_content(self, prompt: str, schema: Any = None) -> Any:
         """Generates content using the Gemini API, optionally enforcing a schema."""
         self.meta_stats["llm_calls"] += 1
-        client = self._get_client()
+        client = await self._get_client()
         
         config = {}
         if schema:
@@ -183,7 +197,7 @@ class LogAnalyzer:
             return name.split("(")[0]
         return name
 
-    def _load_static_context(self, run_dir: Path) -> str:
+    async def _load_static_context(self, run_dir: Path) -> str:
         """
         Loads runtime params and generates/retrieves static architecture docs.
         """
@@ -201,10 +215,8 @@ class LogAnalyzer:
         context_parts = ["# Generator Internals (Runtime Actualized)\n"]
         generators_meta = meta.get("generators", [])
         
-        # Build a lookup map for candidate objects by name
-        # Note: CANDIDATE_GENERATORS contains the current code definitions.
-        # Ideally, we match by name.
-        candidate_map = {g.name: g for g in CANDIDATE_GENERATORS}
+        candidate_generators = await get_candidate_generators()
+        candidate_map = {g.name: g for g in candidate_generators}
         
         for gen_meta in generators_meta:
             name = gen_meta.get("name", "Unknown")
@@ -213,27 +225,30 @@ class LogAnalyzer:
             
             context_parts.append(f"### {name}")
             
-            # Try to find the matching code object to generate docs if missing
-            # Matches "ADK_HYBRID_V47(gemini-2.5-flash)" -> object
-            # We need to match the *archetype* effectively.
-            # The candidates list usually has specific instantiations.
-            
-            # Heuristic: Find a candidate that starts with the key
             candidate_obj = None
-            for c_name, c_obj in candidate_map.items():
-                if key in c_name:
-                    candidate_obj = c_obj
-                    break
             
-            if candidate_obj:
-                # This call will check cache, generate if missing, and return desc
-                desc = DOC_MANAGER.get_description(key, candidate_obj, self.model_name)
-                desc = desc.replace("[Injected at Runtime]", model)
-                context_parts.append(desc)
-            else:
-                context_parts.append(f"**Model:** `{model}`")
-                context_parts.append(f"**Archetype Key:** `{key}`")
-                context_parts.append("\n(No code definition found for this generator to analyze.)\n")
+            if "GeminiCliPodman" in key and ": " in key:
+                 try:
+                     image_search = key.split(": ", 1)[1].strip()
+                     for c_name, c_obj in candidate_map.items():
+                         if hasattr(c_obj, "image_name") and c_obj.image_name == image_search:
+                             candidate_obj = c_obj
+                             break
+                 except Exception:
+                     pass
+
+            if not candidate_obj:
+                for c_name, c_obj in candidate_map.items():
+                    if key in c_name:
+                        candidate_obj = c_obj
+                        break
+            
+            context_parts.append(f"- **Model:** `{model}`")
+            if not candidate_obj:
+                context_parts.append(f"- **Archetype Key:** `{key}` (Code definition not found in current runtime)")
+
+            desc = await DOC_MANAGER.get_description(key, candidate_obj, self.model_name)
+            context_parts.append(desc)
             
             context_parts.append("\n")
             
@@ -244,7 +259,7 @@ class LogAnalyzer:
         if results_df.empty:
             return "No quantitative results available."
 
-        stats_lines = ["### 4. Quantitative Analysis\n"]
+        stats_lines = ["## 4. Quantitative Analysis\n"]
         
         stats_lines.append("#### Metric Definitions & Methodology\n")
         stats_lines.append("| Metric | Definition | Calculation |")
@@ -325,7 +340,7 @@ class LogAnalyzer:
 
         return "\n".join(stats_lines)
 
-    def _format_generator_logs(self, generator_name: str, results_list: List[BenchmarkRunResult]) -> str:
+    async def _format_generator_logs(self, generator_name: str, results_list: List[BenchmarkRunResult]) -> str:
         """
         Formats the execution logs for a specific generator into a structured text block for the LLM.
         """
@@ -366,15 +381,24 @@ class LogAnalyzer:
                 result = "PASS" if row["result"] == 1 else "FAIL"
                 icon = "✅" if row["result"] == 1 else "❌"
                 
-                case_line = f"\n  CASE: {case_name} -> {icon} {result}"
+                # Fetch one-liner
+                prompt = row.get("prompt", "")
+                one_liner = await CASE_DOC_MANAGER.get_one_liner(case_name, prompt, self.model_name)
+                
+                case_line = f"\n  CASE: {case_name} -- \"{one_liner}\" -> {icon} {result}"
                 lines.append(case_line)
                 current_chars += len(case_line)
 
                 if row["result"] == 0:
-                    gt = f"    Ground Truth: {row['ground_truth']}"
-                    ans = f"    Model Answer: {str(row['answer'])[:200]}..."
+                    lines.append("\n> **Expected vs Actual**")
+                    
+                    gt = f"> **Ground Truth:**\n> {row['ground_truth']}"
+                    # Indent the answer for the blockquote
+                    answer_text = str(row['answer'])[:1000].replace('\n', '\n> ')
+                    ans = f"> **Model Answer:**\n> {answer_text}..."
+                    
                     lines.append(gt)
-                    lines.append(ans)
+                    lines.append(">\n" + ans)
                     current_chars += len(gt) + len(ans)
                 
                 if row["validation_error"]:
@@ -545,6 +569,27 @@ class LogAnalyzer:
             print(f"Case Reduction failed for {case_name}: {e}")
             return None
 
+    async def _summarize_generator_forensics(self, generator_name: str, case_summaries: List[CaseSummary]) -> GeneratorForensicSummary:
+        """Synthesizes individual case summaries into a generator-level diagnostic."""
+        
+        # Serialize summaries
+        summaries_json = json.dumps([c.model_dump() for c in case_summaries], indent=2)
+        
+        prompt = GENERATOR_FORENSIC_PROMPT.format(
+            generator_name=generator_name,
+            case_summaries_json=summaries_json
+        )
+        
+        try:
+            return await self._generate_content(prompt, schema=GeneratorForensicSummary)
+        except Exception as e:
+            print(f"Generator forensic summary failed for {generator_name}: {e}")
+            return GeneratorForensicSummary(
+                common_failure_patterns="Failed to analyze.",
+                critical_anti_patterns="Failed to analyze.",
+                strategic_recommendations=["Failed to analyze."]
+            )
+
     def _get_suite_context(self, results_df: pd.DataFrame) -> str:
         """Generates a table of benchmark suites and their objectives."""
         if results_df.empty:
@@ -645,6 +690,54 @@ class LogAnalyzer:
 
         return "\n".join(md)
 
+    def _load_attempt_cache(self, run_dir: Path) -> Optional[List[tuple]]:
+        """Loads cached attempt analysis results."""
+        cache_path = run_dir / "attempt_analysis.json"
+        if not cache_path.exists():
+            return None
+            
+        try:
+            with open(cache_path, "r") as f:
+                data = json.load(f)
+            
+            results = []
+            for item in data:
+                insight = ForensicInsight.model_validate(item["insight"])
+                # Deserialize composite key "gen::case" -> (gen, case)
+                key_parts = item["case_id"].split("::", 1)
+                if len(key_parts) == 2:
+                    results.append(((key_parts[0], key_parts[1]), insight))
+                else:
+                    # Fallback for old cache format (just case name)
+                    # We can't recover generator name easily, so we might drop it or map to unknown
+                    # For safety, let's invalidate old cache by ignoring
+                    print(f"Warning: Skipping invalid cache key format: {item['case_id']}")
+            
+            print(f"Loaded {len(results)} attempt insights from cache.")
+            return results
+        except Exception as e:
+            print(f"Error loading attempt cache: {e}")
+            return None
+
+    def _save_attempt_cache(self, run_dir: Path, results: List[tuple]):
+        """Saves attempt analysis results to cache."""
+        cache_path = run_dir / "attempt_analysis.json"
+        try:
+            data = []
+            for key, insight in results:
+                # key is (generator_name, benchmark_name)
+                if insight:
+                    data.append({
+                        "case_id": f"{key[0]}::{key[1]}",
+                        "insight": insight.model_dump()
+                    })
+            
+            with open(cache_path, "w") as f:
+                json.dump(data, f, indent=2)
+            print(f"Saved {len(data)} attempt insights to {cache_path}")
+        except Exception as e:
+            print(f"Error saving attempt cache: {e}")
+
     async def analyze_log_file(self, log_path: Path) -> str:
         """
         Analyzes the results and logs.
@@ -658,7 +751,7 @@ class LogAnalyzer:
         print(f"Analyzing run directory: {log_path.parent}")
         
         run_dir = log_path.parent
-        generator_context = self._load_static_context(run_dir)
+        generator_context = await self._load_static_context(run_dir)
         
         results_path = run_dir / "results.json"
         
@@ -696,7 +789,7 @@ class LogAnalyzer:
         
         for gen_name, _ in grouped:
             gen_results = [r for r in results_list if r.answer_generator == gen_name]
-            log_text = self._format_generator_logs(generator_name=gen_name, results_list=gen_results)
+            log_text = await self._format_generator_logs(generator_name=gen_name, results_list=gen_results)
             
             # Filter tool stats for this specific generator
             gen_tool_stats = ""
@@ -727,15 +820,7 @@ class LogAnalyzer:
         try:
             run_analysis = analyze_benchmark_run(run_dir.name)
             
-            # A. Deterministic Report
-            if run_analysis.total_failures > 0:
-                forensic_context = get_report_content(run_analysis)
-            
-            # B. LLM Hierarchical Deep Dive (Map-Reduce)
-            # Filter criteria: 
-            # 1. Failed
-            # 2. Confusing category (Generic/Unknown)
-            # 3. NOT an infrastructure error (429/Quota) to save cost/time
+            # --- AI ANALYSIS PHASE (Map-Reduce) ---
             
             def is_infrastructure_error(case):
                 err = str(case.final_validation_error).lower()
@@ -746,67 +831,163 @@ class LogAnalyzer:
             target_cases = [
                 c for c in run_analysis.cases 
                 if c.result_score == 0 
-                and c.primary_failure_category in ["Generic Failure", "Unknown"]
+                and c.primary_failure_category in ["Generic Failure", "Unknown", "Output Validation Error", "Incorrect Answer (MC)"]
                 and not is_infrastructure_error(c)
             ]
             
-            if infra_failures:
-                print(f"Skipping {len(infra_failures)} infrastructure failures (429/Quota).")
-                forensic_context += f"\n\n### ⚠️ Infrastructure Alerts\n- **{len(infra_failures)} cases** failed due to Rate Limits (429) or Quota Exhaustion. These were excluded from deep analysis."
-
-            if target_cases:
-                print(f"Deep diving into {len(target_cases)} complex failure cases (Map-Reduce)...")
-                
-                # --- LEVEL 1: MAP (Attempt Analysis) ---
-                tasks = []
-                sem = asyncio.Semaphore(10) # Higher concurrency for map phase
-                
-                async def map_attempt(case, idx, attempt):
-                    async with sem:
-                        insight = await self._analyze_attempt(case.benchmark_name, idx + 1, attempt)
-                        return (case.benchmark_name, insight)
-
-                for case in target_cases:
-                    for i, attempt in enumerate(case.attempts):
-                        tasks.append(map_attempt(case, i, attempt))
-                
-                attempt_results = await asyncio.gather(*tasks)
-                
-                # Group insights by case
-                from collections import defaultdict
-                case_insights_map = defaultdict(list)
-                for name, insight in attempt_results:
-                    if insight:
-                        case_insights_map[name].append(insight)
-                
-                # --- LEVEL 2: REDUCE (Case Analysis) ---
-                reduce_tasks = []
-                
-                async def reduce_case(name, case_insights):
-                    summary = await self._reduce_case_insights(name, case_insights)
-                    return (name, summary)
-
-                for name, case_insights in case_insights_map.items():
-                    reduce_tasks.append(reduce_case(name, case_insights))
+            # --- LEVEL 1: MAP (Attempt Analysis) ---
+            attempt_results = self._load_attempt_cache(run_dir)
+            
+            if attempt_results is None:
+                if target_cases:
+                    print(f"Deep diving into {len(target_cases)} complex failure cases (Map-Reduce)...")
+                    tasks = []
+                    sem = asyncio.Semaphore(10) 
                     
-                case_summaries = await asyncio.gather(*reduce_tasks)
+                    async def map_attempt(case, idx, attempt):
+                        async with sem:
+                            insight = await self._analyze_attempt(case.benchmark_name, idx + 1, attempt)
+                            # Return composite key
+                            return ((case.generator, case.benchmark_name), insight)
+
+                    for case in target_cases:
+                        for i, attempt in enumerate(case.attempts):
+                            tasks.append(map_attempt(case, i, attempt))
+                    
+                    attempt_results = await asyncio.gather(*tasks)
+                    self._save_attempt_cache(run_dir, attempt_results)
+                else:
+                    attempt_results = []
+            
+            # Group insights
+            from collections import defaultdict
+            case_insights_map = defaultdict(list)
+            for key, insight in attempt_results:
+                if insight:
+                    case_insights_map[key].append(insight)
+            
+            # --- LEVEL 2: REDUCE (Case Analysis) ---
+            reduce_tasks = []
+            
+            async def reduce_case(key, case_insights):
+                # key is (gen, name)
+                summary = await self._reduce_case_insights(key[1], case_insights)
+                return (key, summary)
+
+            for key, case_insights in case_insights_map.items():
+                reduce_tasks.append(reduce_case(key, case_insights))
                 
-                # Format Level 2 Output
-                llm_section = ["\n\n## 9. AI-Powered Root Cause Analysis (Hierarchical)"]
+            case_summaries_list = await asyncio.gather(*reduce_tasks)
+            # Map: (gen, name) -> Summary
+            case_summary_map = {key: summary for key, summary in case_summaries_list if summary}
+            
+            # --- LEVEL 3: GENERATOR SUMMARY ---
+            gen_case_groups = defaultdict(list)
+            for key, summary in case_summary_map.items():
+                gen_name = key[0] # Extract generator from composite key
+                gen_case_groups[gen_name].append(summary)
+            
+            gen_summary_map = {}
+            for gen_name, summaries in gen_case_groups.items():
+                print(f"Summarizing forensic patterns for generator: {gen_name}...")
+                gen_summary_map[gen_name] = await self._summarize_generator_forensics(gen_name, summaries)
+
+            # --- REPORT ASSEMBLY (Unified) ---
+            
+            lines = []
+            
+            if infra_failures:
+                lines.append(f"\n### ⚠️ Infrastructure Alerts\n- **{len(infra_failures)} cases** failed due to Rate Limits (429) or Quota Exhaustion. These were excluded from deep analysis.")
+
+            for gen_name, gen_analysis in run_analysis.generators.items():
+                lines.append(f"### Generator: {gen_name}")
+                lines.append(f"- **Pass Rate:** {gen_analysis.pass_rate:.1f}% ({gen_analysis.passed_cases}/{gen_analysis.total_cases})")
+                lines.append(f"- **Avg Latency:** {gen_analysis.avg_latency:.2f}s")
+                lines.append(f"- **Est. Cost:** ${gen_analysis.estimated_cost:.3f}")
                 
-                for name, summary in case_summaries:
-                    if summary:
-                        llm_section.append(f"### `{name}`")
-                        llm_section.append(f"- **Pattern:** {summary.failure_pattern}")
-                        llm_section.append(f"- **Progression:** {summary.progression}")
-                        if summary.key_evidence:
-                            llm_section.append(f"- **Key Evidence:**")
-                            for ev in summary.key_evidence:
-                                llm_section.append(f"  - {ev}")
-                        llm_section.append("---\n")
+                # 1. Inject AI Generator Summary
+                if gen_name in gen_summary_map:
+                    ai_gen = gen_summary_map[gen_name]
+                    lines.append("\n> **🧠 AI Root Cause Analysis (Generator Level)**")
+                    lines.append(f"> **Common Failure Patterns:** {ai_gen.common_failure_patterns}")
+                    lines.append(f"> **Critical Anti-Patterns:** {ai_gen.critical_anti_patterns}")
+                    lines.append("> **Strategic Recommendations:**")
+                    for rec in ai_gen.strategic_recommendations:
+                        lines.append(f"> * {rec}")
+                    lines.append("")
+
+                # 2. List Failed Cases
+                failed_cases = sorted([c for c in gen_analysis.cases if c.result_score == 0], key=lambda x: x.benchmark_name)
                 
-                if case_summaries:
-                    forensic_context += "\n".join(llm_section)
+                if failed_cases:
+                    lines.append(f"#### Failed Cases ({len(failed_cases)})")
+                    
+                    for case in failed_cases:
+                        lines.append(f"##### `{case.benchmark_name}`")
+                        
+                        # Composite key for this case
+                        comp_key = (gen_name, case.benchmark_name)
+
+                        # 2a. Inject AI Case Summary
+                        if comp_key in case_summary_map:
+                            ai_case = case_summary_map[comp_key]
+                            lines.append(f"- **Failure Pattern:** {ai_case.failure_pattern}")
+                            lines.append(f"- **Progression:** {ai_case.progression}")
+                            if ai_case.key_evidence:
+                                lines.append("- **Key Evidence:** " + ", ".join(ai_case.key_evidence))
+                        else:
+                            lines.append(f"- **Error Category:** {case.primary_failure_category}")
+
+                        # 2b. Attempt Details (Static + AI Insight per attempt)
+                        for i, att in enumerate(case.attempts):
+                            lines.append(f"\n**Attempt {i+1}:**")
+                            
+                            # Inject AI Insight for this attempt
+                            if comp_key in case_insights_map and i < len(case_insights_map[comp_key]):
+                                insight = case_insights_map[comp_key][i]
+                                lines.append(f"- **Root Cause:** {insight.root_cause_category}")
+                                lines.append(f"- **Failure Point:** {insight.dag_failure_point}")
+                                lines.append(f"- **Explanation:** {insight.explanation}")
+                            
+                            # Static Details (Diffs)
+                            if att.ground_truth or att.answer:
+                                lines.append("\n> **Expected vs Actual**")
+                                gt_block = f"```\n{att.ground_truth}\n```".replace('\n', '\n> ')
+                                lines.append(f"> **Expected:**\n> {gt_block}")
+                                ans_block = f"```\n{att.answer}\n```".replace('\n', '\n> ')
+                                lines.append(f"> **Actual:**\n> {ans_block}")
+                            
+                            # Tool Chain Summary (Optional - maybe too verbose? Keeping it brief)
+                            if att.tools_used:
+                                tools_str = ", ".join([t['name'] for t in att.tools_used])
+                                lines.append(f"- **Tools:** {tools_str}")
+
+                        lines.append("\n---\n")
+                else:
+                    lines.append("\n*No failures detected for this generator.*\n")
+                
+                lines.append("\n")
+
+            forensic_context = "\n".join(lines)
+
+            # --- EXPORT STRUCTURED DATA FOR VIEWER ---
+            try:
+                # Need to serialize composite keys for JSON (tuple -> string)
+                # Map keys: (gen, name) -> "gen::name"
+                json_cases = {f"{k[0]}::{k[1]}": v for k, v in case_summary_map.items()}
+                json_attempts = {f"{k[0]}::{k[1]}": v for k, v in case_insights_map.items()}
+                
+                forensic_data = ForensicData(
+                    generators=gen_summary_map,
+                    cases=json_cases,
+                    attempts=json_attempts
+                )
+                data_path = run_dir / "forensic_data.json"
+                with open(data_path, "w") as f:
+                    f.write(forensic_data.model_dump_json(indent=2))
+                print(f"Saved structured forensic data to {data_path}")
+            except Exception as e:
+                print(f"Error saving forensic_data.json: {e}")
 
         except Exception as e:
             print(f"Error running forensic analysis: {e}")

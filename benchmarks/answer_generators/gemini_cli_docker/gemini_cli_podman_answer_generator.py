@@ -39,56 +39,53 @@ from benchmarks.answer_generators.gemini_cli_docker.podman_utils import PodmanCo
 
 class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
     """
-    An AnswerGenerator that uses the gemini CLI hosted in a local Podman container.
-    Delegates container lifecycle to PodmanContainer.
+    An AnswerGenerator that uses the gemini-cli tool in a podman container.
     """
 
     def __init__(
         self,
-        image_definitions: dict[str, ImageDefinition],
-        image_name: str | None = None,
-        dockerfile_dir: str | Path | None = None,
-        model_name: str = "gemini-2.5-pro",
-        context_instruction: str | None = None,
-        service_url: str | None = None,
-        api_key_manager: ApiKeyManager | None = None,
+        model_name: str,
+        api_key_manager: ApiKeyManager,
+        image_definitions: dict[str, any],
+        image_name: str,
+        context_instruction: Optional[str] = None,
     ):
-        self._image_definitions = image_definitions
-        self.context_instruction = context_instruction
-        
-        # Resolve image name and dockerfile dir
-        if image_name:
-            self.image_name = image_name
-            if dockerfile_dir:
-                self.dockerfile_dir = Path(dockerfile_dir)
-            elif image_name in image_definitions:
-                def_ = image_definitions[image_name]
-                self.dockerfile_dir = Path(__file__).parent / def_.source_dir
-            else:
-                 self.dockerfile_dir = None 
-        elif dockerfile_dir:
-            self.dockerfile_dir = Path(dockerfile_dir)
-            self.image_name = f"gemini-cli:{self.dockerfile_dir.name}"
-        else:
-            raise ValueError("Either image_name or dockerfile_dir must be provided.")
-
         super().__init__(
             model_name=model_name,
-            cli_path="gemini",
-            context=self.context_instruction,
+            context=context_instruction,
             api_key_manager=api_key_manager,
         )
-
-        self._image_checked = False
-        self._is_proxy = bool(service_url)
-        self._base_url = service_url
-        self._setup_completed = False
-        self._setup_lock = asyncio.Lock()
+        self.context_instruction = context_instruction
+        self._image_definitions = image_definitions
+        self.image_name = image_name
+        self.container_name = f"gemini-cli-podman-container-{uuid.uuid4()}"
         
-        if not self._is_proxy:
-            self.container = PodmanContainer(image_name=self.image_name)
-        else:
-            self.container = None
+        self._is_proxy = False
+        self._base_url = None
+        self._setup_lock = asyncio.Lock()
+        self._setup_completed = False
+        self._image_checked = False
+        self.container = PodmanContainer(image_name=self.image_name, container_name=self.container_name)
+
+    @classmethod
+    async def create(
+        cls,
+        model_name: str,
+        api_key_manager: ApiKeyManager,
+        image_definitions: dict[str, any],
+        image_name: str,
+        context_instruction: Optional[str] = None,
+    ):
+        """Async factory for creating an instance."""
+        instance = cls(
+            model_name,
+            api_key_manager,
+            image_definitions,
+            image_name,
+            context_instruction,
+        )
+        await super(GeminiCliPodmanAnswerGenerator, instance)._async_init()
+        return instance
 
     @property
     def name(self) -> str:

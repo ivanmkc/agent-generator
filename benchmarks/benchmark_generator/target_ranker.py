@@ -25,6 +25,7 @@ import asyncio
 import inspect
 import textwrap
 import logging
+import subprocess
 from pathlib import Path
 from collections import defaultdict
 from typing import Optional
@@ -323,6 +324,24 @@ class TargetRanker:
                 t = entity_map[tid]
                 group = target_groups.get(tid, "Unknown")
                 f.write(f"| {rank} | `{tid}` | {t.get('type')} | {t.get('usage_score', 0)} | {group} |\n")
+
+        logger.info("Running integrity verification...")
+        try:
+            result = subprocess.run(
+                ["python3", "-m", "pytest", "benchmarks/tests/test_ranked_targets.py"],
+                capture_output=True,
+                text=True,
+                check=False
+            )
+            
+            if result.returncode == 0:
+                logger.info("✅ Integrity check passed.")
+            else:
+                logger.error("❌ Integrity check failed!")
+                logger.error(result.stdout)
+                logger.error(result.stderr)
+        except Exception as e:
+            logger.error(f"Failed to run integrity check: {e}")
 
         logger.info("Done.")
 

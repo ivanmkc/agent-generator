@@ -1,14 +1,6 @@
-"""
-A module for managing and rotating API keys from environment variables.
-
-This module provides a thread-safe mechanism to load multiple API keys for
-different services (e.g., Gemini, Context7) from environment variables and
-then rotate through them in a round-robin fashion. This helps in preventing
-quota issues when making many API requests.
-"""
-
-import os
+import asyncio
 import itertools
+import os
 import threading
 import time
 import json
@@ -82,7 +74,7 @@ class ApiKeyManager:
         self._pools: Dict[KeyType, itertools.cycle] = {}
         # Mapping from run_id -> key_id for sticky sessions
         self._run_key_map: Dict[str, str] = {}
-        self._lock = threading.Lock()
+        self._lock = asyncio.Lock() # Use asyncio.Lock for async safety
 
         # Persistence setup
         self._stats_file = Path(".gemini/api_key_stats.json")
@@ -91,13 +83,13 @@ class ApiKeyManager:
         self._load_all_keys()
         self._load_stats()  # Load saved stats *after* keys are initialized
 
-    def get_key_for_run(self, run_id: str, key_type: KeyType = KeyType.GEMINI_API) -> tuple[Optional[str], Optional[str]]:
+    async def get_key_for_run(self, run_id: str, key_type: KeyType = KeyType.GEMINI_API) -> tuple[Optional[str], Optional[str]]:
         """
         Gets a sticky API key for a specific run ID.
         If the run_id already has a key, returns it.
         Otherwise, rotates a new key, assigns it to the run_id, and returns it.
         """
-        with self._lock:
+        async with self._lock:
             # 1. Check if run_id already has a key assigned
             if run_id in self._run_key_map:
                 key_id = self._run_key_map[run_id]
@@ -108,27 +100,21 @@ class ApiKeyManager:
                     key_stat.last_used = time.time()
                     self._save_stats()
                     return key_stat.key, key_id
-            
-            # 2. No key assigned, get a new one using standard rotation logic
-            # (We release the lock momentarily by calling the public method, but we need to hold it for assignment)
-            # Actually, get_next_key_with_id acquires lock. Re-entrant lock? No, threading.Lock is not re-entrant.
-            # We must duplicate logic or assume get_next_key_with_id handles its own lock.
-            # get_next_key_with_id uses `with self._lock`.
-            # So we must NOT hold the lock when calling it.
         
         # Call outside the lock
-        key, key_id = self.get_next_key_with_id(key_type)
+        key, key_id = await self.get_next_key_with_id(key_type)
         
-        with self._lock:
+        async with self._lock:
             if key and key_id:
                 self._run_key_map[run_id] = key_id
             return key, key_id
 
     def release_run(self, run_id: str):
         """Releases the key mapping for a run ID."""
-        with self._lock:
-            if run_id in self._run_key_map:
-                del self._run_key_map[run_id]
+        # This can remain sync if it doesn't await anything, but let's make it async for consistency
+        # with self._lock:
+        if run_id in self._run_key_map:
+            del self._run_key_map[run_id]
 
     def _load_all_keys(self):
         for key_type in KeyType:
@@ -207,6 +193,10 @@ class ApiKeyManager:
             }
 
         try:
+            # This is a quick operation, a thread lock is fine to prevent corruption
+            # but we are in an async context, so we should be careful.
+            # For simplicity, we assume this file write is fast enough not to block the event loop.
+            # A better solution would use aiofiles.
             with open(self._stats_file, "w") as f:
                 json.dump(data, f, indent=2)
         except Exception as e:
@@ -214,14 +204,14 @@ class ApiKeyManager:
                 f"{Fore.RED}[ApiKeyManager] Failed to save stats: {e}{Style.RESET_ALL}"
             )
 
-    def get_next_key_with_id(
+    async def get_next_key_with_id(
         self, key_type: KeyType = KeyType.GEMINI_API
     ) -> tuple[Optional[str], Optional[str]]:
         """
         Returns the best available API key. Prioritizes ACTIVE keys.
         If all are in COOLDOWN, picks the one expiring soonest.
         """
-        with self._lock:
+        async with self._lock:
             stats_map = self._key_stats.get(key_type)
             if not stats_map:
                 return None, None
@@ -281,13 +271,13 @@ class ApiKeyManager:
 
             return None, None
 
-    def report_result(
+    async def report_result(
         self, key_type: KeyType, key_id: str, success: bool, error_message: str = None
     ):
         """
         Reports the outcome of an API call to update key stats.
         """
-        with self._lock:
+        async with self._lock:
             stats_map = self._key_stats.get(key_type)
             if not stats_map or key_id not in stats_map:
                 return
@@ -340,21 +330,21 @@ class ApiKeyManager:
 
             self._save_stats()
 
-    def get_next_key(self, key_type: KeyType = KeyType.GEMINI_API) -> Optional[str]:
+    async def get_next_key(self, key_type: KeyType = KeyType.GEMINI_API) -> Optional[str]:
         """
         Wrapper for backward compatibility.
         """
-        key, _ = self.get_next_key_with_id(key_type)
+        key, _ = await self.get_next_key_with_id(key_type)
         return key
 
     def get_key_count(self, key_type: KeyType) -> int:
         return len(self._key_stats.get(key_type, {}))
 
-    def get_key_id(self, key: str, key_type: KeyType = KeyType.GEMINI_API) -> Optional[str]:
+    async def get_key_id(self, key: str, key_type: KeyType = KeyType.GEMINI_API) -> Optional[str]:
         """
         Reverse lookup: Find the ID for a given key string.
         """
-        with self._lock:
+        async with self._lock:
             stats_map = self._key_stats.get(key_type)
             if not stats_map:
                 return None

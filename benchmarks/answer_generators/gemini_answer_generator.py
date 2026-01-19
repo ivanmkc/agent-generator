@@ -24,18 +24,28 @@ from google import genai
 
 
 class GeminiAnswerGenerator(LlmAnswerGenerator):
-    """An AnswerGenerator that uses the Gemini API."""
+    """
+    An AnswerGenerator that uses the Gemini API.
+    """
 
-    def __init__(
-        self,
-        model_name: str = "gemini-3-pro-preview",
-        context: str | Path | None = None,
-        api_key_manager: ApiKeyManager | None = None,
-    ):
-        super().__init__(context=context, api_key_manager=api_key_manager)
+    def __init__(self, model_name: str, context: str, api_key_manager: ApiKeyManager):
+        super().__init__()
         self.model_name = model_name
-        self.api_key_manager = api_key_manager or API_KEY_MANAGER
-        self.client = genai.Client(api_key=self.api_key_manager.get_next_key(KeyType.GEMINI_API)).aio
+        self.context = context
+        self.api_key_manager = api_key_manager
+        self.client = None # Initialized in _async_init
+
+    async def _async_init(self):
+        """Asynchronous part of initialization."""
+        api_key = await self.api_key_manager.get_next_key(KeyType.GEMINI_API)
+        self.client = genai.Client(api_key=api_key).aio
+        return self
+
+    @classmethod
+    async def create(cls, model_name: str, context: str, api_key_manager: ApiKeyManager):
+        """Async factory for creating an instance."""
+        instance = cls(model_name, context, api_key_manager)
+        return await instance._async_init()
 
     @property
     def name(self) -> str:

@@ -51,7 +51,7 @@ def print_summary(run):
             print(f"  ⚠️ {a['case']} ({reasons})")
 
 def get_report_content(run):
-    report_lines = [f"# Forensic Analysis: {run.run_id}\n"]
+    report_lines = []
     
     # Group by Generator for report
     for gen_name, gen in run.generators.items():
@@ -82,10 +82,15 @@ def get_report_content(run):
                     report_lines.append(f"- **Router Decision:** {decision}")
                 
                 if att.ground_truth or att.answer:
-                    report_lines.append("- **Expected:**")
-                    report_lines.append(f"```\n{att.ground_truth}\n```")
-                    report_lines.append("- **Actual:**")
-                    report_lines.append(f"```\n{att.answer}\n```")
+                    report_lines.append("> **Expected vs Actual**")
+                    report_lines.append("> **Expected:**")
+                    # Indent the code block content for the blockquote
+                    gt_block = f"```\n{att.ground_truth}\n```".replace('\n', '\n> ')
+                    report_lines.append(f"> {gt_block}")
+                    
+                    report_lines.append("> **Actual:**")
+                    ans_block = f"```\n{att.answer}\n```".replace('\n', '\n> ')
+                    report_lines.append(f"> {ans_block}")
 
                 if att.has_sanitizer_hallucination:
                     report_lines.append("- ⚠️ SANITIZER HALLUCINATION DETECTED")

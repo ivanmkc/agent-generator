@@ -7,7 +7,7 @@ import difflib
 import re
 from typing import List
 from pydantic import TypeAdapter
-from benchmarks.data_models import BenchmarkRunResult, BenchmarkResultType
+from benchmarks.data_models import BenchmarkRunResult, BenchmarkResultType, ForensicData, CaseSummary, ForensicInsight
 from benchmarks.benchmark_candidates import CANDIDATE_GENERATORS
 from tools.analysis.analyze_benchmark_run import analyze_benchmark_run
 
@@ -74,11 +74,75 @@ def load_traces(run_id):
     return traces
 
 @st.cache_data
-def run_forensics(run_id):
-    """Runs the forensic analysis engine on a specific run."""
-    return analyze_benchmark_run(run_id)
+def load_forensic_data(run_id, ttl_hash=None) -> ForensicData | None:
+    """Loads forensic_data.json for a given run ID. ttl_hash forces reload on change."""
+    path = BENCHMARK_RUNS_DIR / run_id / "forensic_data.json"
+    if not path.exists():
+        return None
+        
+    try:
+        with open(path, "r") as f:
+            data = json.load(f)
+        return ForensicData.model_validate(data)
+    except Exception as e:
+        print(f"Error loading forensic data: {e}")
+        return None
 
-# --- UI Components ---
+def parse_report_sections(content: str) -> dict:
+    """
+    Parses a markdown report into sections.
+    - H1 (#) and H2 (##) always start new sections.
+    - H3 (###) and below are merged into the parent H2 section.
+    """
+    sections = {}
+    
+    # Split by headers (H1-H2), capturing the delimiter
+    # Pattern captures the whole line: ## Title
+    # We only look for # or ## at the start of a line
+    parts = re.split(r'(^#{1,2} .*)', content, flags=re.MULTILINE)
+    
+    current_header = "Introduction"
+    current_content = []
+    
+    # Handle preamble
+    if parts and not parts[0].strip().startswith("#"):
+        sections[current_header] = parts[0]
+        parts = parts[1:]
+        
+    for part in parts:
+        # Check if this part is a header
+        match = re.match(r'^(#{1,2}) (.*)', part)
+        
+        if match:
+            # Save previous
+            if current_content:
+                key = current_header
+                # Unique keys
+                if key in sections:
+                    i = 1
+                    while f"{key} ({i})" in sections:
+                        i += 1
+                    key = f"{key} ({i})"
+                sections[key] = "".join(current_content).strip()
+            
+            # Start new
+            current_header = match.group(2).strip()
+            current_content = [part]
+        else:
+            # Just content
+            current_content.append(part)
+            
+    # Save last
+    if current_header and current_content:
+        key = current_header
+        if key in sections:
+            i = 1
+            while f"{key} ({i})" in sections:
+                i += 1
+            key = f"{key} ({i})"
+        sections[key] = "".join(current_content).strip()
+        
+    return sections
 
 
 def render_diff(generated, expected):
@@ -248,6 +312,17 @@ def render_logs(logs):
                 st.json(event)
 
 
+def render_ai_insight(title, content, type="info", icon="🧠"):
+    """Renders a standardized and compact AI insight block."""
+    func_map = {
+        "info": st.info,
+        "warning": st.warning,
+        "error": st.error,
+        "success": st.success
+    }
+    st_func = func_map.get(type, st.info)
+    st_func(f"**{title}**\n\n{content}", icon=icon)
+
 # --- Error Helper ---
 
 def _get_concise_error_message(row, case_trace_logs) -> str:
@@ -289,177 +364,6 @@ def _get_concise_error_message(row, case_trace_logs) -> str:
 
     # If no specific error message found after all checks, return the generic message
     return display_error
-
-
-def render_tool_analysis(df):
-    """Renders the Tool Usage & Impact Analysis section with breakdown options."""
-    st.divider()
-    st.subheader("🛠️ Tool Usage & Impact Analysis")
-    st.markdown("Analysis of tool usage and its correlation with success rates.")
-    
-    # Define helper early
-    def style_lift(v):
-        if pd.isna(v): return ""
-        if v > 0.0001: return "color: green; font-weight: bold"
-        if v < -0.0001: return "color: red; font-weight: bold"
-        return "color: gray"
-
-    with st.expander("ℹ️ Methodology & Metrics"):
-        st.markdown(
-            """
-            **1. P(Success | Used)**
-            Conditional probability: `Successes / Times Used`.
-            
-            **2. Baseline Rate (Complement)**
-            Probability of success when the specific tool was **NOT** used in the same segment (Generator/Suite).
-            `P(Success | NOT Used)`
-            This isolates the impact of adding the tool vs. not using it.
-            
-            **3. Lift**
-            `P(Success | Used) - Baseline Rate`.
-            - :green[**Positive**]: Tool correlates with higher success compared to non-usage.
-            - :red[**Negative**]: Tool correlates with lower success (or is used in hard cases).
-            
-            **4. Standard Error (SE)**
-            Wald interval approximation: `sqrt(p(1-p)/n)`.
-            - **High SE (>10%)**: Sample size is too small; estimates are unreliable.
-            
-            *Note: Each attempt is treated as an independent trial for these calculations.*
-            """
-        )
-
-    # Breakdown Selection
-    breakdown_options = {"Generator": "answer_generator", "Suite": "suite"}
-    selected_breakdowns = st.multiselect("Breakdown by", list(breakdown_options.keys()))
-    
-    group_cols = ["tool"]
-    for b in selected_breakdowns:
-        group_cols.append(breakdown_options[b])
-
-    tool_stats_data = []
-    
-    # We iterate over df
-    for idx, row in df.iterrows():
-        # trace_logs is a list of dicts (from model_dump)
-        logs = row.get("trace_logs") or []
-        
-        # Extract unique tools used in this run
-        tools_used = set()
-        for log in logs:
-            e_type = log.get("type")
-            if hasattr(e_type, "value"): e_type = e_type.value # Handle enum if present
-            
-            if e_type == "tool_use":
-                t_name = log.get("tool_name")
-                if t_name:
-                    tools_used.add(t_name)
-        
-        is_success = (row["result"] == 1)
-        
-        # Base entry with breakdown info
-        entry_base = {"success": is_success}
-        for b_label, b_col in breakdown_options.items():
-            entry_base[b_col] = row.get(b_col, "Unknown")
-
-        for tool in tools_used:
-            entry = entry_base.copy()
-            entry["tool"] = tool
-            tool_stats_data.append(entry)
-            
-    if tool_stats_data:
-        df_tools = pd.DataFrame(tool_stats_data)
-        
-        # 1. Calculate Segment Totals (for Complement Baseline)
-        segment_cols = [breakdown_options[b] for b in selected_breakdowns]
-        
-        if segment_cols:
-            segment_stats = df.groupby(segment_cols)["result"].agg(["count", "sum"]).reset_index()
-            segment_stats.rename(columns={"count": "segment_total", "sum": "segment_successes"}, inplace=True)
-        else:
-            # Global stats
-            segment_total = len(df)
-            segment_successes = df["result"].sum()
-        
-        # 2. Calculate Tool Stats
-        tool_agg = df_tools.groupby(group_cols).agg(
-            times_used=("success", "count"),
-            successes=("success", "sum")
-        ).reset_index()
-        
-        # 3. Merge Segment Stats
-        if segment_cols:
-            tool_agg = pd.merge(tool_agg, segment_stats, on=segment_cols, how="left")
-        else:
-            tool_agg["segment_total"] = segment_total
-            tool_agg["segment_successes"] = segment_successes
-            
-        # 4. Calculate Metrics (Complement Baseline)
-        # Complement Count = Total - Used
-        tool_agg["complement_count"] = tool_agg["segment_total"] - tool_agg["times_used"]
-        tool_agg["complement_successes"] = tool_agg["segment_successes"] - tool_agg["successes"]
-        
-        # Avoid division by zero
-        tool_agg["baseline_pass_rate"] = tool_agg.apply(
-            lambda x: x["complement_successes"] / x["complement_count"] if x["complement_count"] > 0 else 0.0, 
-            axis=1
-        )
-        
-        tool_agg["pass_rate_val"] = tool_agg["successes"] / tool_agg["times_used"]
-        tool_agg["lift_val"] = tool_agg["pass_rate_val"] - tool_agg["baseline_pass_rate"]
-        
-        # SE
-        p = tool_agg["pass_rate_val"]
-        n = tool_agg["times_used"]
-        tool_agg["se_val"] = (p * (1 - p) / n).pow(0.5)
-
-        # Sort by usage count desc
-        tool_agg = tool_agg.sort_values("times_used", ascending=False)
-        
-        # Rename for display
-        tool_agg.rename(columns={
-            "pass_rate_val": "Pass Rate",
-            "baseline_pass_rate": "Baseline",
-            "lift_val": "Lift",
-            "se_val": "SE"
-        }, inplace=True)
-        
-        # Select columns
-        display_cols = group_cols + ["times_used", "complement_count", "Pass Rate", "SE", "Baseline", "Lift"]
-        final_df = tool_agg[display_cols]
-        
-        col_config = {
-            "tool": "Tool Name",
-            "times_used": st.column_config.NumberColumn("Times Used", help="Number of benchmark cases where this tool was used at least once."),
-            "complement_count": st.column_config.NumberColumn("Baseline (N)", help="Number of runs where this tool was NOT used. Small values (<10) make the Baseline Rate unreliable."),
-            "Pass Rate": st.column_config.TextColumn("P(Success | Used)", help="Probability of success given the tool was used."),
-            "SE": st.column_config.TextColumn("Std. Error", help="Standard Error."),
-            "Baseline": st.column_config.TextColumn("Baseline Rate", help="Average pass rate for this segment (ignoring tool usage)."),
-            "Lift": st.column_config.TextColumn("Impact (Lift)", help="Difference vs Baseline."),
-        }
-        
-        for b in selected_breakdowns:
-            col_name = breakdown_options[b]
-            col_config[col_name] = b
-
-        styler = final_df.style.format({
-            "Pass Rate": "{:.1%}",
-            "Baseline": "{:.1%}",
-            "Lift": "{:+.1%}",
-            "SE": "± {:.1%}"
-        }).map(style_lift, subset=["Lift"])
-
-        st.dataframe(
-            styler,
-            use_container_width=True,
-            column_config=col_config,
-            hide_index=True
-        )
-    else:
-        st.info("No tool usage detected in the trace logs for the current selection.")
-
-
-
-# --- Main App ---
 
 
 def main():
@@ -594,6 +498,7 @@ def main():
                 st.info("No cases found.")
             else:
                 # Add explicit Overview and AI Report options
+                case_options.insert(0, "Generator Diagnosis")
                 case_options.insert(0, "AI Report")
                 case_options.insert(0, "Overview")
 
@@ -603,6 +508,7 @@ def main():
                     format_func=lambda x: (
                         "📊 Overview" if x == "Overview" else 
                         "🤖 AI Report" if x == "AI Report" else 
+                        "🧠 Generator Diagnosis" if x == "Generator Diagnosis" else
                         format_case_label(x)
                     ),
                     key="case_radio",
@@ -614,6 +520,10 @@ def main():
 
 
     # 7. Main Area - Dashboard & Details
+    
+    # Calculate TTL for forensic data cache
+    forensic_path = BENCHMARK_RUNS_DIR / selected_run / "forensic_data.json"
+    forensic_ttl = forensic_path.stat().st_mtime if forensic_path.exists() else 0
 
     if selected_case_id == "Overview":
         # Dashboard Summary (Overview Mode)
@@ -861,24 +771,97 @@ def main():
                                 st.json(att.__dict__) # Dump analysis stats
                             st.divider()
 
+    elif selected_case_id == "Generator Diagnosis":
+        st.header(f"🧠 Generator Diagnosis: {selected_generator}")
+        forensic_data = load_forensic_data(selected_run, ttl_hash=forensic_ttl)
+        
+        if forensic_data and selected_generator in forensic_data.generators:
+            gen_summary = forensic_data.generators[selected_generator]
+            
+            render_ai_insight(
+                "Common Failure Patterns", 
+                gen_summary.common_failure_patterns, 
+                type="info"
+            )
+            
+            render_ai_insight(
+                "Critical Anti-Patterns", 
+                gen_summary.critical_anti_patterns, 
+                type="warning", 
+                icon="⚠️"
+            )
+            
+            recs_content = "\n".join([f"- **Action:** {rec}" for rec in gen_summary.strategic_recommendations])
+            render_ai_insight(
+                "Strategic Recommendations", 
+                recs_content, 
+                type="success", 
+                icon="🛡️"
+            )
+                
+        else:
+            if not forensic_data:
+                st.warning("Forensic data file (forensic_data.json) not found. Run the Log Analyzer to generate it.")
+            else:
+                st.info(
+                    f"No deep forensic analysis available for **{selected_generator}**.\n\n"
+                    "This typically indicates one of the following:\n"
+                    "- The generator had a 100% pass rate (no failures to analyze).\n"
+                    "- Failures were exclusively infrastructure-related (e.g., Quota/429) which are skipped by the deep dive.\n"
+                    "- Failures were simple/known types not targeted for expensive AI root cause analysis."
+                )
+                
+                with st.expander("Debug: Key Mismatch Check"):
+                    st.write(f"Selected Generator: '{selected_generator}'")
+                    st.write("Available Keys in Forensic Data:")
+                    st.json(list(forensic_data.generators.keys()))
+
     elif selected_case_id == "AI Report":
         st.header("🤖 AI Analysis Report")
         report_path = BENCHMARK_RUNS_DIR / selected_run / "log_analysis.md"
         if report_path.exists():
             with open(report_path, "r", encoding="utf-8") as f:
-                st.markdown(f.read())
+                full_content = f.read()
+            
+            # Parse sections
+            sections = parse_report_sections(full_content)
+            
+            if sections:
+                # Add Navigation to Sidebar
+                st.sidebar.divider()
+                st.sidebar.subheader("📑 Report Navigation")
+                
+                # Filter out empty sections if any
+                valid_sections = [k for k, v in sections.items() if v.strip()]
+                
+                if not valid_sections:
+                    st.warning("Could not parse sections from report.")
+                    st.markdown(full_content)
+                else:
+                    selected_section = st.sidebar.radio(
+                        "Go to Section",
+                        options=valid_sections,
+                        label_visibility="collapsed"
+                    )
+                    
+                    # Render Selected Section
+                    st.markdown(sections[selected_section])
+            else:
+                # Fallback
+                st.markdown(full_content)
         else:
             st.warning(f"No AI analysis report found for this run at `{report_path}`. Run the Log Analyzer to generate one.")
 
-    # 7. Tool Usage Analysis
-    if selected_case_id == "Overview" or selected_case_id == "AI Report" or selected_case_id is None:
-        render_tool_analysis(filtered_df)
-
-
-    if selected_case_id is not None and selected_case_id not in ["Overview", "AI Report"]:
+    if selected_case_id is not None and selected_case_id not in ["Overview", "AI Report", "Generator Diagnosis"]:
         # Use typed object for detail view
         result_obj = results_list[selected_case_id]
         generation_attempts = result_obj.generation_attempts or []
+        
+        # Load forensic data
+        forensic_data = load_forensic_data(selected_run, ttl_hash=forensic_ttl)
+        
+        # Construct composite key for forensic lookup (generator::case)
+        composite_key = f"{result_obj.answer_generator}::{result_obj.benchmark_name}"
 
         # Header Info (Global for the case)
         h1, h2, h3 = st.columns([3, 1, 1])
@@ -922,6 +905,31 @@ def main():
 
         # Tab 0: Run Overview (Summary Table)
         with main_tabs[0]:
+            # Debug Forensic Data
+            with st.expander("Debug: Forensic Data Lookup"):
+                if forensic_data:
+                    st.write(f"Looking for Key: `{composite_key}`")
+                    st.write(f"In Cases Map? {composite_key in forensic_data.cases}")
+                    st.write(f"In Attempts Map? {composite_key in forensic_data.attempts}")
+                else:
+                    st.warning("Forensic Data object is None.")
+
+            # Inject AI Case Analysis
+            if forensic_data and composite_key in forensic_data.cases:
+                ai_case = forensic_data.cases[composite_key]
+                
+                evidence_md = ""
+                if ai_case.key_evidence:
+                    evidence_md = "\n\n**Key Evidence:**\n" + "\n".join([f"- {ev}" for ev in ai_case.key_evidence])
+                
+                content = (
+                    f"- **Failure Pattern:** {ai_case.failure_pattern}\n"
+                    f"- **Progression:** {ai_case.progression}"
+                    f"{evidence_md}"
+                )
+                
+                render_ai_insight("AI Case Analysis", content, type="info")
+            
             st.subheader("Generation Attempts Overview")
             if generation_attempts:
                 history_data = []
@@ -957,6 +965,21 @@ def main():
         # Tab 1..N: Individual Attempts
         for i, attempt in enumerate(generation_attempts):
             with main_tabs[i+1]:
+                # Inject AI Root Cause Analysis
+                if forensic_data and composite_key in forensic_data.attempts:
+                    attempts_list = forensic_data.attempts[composite_key]
+                    if i < len(attempts_list):
+                        insight = attempts_list[i]
+                        insight_type = "error" if attempt.status != "success" else "info"
+                        
+                        content = (
+                            f"- **Root Cause:** {insight.root_cause_category}\n"
+                            f"- **Failure Point:** {insight.dag_failure_point}\n"
+                            f"- **Explanation:** {insight.explanation}"
+                        )
+                        
+                        render_ai_insight("AI Root Cause Analysis", content, type=insight_type)
+
                 st.markdown(f"### Details for Attempt {attempt.attempt_number}")
                 
                 # Context variables for this attempt
