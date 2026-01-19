@@ -88,61 +88,35 @@ def load_forensic_data(run_id, ttl_hash=None) -> ForensicData | None:
         print(f"Error loading forensic data: {e}")
         return None
 
-def parse_report_sections(content: str) -> dict:
+def generate_toc_and_inject_anchors(content: str) -> tuple[str, str]:
     """
-    Parses a markdown report into sections.
-    - H1 (#) and H2 (##) always start new sections.
-    - H3 (###) and below are merged into the parent H2 section.
+    Scans markdown content for headers, injects HTML anchors, 
+    and generates a Markdown TOC string.
     """
-    sections = {}
+    toc_lines = []
     
-    # Split by headers (H1-H2), capturing the delimiter
-    # Pattern captures the whole line: ## Title
-    # We only look for # or ## at the start of a line
-    parts = re.split(r'(^#{1,2} .*)', content, flags=re.MULTILINE)
+    def replacement(match):
+        level_hashes = match.group(1)
+        title = match.group(2).strip()
+        level = len(level_hashes)
+        
+        # Simple slugify: lowercase, alphanumeric + hyphens
+        slug = re.sub(r'[^a-z0-9]+', '-', title.lower()).strip('-')
+        
+        # Indent TOC based on level (H1=0, H2=0/2, H3=4 spaces)
+        # Flatten H1 and H2 to same level for cleaner look in sidebar
+        indent = "  " * max(0, level - 2)
+        toc_lines.append(f"{indent}- [{title}](#{slug})")
+        
+        # Inject anchor div + original header
+        # Using div with negative margin-top can help offset fixed headers if needed, 
+        # but standard div is fine for now.
+        return f'<div id="{slug}"></div>\n\n{match.group(0)}'
+
+    # Match lines starting with #
+    modified_content = re.sub(r'^(#{1,3}) (.*)', replacement, content, flags=re.MULTILINE)
     
-    current_header = "Introduction"
-    current_content = []
-    
-    # Handle preamble
-    if parts and not parts[0].strip().startswith("#"):
-        sections[current_header] = parts[0]
-        parts = parts[1:]
-        
-    for part in parts:
-        # Check if this part is a header
-        match = re.match(r'^(#{1,2}) (.*)', part)
-        
-        if match:
-            # Save previous
-            if current_content:
-                key = current_header
-                # Unique keys
-                if key in sections:
-                    i = 1
-                    while f"{key} ({i})" in sections:
-                        i += 1
-                    key = f"{key} ({i})"
-                sections[key] = "".join(current_content).strip()
-            
-            # Start new
-            current_header = match.group(2).strip()
-            current_content = [part]
-        else:
-            # Just content
-            current_content.append(part)
-            
-    # Save last
-    if current_header and current_content:
-        key = current_header
-        if key in sections:
-            i = 1
-            while f"{key} ({i})" in sections:
-                i += 1
-            key = f"{key} ({i})"
-        sections[key] = "".join(current_content).strip()
-        
-    return sections
+    return modified_content, "\n".join(toc_lines)
 
 
 def render_diff(generated, expected):
@@ -823,32 +797,17 @@ def main():
             with open(report_path, "r", encoding="utf-8") as f:
                 full_content = f.read()
             
-            # Parse sections
-            sections = parse_report_sections(full_content)
+            # Generate TOC and inject anchors
+            modified_content, toc_markdown = generate_toc_and_inject_anchors(full_content)
             
-            if sections:
-                # Add Navigation to Sidebar
-                st.sidebar.divider()
-                st.sidebar.subheader("📑 Report Navigation")
-                
-                # Filter out empty sections if any
-                valid_sections = [k for k, v in sections.items() if v.strip()]
-                
-                if not valid_sections:
-                    st.warning("Could not parse sections from report.")
-                    st.markdown(full_content)
-                else:
-                    selected_section = st.sidebar.radio(
-                        "Go to Section",
-                        options=valid_sections,
-                        label_visibility="collapsed"
-                    )
-                    
-                    # Render Selected Section
-                    st.markdown(sections[selected_section])
-            else:
-                # Fallback
-                st.markdown(full_content)
+            # Sidebar TOC
+            st.sidebar.divider()
+            st.sidebar.markdown("### 📑 Report Contents")
+            st.sidebar.markdown(toc_markdown)
+            
+            # Main Content
+            st.markdown(modified_content, unsafe_allow_html=True)
+            
         else:
             st.warning(f"No AI analysis report found for this run at `{report_path}`. Run the Log Analyzer to generate one.")
 
