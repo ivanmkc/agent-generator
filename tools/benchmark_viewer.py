@@ -147,20 +147,6 @@ def render_logs(logs):
         st.info("No trace logs available.")
         return
 
-    # --- Tool Sequence Summary ---
-    tool_sequence = []
-    for event in logs:
-        if event.get("type") == "tool_use":
-            t_name = event.get("tool_name")
-            if t_name:
-                tool_sequence.append(t_name)
-    
-    if tool_sequence:
-        links = [f"[{t}](#tool-step-{i})" for i, t in enumerate(tool_sequence, 1)]
-        st.info(f"**Tool Execution Path:** {' → '.join(links)}")
-    else:
-        st.caption("No tools were called in this attempt.")
-
     # Work on a copy to avoid mutating cached data
     logs = list(logs)
 
@@ -194,6 +180,56 @@ def render_logs(logs):
             grouped_events.append(event)
 
         i += 1
+
+    # --- Tool Chain Summary ---
+    tool_chain_data = []
+    chain_step = 1
+    for event in grouped_events:
+        if event.get("type") == "tool_interaction":
+            use = event["tool_use"]
+            res = event["tool_result"]
+            
+            t_name = use.get("tool_name", "Unknown")
+            
+            # Input truncation
+            inp = use.get("tool_input")
+            inp_str = json.dumps(inp) if inp else ""
+            if len(inp_str) > 150:
+                inp_str = inp_str[:150] + "..."
+                
+            # Output truncation
+            out_str = ""
+            if res:
+                out = res.get("tool_output")
+                out_str = str(out)
+                if len(out_str) > 150:
+                    out_str = out_str[:150] + "..."
+            else:
+                out_str = "(No output)"
+            
+            tool_chain_data.append({
+                "Step": chain_step,
+                "Tool": t_name,
+                "Input": inp_str,
+                "Output": out_str
+            })
+            chain_step += 1
+            
+    if tool_chain_data:
+        st.markdown("#### 🔗 Tool Chain")
+        st.dataframe(
+            pd.DataFrame(tool_chain_data),
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "Step": st.column_config.NumberColumn("Step", width="small"),
+                "Tool": st.column_config.TextColumn("Tool", width="medium"),
+                "Input": st.column_config.TextColumn("Input", width="medium"),
+                "Output": st.column_config.TextColumn("Output", width="medium"),
+            }
+        )
+    else:
+        st.caption("No tools were called in this attempt.")
 
     # --- Filtering ---
     def get_category(event):
