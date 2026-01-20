@@ -7,8 +7,10 @@ set -e
 # Ensure we are in the project root
 cd "$(dirname "$0")"
 
-# Activate Env
-source env/bin/activate
+# Activate Env if it exists
+if [ -f "env/bin/activate" ]; then
+    source env/bin/activate
+fi
 
 # Set Python Path to include root
 export PYTHONPATH=.

@@ -1,0 +1,47 @@
+name: Nightly Benchmarks
+
+on:
+  schedule:
+    # Run at 2:00 AM UTC every day
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+jobs:
+  full-benchmark:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # For committing results if needed
+    strategy:
+      matrix:
+        python-version: ["3.11"]
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        
+    - name: Run ADK Benchmark
+      env:
+        GEMINI_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+        BENCHMARK_OUTPUT_DIR: nightly_output
+      run: |
+        # Run full benchmark suite
+        ./benchmark_run.sh notebooks/run_benchmarks.py --model-filter "gemini-2.0-flash"
+
+    - name: Upload Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: benchmark-results
+        path: |
+          nightly_output/trace.yaml
+          nightly_output/results.json
+          nightly_output/log_analysis.md
+          nightly_output/run_metadata.json

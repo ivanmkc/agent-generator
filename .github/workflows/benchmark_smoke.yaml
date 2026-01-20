@@ -1,0 +1,48 @@
+name: Benchmark Smoke Test
+
+on:
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  smoke-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11"]
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        
+    - name: Run Trivial Benchmark
+      env:
+        BENCHMARK_OUTPUT_DIR: smoke_output
+        GEMINI_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+      run: |
+        # Run the trivial generator using the main runner script.
+        # We filter for 'Trivial' generator.
+        ./benchmark_run.sh notebooks/run_benchmarks.py --generator-filter "Trivial" --model-filter "dummy" --suite-filter "debug_single"
+        
+    - name: Verify Output
+      run: |
+        # Check if trace.yaml was created and is not empty in the specific output dir
+        if [ ! -s smoke_output/trace.yaml ]; then
+          echo "Error: smoke_output/trace.yaml missing or empty"
+          exit 1
+        fi
+        
+        # Also check results.json
+        if [ ! -s smoke_output/results.json ]; then
+          echo "Error: smoke_output/results.json missing or empty"
+          exit 1
+        fi

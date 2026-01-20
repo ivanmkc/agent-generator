@@ -1021,7 +1021,9 @@ async def analyze_run_logs(run_dir: Path, model_name: str):
         if potential.exists():
             run_dir = potential
     
-    log_path = run_dir / "trace.jsonl"
+    log_path = run_dir / "trace.yaml"
+    if not log_path.exists():
+        log_path = run_dir / "trace.jsonl"
     analyzer = LogAnalyzer(model_name=model_name)
     print(f"\n--- Starting Log Analysis on {run_dir} ---")
     print(f"Using Model: {model_name}")
