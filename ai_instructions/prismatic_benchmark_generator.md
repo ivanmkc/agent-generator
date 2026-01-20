@@ -99,11 +99,11 @@ PYTHONPATH=. env/bin/python benchmarks/benchmark_generator/run_generator.py \
 *   **Configuration:**
     *   **BFS Strategy:** Implemented `list_prioritized_targets` with a stateful queue generation: `Seeds (High Usage) -> Dependencies (BFS) -> Orphans (Unused Public Entities)`.
     *   **Pipeline Upgrade:** Added the `Critic` agent to the `ConceptWorker` pipeline to enforce uniqueness using Jaccard similarity.
-    *   **Tracing:** Added `generation_trace.jsonl` logging to capture queue state and decision logic for debugging.
+    *   **Tracing:** Added `generation_trace.yaml` logging to capture queue state and decision logic for debugging.
     *   **Robustness:** Refactored `save_benchmark_case` to handle flexible input types (dict/str) and prevent partial writes.
 *   **Result:** **Success**
 *   **Trace Analysis:**
-    *   *Queue Logic:* Verified via `generation_trace.jsonl` that the system correctly expanded from 11 seeds to 192 dependencies before processing orphans.
+    *   *Queue Logic:* Verified via `generation_trace.yaml` that the system correctly expanded from 11 seeds to 192 dependencies before processing orphans.
     *   *Target Selection:* High-value targets like `Runner`, `AgentTool`, and `LlmResponse` were prioritized immediately due to their high usage scores.
     *   *Resumption:* Confirmed that the BFS queue persists in the SQLite DB, allowing seamless restart without re-computation.
 

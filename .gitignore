@@ -5,6 +5,8 @@ __pycache__/
 *.pyo
 *.egg-info/
 .pytest_cache/
+*.json
+*.yaml
 
 # Jupyter Notebook stuff
 .ipynb_checkpoints/
