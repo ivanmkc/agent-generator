@@ -40,7 +40,7 @@ from benchmarks.answer_generators.base import AnswerGenerator
 from benchmarks.config import PODMAN_CONFIG
 from benchmarks.data_models import BenchmarkRunResult
 from benchmarks.logger import (
-    JsonTraceLogger, 
+    YamlTraceLogger, 
     ConsoleBenchmarkLogger, 
     CompositeLogger
 )
@@ -320,7 +320,7 @@ async def main():
     run_output_dir.mkdir(parents=True, exist_ok=True)
 
     # Initialize loggers
-    json_logger = JsonTraceLogger(output_dir=str(run_output_dir), filename="trace.jsonl")
+    json_logger = YamlTraceLogger(output_dir=str(run_output_dir), filename="trace.yaml")
     console_logger = ConsoleBenchmarkLogger()
     logger = CompositeLogger([console_logger, json_logger])
 

@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import json
+import yaml
 import os
 from pathlib import Path
 import difflib
@@ -52,24 +53,25 @@ def load_results(run_id) -> List[BenchmarkRunResult]:
 
 @st.cache_data
 def load_traces(run_id):
-    """Loads trace.jsonl and indexes it by benchmark_name.
+    """Loads trace.yaml and indexes it by benchmark_name.
 
     Returns: Dict[benchmark_name, List[trace_event]]
     """
-    path = BENCHMARK_RUNS_DIR / run_id / "trace.jsonl"
+    path = BENCHMARK_RUNS_DIR / run_id / "trace.yaml"
     if not path.exists():
         return {}
 
     traces = {}
     with open(path, "r") as f:
-        for line in f:
-            if not line.strip():
+        # Use yaml.safe_load_all for multi-document YAML
+        for entry in yaml.safe_load_all(f):
+            if entry is None:
                 continue
             try:
-                entry = json.loads(line)
-                if "benchmark_name" in entry and "trace_logs" in entry:
-                    traces[entry["benchmark_name"]] = entry["trace_logs"]
-            except json.JSONDecodeError:
+                data = entry.get("data", {})
+                if "benchmark_name" in data and "trace_logs" in data:
+                    traces[data["benchmark_name"]] = data["trace_logs"]
+            except Exception:
                 continue
     return traces
 

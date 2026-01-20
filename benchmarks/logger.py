@@ -26,6 +26,8 @@ from typing import Any
 from typing import Optional
 from typing import List
 from typing import TYPE_CHECKING
+import yaml
+import enum
 
 from colorama import Fore, Style, init
 
@@ -322,8 +324,24 @@ class BytesEncoder(json.JSONEncoder):
             return list(obj)
         return super().default(obj)
 
-class JsonTraceLogger(BenchmarkLogger):
-    """A benchmark logger that writes structured JSONL trace information to a unique file per run."""
+class BlockStyleDumper(yaml.SafeDumper):
+    """Custom YAML dumper that uses block style for multi-line strings."""
+    def represent_scalar(self, tag, value, style=None):
+        if isinstance(value, str) and '\n' in value:
+            style = '|'
+        return super().represent_scalar(tag, value, style)
+
+    def represent_data(self, data):
+        if isinstance(data, bytes):
+            return self.represent_scalar('tag:yaml.org,2002:str', repr(data))
+        if isinstance(data, set):
+            return self.represent_sequence('tag:yaml.org,2002:seq', list(data))
+        if isinstance(data, enum.Enum):
+            return self.represent_scalar('tag:yaml.org,2002:str', str(data.value))
+        return super().represent_data(data)
+
+class YamlTraceLogger(BenchmarkLogger):
+    """A benchmark logger that writes structured YAML trace information to a unique file per run."""
 
     def __init__(
         self,
@@ -333,18 +351,22 @@ class JsonTraceLogger(BenchmarkLogger):
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
         if filename:
+            # Force .yaml extension if it was .jsonl
+            if filename.endswith(".jsonl"):
+                filename = filename.replace(".jsonl", ".yaml")
             self.output_file = self.output_dir / filename
         else:
             timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-            self.output_file = self.output_dir / f"trace_{timestamp}.jsonl"
+            self.output_file = self.output_dir / f"trace_{timestamp}.yaml"
         self.start_time = time.time()
         self._log_event("run_start", {"timestamp": self.start_time})
-        print(f"JSON trace log will be written to {self.output_file}")
+        print(f"YAML trace log will be written to {self.output_file}")
 
     def _log_event(self, event_type: str, data: dict[str, Any]) -> None:
         entry = {"event_type": event_type, "timestamp": time.time(), "data": data}
         with open(self.output_file, "a", encoding="utf-8") as f:
-            f.write(json.dumps(entry, cls=BytesEncoder) + "\n")
+            f.write("---\n")
+            yaml.dump(entry, f, Dumper=BlockStyleDumper, sort_keys=False, allow_unicode=True, default_flow_style=False)
     
     @contextlib.contextmanager
     def section(self, name: str):
@@ -424,7 +446,7 @@ class JsonTraceLogger(BenchmarkLogger):
         end_time = time.time()
         duration = end_time - self.start_time
         self._log_event("run_end", {"duration": duration})
-        print(f"JSON trace log written to {self.output_file}")
+        print(f"YAML trace log written to {self.output_file}")
 
 
 class CompositeLogger(BenchmarkLogger):

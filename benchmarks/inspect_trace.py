@@ -5,6 +5,7 @@ Utility script to inspect trace logs from a benchmark run.
 
 import argparse
 import json
+import yaml
 import glob
 import os
 from datetime import datetime
@@ -12,12 +13,12 @@ from pathlib import Path
 
 
 def find_latest_trace_file(base_dir="benchmark_runs"):
-    """Finds the trace.jsonl file in the most recent run directory."""
+    """Finds the trace.yaml file in the most recent run directory."""
     runs = glob.glob(os.path.join(base_dir, "*"))
     runs.sort(key=os.path.getmtime, reverse=True)
 
     for run in runs:
-        trace_path = os.path.join(run, "trace.jsonl")
+        trace_path = os.path.join(run, "trace.yaml")
         if os.path.exists(trace_path):
             return trace_path
     return None
@@ -64,7 +65,7 @@ def main():
         "search_term", nargs="?", help="Benchmark name or part of it to filter by."
     )
     parser.add_argument(
-        "--file", "-f", help="Path to trace.jsonl file. Defaults to latest run."
+        "--file", "-f", help="Path to trace.yaml file. Defaults to latest run."
     )
     parser.add_argument(
         "--list",
@@ -80,7 +81,7 @@ def main():
         trace_file = find_latest_trace_file()
 
     if not trace_file:
-        print("No trace.jsonl file found.")
+        print("No trace.yaml file found.")
         return
 
     print(f"Reading trace from: {trace_file}")
@@ -88,10 +89,8 @@ def main():
     found_any = False
 
     with open(trace_file, "r", encoding="utf-8") as f:
-        for line in f:
-            try:
-                entry = json.loads(line)
-            except json.JSONDecodeError:
+        for entry in yaml.safe_load_all(f):
+            if entry is None:
                 continue
 
             if entry.get("event_type") == "test_result":

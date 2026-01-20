@@ -16,7 +16,7 @@ from benchmarks.answer_generators.adk_agents import create_default_adk_agent
 from benchmarks.answer_generators.adk_answer_generator import AdkAnswerGenerator
 from benchmarks.answer_generators.gemini_cli_docker import GeminiCliPodmanAnswerGenerator
 from benchmarks.answer_generators.gemini_cli_docker.image_definitions import IMAGE_DEFINITIONS
-from benchmarks.logger import JsonTraceLogger, ConsoleBenchmarkLogger, CompositeLogger
+from benchmarks.logger import YamlTraceLogger, ConsoleBenchmarkLogger, CompositeLogger
 
 # Initialize colorama
 init()
@@ -51,8 +51,8 @@ async def compare():
     
     # --- Setup Logging ---
     output_dir = "tmp/compare_logs"
-    json_logger = JsonTraceLogger(
-        output_dir=output_dir, filename="compare_trace.jsonl"
+    json_logger = YamlTraceLogger(
+        output_dir=output_dir, filename="compare_trace.yaml"
     )
     console_logger = ConsoleBenchmarkLogger()
     logger = CompositeLogger([console_logger, json_logger])

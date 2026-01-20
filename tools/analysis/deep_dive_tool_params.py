@@ -1,5 +1,6 @@
 import sqlite3
 import json
+import yaml
 import os
 from pathlib import Path
 
@@ -21,16 +22,17 @@ def get_target_failures():
         """).fetchall()
 
 def extract_tool_chain(run_id, benchmark_name, attempt_number):
-    log_file = RUNS_DIR / run_id / "trace.jsonl"
+    log_file = RUNS_DIR / run_id / "trace.yaml"
     if not log_file.exists():
         return None
 
     tool_chain = []
     
     with open(log_file, 'r', encoding='utf-8', errors='ignore') as f:
-        for line in f:
+        for event in yaml.safe_load_all(f):
+            if event is None:
+                continue
             try:
-                event = json.loads(line)
                 # Find the test result to match benchmark/attempt
                 if event.get("event_type") == "test_result":
                     data = event.get("data", {})

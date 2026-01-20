@@ -1,4 +1,5 @@
 import json
+import yaml
 import pathlib
 import sys
 from collections import defaultdict
@@ -23,33 +24,31 @@ def analyze_historical_pass_rates():
     case_results: Dict[str, List[int]] = defaultdict(list)
     
     run_count = 0
-    print(f"Scanning {RUNS_DIR} for trace.jsonl files (Weighted by Recency)...")
+    print(f"Scanning {RUNS_DIR} for trace.yaml files (Weighted by Recency)...")
     
     # Sort by date desc (Most recent first)
     run_dirs = sorted([d for d in RUNS_DIR.iterdir() if d.is_dir()], reverse=True)
     
     for run_dir in run_dirs:
-        log_file = run_dir / "trace.jsonl"
+        log_file = run_dir / "trace.yaml"
         if not log_file.exists():
             continue
             
         try:
             with open(log_file, 'r', encoding='utf-8', errors='ignore') as f:
                 run_processed = False
-                for line in f:
-                    try:
-                        event = json.loads(line)
-                        if event.get("event_type") == "test_result":
-                            data = event.get("data", {})
-                            # Prioritize 'id' (unambiguous) over 'benchmark_name' (historical)
-                            name = data.get("id") or data.get("benchmark_name")
-                            result = data.get("result")
-                            
-                            if name and result:
-                                case_results[name].append(1 if result == "pass" else 0)
-                                run_processed = True
-                    except json.JSONDecodeError:
+                for event in yaml.safe_load_all(f):
+                    if event is None:
                         continue
+                    if event.get("event_type") == "test_result":
+                        data = event.get("data", {})
+                        # Prioritize 'id' (unambiguous) over 'benchmark_name' (historical)
+                        name = data.get("id") or data.get("benchmark_name")
+                        result = data.get("result")
+                        
+                        if name and result:
+                            case_results[name].append(1 if result == "pass" else 0)
+                            run_processed = True
                 
                 if run_processed:
                     run_count += 1

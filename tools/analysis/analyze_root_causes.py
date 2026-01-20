@@ -1,5 +1,6 @@
 import asyncio
 import json
+import yaml
 import sqlite3
 import re
 import sys
@@ -162,10 +163,6 @@ class DatabaseWriter:
 
 # --- Log Processing ---
 
-def read_file_sync(path):
-    with open(path, 'r', encoding='utf-8', errors='ignore') as f:
-        return f.readlines()
-
 async def process_log_file(file_path: Path, db_writer: DatabaseWriter):
     run_id = file_path.parent.name
     
@@ -176,53 +173,54 @@ async def process_log_file(file_path: Path, db_writer: DatabaseWriter):
     logger.info(f"Processing run: {run_id}")
     
     try:
-        # Offload blocking IO
-        lines = await asyncio.to_thread(read_file_sync, file_path)
+        def parse_yaml_sync(path):
+            with open(path, 'r', encoding='utf-8', errors='ignore') as f:
+                return list(yaml.safe_load_all(f))
+        
+        # Offload blocking IO and parsing
+        events = await asyncio.to_thread(parse_yaml_sync, file_path)
         
         current_generator = "Unknown"
         failures_count = 0
         
-        for line in lines:
-            try:
-                event = json.loads(line)
-                evt_type = event.get("event_type")
-                data = event.get("data", {})
-                
-                if evt_type == "section_start":
-                    name = data.get("name", "")
-                    if name.startswith("Generator: ") or name.startswith("Agent: "):
-                        current_generator = name.replace("Generator: ", "").replace("Agent: ", "")
-                
-                elif evt_type == "test_result":
-                    result_status = data.get("result")
-                    if result_status != "pass":
-                        benchmark_name = data.get("benchmark_name")
-                        suite = data.get("suite")
-                        attempts = data.get("generation_attempts", [])
-                        
-                        if attempts:
-                            # Analyze attempt one (index 0)
-                            attempt = attempts[0]
-                            attempt_num = attempt.get("attempt_number", 1)
-                            error_msg = attempt.get("error_message") or data.get("validation_error")
-                            
-                            error_types, explanation = classify_error(error_msg)
-                            
-                            db_writer.enqueue_failure((
-                                run_id,
-                                datetime.now().isoformat(), 
-                                benchmark_name,
-                                suite,
-                                current_generator,
-                                attempt_num,
-                                json.dumps(error_types),
-                                str(error_msg),
-                                explanation
-                            ))
-                            failures_count += 1
-
-            except json.JSONDecodeError:
+        for event in events:
+            if event is None:
                 continue
+            evt_type = event.get("event_type")
+            data = event.get("data", {})
+            
+            if evt_type == "section_start":
+                name = data.get("name", "")
+                if name.startswith("Generator: ") or name.startswith("Agent: "):
+                    current_generator = name.replace("Generator: ", "").replace("Agent: ", "")
+            
+            elif evt_type == "test_result":
+                result_status = data.get("result")
+                if result_status != "pass":
+                    benchmark_name = data.get("benchmark_name")
+                    suite = data.get("suite")
+                    attempts = data.get("generation_attempts", [])
+                    
+                    if attempts:
+                        # Analyze attempt one (index 0)
+                        attempt = attempts[0]
+                        attempt_num = attempt.get("attempt_number", 1)
+                        error_msg = attempt.get("error_message") or data.get("validation_error")
+                        
+                        error_types, explanation = classify_error(error_msg)
+                        
+                        db_writer.enqueue_failure((
+                            run_id,
+                            datetime.now().isoformat(), 
+                            benchmark_name,
+                            suite,
+                            current_generator,
+                            attempt_num,
+                            json.dumps(error_types),
+                            str(error_msg),
+                            explanation
+                        ))
+                        failures_count += 1
         
         db_writer.enqueue_processed(run_id)
         logger.info(f"Finished {run_id}: {failures_count} failures found.")
@@ -260,7 +258,7 @@ async def main():
                 if db_writer.is_processed(run_dir.name):
                     continue
                     
-                log_file = run_dir / "trace.jsonl"
+                log_file = run_dir / "trace.yaml"
                 if log_file.exists():
                     tasks.append(process_log_file(log_file, db_writer))
         except Exception:

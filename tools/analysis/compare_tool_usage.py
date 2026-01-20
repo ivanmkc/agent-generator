@@ -1,6 +1,6 @@
 
-
 import json
+import yaml
 import sys
 from pathlib import Path
 
@@ -17,9 +17,10 @@ def analyze_trace(file_path, label):
 
     events = []
     with open(file_path, 'r') as f:
-        for line in f:
+        for item in yaml.safe_load_all(f):
+            if item is None:
+                continue
             try:
-                item = json.loads(line)
                 # Look for nested trace logs in test_result
                 if item.get("event_type") == "test_result":
                     data = item.get("data", {})
@@ -100,7 +101,7 @@ def analyze_trace(file_path, label):
 
 if __name__ == "__main__":
     # Path 1: Gemini CLI Run (from compare logs)
-    analyze_trace("tmp/compare_logs/compare_trace.jsonl", "Gemini CLI + ADK")
+    analyze_trace("tmp/compare_logs/compare_trace.yaml", "Gemini CLI + ADK")
     
     # Path 2: Optimized ADK Run (from optimize logs)
-    analyze_trace("tmp/optimize_logs/optimize_trace.jsonl", "Optimized ADK Agent")
+    analyze_trace("tmp/optimize_logs/optimize_trace.yaml", "Optimized ADK Agent")

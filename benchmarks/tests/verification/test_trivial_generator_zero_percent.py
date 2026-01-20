@@ -18,7 +18,7 @@ import pytest
 
 from benchmarks import benchmark_orchestrator
 from benchmarks.answer_generators import TrivialAnswerGenerator
-from benchmarks.logger import JsonTraceLogger
+from benchmarks.logger import YamlTraceLogger
 
 
 @pytest.mark.asyncio
@@ -28,7 +28,7 @@ async def test_trivial_generator_is_zero_percent_on_non_mc():
     Asserts that NO tests pass. A trivial/empty answer should never satisfy the requirements
     of these complex tasks.
     """
-    logger = JsonTraceLogger(output_dir="traces_verification")
+    logger = YamlTraceLogger(output_dir="traces_verification")
 
     # Define non-MC suites
     benchmark_suites = [

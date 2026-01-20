@@ -1,5 +1,6 @@
 import asyncio
 import json
+import yaml
 import sqlite3
 import logging
 import os
@@ -29,7 +30,7 @@ ANALYSIS_PROMPT = """You are a rigorous Forensic Software Analyst auditing an au
 The agent failed to solve the benchmark: "{benchmark_name}"
 Error: "{error_message}"
 
-=== TRACE LOGS (JSONL Events) ===
+=== TRACE LOGS (YAML Documents) ===
 {trace_json}
 =================================
 
@@ -118,15 +119,16 @@ def update_failure(failure_id, analysis_json):
 # --- Trace Extraction ---
 
 def extract_trace(run_id, benchmark_name, attempt_number):
-    log_file = RUNS_DIR / run_id / "trace.jsonl"
+    log_file = RUNS_DIR / run_id / "trace.yaml"
     if not log_file.exists():
         return None
     
     # Simple extraction: Find the test_result event for this benchmark
     with open(log_file, 'r', encoding='utf-8', errors='ignore') as f:
-        for line in f:
+        for event in yaml.safe_load_all(f):
+            if event is None:
+                continue
             try:
-                event = json.loads(line)
                 if event.get("event_type") == "test_result":
                     data = event.get("data", {})
                     if data.get("benchmark_name") == benchmark_name:

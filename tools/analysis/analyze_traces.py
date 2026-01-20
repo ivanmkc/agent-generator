@@ -1,13 +1,15 @@
 import json
+import yaml
 import sys
 
-log_file = "benchmark_runs/2025-12-21_12-01-28/trace.jsonl"
+log_file = "benchmark_runs/2025-12-21_12-01-28/trace.yaml"
 
 try:
     with open(log_file, "r") as f:
-        for line in f:
+        for entry in yaml.safe_load_all(f):
+            if entry is None:
+                continue
             try:
-                entry = json.loads(line)
                 if entry.get("event_type") == "test_result":
                     benchmark_name = entry["data"].get("benchmark_name")
                     trace_logs = entry["data"].get("trace_logs") or []
@@ -23,7 +25,7 @@ try:
 
                     if used_tool:
                         print(f"- {benchmark_name}")
-            except json.JSONDecodeError:
+            except Exception:
                 continue
 except FileNotFoundError:
     print(f"Error: File {log_file} not found.")

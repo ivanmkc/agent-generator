@@ -13,7 +13,7 @@ from benchmarks.benchmark_candidates import CANDIDATE_GENERATORS
 from benchmarks.answer_generators.gemini_cli_docker import (
     GeminiCliPodmanAnswerGenerator,
 )
-from benchmarks.logger import JsonTraceLogger, ConsoleBenchmarkLogger, CompositeLogger
+from benchmarks.logger import YamlTraceLogger, ConsoleBenchmarkLogger, CompositeLogger
 from benchmarks.config import PODMAN_CONFIG
 
 # Initialize colorama
@@ -43,8 +43,8 @@ async def verify():
     print(f"{Fore.GREEN}Found generator: {target_generator.name}{Style.RESET_ALL}")
 
     # Setup logger
-    json_logger = JsonTraceLogger(
-        output_dir="tmp/verify_logs", filename="verify_trace.jsonl"
+    json_logger = YamlTraceLogger(
+        output_dir="tmp/verify_logs", filename="verify_trace.yaml"
     )
     console_logger = ConsoleBenchmarkLogger()
     logger = CompositeLogger([console_logger, json_logger])
@@ -105,7 +105,7 @@ async def verify():
 
         print(f"{Fore.GREEN}Benchmark execution completed.{Style.RESET_ALL}")
         print(
-            f"Check 'tmp/verify_logs/verify_trace.jsonl' for detailed tool usage logs."
+            f"Check 'tmp/verify_logs/verify_trace.yaml' for detailed tool usage logs."
         )
 
     except Exception as e:

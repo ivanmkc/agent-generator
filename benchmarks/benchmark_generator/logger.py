@@ -16,10 +16,12 @@
 
 import datetime
 import json
+import yaml
 from pathlib import Path
 from typing import Optional, Any, Dict
 from colorama import Fore, Style, init
 from google.adk.events import Event
+from benchmarks.logger import BlockStyleDumper
 
 # Initialize colorama
 init(autoreset=True)
@@ -44,7 +46,7 @@ class PrismaticLogger:
         self.trace_file = None
         if self.output_dir:
             self.output_dir.mkdir(parents=True, exist_ok=True)
-            self.trace_file = self.output_dir / "generation_trace.jsonl"
+            self.trace_file = self.output_dir / "generation_trace.yaml"
 
     def _timestamp(self):
         return datetime.datetime.now().strftime("%H:%M:%S")
@@ -62,7 +64,8 @@ class PrismaticLogger:
         
         try:
             with open(self.trace_file, "a", encoding="utf-8") as f:
-                f.write(json.dumps(record) + "\n")
+                f.write("---\n")
+                yaml.dump(record, f, Dumper=BlockStyleDumper, sort_keys=False, allow_unicode=True, default_flow_style=False)
         except Exception as e:
             print(f"{Fore.RED}Failed to write to trace log: {e}{Style.RESET_ALL}")
 

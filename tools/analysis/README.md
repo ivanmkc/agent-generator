@@ -1,6 +1,6 @@
 # Benchmark Analysis Library
 
-This directory contains the modular engine used by all diagnostic and reporting tools. It breaks down raw `trace.jsonl` data into a meaningful hierarchy.
+This directory contains the modular engine used by all diagnostic and reporting tools. It breaks down raw `trace.yaml` data into a meaningful hierarchy.
 
 ## 1. Modular Hierarchy & Mechanisms
 
@@ -49,19 +49,19 @@ for gen in run.generators.values():
 alerts = run.get_critical_alerts()
 ```
 
-These tools work directly on `trace.jsonl` files without needing the database.
+These tools work directly on `trace.yaml` files without needing the database.
 
 ### `analyze_benchmark_chunks.py`
 Parses a raw trace file and outputs a clean Markdown table of every benchmark case, its pass/fail status, token usage, and duration.
 
 **Usage:**
 ```bash
-python tools/analysis/analyze_benchmark_chunks.py <path_to_trace.jsonl>
+python tools/analysis/analyze_benchmark_chunks.py <path_to_trace.yaml>
 ```
 
 **Example:**
 ```bash
-python tools/analysis/analyze_benchmark_chunks.py benchmark_runs/2026-01-13_04-07-18/trace.jsonl
+python tools/analysis/analyze_benchmark_chunks.py benchmark_runs/2026-01-13_04-07-18/trace.yaml
 ```
 
 **Output:**
@@ -92,8 +92,8 @@ Runs two different agent configurations side-by-side against the same benchmark 
 Analyzes two trace files and compares the "Token Efficiency" of their tool usage (i.e., how verbose were the tool outputs vs. how useful they were).
 *   **Usage:** Edit the file paths in the `__main__` block:
     ```python
-    analyze_trace("path/to/run_A/trace.jsonl", "Variant A")
-    analyze_trace("path/to/run_B/trace.jsonl", "Variant B")
+    analyze_trace("path/to/run_A/trace.yaml", "Variant A")
+    analyze_trace("path/to/run_B/trace.yaml", "Variant B")
     ```
 
 ---
