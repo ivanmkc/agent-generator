@@ -34,7 +34,7 @@ from benchmarks.benchmark_generator.logger import PrismaticLogger
 
 # --- Scanner (Cartographer) Logic ---
 
-def scan_repository(repo_path: str, tool_context: ToolContext, coverage_file: Optional[str] = None, namespace: Optional[str] = None) -> str:
+def scan_repository(repo_path: str, tool_context: ToolContext, coverage_file: Optional[str] = None, namespace: Optional[str] = None, root_namespace_prefix: Optional[str] = None) -> str:
     """
     Scans the repository to build a hierarchical map of entities.
     Acts as the 'Cartographer' and 'Strategist' by calculating usage-based priority from external statistics.
@@ -104,6 +104,12 @@ def scan_repository(repo_path: str, tool_context: ToolContext, coverage_file: Op
             else: module_parts[-1] = module_parts[-1][:-3]
             module_fqn = ".".join(module_parts)
             if module_fqn.startswith("src."): module_fqn = module_fqn[4:]
+
+            if root_namespace_prefix:
+                if module_fqn:
+                    module_fqn = f"{root_namespace_prefix}.{module_fqn}"
+                else:
+                    module_fqn = root_namespace_prefix
 
             if namespace and not module_fqn.startswith(namespace):
                 continue

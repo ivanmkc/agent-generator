@@ -163,14 +163,14 @@ def inspect_adk_symbol(fqn: str) -> str:
         return f"No file path recorded for {fqn}."
         
     # Container path mapping
-    # Local: src/google/...
-    # Container: /workdir/repos/adk-python/src/google/...
+    # Local: src/google/... (ADK) OR env/... (Deps)
     
-    # Strip leading 'src/' if present relative to repo root
-    # ranker output is relative to repo root usually
-    
-    # Let's assume ranker output is like "src/google/adk/..."
-    full_path = REPO_ROOT / rel_path
+    if rel_path.startswith("env/"):
+        # External dependency in virtualenv, mapped to /workdir/env
+        full_path = Path("/workdir") / rel_path
+    else:
+        # ADK Source in repo
+        full_path = REPO_ROOT / rel_path
     
     if not full_path.exists():
         return f"File not found on disk: {full_path}"

@@ -54,6 +54,13 @@ class TargetRanker:
         self.repo_path = repo_path
         self.namespace = namespace
         self.stats_file = stats_file
+        
+        # Define external dependencies to scan
+        # (path, namespace_prefix)
+        self.external_deps = [
+            ("env/lib/python3.13/site-packages/google/genai", "google.genai"),
+            ("env/lib/python3.13/site-packages/vertexai", "vertexai"),
+        ]
 
     def clean_text(self, text):
         if not text: return None
@@ -98,11 +105,54 @@ class TargetRanker:
             tool_confirmation=None
         )
         
-        logger.info("Running scan_repository...")
-        scan_repository(repo_path=self.repo_path, tool_context=context)
+        # --- Multi-pass Scanning ---
+        all_targets = []
+        all_structure = {}
         
-        targets_data = session.state["scanned_targets"]
-        structure_map = session.state["structure_map"]
+        # 1. Scan ADK Repo (Main)
+        logger.info(f"Scanning ADK repo: {self.repo_path}...")
+        scan_repository(repo_path=self.repo_path, tool_context=context, namespace=self.namespace)
+        if "scanned_targets" in session.state:
+            all_targets.extend(session.state["scanned_targets"])
+        if "structure_map" in session.state:
+            all_structure.update(session.state["structure_map"])
+            
+        # 2. Scan External Dependencies
+        for dep_path, dep_ns in self.external_deps:
+            if os.path.exists(dep_path):
+                logger.info(f"Scanning external dependency: {dep_ns} at {dep_path}...")
+                # Clear previous scan results from state to avoid confusion (scan_repository overwrites)
+                session.state["scanned_targets"] = []
+                session.state["structure_map"] = {}
+                
+                scan_repository(
+                    repo_path=dep_path, 
+                    tool_context=context, 
+                    namespace=dep_ns,
+                    root_namespace_prefix=dep_ns
+                )
+                
+                # Fix paths to be relative to project root
+                if "scanned_targets" in session.state and isinstance(session.state["scanned_targets"], list):
+                    for t in session.state["scanned_targets"]:
+                        if t.get("file_path"):
+                            t["file_path"] = os.path.join(dep_path, t["file_path"])
+                
+                if "scanned_targets" in session.state:
+                    all_targets.extend(session.state["scanned_targets"])
+                if "structure_map" in session.state:
+                    all_structure.update(session.state["structure_map"])
+            else:
+                logger.warning(f"External dependency path not found: {dep_path}")
+
+        # Restore aggregated data to session state
+        session.state["scanned_targets"] = all_targets
+        session.state["structure_map"] = all_structure
+        
+        targets_data = all_targets
+        structure_map = all_structure
+        
+        logger.info(f"Total targets scanned: {len(targets_data)}")
         
         # Inheritance Resolution
         logger.info("Resolving inheritance...")
