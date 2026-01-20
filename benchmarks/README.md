@@ -118,6 +118,24 @@ env/bin/python benchmarks/tests/verification/check_mc_leaks.py
 *   The LLM's assessment is based on a heuristic and may require human review.
 *   If leaks are detected, it's recommended to refine the benchmark's code snippet or question to ensure true knowledge testing.
 
+#### API Reference Verification
+
+To ensure that the API references (e.g., class names, methods) in the benchmark YAML files are valid and actually exist in the ADK codebase, use the following tools:
+
+1.  **Extract API References:**
+    This script scans all benchmark YAMLs and extracts potential API references using heuristics and regex.
+    ```bash
+    env/bin/python tools/extract_apis_llm.py
+    ```
+    This produces `extracted_apis_llm.yaml`.
+
+2.  **Verify Existence:**
+    This script takes the extracted references and attempts to dynamically import them from the ADK source code.
+    ```bash
+    env/bin/python tools/verify_apis.py
+    ```
+    This produces `api_verification_report.yaml`, highlighting any missing or invalid references.
+
 ### 2. Evaluating Candidate Answer Generators
 
 This is the primary purpose of the framework. The goal is to run one or more experimental `AnswerGenerator`s against the benchmark suites to gather performance metrics. This is not a simple pass/fail test but an experiment to produce a comparative analysis.
