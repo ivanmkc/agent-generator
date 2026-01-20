@@ -605,39 +605,6 @@ benchmarks:
   correct_answer: B
   explanation: '`output_schema` is used to enforce structured output, and `input_schema` defines the interface for the agent when called as a tool.'
   benchmark_type: multiple_choice
-- id: configure_adk_features_mc:what_is_the_primary_use_case_for_timelimitplugin
-  question: What is the primary use case for `TimeLimitPlugin`?
-  options:
-    A: Defining tools.
-    B: Managing session state.
-    C: Limiting execution time.
-    D: Configuring LLM parameters.
-    E: None of the above
-  correct_answer: C
-  explanation: '`TimeLimitPlugin` is designed for Limiting execution time.'
-  benchmark_type: multiple_choice
-- id: configure_adk_features_mc:what_is_the_primary_use_case_for_costtrackingplugi
-  question: What is the primary use case for `CostTrackingPlugin`?
-  options:
-    A: Monitoring token costs.
-    B: Defining tools.
-    C: Configuring LLM parameters.
-    D: Managing session state.
-    E: None of the above
-  correct_answer: A
-  explanation: '`CostTrackingPlugin` is designed for Monitoring token costs.'
-  benchmark_type: multiple_choice
-- id: configure_adk_features_mc:what_is_the_primary_use_case_for_safetyfilterplugi
-  question: What is the primary use case for `SafetyFilterPlugin`?
-  options:
-    A: Managing session state.
-    B: Filtering harmful content.
-    C: Configuring LLM parameters.
-    D: Defining tools.
-    E: None of the above
-  correct_answer: B
-  explanation: '`SafetyFilterPlugin` is designed for Filtering harmful content.'
-  benchmark_type: multiple_choice
 - id: configure_adk_features_mc:what_is_the_primary_use_case_for_contextfilterplug
   question: What is the primary use case for `ContextFilterPlugin`?
   options:
