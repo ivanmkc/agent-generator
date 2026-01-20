@@ -82,12 +82,13 @@ async def test_gemini_answer_generator(
     mock_api_case: ApiUnderstandingBenchmarkCase,
 ):
     """Tests that the GeminiAnswerGenerator returns the mocked response."""
-    generator = GeminiAnswerGenerator()
-    
-    # We need an ApiKeyManager
     from benchmarks.api_key_manager import ApiKeyManager
-    generator.api_key_manager = MagicMock(spec=ApiKeyManager)
-    generator.api_key_manager.get_key_for_run.return_value = ("test-key", "key-id")
+    mock_key_manager = MagicMock(spec=ApiKeyManager)
+    mock_key_manager.get_key_for_run.return_value = ("test-key", "key-id")
+    
+    generator = GeminiAnswerGenerator(
+        model_name="test-model", context="test-context", api_key_manager=mock_key_manager
+    )
 
     with patch(
         "benchmarks.answer_generators.gemini_answer_generator.genai.Client"
@@ -120,11 +121,13 @@ async def test_gemini_cli_answer_generator(
     mock_api_case: ApiUnderstandingBenchmarkCase,
 ):
     """Tests that the GeminiCliAnswerGenerator correctly parses CLI output."""
-    generator = GeminiCliAnswerGenerator()
-    
     from benchmarks.api_key_manager import ApiKeyManager
-    generator.api_key_manager = MagicMock(spec=ApiKeyManager)
-    generator.api_key_manager.get_key_for_run.return_value = ("test-key", "key-id")
+    mock_key_manager = MagicMock(spec=ApiKeyManager)
+    mock_key_manager.get_key_for_run.return_value = ("test-key", "key-id")
+    
+    generator = GeminiCliAnswerGenerator(
+        model_name="test-model", context="test-context", api_key_manager=mock_key_manager
+    )
 
     # The CLI output is expected to be a JSON string representing the ApiUnderstandingAnswerOutput
     # Wrap it in a dict because run_cli_command returns a tuple(dict, logs)
@@ -187,10 +190,13 @@ async def test_gemini_answer_generator_multiple_choice_with_snippet():
             
             mock_client.return_value.aio.models.generate_content = AsyncMock(return_value=mock_response)
             
-            generator = GeminiAnswerGenerator()
             from benchmarks.api_key_manager import ApiKeyManager
-            generator.api_key_manager = MagicMock(spec=ApiKeyManager)
-            generator.api_key_manager.get_key_for_run.return_value = ("test-key", "key-id")
+            mock_key_manager = MagicMock(spec=ApiKeyManager)
+            mock_key_manager.get_key_for_run.return_value = ("test-key", "key-id")
+            
+            generator = GeminiAnswerGenerator(
+                model_name="test-model", context="test-context", api_key_manager=mock_key_manager
+            )
             
             generated_answer = await generator.generate_answer(case, run_id="test_run")
 

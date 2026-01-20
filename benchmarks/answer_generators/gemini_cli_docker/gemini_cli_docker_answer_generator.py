@@ -22,6 +22,7 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
+from benchmarks.api_key_manager import ApiKeyManager
 from benchmarks.answer_generators.gemini_cli_answer_generator import (
     GeminiCliAnswerGenerator,
 )
@@ -34,6 +35,7 @@ class GeminiCliDockerAnswerGenerator(GeminiCliAnswerGenerator):
     def __init__(
         self,
         image_name: str,
+        api_key_manager: ApiKeyManager,
         model_name: str = "gemini-2.5-pro",
         context: str | Path | None = None,
         context_instruction: str | None = None,
@@ -44,12 +46,13 @@ class GeminiCliDockerAnswerGenerator(GeminiCliAnswerGenerator):
           image_name: The name of the Docker image to use. This can be a full
             repository path (e.g., "gcr.io/my-project/my-image:latest") or a
             local image name (e.g., "my-local-image").
+          api_key_manager: The ApiKeyManager instance for handling API keys.
           model_name: The name of the Gemini model to use. Defaults to "gemini-2.5-pro".
           context: Optional path to a context file or directory to mount into the
             Docker container.
           context_instruction: Optional instruction to prepend to the user prompt.
         """
-        super().__init__(model_name=model_name, context=context, cli_path="gemini")
+        super().__init__(model_name=model_name, context=context, api_key_manager=api_key_manager, cli_path="gemini")
         self.image_name = image_name
         self.context_instruction = context_instruction
 

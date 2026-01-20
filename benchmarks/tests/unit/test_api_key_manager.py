@@ -1,12 +1,12 @@
 import os
 import unittest
-import threading
+import asyncio
 from unittest.mock import patch
 
 from benchmarks.api_key_manager import ApiKeyManager, KeyType
 
 
-class TestApiKeyManager(unittest.TestCase):
+class TestApiKeyManager(unittest.IsolatedAsyncioTestCase):
 
     def setUp(self):
         # Clear environment variables before each test to ensure isolation
@@ -31,70 +31,58 @@ class TestApiKeyManager(unittest.TestCase):
         self.stats_patcher.stop()
         self.load_stats_patcher.stop()
 
-    def test_single_gemini_key_fallback(self):
+    async def test_single_gemini_key_fallback(self):
         os.environ["GEMINI_API_KEY"] = "single-gemini-key"
         manager = ApiKeyManager()
         self.assertEqual(manager.get_key_count(KeyType.GEMINI_API), 1)
-        self.assertEqual(manager.get_next_key(KeyType.GEMINI_API), "single-gemini-key")
+        self.assertEqual(await manager.get_next_key(KeyType.GEMINI_API), "single-gemini-key")
         self.assertEqual(
-            manager.get_next_key(KeyType.GEMINI_API), "single-gemini-key"
+            await manager.get_next_key(KeyType.GEMINI_API), "single-gemini-key"
         )  # Should cycle same key
 
-    def test_gemini_keys_pool(self):
+    async def test_gemini_keys_pool(self):
         os.environ["GEMINI_API_KEYS_POOL"] = "key1,key2,key3"
         manager = ApiKeyManager()
         self.assertEqual(manager.get_key_count(KeyType.GEMINI_API), 3)
-        self.assertEqual(manager.get_next_key(KeyType.GEMINI_API), "key1")
-        self.assertEqual(manager.get_next_key(KeyType.GEMINI_API), "key2")
-        self.assertEqual(manager.get_next_key(KeyType.GEMINI_API), "key3")
-        self.assertEqual(manager.get_next_key(KeyType.GEMINI_API), "key1")  # Cycle back
+        self.assertEqual(await manager.get_next_key(KeyType.GEMINI_API), "key1")
+        self.assertEqual(await manager.get_next_key(KeyType.GEMINI_API), "key2")
+        self.assertEqual(await manager.get_next_key(KeyType.GEMINI_API), "key3")
+        self.assertEqual(await manager.get_next_key(KeyType.GEMINI_API), "key1")  # Cycle back
 
-    def test_gemini_pool_takes_precedence_over_single_key(self):
+    async def test_gemini_pool_takes_precedence_over_single_key(self):
         os.environ["GEMINI_API_KEY"] = "single-gemini-key-should-be-ignored"
         os.environ["GEMINI_API_KEYS_POOL"] = "keyA,keyB"
         manager = ApiKeyManager()
         self.assertEqual(manager.get_key_count(KeyType.GEMINI_API), 2)
-        self.assertEqual(manager.get_next_key(KeyType.GEMINI_API), "keyA")
-        self.assertEqual(manager.get_next_key(KeyType.GEMINI_API), "keyB")
+        self.assertEqual(await manager.get_next_key(KeyType.GEMINI_API), "keyA")
+        self.assertEqual(await manager.get_next_key(KeyType.GEMINI_API), "keyB")
 
-    def test_no_gemini_keys(self):
+    async def test_no_gemini_keys(self):
         manager = ApiKeyManager()
         self.assertEqual(manager.get_key_count(KeyType.GEMINI_API), 0)
-        self.assertIsNone(manager.get_next_key(KeyType.GEMINI_API))
+        self.assertIsNone(await manager.get_next_key(KeyType.GEMINI_API))
 
-    def test_multiple_key_types(self):
+    async def test_multiple_key_types(self):
         os.environ["GEMINI_API_KEY"] = "gemini-single"
         os.environ["CONTEXT7_API_KEYS_POOL"] = "ctxkey1,ctxkey2"
         manager = ApiKeyManager()
 
         self.assertEqual(manager.get_key_count(KeyType.GEMINI_API), 1)
-        self.assertEqual(manager.get_next_key(KeyType.GEMINI_API), "gemini-single")
+        self.assertEqual(await manager.get_next_key(KeyType.GEMINI_API), "gemini-single")
 
         self.assertEqual(manager.get_key_count(KeyType.CONTEXT7_API), 2)
-        self.assertEqual(manager.get_next_key(KeyType.CONTEXT7_API), "ctxkey1")
-        self.assertEqual(manager.get_next_key(KeyType.CONTEXT7_API), "ctxkey2")
-        self.assertEqual(manager.get_next_key(KeyType.CONTEXT7_API), "ctxkey1")
+        self.assertEqual(await manager.get_next_key(KeyType.CONTEXT7_API), "ctxkey1")
+        self.assertEqual(await manager.get_next_key(KeyType.CONTEXT7_API), "ctxkey2")
+        self.assertEqual(await manager.get_next_key(KeyType.CONTEXT7_API), "ctxkey1")
 
-    def test_thread_safety(self):
+    async def test_async_concurrency(self):
         os.environ["GEMINI_API_KEYS_POOL"] = "tkey1,tkey2,tkey3"
         manager = ApiKeyManager()
 
-        results = []
-
-        def worker():
-            results.append(manager.get_next_key(KeyType.GEMINI_API))
-
-        threads = []
-        for _ in range(100):
-            thread = threading.Thread(target=worker)
-            threads.append(thread)
-            thread.start()
-
-        for thread in threads:
-            thread.join()
+        tasks = [manager.get_next_key(KeyType.GEMINI_API) for _ in range(100)]
+        results = await asyncio.gather(*tasks)
 
         # Verify that all keys were rotated through in a round-robin fashion
-        # The exact order might vary due to thread scheduling, but the distribution should be even
         self.assertEqual(manager.get_key_count(KeyType.GEMINI_API), 3)
         self.assertEqual(len(results), 100)
 
@@ -109,45 +97,20 @@ class TestApiKeyManager(unittest.TestCase):
                 33 <= count <= 34, f"Key {key} count {count} is not as expected"
             )
 
-    def test_multiple_pools_thread_safety(self):
+    async def test_multiple_pools_async_concurrency(self):
         """
         Verifies that multiple key pools can be accessed concurrently without
-        interference and that rotation remains correct for each pool.
+        interference.
         """
         os.environ["GEMINI_API_KEYS_POOL"] = "g1,g2,g3"
         os.environ["CONTEXT7_API_KEYS_POOL"] = "c1,c2"
         manager = ApiKeyManager()
 
-        gemini_results = []
-        context7_results = []
+        gemini_tasks = [manager.get_next_key(KeyType.GEMINI_API) for _ in range(50)]
+        context7_tasks = [manager.get_next_key(KeyType.CONTEXT7_API) for _ in range(50)]
 
-        # Lock to protect results lists during concurrent append
-        results_lock = threading.Lock()
-
-        def worker(key_type, results_list):
-            key = manager.get_next_key(key_type)
-            with results_lock:
-                results_list.append(key)
-
-        threads = []
-        # Launch 50 threads for Gemini pool
-        for _ in range(50):
-            t = threading.Thread(
-                target=worker, args=(KeyType.GEMINI_API, gemini_results)
-            )
-            threads.append(t)
-            t.start()
-
-        # Launch 50 threads for Context7 pool
-        for _ in range(50):
-            t = threading.Thread(
-                target=worker, args=(KeyType.CONTEXT7_API, context7_results)
-            )
-            threads.append(t)
-            t.start()
-
-        for t in threads:
-            t.join()
+        gemini_results = await asyncio.gather(*gemini_tasks)
+        context7_results = await asyncio.gather(*context7_tasks)
 
         # Verify Gemini results (3 keys, 50 requests -> ~16-17 each)
         self.assertEqual(len(gemini_results), 50)
@@ -163,17 +126,17 @@ class TestApiKeyManager(unittest.TestCase):
         for k, count in c_counts.items():
             self.assertEqual(count, 25, f"Context7 key {k} count {count} unexpected")
 
-    def test_key_types_with_no_keys(self):
+    async def test_key_types_with_no_keys_async(self):
         manager = ApiKeyManager()
         self.assertEqual(manager.get_key_count(KeyType.CONTEXT7_API), 0)
-        self.assertIsNone(manager.get_next_key(KeyType.CONTEXT7_API))
+        self.assertIsNone(await manager.get_next_key(KeyType.CONTEXT7_API))
 
-    def test_key_with_empty_string_in_pool(self):
+    async def test_key_with_empty_string_in_pool(self):
         os.environ["GEMINI_API_KEYS_POOL"] = ",key1,,key2,"
         manager = ApiKeyManager()
         self.assertEqual(manager.get_key_count(KeyType.GEMINI_API), 2)
-        self.assertEqual(manager.get_next_key(KeyType.GEMINI_API), "key1")
-        self.assertEqual(manager.get_next_key(KeyType.GEMINI_API), "key2")
+        self.assertEqual(await manager.get_next_key(KeyType.GEMINI_API), "key1")
+        self.assertEqual(await manager.get_next_key(KeyType.GEMINI_API), "key2")
 
 
 if __name__ == "__main__":

@@ -570,7 +570,7 @@ class AdkTools:
         output = await self.run_shell_command(cmd, extra_env={"GEMINI_API_KEY": api_key} if api_key else None)
         
         # Persist the full output for forensic trace analysis
-        self.write_file("_last_agent_run.log", output)
+        self.write_file("_last_run.log", output)
         
         # Cleanup temporary code file
         try:

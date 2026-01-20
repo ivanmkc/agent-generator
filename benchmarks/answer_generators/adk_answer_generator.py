@@ -290,7 +290,7 @@ class AdkAnswerGenerator(LlmAnswerGenerator):
         current_key = None
 
         if self.api_key_manager:
-             current_key, api_key_id = self.api_key_manager.get_key_for_run(run_id, KeyType.GEMINI_API)
+             current_key, api_key_id = await self.api_key_manager.get_key_for_run(run_id, KeyType.GEMINI_API)
         
         # Set context for RotatingKeyGemini to pick up
         token = adk_execution_context.set({"api_key": current_key, "key_id": api_key_id})
@@ -316,7 +316,7 @@ class AdkAnswerGenerator(LlmAnswerGenerator):
             output = output_schema_class.model_validate_json(json_str)
 
             # Report success 
-            self.api_key_manager.report_result(KeyType.GEMINI_API, api_key_id, success=True)
+            await self.api_key_manager.report_result(KeyType.GEMINI_API, api_key_id, success=True)
 
             return GeneratedAnswer(
                 output=output, 
@@ -328,7 +328,7 @@ class AdkAnswerGenerator(LlmAnswerGenerator):
         except Exception as e:
             # Report failure
             if self.api_key_manager:
-                self.api_key_manager.report_result(KeyType.GEMINI_API, api_key_id, success=False, error_message=str(e))
+                await self.api_key_manager.report_result(KeyType.GEMINI_API, api_key_id, success=False, error_message=str(e))
             
             if isinstance(e, BenchmarkGenerationError):
                 raise e
@@ -524,7 +524,7 @@ class AdkAnswerGenerator(LlmAnswerGenerator):
         current_key = None
 
         if self.api_key_manager:
-             current_key, api_key_id = self.api_key_manager.get_key_for_run(run_id, KeyType.GEMINI_API)
+             current_key, api_key_id = await self.api_key_manager.get_key_for_run(run_id, KeyType.GEMINI_API)
         
         # Set context for RotatingKeyGemini to pick up
         token = adk_execution_context.set({"api_key": current_key, "key_id": api_key_id})
@@ -539,7 +539,7 @@ class AdkAnswerGenerator(LlmAnswerGenerator):
         try:
             # Run the agent asynchronously.
             # We pass the benchmark_type to _run_agent_async
-            response_text, trace_logs, usage_metadata = await self._run_agent_async(
+            response_text, trace_logs, usage_metadata, session_id = await self._run_agent_async(
                 prompt, 
                 api_key_id=api_key_id,
                 benchmark_type=benchmark_type
@@ -556,7 +556,7 @@ class AdkAnswerGenerator(LlmAnswerGenerator):
             output = output_schema_class.model_validate_json(json_str)
 
             # Report success 
-            self.api_key_manager.report_result(KeyType.GEMINI_API, api_key_id, success=True)
+            await self.api_key_manager.report_result(KeyType.GEMINI_API, api_key_id, success=True)
 
             return GeneratedAnswer(
                 output=output, 
@@ -567,7 +567,7 @@ class AdkAnswerGenerator(LlmAnswerGenerator):
                 
         except Exception as e:
             # Report failure
-            self.api_key_manager.report_result(KeyType.GEMINI_API, api_key_id, success=False, error_message=str(e))
+            await self.api_key_manager.report_result(KeyType.GEMINI_API, api_key_id, success=False, error_message=str(e))
             
             if isinstance(e, BenchmarkGenerationError):
                 # If it's already a captured error with logs/usage, re-raise it

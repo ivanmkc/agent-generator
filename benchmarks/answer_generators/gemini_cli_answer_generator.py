@@ -50,10 +50,12 @@ class GeminiCliAnswerGenerator(GeminiAnswerGenerator):
         model_name: str,
         context: str,
         api_key_manager: ApiKeyManager,
+        cli_path: str = "gemini",
     ):
         super().__init__(
             model_name=model_name, context=context, api_key_manager=api_key_manager
         )
+        self.cli_path = cli_path
 
     @classmethod
     async def create(
@@ -137,7 +139,7 @@ class GeminiCliAnswerGenerator(GeminiAnswerGenerator):
         if not self.api_key_manager:
             raise RuntimeError("ApiKeyManager is not configured for GeminiCliAnswerGenerator.")
 
-        current_key, api_key_id = self.api_key_manager.get_key_for_run(run_id, KeyType.GEMINI_API)
+        current_key, api_key_id = await self.api_key_manager.get_key_for_run(run_id, KeyType.GEMINI_API)
         if not current_key:
             raise RuntimeError(f"No API key available for run_id '{run_id}' from ApiKeyManager.")
         
@@ -148,13 +150,13 @@ class GeminiCliAnswerGenerator(GeminiAnswerGenerator):
             cli_response_dict, logs = await self.run_cli_command(command_parts, extra_env=extra_env)
 
             # Report success
-            self.api_key_manager.report_result(KeyType.GEMINI_API, api_key_id, success=True)
+            await self.api_key_manager.report_result(KeyType.GEMINI_API, api_key_id, success=True)
             # Note: We don't easily detect 429s from CLI text output here unless we parse logs deeply.
             # Assuming CLI handles retries or we catch generic failures.
 
         except Exception as e:
             # Report Failure 
-            self.api_key_manager.report_result(KeyType.GEMINI_API, api_key_id, success=False, error_message=str(e))
+            await self.api_key_manager.report_result(KeyType.GEMINI_API, api_key_id, success=False, error_message=str(e))
             raise BenchmarkGenerationError(f"Gemini CLI Generation failed: {e}", original_exception=e, api_key_id=api_key_id) from e
         finally:
             self.api_key_manager.release_run(run_id)
@@ -172,7 +174,7 @@ class GeminiCliAnswerGenerator(GeminiAnswerGenerator):
             output = response_schema.model_validate_json(json_content)
         except Exception as e:
             # Report Failure if key was used
-            self.api_key_manager.report_result(KeyType.GEMINI_API, api_key_id, success=False)
+            await self.api_key_manager.report_result(KeyType.GEMINI_API, api_key_id, success=False)
 
             # If parsing fails, wrap it in a generic error or re-raise
             # For now, we'll try to fail gracefully if possible, or just raise

@@ -2,9 +2,11 @@ import json
 import pytest
 from pathlib import Path
 from typing import Any, Optional
+from unittest.mock import MagicMock
 from benchmarks.answer_generators.gemini_cli_answer_generator import (
     GeminiCliAnswerGenerator,
 )
+from benchmarks.api_key_manager import ApiKeyManager
 from benchmarks.data_models import TraceLogEvent
 
 DATA_DIR = Path(__file__).parent / "data" / "cli_outputs"
@@ -16,7 +18,13 @@ class MockGeminiCliAnswerGenerator(GeminiCliAnswerGenerator):
         self, mcp_list_output_content: str, extensions_list_output_content: str
     ):
         # Initialize parent with dummy values
-        super().__init__(model_name="test-model", cli_path="gemini")
+        mock_key_manager = MagicMock(spec=ApiKeyManager)
+        super().__init__(
+            model_name="test-model", 
+            context="test", 
+            api_key_manager=mock_key_manager, 
+            cli_path="gemini"
+        )
         self.mcp_list_output = mcp_list_output_content
         self.extensions_list_output = extensions_list_output_content
         self._setup_completed = True

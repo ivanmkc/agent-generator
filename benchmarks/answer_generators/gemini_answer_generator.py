@@ -109,7 +109,8 @@ class GeminiAnswerGenerator(LlmAnswerGenerator):
         if not self.api_key_manager:
             raise RuntimeError("ApiKeyManager is not configured for GeminiAnswerGenerator.")
 
-        api_key, key_id = self.api_key_manager.get_key_for_run(run_id, KeyType.GEMINI_API)
+        api_key, key_id = await self.api_key_manager.get_key_for_run(run_id, KeyType.GEMINI_API)
+        
         if not api_key:
             raise RuntimeError(f"No API key available for run_id '{run_id}' from ApiKeyManager.")
 
@@ -124,12 +125,12 @@ class GeminiAnswerGenerator(LlmAnswerGenerator):
                     "response_json_schema": json_schema,
                 },
             )
-            self.api_key_manager.report_result(
+            await self.api_key_manager.report_result(
                 KeyType.GEMINI_API, key_id, success=True
             )
 
         except Exception as e:
-            self.api_key_manager.report_result(
+            await self.api_key_manager.report_result(
                 KeyType.GEMINI_API, key_id, success=False, error_message=str(e)
             )
             raise BenchmarkGenerationError(f"Gemini API Generation failed: {e}", original_exception=e, api_key_id=key_id) from e

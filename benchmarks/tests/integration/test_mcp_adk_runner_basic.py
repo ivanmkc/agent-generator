@@ -1,6 +1,15 @@
-from benchmarks.answer_generators.gemini_cli_docker.mcp_adk_agent_runner_basic.src.adk_runner_server import (
-    run_adk_agent,
-)
+import importlib.util
+import sys
+from pathlib import Path
+
+# Dynamic import to handle 'adk-python' directory name with hyphen
+# Resolves to: agent-generator-ci/benchmarks/answer_generators/gemini_cli_docker/adk-python/src/adk_agent_tool.py
+_TOOL_PATH = Path(__file__).parents[3] / "benchmarks/answer_generators/gemini_cli_docker/adk-python/src/adk_agent_tool.py"
+_spec = importlib.util.spec_from_file_location("adk_agent_tool", _TOOL_PATH)
+_module = importlib.util.module_from_spec(_spec)
+sys.modules["adk_agent_tool"] = _module
+_spec.loader.exec_module(_module)
+run_adk_agent = _module.run_adk_agent
 
 # Dummy agent code that defines a simple LlmAgent that responds with the password
 AGENT_CODE = """
@@ -22,7 +31,7 @@ def create_agent(model_name: str) -> BaseAgent:
 
 async def test_run_adk_agent_password():
     # The run_adk_agent function is expected to handle the full lifecycle.
-    result = await run_adk_agent(agent_code=AGENT_CODE, prompt="What is the password?")
+    result = await run_adk_agent(agent_code=AGENT_CODE, prompt="What is the password?", model_name="gemini-2.5-flash")
     print("\n--- Result ---")
     print(result)
 
@@ -59,7 +68,7 @@ async def test_run_adk_agent_with_state():
     initial_state = {"secret_value": "magic_token"}
 
     result = await run_adk_agent(
-        agent_code=AGENT_WITH_STATE_CODE, prompt="Start", initial_state=initial_state
+        agent_code=AGENT_WITH_STATE_CODE, prompt="Start", initial_state=initial_state, model_name="gemini-2.5-flash"
     )
 
     print("\n--- Result ---")

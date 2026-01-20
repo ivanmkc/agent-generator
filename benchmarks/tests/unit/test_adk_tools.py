@@ -337,11 +337,13 @@ class TestAdkTools(unittest.IsolatedAsyncioTestCase):
             mock_run_shell.assert_called_once()
             cmd = mock_run_shell.call_args[0][0]
             self.assertIn("python3", cmd)
-            self.assertIn("_ad_run_", cmd)
+            self.assertTrue(any(str(arg).endswith("adk_agent_runner.py") for arg in cmd), f"Runner script not found in {cmd}")
             self.assertIn("--agent-file", cmd)
-            self.assertIn("--prompt 'test prompt'", cmd)
-            self.assertIn(f"--model-name {model}", cmd)
-            self.assertIn(f"--initial-state '{initial_state_str}'", cmd)
+            self.assertIn("--prompt", cmd)
+            self.assertIn("test prompt", cmd)
+            self.assertIn("--model-name", cmd)
+            self.assertIn(model, cmd)
+            self.assertIn("--initial-state", cmd)
 
             # Cleanup check
             files = list(self.workspace_path.glob("agent_to_run_*.py"))

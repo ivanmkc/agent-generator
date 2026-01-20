@@ -46,6 +46,7 @@ def create_fix_error_benchmark_case(
     fixed_file_path = case_path / "fixed.py"
 
     return FixErrorBenchmarkCase(
+        id="test:fix_error_integration",
         name=name,
         description=description,
         test_file=test_file_path,

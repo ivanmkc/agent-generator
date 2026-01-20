@@ -25,6 +25,7 @@ from benchmarks.answer_generators.gemini_cli_docker.gemini_cli_docker_answer_gen
 )
 from benchmarks.data_models import AnswerTemplate
 from benchmarks.data_models import ApiUnderstandingBenchmarkCase
+from benchmarks.api_key_manager import ApiKeyManager
 
 
 @pytest.mark.asyncio
@@ -32,9 +33,13 @@ async def test_docker_command_construction_api_key():
     """Test that Docker command is constructed correctly with GEMINI_API_KEY."""
 
     with patch.dict(os.environ, {"GEMINI_API_KEY": "test-key"}, clear=True):
+        mock_key_manager = MagicMock(spec=ApiKeyManager)
+        mock_key_manager.get_key_for_run.return_value = ("test-key", "key-id")
+        
         generator = GeminiCliDockerAnswerGenerator(
             model_name="gemini-2.5-flash",
             image_name="gemini-cli:adk-python",
+            api_key_manager=mock_key_manager,
         )
         generator._setup_completed = True
 
@@ -150,7 +155,13 @@ async def test_docker_command_construction_vertex_adc():
     }
 
     with patch.dict(os.environ, env_vars, clear=True):
-        generator = GeminiCliDockerAnswerGenerator(image_name="gemini-cli:adk-python")
+        mock_key_manager = MagicMock(spec=ApiKeyManager)
+        mock_key_manager.get_key_for_run.return_value = ("test-key", "key-id")
+
+        generator = GeminiCliDockerAnswerGenerator(
+            image_name="gemini-cli:adk-python",
+            api_key_manager=mock_key_manager,
+        )
         generator._setup_completed = True
 
         inner_model_json = {

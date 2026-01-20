@@ -70,11 +70,9 @@ class PodmanGeneratorConfig(GeneratorConfig):
 
         return GeminiCliPodmanAnswerGenerator(
             model_name=model_name,
-            dockerfile_dir=self.dockerfile_dir,
             image_name=self.image_name,
             image_definitions=IMAGE_DEFINITIONS,
             api_key_manager=api_key_manager,
-            service_url=self.service_url,
             context_instruction=self.context_instruction
         )
 
