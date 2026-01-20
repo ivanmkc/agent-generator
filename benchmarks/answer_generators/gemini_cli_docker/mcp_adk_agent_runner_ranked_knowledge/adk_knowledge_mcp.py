@@ -93,14 +93,15 @@ def list_adk_modules(page: int = 1, page_size: int = 20) -> str:
 def search_adk_knowledge(query: str, limit: int = 10) -> str:
     """
     Searches the ADK knowledge base for relevant classes, functions, or concepts.
+    Supports multiple keywords.
     
     Args:
-        query: Keywords to search for (e.g., 'agent', 'bigquery', 'tool config').
+        query: Keywords to search for, space-separated (e.g., 'agent bigquery tool').
         limit: Max results to return.
     """
     _load_index()
     
-    query = query.lower()
+    keywords = query.lower().split()
     matches = []
     
     # Simple scoring: FQN match > Summary match
@@ -110,13 +111,15 @@ def search_adk_knowledge(query: str, limit: int = 10) -> str:
         summary = item.get("docstring", "").lower()
         
         score = 0
-        if query in fqn:
-            score += 10
-            # Boost exact suffix match (e.g. searching for 'LlmAgent')
-            if fqn.endswith(query) or fqn.endswith("." + query):
-                score += 20
-        elif query in summary:
-            score += 5
+        
+        for kw in keywords:
+            if kw in fqn:
+                score += 10
+                # Boost exact suffix match (e.g. searching for 'LlmAgent')
+                if fqn.endswith(kw) or fqn.endswith("." + kw):
+                    score += 20
+            elif kw in summary:
+                score += 5
             
         if score > 0:
             matches.append((score, item))
@@ -135,7 +138,7 @@ def search_adk_knowledge(query: str, limit: int = 10) -> str:
         fqn = item.get("id") or item.get("fqn") or item.get("name") or "unknown"
         type_ = item.get("type")
         summary = item.get("docstring", "No summary.")[:100]
-        lines.append(f"[{rank}] {type_}: {fqn}\n    {summary}...")
+        lines.append(f"[{rank}] {type_}: {fqn} (Score: {score})\n    {summary}...")
         
     return "\n".join(lines)
 

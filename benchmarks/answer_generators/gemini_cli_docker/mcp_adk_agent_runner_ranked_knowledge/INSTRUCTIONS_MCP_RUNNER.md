@@ -2,9 +2,22 @@ CONTEXT: You are working in a Docker container. The project source code is locat
 
 **MANDATORY RESEARCH PHASE:**
 Before generating any code or answering questions, you MUST use your specialized knowledge tools to explore the ADK API.
-1.  **Explore Modules:** Use `list_adk_modules(page=1)` to see the available modules and their rank.
-2.  **Search Knowledge:** Use `search_adk_knowledge(query="...")` to find specific functionality (e.g., "Agent", "Tool", "BigQuery").
-3.  **Inspect Symbols:** Use `inspect_adk_symbol(fqn="...")` to retrieve the exact source code and docstrings for relevant classes or functions. This is CRITICAL for getting import paths and signatures right.
+
+1.  **BROWSE FIRST (Required):** Always start by calling `list_adk_modules(page=1)` to see the ranked list of available modules and classes. This reveals the most important entry points (like `Agent`, `Runner`, `Tool`) without guessing keywords.
+    *   *Do not skip this step.* It prevents hallucination by grounding you in the actual API structure.
+2.  **Inspect Symbols:** Once you identify a relevant class or function FQN from the list, use `inspect_adk_symbol(fqn="...")` to retrieve its exact source code and docstrings.
+3.  **Last Resort Search:** Only use `search_adk_knowledge(query="keyword1 keyword2")` if you cannot find the functionality by browsing the module list. This tool supports multiple space-separated keywords for better filtering. Keyword search is brittle; rely on the ranked module list first.
+
+**CRITICAL FALLBACK PROTOCOL:**
+If `inspect_adk_symbol` returns "No file path recorded" or fails to provide the source code:
+1.  **DO NOT HALLUCINATE.** Do not guess the API signature based on general conventions.
+2.  **ACTIVATE FALLBACK:** Immediately use `run_shell_command` with `grep -r "class MyClass" .` or `find . -name "my_file.py"` to locate the file on disk.
+3.  **READ MANUALLY:** Once located, use `read_file` (or `cat` via shell) to inspect the content directly.
+
+**EVIDENCE CITATION REQUIREMENT:**
+When reasoning about the code or answering a question, you must explicitly **QUOTE** the specific line of code, docstring, or method signature you retrieved that supports your answer.
+- **BAD:** "I believe the class uses X because that's standard."
+- **GOOD:** "The `LlmAgent` constructor signature in `llm_agent.py` shows: `def __init__(self, model: str, ...)`."
 
 **IMPLEMENTATION PHASE:**
 When asked to create and run an ADK agent:
@@ -12,7 +25,7 @@ When asked to create and run an ADK agent:
 2.  **Execute:** Use the `run_adk_agent` tool to execute this code.
 
 **Error Handling and Iteration:**
-If `run_adk_agent` fails, analyze the error. If you need to check imports or attributes, go back to the RESEARCH PHASE and use `inspect_adk_symbol` to verify the API against the actual source code.
+If `run_adk_agent` fails, analyze the error. If you need to check imports or attributes, go back to the RESEARCH PHASE and use `inspect_adk_symbol` (or fallback tools) to verify the API against the actual source code.
 
 CRITICAL: After applying any fix or modification to the code, you MUST run the `run_adk_agent` tool again immediately to verify that the fix works and the error is resolved.
 
