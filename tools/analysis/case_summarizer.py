@@ -1,7 +1,7 @@
 import yaml
 import fcntl
 import logging
-import asyncio
+import hashlib
 from pathlib import Path
 from typing import Dict, Any, Optional
 from google.genai import Client, types
@@ -13,9 +13,9 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(level
 logger = logging.getLogger(__name__)
 
 SUMMARY_PROMPT = """Analyze the following AI benchmark prompt/instruction.
-Extract a single, concise one-liner description of the task (the "question").
-Ignore boilerplate instructions like "You are an agent...", "Use the following format...", etc.
-Focus on the specific coding or reasoning task.
+Extract a single, concise one-liner description of the ACTUAL task or question being asked.
+CRITICAL: Ignore generic boilerplate instructions like "You are an agent...", "Use the following format...", "Explore the ADK...", or "Fix or implement...".
+Look for the specific technical question or the specific error/feature being tested.
 
 Examples:
 Input: "You are a coding assistant. Write a Python function to calculate fibonacci numbers. Use the following tools..."
@@ -24,6 +24,12 @@ One-Liner: Write a Python function to calculate fibonacci numbers.
 Input: "Fix the following error in the adk library: ImportError: cannot import name 'Agent'..."
 One-Liner: Fix ImportError regarding 'Agent' in the adk library.
 
+Input: "You are an expert... Answer the following multiple choice question: Which class allows defining a tool from an OpenAPI spec? ..."
+One-Liner: Which class allows defining a tool from an OpenAPI spec?
+
+Input: "Explore the ADK... Task: Find the correct signature for the 'on_event' callback in BasePlugin."
+One-Liner: Find the correct signature for the 'on_event' callback in BasePlugin.
+
 Prompt:
 {prompt}
 """
@@ -31,11 +37,18 @@ Prompt:
 class CaseOneLiner(BaseModel):
     one_liner: str = Field(..., description="A concise, single-sentence summary of the benchmark task.")
 
+class CaseDocEntry(BaseModel):
+    one_liner: str
+    checksum: str
+
+class CaseDocCache(BaseModel):
+    cases: Dict[str, CaseDocEntry] = Field(default_factory=dict)
+
 class CaseDocManager:
     """
     Manages the persistent cache of benchmark case one-liner descriptions.
     Uses a YAML file for storage.
-    Thread-safe using file locking.
+    Thread-safe using file locking and Pydantic models for data.
     """
     def __init__(self, doc_path: str = "benchmarks/case_docs_cache.yaml"):
         """
@@ -49,9 +62,14 @@ class CaseDocManager:
         self.doc_path.parent.mkdir(parents=True, exist_ok=True)
         logger.debug(f"CaseDocManager initialized at {self.doc_path}")
 
+    def _calculate_checksum(self, text: str) -> str:
+        """Calculates MD5 checksum of the text."""
+        return hashlib.md5(text.encode("utf-8")).hexdigest()
+
     async def get_one_liner(self, benchmark_name: str, prompt_text: str, model_name: str) -> str:
         """
         Retrieves one-liner from cache or generates it using an LLM.
+        Checks checksum to ensure the prompt hasn't changed.
         
         Args:
             benchmark_name: The unique name of the benchmark case (used as cache key).
@@ -64,64 +82,86 @@ class CaseDocManager:
         if not prompt_text:
             return f"No prompt available for {benchmark_name}"
 
-        cache = self._load_cache()
+        current_checksum = self._calculate_checksum(prompt_text)
+        cache_data = self._load_cache()
         
-        if benchmark_name in cache:
-            # Simple string cache
-            return cache[benchmark_name]
+        if benchmark_name in cache_data.cases:
+            entry = cache_data.cases[benchmark_name]
+            if entry.checksum == current_checksum:
+                return entry.one_liner
+            else:
+                logger.info(f"Checksum mismatch for '{benchmark_name}'. Regenerating one-liner.")
         
         logger.info(f"Generating one-liner for case '{benchmark_name}' using {model_name}...")
         try:
             one_liner = await self._generate_summary(prompt_text, model_name)
             # Write back with lock
-            self._update_cache(benchmark_name, one_liner)
+            self._update_cache(benchmark_name, one_liner, current_checksum)
             return one_liner
         except Exception as e:
             logger.error(f"Failed to generate one-liner for {benchmark_name}: {e}")
             return f"(Summary generation failed for {benchmark_name})"
 
-    def _load_cache(self) -> Dict[str, str]:
-        """Parses the YAML file."""
+    def _load_cache(self) -> CaseDocCache:
+        """Parses the YAML file into CaseDocCache model."""
         if not self.doc_path.exists():
-            return {}
+            return CaseDocCache()
             
         try:
             with open(self.doc_path, "r") as f:
-                return yaml.safe_load(f) or {}
-        except yaml.YAMLError:
-            logger.error("Case cache file is corrupted. Returning empty dict.")
-            return {}
+                raw_data = yaml.safe_load(f)
+                if not raw_data:
+                    return CaseDocCache()
+                
+                # Handle legacy format where it was just a flat dict of string -> string or string -> dict
+                if isinstance(raw_data, dict) and "cases" not in raw_data:
+                    # Migration logic
+                    migrated_cases = {}
+                    for k, v in raw_data.items():
+                        if isinstance(v, str):
+                            # We don't have a checksum for legacy string entries, 
+                            # so they will be regenerated on next use.
+                            pass 
+                        elif isinstance(v, dict) and "one_liner" in v and "checksum" in v:
+                            migrated_cases[k] = CaseDocEntry(**v)
+                    return CaseDocCache(cases=migrated_cases)
+                
+                return CaseDocCache.model_validate(raw_data)
         except Exception as e:
             logger.error(f"Error loading case cache: {e}")
-            return {}
+            return CaseDocCache()
 
-    def _update_cache(self, key: str, value: str):
-        """Updates the YAML file safely."""
+    def _update_cache(self, key: str, value: str, checksum: str):
+        """Updates the YAML file safely using Pydantic models and file locking."""
         try:
             # Use a file lock to ensure atomic updates
-            with open(self.doc_path, "r+") as f:
+            with open(self.doc_path, "a+") as f:
                 fcntl.flock(f, fcntl.LOCK_EX)
                 try:
-                    try:
-                        f.seek(0)
-                        cache = yaml.safe_load(f) or {}
-                    except yaml.YAMLError:
-                        cache = {}
+                    f.seek(0)
+                    content = f.read()
+                    if content:
+                        raw_data = yaml.safe_load(content)
+                        # Reuse _load_cache like logic but in-place
+                        if isinstance(raw_data, dict) and "cases" not in raw_data:
+                            migrated_cases = {}
+                            for k, v in raw_data.items():
+                                if isinstance(v, dict) and "one_liner" in v and "checksum" in v:
+                                    migrated_cases[k] = CaseDocEntry(**v)
+                            cache = CaseDocCache(cases=migrated_cases)
+                        else:
+                            cache = CaseDocCache.model_validate(raw_data or {"cases": {}})
+                    else:
+                        cache = CaseDocCache()
                     
-                    cache[key] = value
+                    # Update or add entry
+                    cache.cases[key] = CaseDocEntry(one_liner=value, checksum=checksum)
                     
+                    # Write back
                     f.seek(0)
                     f.truncate()
-                    yaml.dump(cache, f, sort_keys=False)
+                    yaml.dump(cache.model_dump(), f, sort_keys=False)
                     logger.info(f"Persisted one-liner for {key}")
-                finally:
-                    fcntl.flock(f, fcntl.LOCK_UN)
-        except FileNotFoundError:
-             # Handle race condition
-             with open(self.doc_path, "w") as f:
-                fcntl.flock(f, fcntl.LOCK_EX)
-                try:
-                    yaml.dump({key: value}, f, sort_keys=False)
                 finally:
                     fcntl.flock(f, fcntl.LOCK_UN)
         except Exception as e:

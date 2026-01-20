@@ -30,14 +30,20 @@ from benchmarks.analysis import (
     process_results,
     get_token_usage_stats,
     get_tool_success_stats,
-    format_as_markdown
+    format_as_markdown,
+    Bcolors
 )
 from tools.analysis.analyze_benchmark_run import analyze_benchmark_run
 from tools.cli.audit_failures import get_report_content
 from tools.analysis.doc_generator import DOC_MANAGER
 from tools.analysis.case_summarizer import CASE_DOC_MANAGER
-from benchmarks.benchmark_candidates import get_candidate_generators
 from benchmarks.benchmark_candidates import CANDIDATE_GENERATORS
+
+# Configure logging to suppress noisy libraries
+import logging
+logging.getLogger("google_genai").setLevel(logging.WARNING)
+logging.getLogger("httpcore").setLevel(logging.WARNING)
+logging.getLogger("httpx").setLevel(logging.WARNING)
 
 # --- Pydantic Models for Structured Report ---
 
@@ -215,7 +221,7 @@ class LogAnalyzer:
         context_parts = ["# Generator Internals (Runtime Actualized)\n"]
         generators_meta = meta.get("generators", [])
         
-        candidate_generators = await get_candidate_generators()
+        candidate_generators = CANDIDATE_GENERATORS
         candidate_map = {g.name: g for g in candidate_generators}
         
         for gen_meta in generators_meta:
@@ -313,7 +319,7 @@ class LogAnalyzer:
 
         # 3. Tool Success & Impact
         stats_lines.append("#### Tool Success & Impact\n")
-        stats_lines.append("Methodology: 'Success Rate' is the % of tool calls without exceptions. 'Lift' compares case pass rates with vs. without tool usage.\n")
+        stats_lines.append("Methodology: 'Case Pass Rate' is the percentage of benchmark cases where the tool was used and the case passed. 'Lift' compares this to the overall pass rate.\n")
         
         try:
             tool_df = get_tool_success_stats(results_list)
@@ -324,13 +330,13 @@ class LogAnalyzer:
                 # Rename columns for display
                 tool_df = tool_df.rename(columns={
                     "tool": "Tool",
-                    "times_used": "Times Used",
+                    "times_used": "Cases Used",
                     "successes": "Successes",
-                    "success_rate": "Success Rate",
+                    "success_rate": "Case Pass Rate",
                     "lift": "Lift"
                 })
                 # Select relevant columns
-                display_cols = ["Tool", "Times Used", "Success Rate", "Lift"]
+                display_cols = ["Tool", "Cases Used", "Case Pass Rate", "Lift"]
                 stats_lines.append(format_as_markdown(tool_df[display_cols]))
             else:
                 stats_lines.append("No tool usage detected.")
@@ -798,9 +804,9 @@ class LogAnalyzer:
                 if not gen_tool_df.empty:
                     gen_tool_stats = format_as_markdown(gen_tool_df)
             except Exception as e:
-                print(f"Error calculating tool stats for {gen_name}: {e}")
+                print(f"{Bcolors.FAIL}Error calculating tool stats for {gen_name}: {e}{Bcolors.ENDC}")
 
-            print(f"Analyzing {gen_name}...")
+            print(f"  {Bcolors.OKBLUE}Analyzing {gen_name}...{Bcolors.ENDC}")
             analysis = await self._analyze_generator(generator_name=gen_name, log_text=log_text, tool_stats_text=gen_tool_stats)
             generator_analyses.append(analysis)
             
@@ -808,14 +814,14 @@ class LogAnalyzer:
             generator_summaries_text.append(f"Generator: {gen_name}\nSummary: {analysis.performance_summary}")
         
         # 2. Reduce: Generate High-Level Insights
-        print("Generating high-level insights...")
+        print(f"\n{Bcolors.HEADER}Generating high-level insights...{Bcolors.ENDC}")
         insights = await self._generate_high_level_insights(
             generator_summaries="\n\n".join(generator_summaries_text),
             quantitative_context=quantitative_context
         )
         
         # 2.5 Generate Forensic Analysis
-        print("Running forensic analysis...")
+        print(f"\n{Bcolors.HEADER}Running forensic analysis...{Bcolors.ENDC}")
         forensic_context = ""
         try:
             run_analysis = analyze_benchmark_run(run_dir.name)
@@ -840,12 +846,13 @@ class LogAnalyzer:
             
             if attempt_results is None:
                 if target_cases:
-                    print(f"Deep diving into {len(target_cases)} complex failure cases (Map-Reduce)...")
+                    print(f"  {Bcolors.WARNING}Deep diving into {len(target_cases)} complex failure cases (Map-Reduce)...{Bcolors.ENDC}")
                     tasks = []
                     sem = asyncio.Semaphore(10) 
                     
                     async def map_attempt(case, idx, attempt):
                         async with sem:
+                            print(f"    {Bcolors.OKCYAN}Mapping case: {case.benchmark_name} (Attempt {idx+1})...{Bcolors.ENDC}")
                             insight = await self._analyze_attempt(case.benchmark_name, idx + 1, attempt)
                             # Return composite key
                             return ((case.generator, case.benchmark_name), insight)
@@ -871,6 +878,7 @@ class LogAnalyzer:
             
             async def reduce_case(key, case_insights):
                 # key is (gen, name)
+                print(f"    {Bcolors.OKCYAN}Reducing case: {key[1]} ({len(case_insights)} attempts)...{Bcolors.ENDC}")
                 summary = await self._reduce_case_insights(key[1], case_insights)
                 return (key, summary)
 
@@ -889,7 +897,7 @@ class LogAnalyzer:
             
             gen_summary_map = {}
             for gen_name, summaries in gen_case_groups.items():
-                print(f"Summarizing forensic patterns for generator: {gen_name}...")
+                print(f"    {Bcolors.OKCYAN}Summarizing forensic patterns for generator: {gen_name}...{Bcolors.ENDC}")
                 gen_summary_map[gen_name] = await self._summarize_generator_forensics(gen_name, summaries)
 
             # --- REPORT ASSEMBLY (Unified) ---
@@ -925,6 +933,12 @@ class LogAnalyzer:
                     for case in failed_cases:
                         lines.append(f"##### `{case.benchmark_name}`")
                         
+                        # Fetch one-liner for forensic context
+                        # We use the prompt from the first attempt if available, otherwise raw_data
+                        prompt_text = case.attempts[0].question if case.attempts and case.attempts[0].question else case.raw_data.get("prompt", "")
+                        one_liner = await CASE_DOC_MANAGER.get_one_liner(case.benchmark_name, prompt_text, self.model_name)
+                        lines.append(f"> *\"{one_liner}\"*")
+
                         # Composite key for this case
                         comp_key = (gen_name, case.benchmark_name)
 
@@ -957,10 +971,21 @@ class LogAnalyzer:
                                 ans_block = f"```\n{att.answer}\n```".replace('\n', '\n> ')
                                 lines.append(f"> **Actual:**\n> {ans_block}")
                             
-                            # Tool Chain Summary (Optional - maybe too verbose? Keeping it brief)
+                            # Tool Chain Summary (Detailed)
                             if att.tools_used:
-                                tools_str = ", ".join([t['name'] for t in att.tools_used])
-                                lines.append(f"- **Tools:** {tools_str}")
+                                lines.append(f"- **Tool Chain:**")
+                                for t in att.tools_used:
+                                    t_name = t.get("name", "unknown")
+                                    t_args = str(t.get("args", ""))
+                                    t_out = str(t.get("output", ""))
+                                    
+                                    # Truncate
+                                    if len(t_args) > 500: t_args = t_args[:497] + "..."
+                                    if len(t_out) > 500: t_out = t_out[:497] + "..."
+                                    
+                                    lines.append(f"  - `{t_name}`")
+                                    if t_args and t_args != "None": lines.append(f"    - Input: `{t_args}`")
+                                    if t_out and t_out != "None": lines.append(f"    - Output: `{t_out}`")
 
                         lines.append("\n---\n")
                 else:
@@ -996,7 +1021,7 @@ class LogAnalyzer:
             forensic_context += f"\n\n**Forensic Error:** {e}"
         
         # 3. Assemble Final Report
-        print("Assembling final report...")
+        print(f"\n{Bcolors.OKGREEN}Assembling final report...{Bcolors.ENDC}")
         print(f"[DEBUG] Type of insights: {type(insights)}")
         # print(f"[DEBUG] Insights content: {insights}")
         
@@ -1021,7 +1046,7 @@ async def analyze_run_logs(run_dir: Path, model_name: str):
         if potential.exists():
             run_dir = potential
     
-    log_path = run_dir / "trace.jsonl"
+    log_path = run_dir / "trace.yaml"
     analyzer = LogAnalyzer(model_name=model_name)
     print(f"\n--- Starting Log Analysis on {run_dir} ---")
     print(f"Using Model: {model_name}")
