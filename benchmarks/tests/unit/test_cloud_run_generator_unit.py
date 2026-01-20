@@ -154,7 +154,7 @@ async def test_cloud_run_generator_generate_answer(mock_api_key_manager):
 
 
 @pytest.mark.asyncio
-async def test_cloud_run_generator_setup_resolves_url():
+async def test_cloud_run_generator_setup_resolves_url(mock_api_key_manager):
     """Test the setup method's URL resolution logic."""
 
     generator = GeminiCliCloudRunAnswerGenerator(
@@ -162,6 +162,7 @@ async def test_cloud_run_generator_setup_resolves_url():
         service_name="test-service",
         project_id="test-project",
         image_name="test-image",
+        api_key_manager=mock_api_key_manager,
     )
 
     # Mock google.auth.default
@@ -223,30 +224,7 @@ async def test_cloud_run_generator_setup_resolves_url():
 from benchmarks.answer_generators.hash_utils import calculate_source_hash
 
 
-# TODO: Finish implementing test
-@pytest.mark.asyncio
-async def test_cloud_run_generator_deploy_on_mismatch():
-    """Test that deployment is triggered when local hash differs from remote version."""
 
-    generator = GeminiCliCloudRunAnswerGenerator(
-        dockerfile_dir=Path("/tmp/fake-dir"),
-        service_name="test-service",
-        project_id="test-project",
-        image_name="test-service",
-    )
-
-    # Mock hashing (patch the imported utility function where it's used in the module)
-    # Actually, we should patch where it is IMPORTED in the generator module
-    with patch(
-        "benchmarks.answer_generators.gemini_cli_docker.gemini_cli_cloud_run_answer_generator.calculate_source_hash",
-        return_value="new-hash",
-    ):
-
-        # Mock google.auth.default
-        with patch("google.auth.default", return_value=(MagicMock(), "test-project")):
-            # ... (rest of test logic)
-            # Placeholder for test logic, ensures an indented block
-            pass  # Added 'pass' to ensure an indented block
 
 
 def test_calculate_source_hash_logic(tmp_path):
