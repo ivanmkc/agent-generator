@@ -1,11 +1,15 @@
 {
   "tools": {
-    "exclude": ["google_web_search"]
+    "exclude": [
+      "google_web_search"
+    ]
   },
   "mcpServers": {
     "adk-agent-runner": {
       "command": "python3",
-      "args": ["/src/mcp-server/adk_runner_server.py"],
+      "args": [
+        "/src/mcp-server/adk_runner_server.py"
+      ],
       "transport": "stdio"
     }
   }

@@ -246,7 +246,7 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
 
         except Exception as e:
             raise RuntimeError(f"Failed to communicate with API server: {e}")
-
+ 
         stdout_str = result.get("stdout", "")
         stderr_str = result.get("stderr", "")
         returncode = result.get("returncode", 0)

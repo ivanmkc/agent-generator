@@ -107,6 +107,7 @@ class RankedTarget(pydantic.BaseModel):
     rank: int
     id: str
     name: str
+    file_path: Optional[str] = None
     type: str # String representation of TargetType
     group: str # "Seed", "Dependency", "Orphan"
     usage_score: int

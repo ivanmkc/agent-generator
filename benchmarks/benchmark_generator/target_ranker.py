@@ -240,6 +240,7 @@ class TargetRanker:
                 rank=rank,
                 id=tid,
                 name=t.get("name"),
+                file_path=t.get("file_path"),
                 type=type_name,
                 group=target_groups.get(tid, "Unknown"),
                 usage_score=t.get("usage_score", 0),
@@ -348,5 +349,5 @@ class TargetRanker:
 if __name__ == "__main__":
     # Example usage for standalone run
     logging.basicConfig(level=logging.INFO)
-    ranker = TargetRanker(repo_path="../adk-python", stats_file="benchmarks/adk_stats_samples.yaml")
+    ranker = TargetRanker(repo_path="repos/adk-python", stats_file="benchmarks/adk_stats_samples.yaml")
     asyncio.run(ranker.generate())

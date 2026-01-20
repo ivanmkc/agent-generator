@@ -1,7 +1,8 @@
-
 {
   "tools": {
-    "exclude": ["google_web_search"]
+    "exclude": [
+      "google_web_search"
+    ]
   },
   "mcpServers": {
     "context7": {

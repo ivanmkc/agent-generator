@@ -1,6 +1,8 @@
 {
   "tools": {
-    "exclude": ["google_web_search"]
+    "exclude": [
+      "google_web_search"
+    ]
   },
   "context": {
     "fileName": [

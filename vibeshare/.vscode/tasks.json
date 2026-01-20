@@ -1,38 +1,38 @@
 {
-    "version": "2.0.0",
-    "tasks": [
-        {
-            "label": "Run VibeShare Analysis",
-            "type": "shell",
-            "command": "python src/analyze_vibeshare.py",
-            "options": {
-                "env": {
-                    "PYTHONPATH": "${workspaceFolder}/..:${workspaceFolder}/src"
-                }
-            },
-            "group": {
-                "kind": "build",
-                "isDefault": true
-            },
-            "presentation": {
-                "reveal": "always",
-                "panel": "new"
-            }
-        },
-        {
-            "label": "Run Tests",
-            "type": "shell",
-            "command": "python -m pytest tests/unit tests/test_framework_detection.py",
-            "options": {
-                "env": {
-                    "PYTHONPATH": "${workspaceFolder}/..:${workspaceFolder}/src"
-                }
-            },
-            "group": "test",
-            "presentation": {
-                "reveal": "always",
-                "panel": "new"
-            }
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Run VibeShare Analysis",
+      "type": "shell",
+      "command": "python src/analyze_vibeshare.py",
+      "options": {
+        "env": {
+          "PYTHONPATH": "${workspaceFolder}/..:${workspaceFolder}/src"
         }
-    ]
+      },
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      }
+    },
+    {
+      "label": "Run Tests",
+      "type": "shell",
+      "command": "python -m pytest tests/unit tests/test_framework_detection.py",
+      "options": {
+        "env": {
+          "PYTHONPATH": "${workspaceFolder}/..:${workspaceFolder}/src"
+        }
+      },
+      "group": "test",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      }
+    }
+  ]
 }

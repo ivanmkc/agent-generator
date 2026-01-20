@@ -1,9 +1,10 @@
 import yaml
 import pytest
 from pathlib import Path
-from benchmarks.answer_generators.adk_tools import inspect_adk_symbol, _load_index
+import ast
 
 RANKED_TARGETS_PATH = Path("benchmarks/benchmark_generator/data/ranked_targets.yaml")
+REPO_ROOT = Path("repos/adk-python")
 
 def test_ranked_targets_integrity():
     """
@@ -13,9 +14,6 @@ def test_ranked_targets_integrity():
     if not RANKED_TARGETS_PATH.exists():
         pytest.fail(f"ranked_targets.yaml not found at {RANKED_TARGETS_PATH}")
 
-    # Ensure index is loaded
-    _load_index(str(RANKED_TARGETS_PATH))
-    
     with open(RANKED_TARGETS_PATH, "r") as f:
         data = yaml.safe_load(f)
     
@@ -23,32 +21,48 @@ def test_ranked_targets_integrity():
     
     errors = []
     
-    # Check a sample or all? All is safer but slower. 
-    # There are ~1700 targets. Parsing AST for all might take a few seconds. acceptable.
-    
     print(f"Verifying {len(data)} targets...")
     
     for entry in data:
-        fqn = entry.get("fqn")
+        fqn = entry.get("id") or entry.get("fqn")
         if not fqn:
-            errors.append(f"Entry missing FQN: {entry}")
+            errors.append(f"Entry missing FQN/ID: {entry}")
             continue
             
+        rel_path = entry.get("file_path")
+        if not rel_path:
+            # Some entries might not have file_path if they are module-level? 
+            # But we want them for inspection.
+            errors.append(f"No file_path for {fqn}")
+            continue
+
+        full_path = REPO_ROOT / rel_path
+        if not full_path.exists():
+            errors.append(f"File not found for {fqn}: {full_path}")
+            continue
+
+        # Try to parse and find the symbol
+        if entry.get("type") == "MODULE":
+            continue # Just verify file exists for modules
+
         try:
-            # inspect_adk_symbol returns a string. 
-            # If it fails, it usually returns "Error: ..." or empty string.
-            source = inspect_adk_symbol(fqn)
+            content = full_path.read_text(encoding="utf-8")
+            tree = ast.parse(content)
+            target_name = fqn.split(".")[-1]
             
-            if not source:
-                errors.append(f"Empty source for {fqn}")
-            elif source.startswith("Error:"):
-                # Allow "No file path recorded" if it's expected for some types, 
-                # but generally we want code.
-                # However, adk_tools.py returns "Error: Symbol '...' not found" or "Error: ..."
-                errors.append(f"Inspection failed for {fqn}: {source}")
-                
+            found = False
+            for node in tree.body:
+                if isinstance(node, (ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)):
+                    if node.name == target_name:
+                        found = True
+                        break
+            
+            if not found:
+                # Fallback check for constants or imports
+                if target_name not in content:
+                    errors.append(f"Symbol {target_name} not found in {rel_path} for {fqn}")
         except Exception as e:
-            errors.append(f"Exception inspecting {fqn}: {e}")
+            errors.append(f"Exception parsing {rel_path} for {fqn}: {e}")
 
     if errors:
         pytest.fail(f"Found {len(errors)} errors in ranked_targets.yaml:\n" + "\n".join(errors[:20]))

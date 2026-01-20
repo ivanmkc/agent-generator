@@ -37,48 +37,24 @@ class ModelName(enum.StrEnum):
     GEMINI_2_5_FLASH = "gemini-2.5-flash"
     GEMINI_2_5_PRO = "gemini-2.5-pro"
     GEMINI_3_0_PRO = "gemini-3.0-pro"
+    GEMINI_3_PRO_PREVIEW = "gemini-3-pro-preview"
 
 api_key_manager = ApiKeyManager()
 
-# Instantiate candidates
-async def get_candidate_generators():
-    """Asynchronously creates and returns the list of candidate generators."""
-    # Historical Reproductions (Podman-based)
-    basic_podman_gen = await GeminiCliPodmanAnswerGenerator.create(
-        image_definitions=IMAGE_DEFINITIONS,
-        image_name="gemini-cli:mcp_adk_agent_runner_basic",
-        model_name=ModelName.GEMINI_2_5_FLASH,
-        api_key_manager=api_key_manager,
-    )
-    
-    # Ranked Knowledge (V47 Port)
-    ranked_podman_gen = await GeminiCliPodmanAnswerGenerator.create(
-        image_definitions=IMAGE_DEFINITIONS,
-        image_name="gemini-cli:mcp_adk_agent_runner_ranked_knowledge",
-        model_name=ModelName.GEMINI_2_5_FLASH,
-        context_instruction="You have access to a special 'adk-knowledge' toolset. Use 'list_adk_modules' to explore the API surface and 'search_adk_knowledge' to find specific functionality. Use 'inspect_adk_symbol' to read source code.",
-        api_key_manager=api_key_manager,
-    )
-    
-    return [
-        basic_podman_gen,
-        ranked_podman_gen,
-    ]
-
-# For synchronous contexts that need the list of names, we still define a sync list.
-# Note: This is a bit of a hack. A better solution might be to refactor all
-# downstream dependencies to be async, but that is a larger change.
+# Define the candidate generators list synchronously.
+# This structure is compatible with the current run_benchmarks.py orchestrator
+# which expects a list of AnswerGenerator objects and handles async setup() calls explicitly.
 CANDIDATE_GENERATORS = [
      GeminiCliPodmanAnswerGenerator(
         image_definitions=IMAGE_DEFINITIONS,
         image_name="gemini-cli:mcp_adk_agent_runner_basic",
-        model_name=ModelName.GEMINI_2_5_FLASH,
+        model_name=ModelName.GEMINI_2_5_PRO,
         api_key_manager=api_key_manager
     ),
     GeminiCliPodmanAnswerGenerator(
         image_definitions=IMAGE_DEFINITIONS,
         image_name="gemini-cli:mcp_adk_agent_runner_ranked_knowledge",
-        model_name=ModelName.GEMINI_2_5_FLASH,
+        model_name=ModelName.GEMINI_2_5_PRO,
         context_instruction="You have access to a special 'adk-knowledge' toolset. Use 'list_adk_modules' to explore the API surface and 'search_adk_knowledge' to find specific functionality. Use 'inspect_adk_symbol' to read source code.",
         api_key_manager=api_key_manager
     ),

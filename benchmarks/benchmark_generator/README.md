@@ -50,7 +50,7 @@ To update the ranked target list (e.g., when new samples or framework code are a
 ## Reliability & Debugging
 
 ### 1. Structured Tracing
-Every generation run produces a `generation_trace.jsonl` file in the output directory. This log captures:
+Every generation run produces a `generation_trace.yaml` file in the output directory. This log captures:
 *   **Target Selection**: Why a specific target was chosen and the current state of the queue.
 *   **Benchmark Completion**: When a case is saved, including coverage statistics.
 
