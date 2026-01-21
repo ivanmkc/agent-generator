@@ -38,8 +38,11 @@ def test_ranked_targets_integrity():
 
         full_path = REPO_ROOT / rel_path
         if not full_path.exists():
-            errors.append(f"File not found for {fqn}: {full_path}")
-            continue
+            # Fallback: Check if it's relative to workspace root (for external deps like env/lib/...)
+            full_path = Path(rel_path)
+            if not full_path.exists():
+                errors.append(f"File not found for {fqn}: {full_path}")
+                continue
 
         # Try to parse and find the symbol
         if entry.get("type") == "MODULE":

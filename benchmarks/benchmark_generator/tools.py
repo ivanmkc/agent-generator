@@ -39,6 +39,10 @@ def scan_repository(repo_path: str, tool_context: ToolContext, coverage_file: Op
     Scans the repository to build a hierarchical map of entities.
     Acts as the 'Cartographer' and 'Strategist' by calculating usage-based priority from external statistics.
     Filters entities to stay within the specified namespace if provided.
+    
+    Features:
+    - Resolves type hints to Fully Qualified Names (FQNs) via import analysis.
+    - Handles string forward references and local class definitions.
     """
     root_dir = Path(repo_path).resolve()
     if not root_dir.exists():
@@ -150,9 +154,120 @@ def scan_repository(repo_path: str, tool_context: ToolContext, coverage_file: Op
                     self.in_function = False
                     self.mod_fqn = mod_fqn
                     self.f_path = f_path
+                    self.imports = {}
+                    self.local_names = set()
+
+                def collect_local_names(self, node):
+                    """Pre-scans top-level nodes to identify locally defined classes/functions/types."""
+                    if not hasattr(node, 'body'): return
+                    for child in node.body:
+                        if isinstance(child, (ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)):
+                            self.local_names.add(child.name)
+                        elif isinstance(child, ast.Assign):
+                            for target in child.targets:
+                                if isinstance(target, ast.Name):
+                                    self.local_names.add(target.id)
+                        elif isinstance(child, ast.AnnAssign):
+                            if isinstance(child.target, ast.Name):
+                                self.local_names.add(child.target.id)
+
+                def visit_Import(self, node):
+                    for alias in node.names:
+                        name = alias.asname or alias.name
+                        self.imports[name] = alias.name
+                    self.generic_visit(node)
+
+                def visit_ImportFrom(self, node):
+                    module = node.module or ""
+                    # Resolve relative imports
+                    if node.level > 0:
+                        parts = self.mod_fqn.split(".")
+                        if len(parts) >= node.level:
+                            prefix = ".".join(parts[:-node.level])
+                            if prefix:
+                                module = f"{prefix}.{module}" if module else prefix
+                    
+                    for alias in node.names:
+                        name = alias.asname or alias.name
+                        if alias.name == "*":
+                            continue # wildcard import - hard to resolve without static analysis
+                        self.imports[name] = f"{module}.{alias.name}" if module else alias.name
+                    
+                    # Also populate alias_map for the scanner's structural needs if in __init__
+                    if relative_path.name == "__init__.py":
+                        if node.level > 0:
+                            base = self.mod_fqn.split(".")
+                            canonical_base = ".".join(base[:len(base) - (node.level - 1)])
+                            canonical_mod = f"{canonical_base}.{module}" if module else canonical_base
+                        else:
+                            canonical_mod = module
+                        for alias in node.names:
+                            alias_fqn = f"{self.mod_fqn}.{alias.asname or alias.name}"
+                            canonical_fqn = f"{canonical_mod}.{alias.name}"
+                            alias_map[alias_fqn] = canonical_fqn
+                    
+                    self.generic_visit(node)
+
+                def resolve_annotation(self, node):
+                    """
+                    Recursively resolves a type annotation node to its FQN string.
+                    
+                    Capabilities:
+                    - Maps imported names to FQNs using the file's import table.
+                    - Resolves local class names to {module_fqn}.{ClassName}.
+                    - Parses and resolves string forward references (e.g. 'ToolConfig').
+                    - Handles complex types like Optional[List['MyType']].
+                    """
+                    if node is None:
+                        return "Any"
+                    
+                    try:
+                        if isinstance(node, ast.Name):
+                            if node.id in self.imports:
+                                return self.imports[node.id]
+                            if node.id in self.local_names:
+                                return f"{self.mod_fqn}.{node.id}"
+                            return node.id
+                        
+                        elif isinstance(node, ast.Attribute):
+                            # Recursively resolve the value part (e.g. 'types' in 'types.Content')
+                            value_str = self.resolve_annotation(node.value)
+                            return f"{value_str}.{node.attr}"
+                        
+                        elif isinstance(node, ast.Subscript):
+                            value_str = self.resolve_annotation(node.value)
+                            slice_str = "Any"
+                            if hasattr(node, 'slice'): # python < 3.9 used slice
+                                slice_node = node.slice
+                                if isinstance(slice_node, ast.Tuple): # e.g. Dict[str, int]
+                                    slice_str = ", ".join([self.resolve_annotation(elt) for elt in slice_node.elts])
+                                else:
+                                    slice_str = self.resolve_annotation(slice_node)
+                            return f"{value_str}[{slice_str}]"
+                        
+                        elif isinstance(node, ast.Tuple):
+                             return ", ".join([self.resolve_annotation(elt) for elt in node.elts])
+
+                        elif isinstance(node, ast.Constant):
+                            # String forward reference
+                            if isinstance(node.value, str):
+                                try:
+                                    parsed = ast.parse(node.value, mode='eval')
+                                    return self.resolve_annotation(parsed.body)
+                                except:
+                                    return node.value
+                            return str(node.value)
+                            
+                        return ast.unparse(node)
+                    except:
+                        # Fallback
+                        try:
+                            return ast.unparse(node)
+                        except:
+                            return "Any"
 
                 def visit_ClassDef(self, node):
-                    if node.name.startswith("_"): return
+                    if node.name.startswith("_") and node.name != "_run_async_impl": return
                     class_fqn = f"{self.mod_fqn}.{node.name}"
                     
                     # Extract Bases
@@ -199,16 +314,16 @@ def scan_repository(repo_path: str, tool_context: ToolContext, coverage_file: Op
                                         prop_type = type(child.value.value).__name__
                                     elif isinstance(child.value, ast.Call):
                                         if isinstance(child.value.func, ast.Name):
-                                            prop_type = child.value.func.id
+                                            # Resolve function name
+                                            prop_type = self.imports.get(child.value.func.id, child.value.func.id)
                                         elif isinstance(child.value.func, ast.Attribute):
-                                            prop_type = child.value.func.attr
+                                            # Resolve attribute chain
+                                            prop_type = self.resolve_annotation(child.value.func)
                                     break # Just take first target
                         elif isinstance(child, ast.AnnAssign):
                             if isinstance(child.target, ast.Name) and not child.target.id.startswith("_"):
                                 prop_name = child.target.id
-                                try:
-                                    prop_type = ast.unparse(child.annotation)
-                                except: pass
+                                prop_type = self.resolve_annotation(child.annotation)
                         
                         if prop_name:
                             # Look ahead for docstring
@@ -227,18 +342,49 @@ def scan_repository(repo_path: str, tool_context: ToolContext, coverage_file: Op
                     old_in_func = self.in_function
                     self.in_function = True
                     
-                    is_public = not node.name.startswith("_")
+                    is_public = not node.name.startswith("_") or node.name == "_run_async_impl"
                     if is_public:
                         parent_fqn = self.current_class_fqn or self.mod_fqn
                         func_fqn = f"{parent_fqn}.{node.name}"
                         
-                        params = {arg.arg: (ast.unparse(arg.annotation) if arg.annotation else "Any") for arg in node.args.args if arg.arg != "self"}
+                        params = {arg.arg: self.resolve_annotation(arg.annotation) for arg in node.args.args if arg.arg != "self"}
                         doc = ast.get_docstring(node)
                         
-                        # Reconstruct Full Signature
-                        args_str = ast.unparse(node.args)
-                        ret_str = f" -> {ast.unparse(node.returns)}" if node.returns else ""
-                        full_sig = f"def {node.name}({args_str}){ret_str}:"
+                        # Reconstruct Full Signature with Resolved Types
+                        args_list = []
+                        
+                        # Add self/cls if appropriate (optional for display, but good for completeness)
+                        # We skipped 'self' in params dict, but let's see how ast.unparse handles args.
+                        # ast.unparse does the whole thing. We need to reconstruct manually to inject resolved types.
+                        
+                        # Process Positional Args
+                        for arg in node.args.args:
+                            arg_str = arg.arg
+                            if arg.annotation:
+                                arg_str += f": {self.resolve_annotation(arg.annotation)}"
+                            args_list.append(arg_str)
+                            
+                        # Process Keyword Only Args
+                        if node.args.kwonlyargs:
+                            args_list.append("*")
+                            for arg, default in zip(node.args.kwonlyargs, node.args.kw_defaults):
+                                arg_str = arg.arg
+                                if arg.annotation:
+                                    arg_str += f": {self.resolve_annotation(arg.annotation)}"
+                                if default: # Add default presence indicator or value?
+                                    # ast.unparse(default) gives value. 
+                                    try:
+                                        arg_str += f"={ast.unparse(default)}"
+                                    except:
+                                        arg_str += "=..."
+                                args_list.append(arg_str)
+
+                        # Return Type
+                        ret_str = ""
+                        if node.returns:
+                            ret_str = f" -> {self.resolve_annotation(node.returns)}"
+                            
+                        full_sig = f"def {node.name}({', '.join(args_list)}){ret_str}:"
                         
                         # Structure Map
                         structure_map[func_fqn] = {
@@ -286,9 +432,9 @@ def scan_repository(repo_path: str, tool_context: ToolContext, coverage_file: Op
                             type_hint = type(node.value.value).__name__
                         elif isinstance(node.value, ast.Call):
                             if isinstance(node.value.func, ast.Name):
-                                type_hint = node.value.func.id
+                                type_hint = self.imports.get(node.value.func.id, node.value.func.id)
                             elif isinstance(node.value.func, ast.Attribute):
-                                type_hint = node.value.func.attr
+                                type_hint = self.resolve_annotation(node.value.func)
 
                         for target in node.targets:
                             if isinstance(target, ast.Name) and not target.id.startswith("_"):
@@ -297,28 +443,16 @@ def scan_repository(repo_path: str, tool_context: ToolContext, coverage_file: Op
 
                 def visit_AnnAssign(self, node):
                     if self.current_class_fqn and not self.in_function and isinstance(node.target, ast.Name) and not node.target.id.startswith("_"):
-                        try:
-                            type_hint = ast.unparse(node.annotation)
-                        except:
-                            type_hint = "Any"
-                        self._add_prop(node.target.id, type_hint)
+                        prop_type = self.resolve_annotation(node.annotation)
+                        self._add_prop(node.target.id, prop_type)
                     self.generic_visit(node)
                 
-                def visit_ImportFrom(self, node):
-                    if relative_path.name == "__init__.py":
-                        module = node.module or ""
-                        if node.level > 0:
-                            base = self.mod_fqn.split(".")
-                            canonical_base = ".".join(base[:len(base) - (node.level - 1)])
-                            canonical_mod = f"{canonical_base}.{module}" if module else canonical_base
-                        else:
-                            canonical_mod = module
-                        for alias in node.names:
-                            alias_fqn = f"{self.mod_fqn}.{alias.asname or alias.name}"
-                            canonical_fqn = f"{canonical_mod}.{alias.name}"
-                            alias_map[alias_fqn] = canonical_fqn
+                # Removed old visit_ImportFrom that was here, merged into top class logic
 
-            EntityVisitor(module_fqn, str(relative_path)).visit(tree)
+
+            visitor = EntityVisitor(module_fqn, str(relative_path))
+            visitor.collect_local_names(tree)
+            visitor.visit(tree)
         except Exception: pass
     
     # --- Post-Scan Usage Correction (Runtime Identity) ---

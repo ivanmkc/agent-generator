@@ -24,6 +24,7 @@ The **Auditor** agent orchestrates the entire process, spending compute on high-
 
 ### 1. Repository Cartography
 The `scan_repository` tool maps the repository topology using AST analysis, identifying hierarchies, dependencies, and public API surfaces.
+*   **Enhanced Resolution**: Automatically resolves type hints to their Fully Qualified Names (FQNs) by tracing imports, parsing string forward references (e.g., `'ToolConfig'`), and handling local class definitions.
 
 ### 2. BFS Prioritization Strategy
 The system generates a deterministic queue based on the following priority:
@@ -95,7 +96,7 @@ The system relies on a set of specialized tools to map the codebase and prioriti
 *   **`tools/api_indexer.py`**: An AST-based usage scanner. It analyzes consumer code (samples and tests) to count how many times each class and method is called.
 
 ### Data & Artifacts (`benchmarks/benchmark_generator/data/`)
-*   **`ranked_targets.yaml`**: The definitive dataset. 1,703 public ADK entities enriched with full signatures, typed properties, clean docstrings, and grouped by inheritance. It is ranked by statistical relevance (usage in samples).
+*   **`ranked_targets.yaml`**: The definitive dataset. 1,703+ public ADK entities enriched with **fully resolved FQN signatures** (e.g., `tool_config: typing.Optional[google.adk.types.ToolConfig]`), typed properties, clean docstrings, and grouped by inheritance. It is ranked by statistical relevance (usage in samples).
 *   **`ranked_targets.md`**: A human-readable prioritized list of the top targets (Seeds) and their internal reachability.
 
 ### Supporting Configuration

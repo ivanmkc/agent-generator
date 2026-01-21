@@ -12,34 +12,96 @@ from benchmarks.data_models import BenchmarkRunResult, BenchmarkResultType, Fore
 from benchmarks.benchmark_candidates import CANDIDATE_GENERATORS
 from tools.analysis.analyze_benchmark_run import analyze_benchmark_run
 
+# --- GCS Support ---
+try:
+    from google.cloud import storage
+    HAS_GCS = True
+except ImportError:
+    HAS_GCS = False
+
 # --- Constants ---
 BENCHMARK_RUNS_DIR = Path("benchmark_runs")
+BENCHMARK_GCS_BUCKET = os.environ.get("BENCHMARK_GCS_BUCKET")
+
+# --- Artifact Manager ---
+class ArtifactManager:
+    def __init__(self, bucket_name: str | None = None, local_dir: Path = BENCHMARK_RUNS_DIR):
+        self.bucket_name = bucket_name
+        self.local_dir = local_dir
+        self.client = None
+        if self.bucket_name and HAS_GCS:
+            try:
+                self.client = storage.Client()
+            except Exception as e:
+                print(f"Failed to initialize GCS client: {e}")
+        
+    def list_runs(self) -> List[str]:
+        # Always check local first for mixed environments
+        local_runs = set()
+        if self.local_dir.exists():
+            local_runs = {d.name for d in self.local_dir.iterdir() if d.is_dir()}
+            
+        if not self.client:
+            # Local mode only
+            runs = sorted(list(local_runs), reverse=True) # Simple string sort usually enough for timestamps
+            return runs
+            
+        # GCS mode
+        try:
+            # List "directories" at top level
+            blobs = self.client.list_blobs(self.bucket_name, delimiter='/')
+            # Trigger the request to populate prefixes
+            list(blobs) 
+            prefixes = blobs.prefixes
+            # specific prefixes like '2023-10-27_10-00-00/' -> remove trailing slash
+            gcs_runs = {p.rstrip('/') for p in prefixes}
+            
+            # Merge local and GCS
+            all_runs = sorted(list(local_runs.union(gcs_runs)), reverse=True)
+            return all_runs
+        except Exception as e:
+            st.error(f"Error listing runs from GCS: {e}")
+            return sorted(list(local_runs), reverse=True)
+
+    def get_file(self, run_id: str, filename: str) -> Path | None:
+        local_path = self.local_dir / run_id / filename
+        
+        if local_path.exists():
+            return local_path
+            
+        if not self.client:
+            return None # Not in local and no GCS
+            
+        # Download from GCS
+        try:
+            blob = self.client.bucket(self.bucket_name).blob(f"{run_id}/{filename}")
+            if not blob.exists():
+                return None
+                
+            local_path.parent.mkdir(parents=True, exist_ok=True)
+            blob.download_to_filename(str(local_path))
+            return local_path
+        except Exception as e:
+            print(f"Error downloading {filename} from GCS: {e}")
+            return None
+
+# Initialize global artifact manager
+artifact_manager = ArtifactManager(bucket_name=BENCHMARK_GCS_BUCKET)
 
 
 # --- Helper Functions ---
 
 
 def load_run_options():
-    """Returns a list of available benchmark run directories, sorted by modification time (newest first)."""
-    if not BENCHMARK_RUNS_DIR.exists():
-        return []
-    
-    # Sort by modification time to ensure latest runs appear first regardless of naming
-    runs = sorted(
-        [d for d in BENCHMARK_RUNS_DIR.iterdir() if d.is_dir()],
-        key=os.path.getmtime,
-        reverse=True
-    )
-    
-    return [d.name for d in runs]
+    """Returns a list of available benchmark run directories/prefixes."""
+    return artifact_manager.list_runs()
 
 
 @st.cache_data
 def load_results(run_id) -> List[BenchmarkRunResult]:
     """Loads results.json for a given run ID into a list of BenchmarkRunResult objects."""
-    # Ensure fresh load
-    path = BENCHMARK_RUNS_DIR / run_id / "results.json"
-    if not path.exists():
+    path = artifact_manager.get_file(run_id, "results.json")
+    if not path:
         return []
 
     with open(path, "r") as f:
@@ -57,8 +119,87 @@ def load_traces(run_id):
 
     Returns: Dict[benchmark_name, List[trace_event]]
     """
-    path = BENCHMARK_RUNS_DIR / run_id / "trace.yaml"
+    path = artifact_manager.get_file(run_id, "trace.yaml")
+    if not path:
+        return {}
+
+    traces = {}
+    with open(path, "r") as f:
+        # Use yaml.safe_load_all for multi-document YAML
+        for entry in yaml.safe_load_all(f):
+            if entry is None:
+                continue
+            try:
+                data = entry.get("data", {})
+                if "benchmark_name" in data and "trace_logs" in data:
+                    traces[data["benchmark_name"]] = data["trace_logs"]
+            except Exception:
+                continue
+    return traces
+
+@st.cache_data
+def load_benchmark_suite(suite_path: str) -> dict:
+    """Loads a benchmark suite file (YAML or JSONL) and returns a dict {id: case_def}."""
+    path = Path(suite_path)
+    # Check if absolute path exists
     if not path.exists():
+        # Try relative to workspace root
+        if suite_path.startswith("/"):
+             # It was absolute but not found. Try identifying if it's inside the workspace
+             # Heuristic: find 'agent-generator' in path
+             parts = suite_path.split("agent-generator/")
+             if len(parts) > 1:
+                 rel = parts[1]
+                 path = Path(os.getcwd()) / rel
+        else:
+             path = Path(os.getcwd()) / suite_path
+             
+    if not path.exists():
+        # Fallback: Check standard locations for prismatic output
+        if suite_path.endswith("prismatic_generated_raw.jsonl"):
+             path = Path(os.getcwd()) / "prismatic_generated_raw.jsonl"
+             
+    if not path.exists():
+        return {}
+
+    cases = {}
+    try:
+        if path.suffix == ".jsonl":
+            with open(path, "r", encoding="utf-8") as f:
+                for line in f:
+                    if not line.strip(): continue
+                    try:
+                        c = json.loads(line)
+                        if "id" in c:
+                            cases[c["id"]] = c
+                    except: pass
+        elif path.suffix in [".yaml", ".yml"]:
+            with open(path, "r", encoding="utf-8") as f:
+                data = yaml.safe_load(f)
+                if data and "benchmarks" in data:
+                    for c in data["benchmarks"]:
+                        if "id" in c:
+                            cases[c["id"]] = c
+    except Exception as e:
+        print(f"Error loading suite {path}: {e}")
+    
+    return cases
+
+@st.cache_data
+def load_case_docs_cache() -> dict:
+    """Loads one-liner descriptions from benchmarks/case_docs_cache.yaml."""
+    path = Path("benchmarks/case_docs_cache.yaml")
+    if not path.exists():
+        return {}
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            data = yaml.safe_load(f)
+            return data.get("cases", {})
+    except Exception as e:
+        print(f"Error loading case_docs_cache: {e}")
+        return {}
+    path = artifact_manager.get_file(run_id, "trace.yaml")
+    if not path:
         return {}
 
     traces = {}
@@ -78,8 +219,8 @@ def load_traces(run_id):
 @st.cache_data
 def load_forensic_data(run_id, ttl_hash=None) -> ForensicData | None:
     """Loads forensic_data.json for a given run ID. ttl_hash forces reload on change."""
-    path = BENCHMARK_RUNS_DIR / run_id / "forensic_data.json"
-    if not path.exists():
+    path = artifact_manager.get_file(run_id, "forensic_data.json")
+    if not path:
         return None
         
     try:
@@ -345,7 +486,9 @@ def _get_concise_error_message(row, case_trace_logs) -> str:
     # 1. First, try to extract from the validation_error string itself
     validation_err_str = row.get("validation_error", "")
     captured_report_match = re.search(
-        r"\[Captured Error Report\]\n(.*?)(?=\n\n|\[|$)", validation_err_str, re.DOTALL
+        r"\[Captured Error Report\]\n(.*?)(?=\n\n|\[|$)",
+        validation_err_str,
+        re.DOTALL
     )
 
     if captured_report_match:
@@ -381,6 +524,12 @@ def _get_concise_error_message(row, case_trace_logs) -> str:
 def main():
     st.set_page_config(page_title="Benchmark Viewer", layout="wide")
     st.title("📊 ADK Benchmark Viewer")
+    
+    # Display Storage Mode
+    if BENCHMARK_GCS_BUCKET:
+        st.caption(f"☁️ Storage Mode: GCS Bucket (`{BENCHMARK_GCS_BUCKET}`)")
+    else:
+        st.caption("📂 Storage Mode: Local Files")
 
     # 1. Run Selection (Sidebar)
     runs = load_run_options()
@@ -533,9 +682,10 @@ def main():
 
     # 7. Main Area - Dashboard & Details
     
-    # Calculate TTL for forensic data cache
-    forensic_path = BENCHMARK_RUNS_DIR / selected_run / "forensic_data.json"
-    forensic_ttl = forensic_path.stat().st_mtime if forensic_path.exists() else 0
+    # Calculate TTL for forensic data cache (if local)
+    # If remote, we rely on cache logic in load_forensic_data or just ignore TTL for now as GCS obj metadata is extra call
+    forensic_path = artifact_manager.get_file(selected_run, "forensic_data.json")
+    forensic_ttl = forensic_path.stat().st_mtime if forensic_path and forensic_path.exists() else 0
 
     if selected_case_id == "Overview":
         # Dashboard Summary (Overview Mode)
@@ -744,44 +894,54 @@ def main():
         st.divider()
         st.subheader("🕵️ Forensic Diagnosis")
         
+        # We need access to analyze_benchmark_run logic, but we might not want to re-run it
+        # fully inside the UI if we already have the JSON. 
+        # For now, disable the "Run Deep Scan" button if we are in GCS mode and don't have write access easily.
+        # Or just allow it if it works locally on the cached files.
         if st.button("Run Deep Forensic Scan"):
             with st.spinner("Analyzing trace logs..."):
-                run_analysis = run_forensics(selected_run)
-                
-                if run_analysis.total_failures == 0:
-                    st.success("No failures detected in this run to analyze!")
-                else:
-                    # Categories
-                    from collections import Counter
-                    all_failed_cases = [c for c in run_analysis.cases if c.result_score == 0]
-                    cats = Counter([c.primary_failure_category for c in all_failed_cases])
+                # Run analysis on the LOCAL path (downloaded)
+                # analyze_benchmark_run takes (run_id, runs_dir)
+                # It returns a RunAnalysis object
+                try:
+                    run_analysis = analyze_benchmark_run(selected_run, BENCHMARK_RUNS_DIR)
                     
-                    # Heuristics
-                    alerts = run_analysis.get_critical_alerts()
-                    hallucinations = sum(1 for a in alerts if "Sanitizer Hallucination" in a["reasons"])
-                    loop_kills = sum(1 for a in alerts if "Early Loop Exit" in a["reasons"])
-                    
-                    # Layout
-                    c1, c2, c3 = st.columns(3)
-                    c1.metric("Analyzed Cases", len(run_analysis.cases))
-                    c2.metric("Critical Hallucinations", hallucinations, delta=-hallucinations if hallucinations > 0 else 0, delta_color="inverse")
-                    c3.metric("Early Loop Exits", loop_kills, delta=-loop_kills if loop_kills > 0 else 0, delta_color="inverse")
-                    
-                    st.write("**Top Failure Categories:**")
-                    cat_df = pd.DataFrame(cats.most_common(), columns=["Category", "Count"])
-                    st.dataframe(cat_df, use_container_width=True, hide_index=True)
-                    
-                    with st.expander("View Detailed Forensic Report"):
-                        for c in all_failed_cases:
-                            icon = "⚠️" if c.has_critical_heuristic_failure else "❌"
-                            st.markdown(f"**{icon} {c.benchmark_name}**")
-                            st.caption(f"Error: {c.primary_failure_category}")
-                            
-                            for i, att in enumerate(c.attempts):
-                                if len(c.attempts) > 1:
-                                    st.write(f"Attempt {i+1}")
-                                st.json(att.__dict__) # Dump analysis stats
-                            st.divider()
+                    if run_analysis.total_failures == 0:
+                        st.success("No failures detected in this run to analyze!")
+                    else:
+                        # Categories
+                        from collections import Counter
+                        all_failed_cases = [c for c in run_analysis.cases if c.result_score == 0]
+                        cats = Counter([c.primary_failure_category for c in all_failed_cases])
+                        
+                        # Heuristics
+                        alerts = run_analysis.get_critical_alerts()
+                        hallucinations = sum(1 for a in alerts if "Sanitizer Hallucination" in a["reasons"])
+                        loop_kills = sum(1 for a in alerts if "Early Loop Exit" in a["reasons"])
+                        
+                        # Layout
+                        c1, c2, c3 = st.columns(3)
+                        c1.metric("Analyzed Cases", len(run_analysis.cases))
+                        c2.metric("Critical Hallucinations", hallucinations, delta=-hallucinations if hallucinations > 0 else 0, delta_color="inverse")
+                        c3.metric("Early Loop Exits", loop_kills, delta=-loop_kills if loop_kills > 0 else 0, delta_color="inverse")
+                        
+                        st.write("**Top Failure Categories:**")
+                        cat_df = pd.DataFrame(cats.most_common(), columns=["Category", "Count"])
+                        st.dataframe(cat_df, use_container_width=True, hide_index=True)
+                        
+                        with st.expander("View Detailed Forensic Report"):
+                            for c in all_failed_cases:
+                                icon = "⚠️" if c.has_critical_heuristic_failure else "❌"
+                                st.markdown(f"**{icon} {c.benchmark_name}**")
+                                st.caption(f"Error: {c.primary_failure_category}")
+                                
+                                for i, att in enumerate(c.attempts):
+                                    if len(c.attempts) > 1:
+                                        st.write(f"Attempt {i+1}")
+                                    st.json(att.__dict__) # Dump analysis stats
+                                st.divider()
+                except Exception as e:
+                    st.error(f"Analysis failed: {e}")
 
     elif selected_case_id == "Generator Diagnosis":
         st.header(f"🧠 Generator Diagnosis: {selected_generator}")
@@ -825,13 +985,16 @@ def main():
                 
                 with st.expander("Debug: Key Mismatch Check"):
                     st.write(f"Selected Generator: '{selected_generator}'")
-                    st.write("Available Keys in Forensic Data:")
-                    st.json(list(forensic_data.generators.keys()))
+                    if forensic_data:
+                        st.write("Available Keys in Forensic Data:")
+                        st.json(list(forensic_data.generators.keys()))
 
     elif selected_case_id == "AI Report":
         st.header("🤖 AI Analysis Report")
-        report_path = BENCHMARK_RUNS_DIR / selected_run / "log_analysis.md"
-        if report_path.exists():
+        # Use artifact manager to get the file
+        report_path = artifact_manager.get_file(selected_run, "log_analysis.md")
+        
+        if report_path and report_path.exists():
             with open(report_path, "r", encoding="utf-8") as f:
                 full_content = f.read()
             
@@ -847,7 +1010,7 @@ def main():
             st.markdown(modified_content, unsafe_allow_html=True)
             
         else:
-            st.warning(f"No AI analysis report found for this run at `{report_path}`. Run the Log Analyzer to generate one.")
+            st.warning(f"No AI analysis report found for this run. Run the Log Analyzer to generate one.")
 
     if selected_case_id is not None and selected_case_id not in ["Overview", "AI Report", "Generator Diagnosis"]:
         # Use typed object for detail view
@@ -882,17 +1045,56 @@ def main():
             with st.expander(f"Generator: {result_obj.answer_generator}", expanded=False):
                 st.markdown(gen_desc)
 
-        # Display explicit global case status
-        status_color = "green" if result_obj.result == 1 else "red"
-        st.markdown(f"Final Status: :{status_color}[**{result_obj.status.value.upper()}**]")
-
-        if result_obj.validation_error:
-            if result_obj.result == 1:
-                st.warning(f"**Validation Warning (Final):** {result_obj.validation_error}")
+        # Display explicit global case status (Merged)
+        if result_obj.result == 1:
+            if result_obj.validation_error:
+                st.warning(f"**PASS (Warning):** {result_obj.validation_error}")
             else:
-                st.error(_get_concise_error_message(result_obj.model_dump(), [t.model_dump() for t in (result_obj.trace_logs or [])]))
-        elif result_obj.result == 1:
-            st.success("**Validation Passed (Final)**")
+                st.success("**PASS**")
+        else:
+            # Failure
+            concise_err = _get_concise_error_message(result_obj.model_dump(), [t.model_dump() for t in (result_obj.trace_logs or [])])
+            st.error(f"**{result_obj.status.value.upper()}**: {concise_err}")
+
+        # --- Inject Benchmark Definition Display ---
+        case_docs = load_case_docs_cache()
+        cached_doc = case_docs.get(result_obj.benchmark_name)
+        
+        if cached_doc:
+            st.info(f"**AI Description:** {cached_doc.get('one_liner', 'No description')}")
+
+        if result_obj.suite:
+             definitions = load_benchmark_suite(result_obj.suite)
+             case_def = definitions.get(result_obj.benchmark_name)
+             # Also try simple ID match if benchmark_name is like "suite:id"
+             if not case_def and ":" in result_obj.benchmark_name:
+                 simple_id = result_obj.benchmark_name.split(":", 1)[1]
+                 case_def = definitions.get(simple_id)
+             
+             if case_def:
+                 with st.expander("📝 Benchmark Case Definition", expanded=False):
+                     # Check for Description / Explanation / Question
+                     desc = case_def.get("description") or case_def.get("explanation") or case_def.get("question")
+                     # Show description if it differs from the cached one-liner, or if no cached doc exists
+                     if desc and (not cached_doc or desc != cached_doc.get("one_liner")):
+                         st.markdown(f"**Original Definition:**\n{desc}")
+                     
+                     # MCQ Specifics
+                     if "options" in case_def:
+                         st.markdown("**Options:**")
+                         st.json(case_def["options"])
+                         
+                     if "correct_answer" in case_def:
+                         st.markdown(f"**Correct Answer:** `{case_def['correct_answer']}`")
+
+                     # Fix Error Specifics
+                     if "test_file" in case_def:
+                         st.markdown(f"**Test File:** `{case_def['test_file']}`")
+                     if "unfixed_file" in case_def:
+                         st.markdown(f"**Unfixed File:** `{case_def['unfixed_file']}`")
+                         
+                     st.caption("Full Definition Source:")
+                     st.json(case_def)
 
         st.divider()
 

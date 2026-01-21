@@ -235,7 +235,7 @@ class TargetRanker:
             children = struct.get("children", [])
             for child_fqn in children:
                 child_name = child_fqn.split(".")[-1]
-                if not child_name.startswith("_"):
+                if not child_name.startswith("_") or child_name == "_run_async_impl":
                     child_struct = structure_map.get(child_fqn)
                     if child_struct and child_struct.get("type") != "Method":
                         continue 
