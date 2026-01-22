@@ -2,7 +2,8 @@ import yaml
 import os
 import logging
 from pathlib import Path
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Tuple
+from abc import ABC, abstractmethod
 from mcp.server.fastmcp import FastMCP
 from adk_agent_tool import run_adk_agent
 
@@ -16,6 +17,7 @@ except ImportError:
 # Configuration
 RANKED_INDEX_PATH = Path("/app/data/ranked_targets.yaml")
 REPO_ROOT = Path("/workdir/repos/adk-python")
+SEARCH_PROVIDER_TYPE = os.environ.get("ADK_SEARCH_PROVIDER", "bm25").lower()
 
 # Initialize Server
 mcp = FastMCP("adk-knowledge")
@@ -38,11 +40,127 @@ logger = logging.getLogger("adk_knowledge_mcp")
 # --- Data Loading ---
 _INDEX_CACHE: List[Dict[str, Any]] = []
 _FQN_MAP: Dict[str, Dict[str, Any]] = {}
-_BM25_INDEX = None
-_BM25_CORPUS_MAP = [] # Maps corpus index to _INDEX_CACHE index
+
+# --- Search Provider Interface ---
+class SearchProvider(ABC):
+    @abstractmethod
+    def build_index(self, items: List[Dict[str, Any]]):
+        """Builds the search index from the list of items."""
+        pass
+
+    @abstractmethod
+    def search(self, query: str, limit: int) -> List[Tuple[float, Dict[str, Any]]]:
+        """Searches for the query and returns (score, item) tuples."""
+        pass
+
+class BM25SearchProvider(SearchProvider):
+    def __init__(self):
+        self._bm25_index = None
+        self._corpus_map = [] # Maps corpus index to _INDEX_CACHE index
+        self._items = []
+
+    def build_index(self, items: List[Dict[str, Any]]):
+        self._items = items
+        if not HAS_BM25:
+            logger.warning("rank_bm25 not installed. BM25SearchProvider cannot function.")
+            return
+
+        tokenized_corpus = []
+        self._corpus_map = []
+        
+        for i, item in enumerate(items):
+            fqn = item.get("id") or item.get("fqn") or item.get("name")
+            if fqn:
+                # Create a rich text representation for search
+                # FQN gets boosted by repetition
+                doc_text = f"{fqn} {fqn} {fqn} " + (item.get("docstring") or "")
+                tokenized_corpus.append(doc_text.lower().split())
+                self._corpus_map.append(i)
+
+        if tokenized_corpus:
+            self._bm25_index = BM25Okapi(tokenized_corpus)
+            logger.info("BM25 Index built.")
+
+    def search(self, query: str, limit: int) -> List[Tuple[float, Dict[str, Any]]]:
+        if not self._bm25_index:
+            return []
+
+        tokenized_query = query.lower().split()
+        scores = self._bm25_index.get_scores(tokenized_query)
+        
+        # Zip scores with index
+        scored_items = []
+        for idx, score in enumerate(scores):
+            if score > 0:
+                scored_items.append((score, idx))
+        
+        # Sort by score desc
+        scored_items.sort(key=lambda x: x[0], reverse=True)
+        
+        matches = []
+        top_indices = scored_items[:limit]
+        for score, idx in top_indices:
+            real_idx = self._corpus_map[idx]
+            matches.append((score, self._items[real_idx]))
+            
+        return matches
+
+class KeywordSearchProvider(SearchProvider):
+    def __init__(self):
+        self._items = []
+
+    def build_index(self, items: List[Dict[str, Any]]):
+        self._items = items
+        logger.info("Keyword Search Index ready (no build step needed).")
+
+    def search(self, query: str, limit: int) -> List[Tuple[float, Dict[str, Any]]]:
+        matches = []
+        keywords = query.lower().split()
+        
+        for item in self._items:
+            fqn_raw = item.get("id") or item.get("fqn") or item.get("name") or ""
+            fqn = fqn_raw.lower()
+            summary = item.get("docstring", "").lower()
+            
+            score = 0
+            for kw in keywords:
+                if kw in fqn:
+                    score += 10
+                    if fqn.endswith(kw) or fqn.endswith("." + kw):
+                        score += 20
+                elif kw in summary:
+                    score += 5
+            
+            if score > 0:
+                matches.append((score, item))
+        
+        # Sort by score desc, then by original rank
+        matches.sort(key=lambda x: (-x[0], x[1].get("rank", 9999)))
+        return matches[:limit]
+
+
+_SEARCH_PROVIDER: Optional[SearchProvider] = None
+
+def _get_search_provider() -> SearchProvider:
+    global _SEARCH_PROVIDER
+    if _SEARCH_PROVIDER:
+        return _SEARCH_PROVIDER
+    
+    if SEARCH_PROVIDER_TYPE == "bm25" and HAS_BM25:
+        logger.info("Using BM25SearchProvider")
+        _SEARCH_PROVIDER = BM25SearchProvider()
+    else:
+        if SEARCH_PROVIDER_TYPE == "bm25" and not HAS_BM25:
+            logger.warning("BM25 requested but not available. Falling back to keyword search.")
+        else:
+            logger.info(f"Using KeywordSearchProvider (requested: {SEARCH_PROVIDER_TYPE})")
+        _SEARCH_PROVIDER = KeywordSearchProvider()
+        
+    return _SEARCH_PROVIDER
+
 
 def _load_index():
-    global _INDEX_CACHE, _FQN_MAP, _BM25_INDEX, _BM25_CORPUS_MAP
+    global _INDEX_CACHE, _FQN_MAP
     if _INDEX_CACHE:
         return
 
@@ -58,25 +176,14 @@ def _load_index():
             # Sort by rank (ascending) if not already
             _INDEX_CACHE.sort(key=lambda x: x.get("rank", 9999))
             
-            # Build Map and Corpus for BM25
-            tokenized_corpus = []
-            _BM25_CORPUS_MAP = []
-            
-            for i, item in enumerate(_INDEX_CACHE):
+            for item in _INDEX_CACHE:
                 fqn = item.get("id") or item.get("fqn") or item.get("name")
                 if fqn:
                     _FQN_MAP[fqn] = item
-                
-                if HAS_BM25:
-                    # Create a rich text representation for search
-                    # FQN gets boosted by repetition
-                    doc_text = f"{fqn} {fqn} {fqn} " + (item.get("docstring") or "")
-                    tokenized_corpus.append(doc_text.lower().split())
-                    _BM25_CORPUS_MAP.append(i)
-
-            if HAS_BM25 and tokenized_corpus:
-                _BM25_INDEX = BM25Okapi(tokenized_corpus)
-                logger.info("BM25 Index built.")
+            
+            # Initialize and build search provider
+            provider = _get_search_provider()
+            provider.build_index(_INDEX_CACHE)
         
         logger.info(f"Loaded {len(_INDEX_CACHE)} targets from index.")
     except Exception as e:
@@ -115,7 +222,6 @@ def list_adk_modules(page: int = 1, page_size: int = 20) -> str:
 def search_adk_knowledge(query: str, limit: int = 10) -> str:
     """
     Searches the ADK knowledge base for relevant classes, functions, or concepts.
-    Uses BM25 probabilistic retrieval for semantic-like accuracy.
     
     Args:
         query: Keywords or natural language query (e.g., 'how to add tools to agent').
@@ -123,54 +229,13 @@ def search_adk_knowledge(query: str, limit: int = 10) -> str:
     """
     _load_index()
     
-    matches = []
-    
-    if HAS_BM25 and _BM25_INDEX:
-        tokenized_query = query.lower().split()
-        scores = _BM25_INDEX.get_scores(tokenized_query)
-        
-        # Zip scores with index
-        scored_items = []
-        for idx, score in enumerate(scores):
-            if score > 0:
-                scored_items.append((score, idx))
-        
-        # Sort by score desc
-        scored_items.sort(key=lambda x: x[0], reverse=True)
-        
-        top_indices = scored_items[:limit]
-        for score, idx in top_indices:
-            real_idx = _BM25_CORPUS_MAP[idx]
-            matches.append((score, _INDEX_CACHE[real_idx]))
-            
-    else:
-        # Fallback to keyword match
-        keywords = query.lower().split()
-        for item in _INDEX_CACHE:
-            fqn_raw = item.get("id") or item.get("fqn") or item.get("name") or ""
-            fqn = fqn_raw.lower()
-            summary = item.get("docstring", "").lower()
-            
-            score = 0
-            for kw in keywords:
-                if kw in fqn:
-                    score += 10
-                    if fqn.endswith(kw) or fqn.endswith("." + kw):
-                        score += 20
-                elif kw in summary:
-                    score += 5
-            
-            if score > 0:
-                matches.append((score, item))
-        
-        matches.sort(key=lambda x: (-x[0], x[1].get("rank", 9999)))
-    
-    top_matches = matches[:limit]
+    provider = _get_search_provider()
+    top_matches = provider.search(query, limit)
     
     if not top_matches:
         return f"No matches found for '{query}'."
         
-    lines = [f"--- Search Results for '{query}' (Method: {'BM25' if HAS_BM25 else 'Keyword'}) ---"]
+    lines = [f"--- Search Results for '{query}' (Provider: {provider.__class__.__name__}) ---"]
     for score, item in top_matches:
         rank = item.get("rank", "?")
         fqn = item.get("id") or item.get("fqn") or item.get("name") or "unknown"
@@ -182,6 +247,7 @@ def search_adk_knowledge(query: str, limit: int = 10) -> str:
         lines.append(f"[{rank}] {type_}: {fqn} (Score: {score:.2f})\n    {summary_short}...")
         
     return "\n".join(lines)
+
 
 @mcp.tool()
 def read_adk_source_code(fqn: str) -> str:

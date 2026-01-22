@@ -22,6 +22,7 @@ COPY answer_generators/gemini_cli_docker/mcp_adk_agent_runner_ranked_knowledge/s
 # Copy instructions
 COPY answer_generators/gemini_cli_docker/mcp_adk_agent_runner_ranked_knowledge/INSTRUCTIONS_MCP_RUNNER.md /workdir/INSTRUCTIONS.md
 ENV GEMINI_SYSTEM_MD=/workdir/INSTRUCTIONS.md
+ENV ADK_SEARCH_PROVIDER=bm25
 
 # Set working directory to repo root so relative paths work if needed
 WORKDIR /workdir
