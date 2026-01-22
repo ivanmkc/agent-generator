@@ -47,6 +47,12 @@ api_key_manager = ApiKeyManager()
 CANDIDATE_GENERATORS = [
     GeminiCliPodmanAnswerGenerator(
         image_definitions=IMAGE_DEFINITIONS,
+        image_name="gemini-cli:mcp_adk_agent_runner_basic",
+        model_name=ModelName.GEMINI_2_5_PRO,
+        api_key_manager=api_key_manager
+    ),
+    GeminiCliPodmanAnswerGenerator(
+        image_definitions=IMAGE_DEFINITIONS,
         image_name="gemini-cli:mcp_adk_agent_runner_ranked_knowledge",
         model_name=ModelName.GEMINI_2_5_PRO,
         api_key_manager=api_key_manager,
