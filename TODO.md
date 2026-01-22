@@ -1,6 +1,11 @@
 # Todo List
 
+# Completed
+## Runner
+- [x] Remove the adk-python repo from 'gemini-cli:mcp_adk_agent_runner_ranked_knowledge' and bundle it into the MCP boundary to force it to only use ranked targets.
+
 ## Viewer
+- [x] Fix TraceLogEvent AttributeError in merge_consecutive_events (object has no attribute 'get').
 - [x] Consecutive `TraceEventType.MESSAGE` from the same role should be merged into a single message.
 - [x] CLI Output should be merged.
 - [x] CLI Output should be in a separate tab, not trace logs.
