@@ -218,7 +218,7 @@ class LogAnalyzer:
         except Exception as e:
             return f"Error loading run_metadata.json: {e}"
 
-        context_parts = ["# Generator Internals (Runtime Actualized)\n"]
+        context_parts = []
         generators_meta = meta.get("generators", [])
         
         candidate_generators = CANDIDATE_GENERATORS

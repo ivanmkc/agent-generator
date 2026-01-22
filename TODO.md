@@ -4,7 +4,7 @@
 - [x] Consecutive `TraceEventType.MESSAGE` from the same role should be merged into a single message.
 - [x] CLI Output should be merged.
 - [x] CLI Output should be in a separate tab, not trace logs.
-- There are unneeded headings in the AI report navigator. Fix and write tests to prevent regression.
+- [x] There are unneeded headings in the AI report navigator. Fix and write tests to prevent regression.
 
 Copyright 2025 Google LLC
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -41,8 +41,7 @@ distributed under the License is distributed on an "AS IS" BAS...`
 - [x] `configure_adk_features_mc:you_want_to_automatically_summarize_old_events_to_`: Fixed ambiguity by changing option D to a clearly incorrect value.
 
 ## Benchmark validation infra
-For the benchmark validation, if the parsing of JSON doesn't work right away. Fallback on extracting from backticks ``` ``` and      │
-│   then parsing that. This will fix some issues like:                                                                                   │
+- [x] For the benchmark validation, if the parsing of JSON doesn't work right away. Fallback on extracting from backticks ``` ``` and then parsing that. This will fix some issues like:                                                                                   │
 │                                                                                                                                        │
 │   Explanation: The agent correctly identified the solution ('BasePlugin') and constructed a valid JSON object representing the         │
 │   answer. However, the final response string emitted by the agent contained a lengthy conversational narrative ('Okay, I need to find  │

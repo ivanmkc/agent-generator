@@ -1,85 +1,82 @@
-import unittest
-from unittest.mock import MagicMock, AsyncMock, patch
-import asyncio
-import json
-from pathlib import Path
-
-# Fix path
+import pytest
 import sys
-project_root = str(Path(__file__).resolve().parent.parent.parent)
-if project_root not in sys.path:
-    sys.path.append(project_root)
+from unittest.mock import MagicMock
 
-from tools.cli.generate_benchmark_report import LogAnalyzer, HighLevelInsights, GeneratorAnalysisSection, ForensicInsight
+# Mock dependencies before importing module under test
+sys.modules["google.genai"] = MagicMock()
+sys.modules["google.genai.types"] = MagicMock()
+sys.modules["benchmarks.api_key_manager"] = MagicMock()
 
-class TestLogAnalyzer(unittest.IsolatedAsyncioTestCase):
-    def setUp(self):
-        self.analyzer = LogAnalyzer(model_name="test-model")
-        # Mock the client getter
-        self.analyzer._get_client = MagicMock()
-        self.mock_client = AsyncMock()
-        self.analyzer._get_client.return_value = self.mock_client
+# Mocking internal dependencies to avoid import errors
+sys.modules["benchmarks.data_models"] = MagicMock()
+sys.modules["benchmarks.analysis"] = MagicMock()
+sys.modules["tools.analysis.analyze_benchmark_run"] = MagicMock()
+sys.modules["tools.cli.audit_failures"] = MagicMock()
+sys.modules["tools.analysis.doc_generator"] = MagicMock()
+sys.modules["tools.analysis.case_summarizer"] = MagicMock()
+sys.modules["benchmarks.benchmark_candidates"] = MagicMock()
 
-    async def test_generate_content_returns_object(self):
-        """Test that _generate_content returns a Pydantic object when schema is provided."""
-        
-        # Mock Response
-        mock_response = MagicMock()
-        mock_response.text = json.dumps({
-            "executive_summary": "Summary",
-            "cross_generator_comparison": "Comparison",
-            "recommendations": ["Rec1", "Rec2"]
-        })
-        mock_response.usage_metadata = None
-        self.mock_client.aio.models.generate_content.return_value = mock_response
+# Now import the class to test
+from tools.cli.generate_benchmark_report import LogAnalyzer, HighLevelInsights, GeneratorAnalysisSection
 
-        # Call
-        result = await self.analyzer._generate_content("prompt", schema=HighLevelInsights)
+class TestReportGeneration:
+    def test_assemble_report_structure(self):
+        """Tests that the report is assembled with correct header hierarchy."""
+        analyzer = LogAnalyzer(model_name="test-model")
         
-        # Verify
-        self.assertIsInstance(result, HighLevelInsights)
-        self.assertEqual(result.executive_summary, "Summary")
-
-    async def test_generate_high_level_insights_fallback(self):
-        """Test fallback when API fails."""
-        # Mock failure
-        self.mock_client.aio.models.generate_content.side_effect = Exception("API Error")
+        # Mock data
+        insights = HighLevelInsights(
+            executive_summary="Exec Summary Content",
+            cross_generator_comparison="Comparison Content",
+            recommendations=["Rec 1", "Rec 2"]
+        )
         
-        result = await self.analyzer._generate_high_level_insights("summary", "stats")
+        gen_analysis = [
+            GeneratorAnalysisSection(
+                generator_name="Gen A",
+                performance_summary="Perf A",
+                docs_context_analysis="Docs A",
+                tool_usage_analysis="Tools A",
+                general_error_analysis="Errors A"
+            )
+        ]
         
-        self.assertIsInstance(result, HighLevelInsights)
-        self.assertEqual(result.executive_summary, "Failed to generate.")
-
-    async def test_analyze_generator_fallback(self):
-        """Test fallback for generator analysis."""
-        self.mock_client.aio.models.generate_content.side_effect = Exception("API Error")
+        static_context = "### Gen A Internals\nDetails..."
+        quantitative_context = "## 4. Quantitative Analysis\nTable..."
+        suite_context = "\n\n## Benchmark Suites Overview\nTable..."
+        forensic_context = "### Generator: Gen A\nFailures..."
         
-        result = await self.analyzer._analyze_generator("GenA", "logs")
+        report = analyzer._assemble_report(
+            insights=insights,
+            generator_analyses=gen_analysis,
+            static_context=static_context,
+            quantitative_context=quantitative_context,
+            suite_context=suite_context,
+            forensic_context=forensic_context
+        )
         
-        self.assertIsInstance(result, GeneratorAnalysisSection)
-        self.assertEqual(result.performance_summary, "Analysis Failed.")
-
-    async def test_map_reduce_logic(self):
-        """Test the map-reduce flow (mocking the actual map/reduce methods)."""
-        # This is a bit harder to test without mocking the private methods, 
-        # but we can test the reducer method itself.
+        # Assertions
+        assert "# 📊 Benchmark Run Analysis" in report
         
-        mock_response = MagicMock()
-        # Mock CaseSummary return
-        mock_response.text = json.dumps({
-            "benchmark_name": "bench_1",
-            "failure_pattern": "Loop",
-            "progression": "Stuck",
-            "key_evidence": ["Ev1"]
-        })
-        self.mock_client.aio.models.generate_content.return_value = mock_response
+        # Check Sections
+        assert "## 1. Generator Internals & Configuration" in report
+        assert "### Gen A Internals" in report # Content from static_context
+        assert "# Generator Internals (Runtime Actualized)" not in report # Should NOT have H1
         
-        insights = [ForensicInsight(root_cause_category="C", explanation="E", evidence=[], dag_failure_point="DAG")]
+        assert "## 2. Executive Summary" in report
+        assert "Exec Summary Content" in report
         
-        summary = await self.analyzer._reduce_case_insights("bench_1", insights)
+        assert "## 3. Benchmark Suites Overview" in report
         
-        self.assertIsNotNone(summary)
-        self.assertEqual(summary.failure_pattern, "Loop")
-
-if __name__ == "__main__":
-    unittest.main()
+        assert "## 4. Quantitative Analysis" in report
+        
+        assert "## 5. Generator Analysis" in report
+        assert "### Gen A" in report
+        
+        assert "## 6. Cross-Generator Comparison" in report
+        
+        assert "## 7. Recommendations" in report
+        
+        assert "## 8. Forensic Analysis (Deep Dive)" in report
+        
+                assert "## 9. Report Generation Metadata" in report

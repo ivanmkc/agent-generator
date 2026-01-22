@@ -337,15 +337,23 @@ class GeminiCliAnswerGenerator(GeminiAnswerGenerator):
         return list(set(extensions))
 
     def _extract_json_from_text(self, text: str) -> str:
-        """Extracts JSON content from a string, handling markdown code blocks."""
+        """Extracts JSON content from a string, handling markdown code blocks and conversational wrappers."""
         text = text.strip()
 
-        # Match ```json ... ``` or just ``` ... ```
+        # 1. Try to find code blocks
         match = re.search(r"```(?:json)?\s*([\s\S]*?)\s*```", text, re.DOTALL)
         if match:
-            return match.group(1)
+            return match.group(1).strip()
 
-        # If no code blocks, assume the whole text is JSON
+        # 2. If no code blocks, try to find the first JSON object
+        # Look for first '{' and last '}'
+        start = text.find("{")
+        end = text.rfind("}")
+
+        if start != -1 and end != -1 and end > start:
+            return text[start : end + 1]
+
+        # Fallback: return original text
         return text
 
     def _strip_ansi(self, text: str) -> str:
