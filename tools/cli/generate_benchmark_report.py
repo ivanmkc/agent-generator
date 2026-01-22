@@ -681,7 +681,19 @@ class LogAnalyzer:
         # 8. Forensic Analysis
         if forensic_context:
             md.append("## 8. Forensic Analysis (Deep Dive)")
-            md.append(forensic_context)
+            
+            # Post-process forensic_context to remove redundant copyright headers
+            # that might be interpreted as H1 headers by the viewer.
+            cleaned_forensic = []
+            for line in forensic_context.splitlines():
+                lower_line = line.lower()
+                if (lower_line.startswith("# copyright") or 
+                    lower_line.startswith("# licensed under") or
+                    lower_line.strip() == "#"):
+                    continue
+                cleaned_forensic.append(line)
+            
+            md.append("\n".join(cleaned_forensic))
             md.append("\n")
 
         # 9. Report Metadata

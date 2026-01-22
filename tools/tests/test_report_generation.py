@@ -79,4 +79,35 @@ class TestReportGeneration:
         
         assert "## 8. Forensic Analysis (Deep Dive)" in report
         
-                assert "## 9. Report Generation Metadata" in report
+        assert "## 9. Report Generation Metadata" in report
+
+    def test_assemble_report_filters_copyright(self):
+        """Tests that copyright headers are filtered out of the forensic context."""
+        analyzer = LogAnalyzer(model_name="test-model")
+        
+        # Mock data with copyright headers
+        insights = HighLevelInsights(
+            executive_summary="Exec",
+            cross_generator_comparison="Comp",
+            recommendations=[]
+        )
+        
+        forensic_context = (
+            "### Generator: Gen A\n"
+            "# Copyright 2025 Google LLC\n"
+                        "# Licensed under Apache\n"
+            "Real content here.\n"
+        )
+        
+        report = analyzer._assemble_report(
+            insights=insights,
+            generator_analyses=[],
+            static_context="",
+            quantitative_context="",
+            suite_context="",
+            forensic_context=forensic_context
+        )
+        
+        assert "Real content here." in report
+        assert "# Copyright 2025 Google LLC" not in report
+        assert "# Licensed under Apache" not in report

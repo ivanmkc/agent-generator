@@ -243,6 +243,16 @@ def generate_toc_and_inject_anchors(content: str) -> tuple[str, str]:
         title = match.group(2).strip()
         level = len(level_hashes)
         
+        # Skip noise: Copyright notices, license blurbs, or very long lines that aren't titles
+        lower_title = title.lower()
+        if (
+            "copyright" in lower_title or 
+            "google llc" in lower_title or 
+            "licensed under" in lower_title or
+            len(title) > 200
+        ):
+            return match.group(0)
+
         # Simple slugify: lowercase, alphanumeric + hyphens
         slug = re.sub(r'[^a-z0-9]+', '-', title.lower()).strip('-')
         
