@@ -19,7 +19,7 @@ import logging
 import json
 from pathlib import Path
 import re
-from typing import Any
+from typing import Any, Optional
 
 
 from benchmarks.answer_generators.llm_base import LlmAnswerGenerator
@@ -38,6 +38,20 @@ from benchmarks.utils import parse_cli_stream_json_output
 from pydantic import BaseModel
 from benchmarks.api_key_manager import ApiKeyManager, KeyType
 from benchmarks.answer_generators.gemini_answer_generator import GeminiAnswerGenerator
+
+
+class GeminiCliExecutionError(Exception):
+    """Exception raised when the Gemini CLI execution fails, preserving logs."""
+
+    def __init__(
+        self,
+        message: str,
+        logs: list[TraceLogEvent],
+        response_dict: Optional[dict[str, Any]] = None,
+    ):
+        super().__init__(message)
+        self.logs = logs
+        self.response_dict = response_dict
 
 
 class GeminiCliAnswerGenerator(GeminiAnswerGenerator):
@@ -153,6 +167,17 @@ class GeminiCliAnswerGenerator(GeminiAnswerGenerator):
             # Note: We don't easily detect 429s from CLI text output here unless we parse logs deeply.
             # Assuming CLI handles retries or we catch generic failures.
 
+        except GeminiCliExecutionError as e:
+            # Report Failure
+            await self.api_key_manager.report_result(
+                KeyType.GEMINI_API, api_key_id, success=False, error_message=str(e)
+            )
+            raise BenchmarkGenerationError(
+                f"Gemini CLI Generation failed: {e}",
+                original_exception=e,
+                api_key_id=api_key_id,
+                trace_logs=e.logs,
+            ) from e
         except Exception as e:
             # Report Failure 
             await self.api_key_manager.report_result(KeyType.GEMINI_API, api_key_id, success=False, error_message=str(e))
@@ -175,14 +200,16 @@ class GeminiCliAnswerGenerator(GeminiAnswerGenerator):
             # Report Failure if key was used
             await self.api_key_manager.report_result(KeyType.GEMINI_API, api_key_id, success=False)
 
-            # If parsing fails, wrap it in a generic error or re-raise
-            # For now, we'll try to fail gracefully if possible, or just raise
-            raise ValueError(
-                f"Failed to parse structured output from CLI response: {e}\nOutput"
-                f" was: {model_text}\nLogs:\n{logs}"
+            # If parsing fails, raise BenchmarkGenerationError to preserve logs
+            raise BenchmarkGenerationError(
+                f"Failed to parse structured output from CLI response: {e}\nOutput was: {model_text}",
+                original_exception=e,
+                api_key_id=api_key_id,
+                trace_logs=logs,
             ) from e
 
         usage_metadata = None
+
         if "stats" in cli_response_dict:
             stats = cli_response_dict["stats"]
             usage_metadata = UsageMetadata(

@@ -58,16 +58,12 @@ benchmarks:
   benchmark_type: multiple_choice
 - id: diagnose_setup_errors_mc:delegation_in_tools
   question: You have a `root_agent` and a `specialist_agent`. You want the root to delegate tasks to the specialist. What is the correct way to register the specialist for delegation?
-  code_snippet_ref:
-    file: benchmarks/benchmark_definitions/diagnose_setup_errors_mc/snippets.py
-    section: delegation_in_tools
-  options:
+  option
     A: Use `child_agents=[specialist_agent]`.
-    B: Wrap the specialist in a `Tool` class.
-    C: Use `sub_agents=[specialist_agent]`.
-    D: Use `delegates=[specialist_agent]`.
-    E: None of the above
-  correct_answer: C
+    B: Use `sub_agents=[specialist_agent]`.
+    C: Use `delegates=[specialist_agent]`.
+    D: None of the above
+  correct_answer: B
   explanation: Other agents are registered via the `sub_agents` parameter to enable delegation.
   benchmark_type: multiple_choice
 - id: diagnose_setup_errors_mc:invalid_multi_agent_class

@@ -139,7 +139,7 @@ def api_test_case(model_name: str, api_key_manager: ApiKeyManager) -> GeneratorT
     if not has_env("GEMINI_API_KEY"):
         pytest.skip("GEMINI_API_KEY not set")
 
-    gen = GeminiAnswerGenerator(model_name=model_name, api_key_manager=api_key_manager)
+    gen = GeminiAnswerGenerator(model_name=model_name, context=None, api_key_manager=api_key_manager)
 
     return GeneratorTestCase(id="api-direct", generator=gen)
 
@@ -291,7 +291,7 @@ async def test_case(
 
         # 2. Local Async Generators (Inlined to avoid event loop conflicts)
         elif case_id == "cli_local_test_case":
-            gen = GeminiCliLocalAnswerGenerator(api_key_manager=api_key_manager)
+            gen = GeminiCliLocalAnswerGenerator(model_name=model_name, context=None, api_key_manager=api_key_manager)
             await gen.setup()
             yield GeneratorTestCase(id="cli-local", generator=gen)
 
@@ -310,7 +310,7 @@ async def test_case(
             if not has_env("GEMINI_API_KEY"):
                 pytest.skip("GEMINI_API_KEY not set")
 
-            gen = GeminiCliLocalAnswerGenerator(model_name=model_name)
+            gen = GeminiCliLocalAnswerGenerator(model_name=model_name, context=None, api_key_manager=api_key_manager)
             await gen.setup()
             
             # Setup temp dir and files

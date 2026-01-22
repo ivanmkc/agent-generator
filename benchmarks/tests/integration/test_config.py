@@ -85,26 +85,16 @@ GENERATOR_METADATA: Dict[str, AnyGeneratorConfig] = {
 
     ),
 
-        "podman_context7_test_case": PodmanGeneratorConfig(
-
-            id="podman_context7_test_case",
-
-            dockerfile_dir=Path("benchmarks/answer_generators/gemini_cli_docker/gemini-cli-mcp-context7"),
-
-            expected_mcp_tools=["context7"],
-
-            custom_case=ADK_BASE_AGENT_QUESTION_CASE_INTERMEDIATE,
-
-            context_instruction=(
-
-                "You have access to a 'context7' tool for searching the codebase. "
-
-                "ALWAYS use this tool to find relevant code definitions before answering questions about the codebase."
-
+            "podman_context7_test_case": PodmanGeneratorConfig(
+                id="podman_context7_test_case",
+                dockerfile_dir=Path("benchmarks/answer_generators/gemini_cli_docker/mcp_context7"),
+                expected_mcp_tools=["context7"],
+                custom_case=ADK_BASE_AGENT_QUESTION_CASE_INTERMEDIATE,
+                context_instruction=(
+                    "You have access to a 'context7' tool for searching the codebase. "
+                    "ALWAYS use this tool to find relevant code definitions before answering questions about the codebase."
+                ),
             ),
-
-        ),
-
     "podman_mcp_adk_runner_test_case": PodmanGeneratorConfig(
         id="podman_mcp_adk_runner_test_case",
         dockerfile_dir=Path("benchmarks/answer_generators/gemini_cli_docker/mcp_adk_agent_runner_basic"),

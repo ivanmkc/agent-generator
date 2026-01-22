@@ -55,7 +55,6 @@ CANDIDATE_GENERATORS = [
         image_definitions=IMAGE_DEFINITIONS,
         image_name="gemini-cli:mcp_adk_agent_runner_ranked_knowledge",
         model_name=ModelName.GEMINI_2_5_PRO,
-        context_instruction="You have access to a special 'adk-knowledge' toolset. Use 'list_adk_modules' to explore the API surface and 'search_adk_knowledge' to find specific functionality. Use 'inspect_adk_symbol' to read source code.",
         api_key_manager=api_key_manager
     ),
 ]

@@ -68,13 +68,27 @@ class PodmanGeneratorConfig(GeneratorConfig):
         from benchmarks.answer_generators.gemini_cli_docker import GeminiCliPodmanAnswerGenerator
         from benchmarks.answer_generators.gemini_cli_docker.image_definitions import IMAGE_DEFINITIONS
 
+        image_name = self.image_name
+        if not image_name:
+             # Logic to find image based on self.dockerfile_dir.name
+             source_dir_name = self.dockerfile_dir.name
+             for key, defn in IMAGE_DEFINITIONS.items():
+                 if defn.source_dir == source_dir_name:
+                     image_name = key
+                     break
+        
+        if not image_name:
+             # Fallback if still not found, though this likely means a config error
+             # But let the generator handle or fail later if we pass None, 
+             # wait, generator expects valid string.
+             # We raise here to be safe.
+             raise ValueError(f"Could not resolve image name for dockerfile_dir: {self.dockerfile_dir}")
+
         return GeminiCliPodmanAnswerGenerator(
             model_name=model_name,
-            dockerfile_dir=self.dockerfile_dir,
-            image_name=self.image_name,
+            image_name=image_name,
             image_definitions=IMAGE_DEFINITIONS,
             api_key_manager=api_key_manager,
-            service_url=self.service_url,
             context_instruction=self.context_instruction
         )
 

@@ -27,6 +27,7 @@ def create_fix_error_benchmark_case(
     description: str = "Fix a bug",
     requirements: list[str] | None = None,
     error_output: str | None = None,
+    id: str = "test:fix_error_case",
 ) -> FixErrorBenchmarkCase:
     """
     Creates a standardized FixErrorBenchmarkCase for testing.
@@ -37,6 +38,7 @@ def create_fix_error_benchmark_case(
         description: The description of the benchmark case.
         requirements: Optional list of requirements for the case.
         error_output: Optional error output associated with the case.
+        id: Optional ID for the benchmark case.
 
     Returns:
         A configured FixErrorBenchmarkCase instance.
@@ -46,6 +48,7 @@ def create_fix_error_benchmark_case(
     fixed_file_path = case_path / "fixed.py"
 
     return FixErrorBenchmarkCase(
+        id=id,
         name=name,
         description=description,
         test_file=test_file_path,

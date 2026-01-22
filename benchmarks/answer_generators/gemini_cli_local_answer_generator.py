@@ -19,6 +19,7 @@ from typing import Any
 
 from benchmarks.answer_generators.gemini_cli_answer_generator import (
     GeminiCliAnswerGenerator,
+    GeminiCliExecutionError,
 )
 from benchmarks.data_models import TraceLogEvent
 from benchmarks.utils import parse_cli_stream_json_output
@@ -96,8 +97,10 @@ class GeminiCliLocalAnswerGenerator(GeminiCliAnswerGenerator):
 
         if proc.returncode != 0:
             error_msg = stderr_str.strip() or stdout_str.strip()
-            raise RuntimeError(
-                f"Gemini CLI failed with code {proc.returncode}: {error_msg}"
+            raise GeminiCliExecutionError(
+                f"Gemini CLI failed with code {proc.returncode}: {error_msg}",
+                logs=logs,
+                response_dict=response_dict
             )
 
         return response_dict, logs

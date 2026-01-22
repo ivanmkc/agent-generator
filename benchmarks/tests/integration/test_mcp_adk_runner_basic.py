@@ -1,3 +1,13 @@
+import sys
+from pathlib import Path
+
+# Add the directory containing adk_agent_tool.py to the Python path for local testing
+# This assumes the test is run from the project root or the file structure is consistent
+project_root = Path(__file__).resolve().parent.parent.parent.parent
+adk_tool_path = project_root / "benchmarks" / "answer_generators" / "gemini_cli_docker" / "adk-python" / "src"
+if str(adk_tool_path) not in sys.path:
+    sys.path.append(str(adk_tool_path))
+
 from benchmarks.answer_generators.gemini_cli_docker.mcp_adk_agent_runner_basic.src.adk_runner_server import (
     run_adk_agent,
 )
@@ -22,7 +32,7 @@ def create_agent(model_name: str) -> BaseAgent:
 
 async def test_run_adk_agent_password():
     # The run_adk_agent function is expected to handle the full lifecycle.
-    result = await run_adk_agent(agent_code=AGENT_CODE, prompt="What is the password?")
+    result = await run_adk_agent(agent_code=AGENT_CODE, prompt="What is the password?", model_name="gemini-2.5-flash")
     print("\n--- Result ---")
     print(result)
 
@@ -59,7 +69,7 @@ async def test_run_adk_agent_with_state():
     initial_state = {"secret_value": "magic_token"}
 
     result = await run_adk_agent(
-        agent_code=AGENT_WITH_STATE_CODE, prompt="Start", initial_state=initial_state
+        agent_code=AGENT_WITH_STATE_CODE, prompt="Start", initial_state=initial_state, model_name="gemini-2.5-flash"
     )
 
     print("\n--- Result ---")

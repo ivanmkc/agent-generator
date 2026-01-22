@@ -32,3 +32,10 @@ env/bin/papermill notebooks/visualization.ipynb "$OUTPUT_DIR/visualization.ipynb
 
 log "Benchmark execution complete."
 log "Results (JSON, Traces, Reports, Notebook) saved to: $OUTPUT_DIR"
+
+# 5. Upload to GCS if BENCHMARK_GCS_BUCKET is set
+if [ -n "$BENCHMARK_GCS_BUCKET" ]; then
+  log "Uploading results to GCS bucket: $BENCHMARK_GCS_BUCKET"
+  gcloud storage cp -r "$OUTPUT_DIR" "gs://$BENCHMARK_GCS_BUCKET/$TIMESTAMP/" 2>&1 | tee -a "$LOG_FILE"
+  log "Upload complete."
+fi

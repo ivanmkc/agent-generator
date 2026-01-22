@@ -520,10 +520,10 @@ benchmarks:
 - id: configure_adk_features_mc:you_want_to_automatically_summarize_old_events_to_
   question: You want to automatically summarize old events to manage context window size. What should you configure?
   options:
-    A: events_compaction_config on the App.
-    B: max_history in LlmAgent.
-    C: SummaryAgent as a sub-agent.
-    D: ContextWindowOptimization in RunConfig.
+    A: Pass an `EventsCompactionConfig` to the `App`.
+    B: Set a `max_history` limit in `LlmAgent`.
+    C: Use a `SummaryAgent` as a sub-agent.
+    D: Set `ContextWindowOptimization` in `RunConfig`.
     E: None of the above
   correct_answer: A
   explanation: '`events_compaction_config` on the `App` enables the event summarizer.'

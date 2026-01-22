@@ -97,7 +97,7 @@ class GeminiCliCloudRunAnswerGenerator(GeminiCliAnswerGenerator):
 
         # Then call the parent constructor with only the arguments it expects
         super().__init__(
-            model_name=model_name, cli_path="gemini", context=self.context_instruction, api_key_manager=api_key_manager # Pass api_key_manager to super
+            model_name=model_name, context=self.context_instruction, api_key_manager=api_key_manager # Pass api_key_manager to super
         )
 
         self._auth_req = google.auth.transport.requests.Request()

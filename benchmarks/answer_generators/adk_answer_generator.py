@@ -539,7 +539,7 @@ class AdkAnswerGenerator(LlmAnswerGenerator):
         try:
             # Run the agent asynchronously.
             # We pass the benchmark_type to _run_agent_async
-            response_text, trace_logs, usage_metadata = await self._run_agent_async(
+            response_text, trace_logs, usage_metadata, _ = await self._run_agent_async(
                 prompt, 
                 api_key_id=api_key_id,
                 benchmark_type=benchmark_type
