@@ -100,12 +100,12 @@ benchmarks:
   explanation: 'The signature is `async def callback(tool: BaseTool, args: dict, tool_context: ToolContext)`.'
   benchmark_type: multiple_choice
 - id: configure_adk_features_mc:in_a_baseplugin_what_is_the_correct_signature_for_
-  question: In a `BasePlugin`, what is the correct signature for `run_on_event_callback`?
+  question: In a `PluginManager`, what is the correct signature for `run_on_event_callback`?
   options:
     A: 'async def run_on_event_callback(self, event: Event) -> Event:'
     B: 'def run_on_event_callback(self, event: Event):'
     C: 'async def run_on_event_callback(self, context: dict, event: Event) -> Event:'
-    D: 'async def run_on_event_callback(self, invocation_context: InvocationContext, event: Event) -> Optional[Event]:'
+    D: 'async def run_on_event_callback(self, *, invocation_context: InvocationContext, event: Event) -> Optional[Event]:'
     E: None of the above
   correct_answer: D
   explanation: The callback receives the `InvocationContext` and the `Event`, and returns an optional modified `Event`.
@@ -232,7 +232,7 @@ benchmarks:
   explanation: It provides access to the configured model client wrapper.
   benchmark_type: multiple_choice
 - id: configure_adk_features_mc:how_do_you_specify_that_a_tool_function_should_not
-  question: How do you specify that a tool function should *not* return its output to the model, but instead save it directly to the session state?
+  question: How do you specify that a function tool should *not* return its output to the model, but instead save it directly to the session state?
   options:
     A: Modify the `session.state` directly within the tool and return a confirmation string.
     B: Use the `side_effect=True` decorator.
