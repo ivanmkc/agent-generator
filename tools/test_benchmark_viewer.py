@@ -9,7 +9,86 @@ import sys
 
 sys.modules["streamlit"] = MagicMock()
 
-from tools.benchmark_viewer import _get_concise_error_message
+from tools.benchmark_viewer import _get_concise_error_message, merge_consecutive_events
+
+
+def test_merge_consecutive_events_empty():
+    """Tests that an empty list returns an empty list."""
+    assert merge_consecutive_events([]) == []
+
+
+def test_merge_consecutive_events_single():
+    """Tests that a single event is returned as is."""
+    events = [{"type": "message", "role": "user", "content": "Hello"}]
+    assert merge_consecutive_events(events) == events
+
+
+def test_merge_consecutive_events_merge_messages_same_role():
+    """Tests that consecutive messages from the same role are merged."""
+    events = [
+        {"type": "message", "role": "user", "content": "Hello"},
+        {"type": "message", "role": "user", "content": "World"},
+    ]
+    expected = [{"type": "message", "role": "user", "content": "Hello\nWorld"}]
+    assert merge_consecutive_events(events) == expected
+
+
+def test_merge_consecutive_events_no_merge_diff_role():
+    """Tests that consecutive messages from different roles are NOT merged."""
+    events = [
+        {"type": "message", "role": "user", "content": "Hello"},
+        {"type": "message", "role": "ai", "content": "Hi there"},
+    ]
+    assert merge_consecutive_events(events) == events
+
+
+def test_merge_consecutive_events_merge_cli_output():
+    """Tests that consecutive CLI outputs of the same type are merged."""
+    events = [
+        {"type": "CLI_STDOUT_FULL", "content": "Line 1\n"},
+        {"type": "CLI_STDOUT_FULL", "content": "Line 2"},
+    ]
+    expected = [{"type": "CLI_STDOUT_FULL", "content": "Line 1\nLine 2"}]
+    assert merge_consecutive_events(events) == expected
+
+
+def test_merge_consecutive_events_no_merge_diff_cli_type():
+    """Tests that CLI stdout and stderr are NOT merged."""
+    events = [
+        {"type": "CLI_STDOUT_FULL", "content": "Output"},
+        {"type": "CLI_STDERR", "content": "Error"},
+    ]
+    assert merge_consecutive_events(events) == events
+
+
+def test_merge_consecutive_events_mixed_types():
+    """Tests a complex sequence of mixed events."""
+    events = [
+        {"type": "message", "role": "user", "content": "A"},
+        {"type": "message", "role": "user", "content": "B"},
+        {"type": "tool_use", "tool_name": "tool1"},
+        {"type": "CLI_STDOUT_FULL", "content": "Out1"},
+        {"type": "CLI_STDOUT_FULL", "content": "Out2"},
+        {"type": "message", "role": "ai", "content": "C"},
+    ]
+    expected = [
+        {"type": "message", "role": "user", "content": "A\nB"},
+        {"type": "tool_use", "tool_name": "tool1"},
+        {"type": "CLI_STDOUT_FULL", "content": "Out1Out2"},
+        {"type": "message", "role": "ai", "content": "C"},
+    ]
+    assert merge_consecutive_events(events) == expected
+
+
+def test_merge_consecutive_events_non_string_content():
+    """Tests that non-string content is safely converted."""
+    events = [
+        {"type": "message", "role": "user", "content": 123},
+        {"type": "message", "role": "user", "content": 456},
+    ]
+    expected = [{"type": "message", "role": "user", "content": "123\n456"}]
+    assert merge_consecutive_events(events) == expected
+
 
 
 def test_get_concise_error_message_with_gemini_client_error_json():
