@@ -523,7 +523,7 @@ benchmarks:
     A: events_compaction_config on the App.
     B: max_history in LlmAgent.
     C: SummaryAgent as a sub-agent.
-    D: ContextWindowCompressionConfig in RunConfig.
+    D: ContextWindowOptimization in RunConfig.
     E: None of the above
   correct_answer: A
   explanation: '`events_compaction_config` on the `App` enables the event summarizer.'

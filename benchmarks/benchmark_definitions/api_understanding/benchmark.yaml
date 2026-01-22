@@ -493,9 +493,9 @@ benchmarks:
     - google.adk.agents.ParallelAgent
     - google.adk.agents.parallel_agent_config.ParallelAgentConfig
   file: src/google/adk/agents/parallel_agent.py
-- id: api_understanding:which_class_provides_the_capability_to_add_plugins
+- id: api_understanding:which_top_level_wrapper_class_is_used_to_attach_pl
   category: Core Class Signatures & Initialization
-  question: Which class provides the capability to add plugins or other advanced features to an agent?
+  question: Which top-level wrapper class is used to attach plugins to an agent application?
   rationale: For advanced configurations, wrap your root agent in an `App` object. The `App` class provides parameters for adding plugins, configuring event compaction, and managing other application-level settings.
   benchmark_type: api_understanding
   template: identifier
@@ -505,10 +505,10 @@ benchmarks:
     fully_qualified_class_name:
     - google.adk.apps.app.App
   file: src/google/adk/apps/app.py
-- id: api_understanding:what_is_the_fundamental_data_structure_for_convers
+- id: api_understanding:what_class_represents_a_single_turn_in_conversation
   category: Data Structure Access & Best Practices
-  question: What is the fundamental data structure for conversation history?
-  rationale: The `Event` class represents a single turn, while the `Session` class encapsulates the entire history of interactions. Both are acceptable answers for the 'fundamental data structure' of history.
+  question: What is the class representing a single turn in a conversation?
+  rationale: The `Event` class represents a single turn in the conversation history, containing the user input or model response.
   benchmark_type: api_understanding
   template: identifier
   answers:
@@ -517,12 +517,20 @@ benchmarks:
     fully_qualified_class_name:
     - google.adk.events.event.Event
     - google.adk.events.Event
+  file: src/google/adk/events/event.py
+- id: api_understanding:what_class_encapsulates_the_entire_history_of_inte
+  category: Data Structure Access & Best Practices
+  question: What is the class representing the entire history of interactions?
+  rationale: The `Session` class encapsulates the entire history of interactions (list of events) and the current state.
+  benchmark_type: api_understanding
+  template: identifier
+  answers:
   - answer_template: StringMatchAnswer
     answer: Session
     fully_qualified_class_name:
     - google.adk.sessions.session.Session
     - google.adk.sessions.Session
-  file: src/google/adk/events/event.py
+  file: src/google/adk/sessions/session.py
 - id: api_understanding:which_runner_subclass_comes_pre_configured_with_in
   category: Core Class Signatures & Initialization
   question: Which `Runner` subclass comes pre-configured with in-memory implementations for session, artifact, and memory services, making it the standard choice for local development and testing?

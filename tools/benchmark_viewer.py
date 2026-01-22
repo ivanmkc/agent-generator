@@ -282,6 +282,58 @@ def render_diff(generated, expected):
         st.success("Answers match perfectly (text-wise).")
 
 
+
+def merge_consecutive_events(events: List[dict]) -> List[dict]:
+    """Merges consecutive events of the same type/role."""
+    if not events:
+        return []
+    
+    merged = []
+    current = None
+    
+    for event in events:
+        if current is None:
+            current = event.copy()
+            continue
+            
+        e_type = event.get("type")
+        c_type = current.get("type")
+        
+        # Merge Messages (Same Role)
+        if (e_type == "message" and c_type == "message" and 
+            event.get("role") == current.get("role")):
+            
+            c_content = current.get("content", "") or ""
+            e_content = event.get("content", "") or ""
+            
+            if not isinstance(c_content, str): c_content = str(c_content)
+            if not isinstance(e_content, str): e_content = str(e_content)
+            
+            current["content"] = c_content + "\n" + e_content
+            continue
+            
+        # Merge CLI Output (Same Type)
+        if (e_type in ["CLI_STDOUT_FULL", "CLI_STDOUT_RAW", "CLI_STDERR"] and 
+            e_type == c_type):
+            
+            c_content = current.get("content", "") or ""
+            e_content = event.get("content", "") or ""
+            
+            if not isinstance(c_content, str): c_content = str(c_content)
+            if not isinstance(e_content, str): e_content = str(e_content)
+            
+            current["content"] = c_content + e_content
+            continue
+            
+        merged.append(current)
+        current = event.copy()
+        
+    if current:
+        merged.append(current)
+        
+    return merged
+
+
 def render_logs(logs):
     """Renders trace logs with grouped interactions and filtering."""
     if not logs:
@@ -290,12 +342,36 @@ def render_logs(logs):
 
     # Work on a copy to avoid mutating cached data
     logs = list(logs)
+    
+    # Merge consecutive events
+    logs = merge_consecutive_events(logs)
 
-    # --- Grouping Logic ---
+    # --- Separate CLI Output ---
+    cli_logs = [e for e in logs if e.get("type") in ["CLI_STDOUT_FULL", "CLI_STDOUT_RAW", "CLI_STDERR"]]
+    trace_logs = [e for e in logs if e.get("type") not in ["CLI_STDOUT_FULL", "CLI_STDOUT_RAW", "CLI_STDERR"]]
+    
+    # If using tabs, we need to restructure the viewer. 
+    # But since render_logs is called *inside* a tab in main(), we can't easily make more tabs here 
+    # without changing the caller or returning the rendering.
+    # However, the user asked for "CLI Output should be in a separate tab, not trace logs".
+    # Currently render_logs is called in "Trace Logs" tab.
+    # We can split the rendering here.
+    
+    # Actually, let's render the Trace Logs here, and handle CLI output in a separate section or let the caller handle it.
+    # But to satisfy "separate tab", I should probably split the logs *before* calling render_logs 
+    # or modify render_logs to ONLY render trace logs, and make a new function for CLI logs.
+    # But for minimal disruption, I will just filter them here if a flag is passed, 
+    # OR, I can use a sub-tab structure INSIDE "Trace Logs" if that's acceptable, 
+    # OR better: I will modify main() to pass filtered logs.
+    
+    # Let's assume render_logs is responsible for "Trace" view.
+    # I'll stick to rendering trace_logs here.
+    
+    # Grouping Logic on trace_logs
     grouped_events = []
     i = 0
-    while i < len(logs):
-        event = logs[i]
+    while i < len(trace_logs):
+        event = trace_logs[i]
         e_type = event.get("type", "unknown")
 
         # Try to pair tool_use with tool_result
@@ -379,6 +455,8 @@ def render_logs(logs):
             return "Tool Interactions"
         if t == "model_response":
             return "Model Responses"
+        if t == "message":
+            return "Messages"
         if t in ["CLI_STDOUT_FULL", "CLI_STDOUT_RAW", "CLI_STDERR"]:
             return "CLI Output"
         if t == "GEMINI_CLIENT_ERROR":
@@ -434,6 +512,18 @@ def render_logs(logs):
         elif e_type == "model_response":
             with st.chat_message("ai"):
                 st.write(event.get("content"))
+        
+        elif e_type == "message":
+            role = event.get("role", "unknown")
+            if role == "user":
+                with st.chat_message("user"):
+                    st.write(event.get("content"))
+            elif role == "model":
+                with st.chat_message("ai"):
+                    st.write(event.get("content"))
+            else:
+                with st.chat_message(role): # Generic role
+                    st.write(event.get("content"))
 
         # 3. CLI Stdout/Stderr
         elif e_type in ["CLI_STDOUT_FULL", "CLI_STDOUT_RAW"]:
@@ -1073,27 +1163,6 @@ def main():
              
              if case_def:
                  with st.expander("📝 Benchmark Case Definition", expanded=False):
-                     # Check for Description / Explanation / Question
-                     desc = case_def.get("description") or case_def.get("explanation") or case_def.get("question")
-                     # Show description if it differs from the cached one-liner, or if no cached doc exists
-                     if desc and (not cached_doc or desc != cached_doc.get("one_liner")):
-                         st.markdown(f"**Original Definition:**\n{desc}")
-                     
-                     # MCQ Specifics
-                     if "options" in case_def:
-                         st.markdown("**Options:**")
-                         st.json(case_def["options"])
-                         
-                     if "correct_answer" in case_def:
-                         st.markdown(f"**Correct Answer:** `{case_def['correct_answer']}`")
-
-                     # Fix Error Specifics
-                     if "test_file" in case_def:
-                         st.markdown(f"**Test File:** `{case_def['test_file']}`")
-                     if "unfixed_file" in case_def:
-                         st.markdown(f"**Unfixed File:** `{case_def['unfixed_file']}`")
-                         
-                     st.caption("Full Definition Source:")
                      st.json(case_def)
 
         st.divider()
@@ -1194,7 +1263,7 @@ def main():
                 st.caption(f"Generation Status: {attempt.status} | Duration: {attempt.duration:.2f}s | Tokens: {total_tokens}{exit_str}")
 
                 # Nested Tabs for deep dive
-                sub_tabs = st.tabs(["Diff & Code", "Trace Logs", "Raw Events", "Generation Error", "Validation Error", "Metadata"])
+                sub_tabs = st.tabs(["Diff & Code", "Trace Logs", "CLI Output", "Raw Events", "Generation Error", "Validation Error", "Metadata"])
                 
                 # 1. Diff & Code
                 with sub_tabs[0]:
@@ -1227,14 +1296,32 @@ def main():
                 # 2. Trace Logs
                 with sub_tabs[1]:
                     st.markdown("#### Attempt Trace Logs")
-                    st.markdown("Chronological trace of tool calls, model responses, and CLI outputs.")
+                    st.markdown("Chronological trace of tool calls and model responses.")
                     if not active_trace_logs:
-                        st.warning("No trace logs available for this attempt. Logs are typically recorded only when the generation phase successfully produces an answer.")
+                        st.warning("No trace logs available for this attempt.")
                     else:
-                        render_logs([t.model_dump() for t in active_trace_logs])
-
-                # 3. Raw Events
+                        render_logs(active_trace_logs)
+                
+                # 3. CLI Output
                 with sub_tabs[2]:
+                    st.markdown("#### CLI Output")
+                    st.markdown("Raw stdout/stderr from the CLI execution.")
+                    cli_events = [e for e in active_trace_logs if e.type in ["CLI_STDOUT_FULL", "CLI_STDOUT_RAW", "CLI_STDERR"]]
+                    cli_events = merge_consecutive_events([e.model_dump() for e in cli_events])
+                    
+                    if not cli_events:
+                        st.info("No CLI output recorded.")
+                    else:
+                        for event in cli_events:
+                            e_type = event.get("type")
+                            content = event.get("content", "")
+                            if e_type == "CLI_STDERR":
+                                st.error(content, icon="⚠️")
+                            else:
+                                st.code(content, language="text")
+
+                # 4. Raw Events
+                with sub_tabs[3]:
                     st.markdown("#### Raw ADK Events for Attempt")
                     st.markdown("Raw JSON event objects captured from the runner.")
                     if not active_trace_logs:

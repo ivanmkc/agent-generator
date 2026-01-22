@@ -1,4 +1,3 @@
-
 import yaml
 import os
 import logging
@@ -6,6 +5,13 @@ from pathlib import Path
 from typing import List, Dict, Any, Optional
 from mcp.server.fastmcp import FastMCP
 from adk_agent_tool import run_adk_agent
+
+# Try importing rank_bm25
+try:
+    from rank_bm25 import BM25Okapi
+    HAS_BM25 = True
+except ImportError:
+    HAS_BM25 = False
 
 # Configuration
 RANKED_INDEX_PATH = Path("/app/data/ranked_targets.yaml")
@@ -32,9 +38,11 @@ logger = logging.getLogger("adk_knowledge_mcp")
 # --- Data Loading ---
 _INDEX_CACHE: List[Dict[str, Any]] = []
 _FQN_MAP: Dict[str, Dict[str, Any]] = {}
+_BM25_INDEX = None
+_BM25_CORPUS_MAP = [] # Maps corpus index to _INDEX_CACHE index
 
 def _load_index():
-    global _INDEX_CACHE, _FQN_MAP
+    global _INDEX_CACHE, _FQN_MAP, _BM25_INDEX, _BM25_CORPUS_MAP
     if _INDEX_CACHE:
         return
 
@@ -50,13 +58,27 @@ def _load_index():
             # Sort by rank (ascending) if not already
             _INDEX_CACHE.sort(key=lambda x: x.get("rank", 9999))
             
-            # Build Map
-            for item in _INDEX_CACHE:
+            # Build Map and Corpus for BM25
+            tokenized_corpus = []
+            _BM25_CORPUS_MAP = []
+            
+            for i, item in enumerate(_INDEX_CACHE):
                 fqn = item.get("id") or item.get("fqn") or item.get("name")
                 if fqn:
                     _FQN_MAP[fqn] = item
+                
+                if HAS_BM25:
+                    # Create a rich text representation for search
+                    # FQN gets boosted by repetition
+                    doc_text = f"{fqn} {fqn} {fqn} " + (item.get("docstring") or "")
+                    tokenized_corpus.append(doc_text.lower().split())
+                    _BM25_CORPUS_MAP.append(i)
+
+            if HAS_BM25 and tokenized_corpus:
+                _BM25_INDEX = BM25Okapi(tokenized_corpus)
+                logger.info("BM25 Index built.")
         
-        logger.info(f"Loaded {_INDEX_CACHE} targets from index.")
+        logger.info(f"Loaded {len(_INDEX_CACHE)} targets from index.")
     except Exception as e:
         logger.error(f"Failed to load index: {e}")
 
@@ -93,59 +115,79 @@ def list_adk_modules(page: int = 1, page_size: int = 20) -> str:
 def search_adk_knowledge(query: str, limit: int = 10) -> str:
     """
     Searches the ADK knowledge base for relevant classes, functions, or concepts.
-    Supports multiple keywords.
+    Uses BM25 probabilistic retrieval for semantic-like accuracy.
     
     Args:
-        query: Keywords to search for, space-separated (e.g., 'agent bigquery tool').
+        query: Keywords or natural language query (e.g., 'how to add tools to agent').
         limit: Max results to return.
     """
     _load_index()
     
-    keywords = query.lower().split()
     matches = []
     
-    # Simple scoring: FQN match > Summary match
-    for item in _INDEX_CACHE:
-        fqn_raw = item.get("id") or item.get("fqn") or item.get("name") or ""
-        fqn = fqn_raw.lower()
-        summary = item.get("docstring", "").lower()
+    if HAS_BM25 and _BM25_INDEX:
+        tokenized_query = query.lower().split()
+        scores = _BM25_INDEX.get_scores(tokenized_query)
         
-        score = 0
+        # Zip scores with index
+        scored_items = []
+        for idx, score in enumerate(scores):
+            if score > 0:
+                scored_items.append((score, idx))
         
-        for kw in keywords:
-            if kw in fqn:
-                score += 10
-                # Boost exact suffix match (e.g. searching for 'LlmAgent')
-                if fqn.endswith(kw) or fqn.endswith("." + kw):
-                    score += 20
-            elif kw in summary:
-                score += 5
+        # Sort by score desc
+        scored_items.sort(key=lambda x: x[0], reverse=True)
+        
+        top_indices = scored_items[:limit]
+        for score, idx in top_indices:
+            real_idx = _BM25_CORPUS_MAP[idx]
+            matches.append((score, _INDEX_CACHE[real_idx]))
             
-        if score > 0:
-            matches.append((score, item))
+    else:
+        # Fallback to keyword match
+        keywords = query.lower().split()
+        for item in _INDEX_CACHE:
+            fqn_raw = item.get("id") or item.get("fqn") or item.get("name") or ""
+            fqn = fqn_raw.lower()
+            summary = item.get("docstring", "").lower()
             
-    # Sort by score desc, then rank asc
-    matches.sort(key=lambda x: (-x[0], x[1].get("rank", 9999)))
+            score = 0
+            for kw in keywords:
+                if kw in fqn:
+                    score += 10
+                    if fqn.endswith(kw) or fqn.endswith("." + kw):
+                        score += 20
+                elif kw in summary:
+                    score += 5
+            
+            if score > 0:
+                matches.append((score, item))
+        
+        matches.sort(key=lambda x: (-x[0], x[1].get("rank", 9999)))
     
     top_matches = matches[:limit]
     
     if not top_matches:
         return f"No matches found for '{query}'."
         
-    lines = [f"--- Search Results for '{query}' ---"]
+    lines = [f"--- Search Results for '{query}' (Method: {'BM25' if HAS_BM25 else 'Keyword'}) ---"]
     for score, item in top_matches:
         rank = item.get("rank", "?")
         fqn = item.get("id") or item.get("fqn") or item.get("name") or "unknown"
         type_ = item.get("type")
-        summary = item.get("docstring", "No summary.")[:100]
-        lines.append(f"[{rank}] {type_}: {fqn} (Score: {score})\n    {summary}...")
+        summary = item.get("docstring", "No summary.")
+        # Truncate summary to first line or 150 chars
+        summary_short = summary.split('\n')[0][:150]
+        
+        lines.append(f"[{rank}] {type_}: {fqn} (Score: {score:.2f})\n    {summary_short}...")
         
     return "\n".join(lines)
 
 @mcp.tool()
-def inspect_adk_symbol(fqn: str) -> str:
+def read_adk_source_code(fqn: str) -> str:
     """
-    Retrieves the source code and documentation for a specific ADK symbol (Class/Function).
+    Reads the actual implementation source code for a specific ADK symbol from disk.
+    Use this only if the index information (via inspect_adk_symbol) is insufficient.
     
     Args:
         fqn: The Fully Qualified Name (e.g., 'google.adk.agents.llm_agent.LlmAgent').
@@ -154,22 +196,15 @@ def inspect_adk_symbol(fqn: str) -> str:
     
     target = _FQN_MAP.get(fqn)
     if not target:
-        return f"Symbol '{fqn}' not found in index. Try listing modules first."
+        return f"Symbol '{fqn}' not found in index."
         
-    # Resolve path
-    # Index path example: src/google/adk/agents/base_agent.py
     rel_path = target.get("file_path")
     if not rel_path:
         return f"No file path recorded for {fqn}."
         
-    # Container path mapping
-    # Local: src/google/... (ADK) OR env/... (Deps)
-    
     if rel_path.startswith("env/"):
-        # External dependency in virtualenv, mapped to /workdir/env
         full_path = Path("/workdir") / rel_path
     else:
-        # ADK Source in repo
         full_path = REPO_ROOT / rel_path
     
     if not full_path.exists():
@@ -177,18 +212,6 @@ def inspect_adk_symbol(fqn: str) -> str:
         
     try:
         content = full_path.read_text(encoding="utf-8")
-        
-        # Simple slicing for class/function definition would require AST parsing.
-        # For simplicity in this basic MCP, we return the whole file but truncated?
-        # Or ideally, we rely on the fact that V47 tools did AST parsing.
-        
-        # REUSE V47 LOGIC: Since we can't easily port the heavy AST logic into this single script without 
-        # copying the whole 'tools' library, we will return the Whole File for now, 
-        # but warn about size.
-        # Or better: We just read the file. The LLM has a large context window (2.5 Flash).
-        
-        # Improvement: If it's a class, try to find the class block.
-        # Minimal AST parser
         import ast
         tree = ast.parse(content)
         target_name = fqn.split(".")[-1]
@@ -197,9 +220,7 @@ def inspect_adk_symbol(fqn: str) -> str:
         for node in tree.body:
             if isinstance(node, (ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)):
                 if node.name == target_name:
-                    # Found it!
                     lines = content.splitlines()
-                    # ast end_lineno is 1-based
                     start = node.lineno - 1
                     end = node.end_lineno
                     extracted_code = "\n".join(lines[start:end])
@@ -208,11 +229,27 @@ def inspect_adk_symbol(fqn: str) -> str:
         if extracted_code:
             return f"=== Source: {fqn} ===\n\n{extracted_code}"
         else:
-            # Fallback: Return whole file if symbol extraction fails (e.g. module level constant)
             return f"=== File: {rel_path} (Symbol {target_name} not isolated) ===\n\n{content}"
 
     except Exception as e:
         return f"Error reading file: {e}"
+
+@mcp.tool()
+def inspect_adk_symbol(fqn: str) -> str:
+    """
+    Returns the full structured specification (signatures, docstrings, properties) for a symbol from the ranked index.
+    This is the PREFERRED way to understand an API.
+    
+    Args:
+        fqn: The Fully Qualified Name (e.g., 'google.adk.agents.llm_agent.LlmAgent').
+    """
+    _load_index()
+    target = _FQN_MAP.get(fqn)
+    if not target:
+        return f"Symbol '{fqn}' not found in index."
+    
+    # Format nicely as YAML/Text
+    return yaml.safe_dump(target, sort_keys=False)
 
 if __name__ == "__main__":
     _load_index()
