@@ -49,6 +49,7 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
         image_definitions: dict[str, any],
         image_name: str,
         context_instruction: Optional[str] = None,
+        extra_env: Optional[dict[str, str]] = None,
     ):
         super().__init__(
             model_name=model_name,
@@ -59,6 +60,7 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
         self._image_definitions = image_definitions
         self.image_name = image_name
         self.container_name = f"gemini-cli-podman-container-{uuid.uuid4()}"
+        self.extra_env = extra_env or {}
         
         self._is_proxy = False
         self._base_url = None
@@ -75,6 +77,7 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
         image_definitions: dict[str, any],
         image_name: str,
         context_instruction: Optional[str] = None,
+        extra_env: Optional[dict[str, str]] = None,
     ):
         """Async factory for creating an instance."""
         instance = cls(
@@ -83,16 +86,24 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
             image_definitions,
             image_name,
             context_instruction,
+            extra_env,
         )
         await super(GeminiCliPodmanAnswerGenerator, instance)._async_init()
         return instance
 
     @property
     def name(self) -> str:
-        return (
+        base = (
             f"GeminiCliPodmanAnswerGenerator({self.model_name},"
             f" image={self.image_name})"
         )
+        if self.extra_env:
+            # Append hash or summary of extra_env to distinguish instances
+            import hashlib
+            env_str = json.dumps(self.extra_env, sort_keys=True)
+            env_hash = hashlib.md5(env_str.encode()).hexdigest()[:6]
+            return f"{base}[env:{env_hash}]"
+        return base
 
     @property
     def description(self) -> str:
@@ -226,6 +237,11 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
         if not self._setup_completed:
             await self.setup()
 
+        # Merge instance-level extra_env with call-level extra_env
+        combined_env = (self.extra_env or {}).copy()
+        if extra_env:
+            combined_env.update(extra_env)
+
         full_args = list(command_parts)
         is_generation = "--model" in full_args
         if is_generation and self.context_instruction:
@@ -235,14 +251,14 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
 
         try:
             if self._is_proxy:
-                 payload = {"args": full_args, "env": extra_env or {}}
+                 payload = {"args": full_args, "env": combined_env}
                  async with aiohttp.ClientSession() as session:
                     async with session.post(self._base_url, json=payload) as resp:
                         if resp.status != 200:
                             raise RuntimeError(f"Proxy returned {resp.status}")
                         result = await resp.json()
             else:
-                result = await self.container.send_command(full_args, extra_env)
+                result = await self.container.send_command(full_args, combined_env)
 
         except Exception as e:
             raise RuntimeError(f"Failed to communicate with API server: {e}")

@@ -45,16 +45,18 @@ api_key_manager = ApiKeyManager()
 # This structure is compatible with the current run_benchmarks.py orchestrator
 # which expects a list of AnswerGenerator objects and handles async setup() calls explicitly.
 CANDIDATE_GENERATORS = [
-     GeminiCliPodmanAnswerGenerator(
+    GeminiCliPodmanAnswerGenerator(
         image_definitions=IMAGE_DEFINITIONS,
-        image_name="gemini-cli:mcp_adk_agent_runner_basic",
+        image_name="gemini-cli:mcp_adk_agent_runner_ranked_knowledge",
         model_name=ModelName.GEMINI_2_5_PRO,
-        api_key_manager=api_key_manager
+        api_key_manager=api_key_manager,
+        extra_env={"ADK_SEARCH_PROVIDER": "bm25"}
     ),
     GeminiCliPodmanAnswerGenerator(
         image_definitions=IMAGE_DEFINITIONS,
         image_name="gemini-cli:mcp_adk_agent_runner_ranked_knowledge",
         model_name=ModelName.GEMINI_2_5_PRO,
-        api_key_manager=api_key_manager
+        api_key_manager=api_key_manager,
+        extra_env={"ADK_SEARCH_PROVIDER": "keyword"}
     ),
 ]
