@@ -175,7 +175,7 @@ class ConsoleBenchmarkLogger(BenchmarkLogger):
         max_name_len = min(max_name_len, 50) # Cap width
 
         # Headers
-        headers = f"{'Benchmark':<{max_name_len}} | {'Result':<10} | {'Duration':<8} | {'Attempts'}"
+        headers = f"{'Benchmark':<{max_name_len}} | {'Result':<10} | {'Total Time':<10} | {'Last Run':<8} | {'Att.'}"
         separator = "-" * len(headers)
         
         print("\n")
@@ -191,11 +191,28 @@ class ConsoleBenchmarkLogger(BenchmarkLogger):
             
             is_pass = res.status == "pass"
             color = Fore.GREEN if is_pass else Fore.RED
-            status_str = "PASS" if is_pass else "FAIL"
+            
+            # Granular Status
+            if res.status == "pass":
+                status_str = "PASS"
+            elif res.status == "fail_validation":
+                status_str = "FAIL(V)"
+            elif res.status == "fail_generation":
+                status_str = "FAIL(G)"
+            elif res.status == "fail_setup":
+                status_str = "FAIL(S)"
+            else:
+                status_str = str(res.status).upper()
             
             attempts_count = len(res.generation_attempts) if res.generation_attempts else 0
             
-            row = f"{name:<{max_name_len}} | {status_str:<10} | {res.latency:6.2f}s | {attempts_count}"
+            # Duration logic
+            total_time = res.latency
+            last_run_time = 0.0
+            if res.generation_attempts:
+                last_run_time = res.generation_attempts[-1].duration
+            
+            row = f"{name:<{max_name_len}} | {status_str:<10} | {total_time:9.2f}s | {last_run_time:7.2f}s | {attempts_count}"
             self._print(row, color)
         
         self._print(separator)
@@ -293,13 +310,28 @@ class TraceMarkdownLogger(BenchmarkLogger):
 
         with open(self.output_file, "a", encoding="utf-8") as f:
             f.write("\n## Summary Table\n\n")
-            f.write("| Benchmark | Result | Duration | Attempts |\n")
-            f.write("| :--- | :---: | :---: | :---: |\n")
+            f.write("| Benchmark | Result | Total Time | Last Run | Attempts |\n")
+            f.write("| :--- | :---: | :---: | :---: | :---: |\n")
             
             for res in results:
-                status_icon = "✅ PASS" if res.status == "pass" else "❌ FAIL"
+                # Granular Status Icons
+                if res.status == "pass":
+                    status_icon = "✅ PASS"
+                elif res.status == "fail_validation":
+                    status_icon = "❌ FAIL(V)"
+                elif res.status == "fail_generation":
+                    status_icon = "💥 FAIL(G)"
+                elif res.status == "fail_setup":
+                    status_icon = "⚠️ FAIL(S)"
+                else:
+                    status_icon = f"❓ {res.status}"
+
                 attempts_count = len(res.generation_attempts) if res.generation_attempts else 0
-                f.write(f"| {res.benchmark_name} | {status_icon} | {res.latency:.2f}s | {attempts_count} |\n")
+                
+                total_time = res.latency
+                last_run_time = res.generation_attempts[-1].duration if res.generation_attempts else 0.0
+
+                f.write(f"| {res.benchmark_name} | {status_icon} | {total_time:.2f}s | {last_run_time:.2f}s | {attempts_count} |\n")
             
             f.write("\n")
 
