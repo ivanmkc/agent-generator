@@ -16,7 +16,7 @@ except ImportError:
 
 # Configuration
 RANKED_INDEX_PATH = Path("/app/data/ranked_targets.yaml")
-REPO_ROOT = Path("/workdir/repos/adk-python")
+REPO_ROOT = Path("/app/adk-python")
 SEARCH_PROVIDER_TYPE = os.environ.get("ADK_SEARCH_PROVIDER", "bm25").lower()
 
 # Initialize Server

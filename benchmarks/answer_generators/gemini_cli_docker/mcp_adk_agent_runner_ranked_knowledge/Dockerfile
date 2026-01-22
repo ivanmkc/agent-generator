@@ -6,6 +6,7 @@ RUN pip install --no-cache-dir mcp pyyaml rank-bm25
 
 # Install adk-python
 RUN pip install --no-cache-dir /workdir/repos/adk-python
+RUN mv /workdir/repos/adk-python /app/adk-python && rm -rf /workdir/repos
 
 # Create directory for app data
 RUN mkdir -p /app/data /app/tools

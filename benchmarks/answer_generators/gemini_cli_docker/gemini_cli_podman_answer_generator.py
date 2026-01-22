@@ -50,6 +50,7 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
         image_name: str,
         context_instruction: Optional[str] = None,
         extra_env: Optional[dict[str, str]] = None,
+        experiment_id: Optional[str] = None,
     ):
         super().__init__(
             model_name=model_name,
@@ -61,6 +62,7 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
         self.image_name = image_name
         self.container_name = f"gemini-cli-podman-container-{uuid.uuid4()}"
         self.extra_env = extra_env or {}
+        self.experiment_id = experiment_id
         
         self._is_proxy = False
         self._base_url = None
@@ -78,6 +80,7 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
         image_name: str,
         context_instruction: Optional[str] = None,
         extra_env: Optional[dict[str, str]] = None,
+        experiment_id: Optional[str] = None,
     ):
         """Async factory for creating an instance."""
         instance = cls(
@@ -87,16 +90,22 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
             image_name,
             context_instruction,
             extra_env,
+            experiment_id,
         )
         await super(GeminiCliPodmanAnswerGenerator, instance)._async_init()
         return instance
 
     @property
     def name(self) -> str:
+        if self.experiment_id:
+            # Concise naming for experiments
+            return f"{self.experiment_id} ({self.model_name})"
+
         base = (
             f"GeminiCliPodmanAnswerGenerator({self.model_name},"
             f" image={self.image_name})"
         )
+
         if self.extra_env:
             # Append hash or summary of extra_env to distinguish instances
             import hashlib
