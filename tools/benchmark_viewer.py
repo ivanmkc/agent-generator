@@ -8,7 +8,7 @@ import difflib
 import re
 from typing import List
 from pydantic import TypeAdapter
-from benchmarks.data_models import BenchmarkRunResult, BenchmarkResultType, ForensicData, CaseSummary, ForensicInsight
+from benchmarks.data_models import BenchmarkRunResult, BenchmarkResultType, ForensicData, CaseSummary, ForensicInsight, TraceLogEvent
 from benchmarks.benchmark_candidates import CANDIDATE_GENERATORS
 from tools.analysis.analyze_benchmark_run import analyze_benchmark_run
 
@@ -293,10 +293,13 @@ def render_diff(generated, expected):
 
 
 
-def merge_consecutive_events(events: List[dict]) -> List[dict]:
+def merge_consecutive_events(events: List[dict | TraceLogEvent]) -> List[dict]:
     """Merges consecutive events of the same type/role."""
     if not events:
         return []
+    
+    # Ensure all events are dictionaries to avoid AttributeError if passed Pydantic models
+    events = [e.model_dump() if isinstance(e, TraceLogEvent) else e for e in events]
     
     merged = []
     current = None
@@ -467,8 +470,6 @@ def render_logs(logs):
             return "Model Responses"
         if t == "message":
             return "Messages"
-        if t in ["CLI_STDOUT_FULL", "CLI_STDOUT_RAW", "CLI_STDERR"]:
-            return "CLI Output"
         if t == "GEMINI_CLIENT_ERROR":
             return "Errors"
         if t == "GEMINI_API_RESPONSE":
@@ -534,15 +535,6 @@ def render_logs(logs):
             else:
                 with st.chat_message(role): # Generic role
                     st.write(event.get("content"))
-
-        # 3. CLI Stdout/Stderr
-        elif e_type in ["CLI_STDOUT_FULL", "CLI_STDOUT_RAW"]:
-            with st.expander(f"📄 CLI Output ({e_type})", expanded=True):
-                st.code(event.get("content", ""), language="text")
-
-        elif e_type == "CLI_STDERR":
-            with st.expander("⚠️ CLI Stderr (Logs)", expanded=True):
-                st.code(event.get("content", ""), language="text")
 
         # 4. Critical Errors
         elif e_type == "GEMINI_CLIENT_ERROR":

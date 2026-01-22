@@ -391,6 +391,12 @@ class LogAnalyzer:
                 prompt = row.get("prompt", "")
                 one_liner = await CASE_DOC_MANAGER.get_one_liner(case_name, prompt, self.model_name)
                 
+                # Sanitize one-liner
+                if one_liner:
+                    one_liner = one_liner.replace("\n", " ").strip()
+                    if "compliance with the License" in one_liner or "apache.org/licenses" in one_liner:
+                         one_liner = "Check source for details."
+                
                 case_line = f"\n  CASE: {case_name} -- \"{one_liner}\" -> {icon} {result}"
                 lines.append(case_line)
                 current_chars += len(case_line)
@@ -689,7 +695,9 @@ class LogAnalyzer:
                 lower_line = line.lower()
                 if (lower_line.startswith("# copyright") or 
                     lower_line.startswith("# licensed under") or
-                    lower_line.strip() == "#"):
+                    lower_line.strip() == "#" or
+                    "compliance with the license" in lower_line or
+                    "apache.org/licenses" in lower_line):
                     continue
                 cleaned_forensic.append(line)
             
@@ -820,6 +828,8 @@ class LogAnalyzer:
 
             print(f"  {Bcolors.OKBLUE}Analyzing {gen_name}...{Bcolors.ENDC}")
             analysis = await self._analyze_generator(generator_name=gen_name, log_text=log_text, tool_stats_text=gen_tool_stats)
+            # FORCE override generator name to prevent LLM hallucinations/license text injection
+            analysis.generator_name = gen_name
             generator_analyses.append(analysis)
             
             # Create a brief summary text for the high-level prompt

@@ -10,6 +10,7 @@ import sys
 sys.modules["streamlit"] = MagicMock()
 
 from tools.benchmark_viewer import _get_concise_error_message, merge_consecutive_events
+from benchmarks.data_models import TraceLogEvent, TraceEventType
 
 
 def test_merge_consecutive_events_empty():
@@ -88,6 +89,19 @@ def test_merge_consecutive_events_non_string_content():
     ]
     expected = [{"type": "message", "role": "user", "content": "123\n456"}]
     assert merge_consecutive_events(events) == expected
+
+
+def test_merge_consecutive_events_tracelogevent_objects():
+    """Tests that TraceLogEvent objects are correctly handled and merged."""
+    events = [
+        TraceLogEvent(type=TraceEventType.MESSAGE, role="user", content="Hello"),
+        TraceLogEvent(type=TraceEventType.MESSAGE, role="user", content="World"),
+    ]
+    merged = merge_consecutive_events(events)
+    assert len(merged) == 1
+    assert merged[0]["type"] == "message"
+    assert merged[0]["role"] == "user"
+    assert merged[0]["content"] == "Hello\nWorld"
 
 
 

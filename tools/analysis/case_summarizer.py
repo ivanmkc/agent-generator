@@ -2,6 +2,8 @@ import yaml
 import fcntl
 import logging
 import hashlib
+import asyncio
+import random
 from pathlib import Path
 from typing import Dict, Any, Optional
 from google.genai import Client, types
@@ -11,6 +13,10 @@ from pydantic import BaseModel, Field
 # Configure Logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+
+MAX_RETRIES = 3
+BASE_WAIT = 2
+
 
 SUMMARY_PROMPT = """Analyze the following AI benchmark prompt/instruction.
 Extract a single, concise one-liner description of the ACTUAL task or question being asked.
@@ -168,36 +174,59 @@ class CaseDocManager:
             logger.error(f"Failed to write case cache: {e}")
 
     async def _generate_summary(self, prompt_text: str, model_name: str) -> str:
-        """Uses Gemini to generate the one-liner."""
+        """Uses Gemini to generate the one-liner with retries."""
         
         # Truncate prompt if huge
         if len(prompt_text) > 30000:
             prompt_text = prompt_text[:30000] + "\n...(truncated)"
-            
-        api_key = await API_KEY_MANAGER.get_next_key(KeyType.GEMINI_API)
-        if not api_key:
-            raise RuntimeError("No API key available for summary generation")
-            
-        client = Client(api_key=api_key)
+
+        last_error = None
         
-        response = await client.aio.models.generate_content(
-            model=model_name, 
-            contents=[types.Content(parts=[types.Part(text=SUMMARY_PROMPT.format(prompt=prompt_text))])],
-            config=types.GenerateContentConfig(
-                response_mime_type="application/json",
-                response_schema=CaseOneLiner
-            )
-        )
+        for attempt in range(MAX_RETRIES):
+            api_key, key_id = await API_KEY_MANAGER.get_next_key_with_id(KeyType.GEMINI_API)
+            if not api_key:
+                raise RuntimeError("No API key available for summary generation")
+                
+            client = Client(api_key=api_key)
+            
+            try:
+                response = await client.aio.models.generate_content(
+                    model=model_name, 
+                    contents=[types.Content(parts=[types.Part(text=SUMMARY_PROMPT.format(prompt=prompt_text))])],
+                    config=types.GenerateContentConfig(
+                        response_mime_type="application/json",
+                        response_schema=CaseOneLiner
+                    )
+                )
+                
+                if not response or not response.text:
+                     raise RuntimeError("LLM returned empty response for summary")
+                
+                # Report success
+                await API_KEY_MANAGER.report_result(KeyType.GEMINI_API, key_id, True)
+
+                try:
+                    res_obj = CaseOneLiner.model_validate_json(response.text)
+                    return res_obj.one_liner
+                except Exception as e:
+                    logger.error(f"Failed to parse one-liner output: {e}")
+                    # If parsing fails, it's not strictly an API error, but we might want to retry generation
+                    # or just fail. Let's count it as a failure for the key (maybe the model is acting up)
+                    raise e
+
+            except Exception as e:
+                last_error = e
+                error_msg = str(e)
+                logger.warning(f"Summary generation attempt {attempt+1}/{MAX_RETRIES} failed: {error_msg}")
+                
+                # Report failure to manager (handles cooldowns)
+                await API_KEY_MANAGER.report_result(KeyType.GEMINI_API, key_id, False, error_message=error_msg)
+                
+                # Exponential backoff
+                wait_time = BASE_WAIT * (2 ** attempt) + random.random()
+                await asyncio.sleep(wait_time)
         
-        if not response or not response.text:
-             raise RuntimeError("LLM returned empty response for summary")
-             
-        try:
-            res_obj = CaseOneLiner.model_validate_json(response.text)
-            return res_obj.one_liner
-        except Exception as e:
-            logger.error(f"Failed to parse one-liner output: {e}")
-            raise e
+        raise last_error if last_error else RuntimeError("Summary generation failed after retries")
 
 # Global instance
 CASE_DOC_MANAGER = CaseDocManager()
