@@ -58,7 +58,7 @@ benchmarks:
   benchmark_type: multiple_choice
 - id: diagnose_setup_errors_mc:delegation_in_tools
   question: You have a `root_agent` and a `specialist_agent`. You want the root to delegate tasks to the specialist. What is the correct way to register the specialist for delegation?
-  option
+  options:
     A: Use `child_agents=[specialist_agent]`.
     B: Use `sub_agents=[specialist_agent]`.
     C: Use `delegates=[specialist_agent]`.
