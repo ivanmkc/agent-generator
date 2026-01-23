@@ -16,7 +16,10 @@
 - **Benchmark Viewer Feature:** 
     - Added ability to display AI-generated case descriptions/explanations by loading the source benchmark definition files (YAML/JSONL).
     - Integrated `benchmarks/case_docs_cache.yaml` to show prioritized `one_liner` descriptions for each case.
-    - Enhanced "Benchmark Case Definition" expander to show file paths for `fix_error` cases and always display the full source JSON.
+    - Simplified "Benchmark Case Definition" expander by removing redundant individual fields and displaying the full source JSON directly.
     - Merged redundant "Final Status" and error message boxes into a single, unified status component.
 - **Benchmark Viewer Bugfix:** Fixed `NameError: name 'cases' is not defined` by restoring the accidentally truncated `load_benchmark_suite` function body.
+- **Tool Refactoring:** Refactored `adk_knowledge_mcp.py` to split `inspect_adk_symbol` into two tools:
+    - `inspect_adk_symbol`: Now returns the **structured specification** (YAML) from the index.
+    - `read_adk_source_code`: Preserves the old functionality of reading raw source code from disk.
 - **Verification:** Verified compilation with `py_compile`.
