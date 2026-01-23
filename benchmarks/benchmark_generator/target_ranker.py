@@ -226,56 +226,282 @@ class TargetRanker:
             ordered_ids.append(o["id"])
             target_groups[o["id"]] = "Orphan"
 
-        # Helpers for Retrieval
-        def get_methods_for_class(cls_fqn):
-            methods = []
-            struct = structure_map.get(cls_fqn)
-            if not struct: return []
-            
-            children = struct.get("children", [])
-            for child_fqn in children:
-                child_name = child_fqn.split(".")[-1]
-                if not child_name.startswith("_") or child_name == "_run_async_impl":
-                    child_struct = structure_map.get(child_fqn)
-                    if child_struct and child_struct.get("type") != "Method":
-                        continue 
+    def _get_methods_for_class(self, cls_fqn, structure_map, entity_map):
+        methods = []
+        struct = structure_map.get(cls_fqn)
+        if not struct: return []
+        
+        children = struct.get("children", [])
+        for child_fqn in children:
+            child_name = child_fqn.split(".")[-1]
+            if not child_name.startswith("_") or child_name == "_run_async_impl":
+                child_struct = structure_map.get(child_fqn)
+                if child_struct and child_struct.get("type") != "Method":
+                    continue 
 
-                    child_entity = entity_map.get(child_fqn)
-                    sig = child_entity.get("signature_full") if child_entity else None
-                    if not sig and child_struct:
-                         sig = child_struct.get("signature")
-                    if not sig:
-                        sig = f"def {child_name}(...):"
-                    
-                    m_doc = child_entity.get("docstring") if child_entity else None
-                    if not m_doc and child_struct:
-                         m_doc = child_struct.get("docstring")
-                    
-                    method_entry = {"signature": sig}
-                    if m_doc:
-                        method_entry["docstring"] = self.clean_text(m_doc)
-                    
-                    if self.should_include(method_entry):
-                        methods.append(MemberInfo(**method_entry))
-            return methods
+                child_entity = entity_map.get(child_fqn)
+                sig = child_entity.get("signature_full") if child_entity else None
+                if not sig and child_struct:
+                        sig = child_struct.get("signature")
+                if not sig:
+                    sig = f"def {child_name}(...):"
+                
+                m_doc = child_entity.get("docstring") if child_entity else None
+                if not m_doc and child_struct:
+                        m_doc = child_struct.get("docstring")
+                
+                method_entry = {"signature": sig}
+                if m_doc:
+                    method_entry["docstring"] = self.clean_text(m_doc)
+                
+                if self.should_include(method_entry):
+                    methods.append(MemberInfo(**method_entry))
+        return methods
 
-        def get_properties_for_class(cls_fqn):
-            properties = []
-            struct = structure_map.get(cls_fqn)
-            if not struct: return []
+    def _get_properties_for_class(self, cls_fqn, structure_map):
+        properties = []
+        struct = structure_map.get(cls_fqn)
+        if not struct: return []
+        
+        props = struct.get("props", [])
+        for p in props:
+            sig = f"{p['name']}: {p['type']}"
+            p_doc = p.get("docstring")
             
-            props = struct.get("props", [])
-            for p in props:
-                sig = f"{p['name']}: {p['type']}"
-                p_doc = p.get("docstring")
+            prop_entry = {"signature": sig}
+            if p_doc:
+                prop_entry["docstring"] = self.clean_text(p_doc)
+            
+            if self.should_include(prop_entry):
+                properties.append(MemberInfo(**prop_entry))
+        return properties
+
+    def reconstruct_constructor_signature(self, cls_fqn, structure_map, entity_map, adk_inheritance):
+        """
+        Deterministic reconstruction of constructor signature for classes without explicit __init__.
+        Handles Pydantic models by aggregating fields from the MRO.
+        """
+        struct = structure_map.get(cls_fqn)
+        if not struct:
+            return None
+
+        # 1. Check for explicit __init__
+        children = struct.get("children", [])
+        has_init = any(c.split(".")[-1] == "__init__" for c in children)
+        if has_init:
+            return None # Already has explicit init
+
+        # 2. Analyze MRO to detect Pydantic models or inherit parent __init__
+        # This uses BFS to gather the hierarchy. 
+        # Note: A proper MRO linearization would be better but BFS is a decent proxy for gathering members.
+        queue = [cls_fqn]
+        visited = {cls_fqn}
+        hierarchy = [] 
+        
+        is_pydantic = False
+        first_init_sig = None
+
+        while queue:
+            curr = queue.pop(0)
+            hierarchy.append(curr)
+            
+            curr_struct = structure_map.get(curr)
+            if not curr_struct: continue
+            
+            # Check bases for Pydantic marker
+            bases = curr_struct.get("bases", [])
+            for b in bases:
+                if "BaseModel" in b or "pydantic" in b.lower():
+                    is_pydantic = True
+            
+            # Check for inherited __init__ (if we haven't found one yet)
+            if not first_init_sig and curr != cls_fqn:
+                 curr_children = curr_struct.get("children", [])
+                 for c in curr_children:
+                     if c.endswith(".__init__"):
+                         # Found the first parent __init__
+                         m_entity = entity_map.get(c)
+                         if m_entity:
+                             first_init_sig = m_entity.get("signature_full")
+            
+            # Add parents to queue
+            parents = adk_inheritance.get(curr, [])
+            for p in parents:
+                if p not in visited:
+                    visited.add(p)
+                    queue.append(p)
+        
+        if is_pydantic:
+            # For Pydantic, collect all properties (fields) from the hierarchy
+            fields = []
+            seen_fields = set()
+            
+            # Traverse roughly base-to-child to emulate init kwarg order (though Pydantic is flexible)
+            for ancestor in reversed(hierarchy):
+                props = self._get_properties_for_class(ancestor, structure_map) 
+                for p in props:
+                    # p is MemberInfo, signature is usually "name: type"
+                    # We accept it as is to form the kwargs list
+                    name = p.signature.split(":")[0].strip()
+                    if name not in seen_fields:
+                        seen_fields.add(name)
+                        fields.append(p.signature)
+            
+            if fields:
+                return f"def __init__(self, *, {', '.join(fields)}):"
+        
+        # Fallback: if not Pydantic but we found a parent __init__, use that
+        if first_init_sig:
+            return first_init_sig
+
+        return None
+
+    async def generate(self, output_yaml_path: str = "benchmarks/benchmark_generator/data/ranked_targets.yaml", output_md_path: str = "benchmarks/benchmark_generator/data/ranked_targets.md"):
+        # Ensure output directory exists
+        Path(output_yaml_path).parent.mkdir(parents=True, exist_ok=True)
+        
+        # Setup Context
+        session_service = InMemorySessionService()
+        session = await session_service.create_session(session_id="gen_rank", user_id="ranker", app_name="ranker")
+        
+        session.state["repo_path"] = self.repo_path
+        session.state["target_namespace"] = self.namespace
+        session.state["stats_file_path"] = self.stats_file
+        
+        inv_context = InvocationContext(
+            invocation_id="rank_inv",
+            agent=MockAgent(name="ranker_agent"),
+            session=session,
+            session_service=session_service
+        )
+        
+        context = ToolContext(
+            invocation_context=inv_context,
+            function_call_id="rank_call",
+            event_actions=None,
+            tool_confirmation=None
+        )
+        
+        # --- Multi-pass Scanning ---
+        all_targets = []
+        all_structure = {}
+        
+        # 1. Scan ADK Repo (Main)
+        logger.info(f"Scanning ADK repo: {self.repo_path}...")
+        scan_repository(repo_path=self.repo_path, tool_context=context, namespace=self.namespace)
+        if "scanned_targets" in session.state:
+            all_targets.extend(session.state["scanned_targets"])
+        if "structure_map" in session.state:
+            all_structure.update(session.state["structure_map"])
+            
+        # 2. Scan External Dependencies
+        for dep_path, dep_ns in self.external_deps:
+            if os.path.exists(dep_path):
+                logger.info(f"Scanning external dependency: {dep_ns} at {dep_path}...")
+                # Clear previous scan results from state to avoid confusion (scan_repository overwrites)
+                session.state["scanned_targets"] = []
+                session.state["structure_map"] = {}
                 
-                prop_entry = {"signature": sig}
-                if p_doc:
-                    prop_entry["docstring"] = self.clean_text(p_doc)
+                scan_repository(
+                    repo_path=dep_path, 
+                    tool_context=context, 
+                    namespace=dep_ns,
+                    root_namespace_prefix=dep_ns
+                )
                 
-                if self.should_include(prop_entry):
-                    properties.append(MemberInfo(**prop_entry))
-            return properties
+                # Fix paths to be relative to project root
+                if "scanned_targets" in session.state and isinstance(session.state["scanned_targets"], list):
+                    for t in session.state["scanned_targets"]:
+                        if t.get("file_path"):
+                            t["file_path"] = os.path.join(dep_path, t["file_path"])
+                
+                if "scanned_targets" in session.state:
+                    all_targets.extend(session.state["scanned_targets"])
+                if "structure_map" in session.state:
+                    all_structure.update(session.state["structure_map"])
+            else:
+                logger.warning(f"External dependency path not found: {dep_path}")
+
+        # Restore aggregated data to session state
+        session.state["scanned_targets"] = all_targets
+        session.state["structure_map"] = all_structure
+        
+        targets_data = all_targets
+        structure_map = all_structure
+        
+        logger.info(f"Total targets scanned: {len(targets_data)}")
+        
+        # Inheritance Resolution
+        logger.info("Resolving inheritance...")
+        adk_inheritance = defaultdict(list)
+        external_bases = defaultdict(list)
+        
+        class_fqns = [k for k, v in structure_map.items() if v["type"] == "Class"]
+        
+        for cls_fqn in class_fqns:
+            bases = structure_map[cls_fqn].get("bases", [])
+            for base in bases:
+                match = None
+                if base in structure_map: match = base
+                
+                if not match:
+                    candidates = [k for k in class_fqns if k.endswith(f".{base}")]
+                    if len(candidates) == 1:
+                        match = candidates[0]
+                    elif len(candidates) > 1:
+                        candidates.sort(key=lambda x: len(os.path.commonprefix([x, cls_fqn])), reverse=True)
+                        match = candidates[0]
+                
+                if match:
+                    adk_inheritance[cls_fqn].append(match)
+                else:
+                    external_bases[cls_fqn].append(base)
+
+        # Ranking
+        cooccurrence_path = Path("benchmarks/adk_cooccurrence.json")
+        entity_map = {t["id"]: t for t in targets_data}
+        
+        # Load co-occurrence if exists
+        associations = []
+        if cooccurrence_path.exists():
+            with open(cooccurrence_path, "r") as f:
+                cooccurrence_data = json.load(f)
+                associations = cooccurrence_data.get("associations", [])
+
+        graph = defaultdict(list)
+        for a in associations:
+            if a["context"] in entity_map and a["target"] in entity_map:
+                graph[a["context"]].append(a["target"])
+                
+        seeds = [t for t in targets_data if t.get("usage_score", 0) > 0]
+        seeds.sort(key=lambda t: t.get("usage_score", 0), reverse=True)
+        
+        ordered_ids = []
+        visited = set()
+        target_groups = {}
+        
+        for s in seeds:
+            if s["id"] not in visited:
+                visited.add(s["id"])
+                ordered_ids.append(s["id"])
+                target_groups[s["id"]] = "Seed"
+                
+        idx = 0
+        while idx < len(ordered_ids):
+            curr_id = ordered_ids[idx]
+            idx += 1
+            for dep_id in graph.get(curr_id, []):
+                if dep_id not in visited:
+                    visited.add(dep_id)
+                    ordered_ids.append(dep_id)
+                    target_groups[dep_id] = "Dependency"
+                    
+        orphans = [t for t in targets_data if t["id"] not in visited]
+        orphans.sort(key=lambda t: t.get("id"))
+        
+        for o in orphans:
+            ordered_ids.append(o["id"])
+            target_groups[o["id"]] = "Orphan"
 
         logger.info(f"Writing detailed YAML to {output_yaml_path}...")
         
@@ -298,12 +524,17 @@ class TargetRanker:
             )
             
             if tid in structure_map:
+                # Constructor Reconstruction (NEW)
+                reconstructed_init = self.reconstruct_constructor_signature(tid, structure_map, entity_map, adk_inheritance)
+                if reconstructed_init:
+                     target_model.constructor_signature = reconstructed_init
+
                 # Own Members
-                own_methods = get_methods_for_class(tid)
+                own_methods = self._get_methods_for_class(tid, structure_map, entity_map)
                 if own_methods:
                     target_model.methods = own_methods
                     
-                own_props = get_properties_for_class(tid)
+                own_props = self._get_properties_for_class(tid, structure_map)
                 if own_props:
                     target_model.properties = own_props
                     
@@ -328,11 +559,11 @@ class TargetRanker:
                     for anc_fqn in ancestors:
                         anc_name = structure_map[anc_fqn]["name"]
                         
-                        anc_methods = get_methods_for_class(anc_fqn)
+                        anc_methods = self._get_methods_for_class(anc_fqn, structure_map, entity_map)
                         if anc_methods:
                             inherited_methods_dict[anc_name] = anc_methods
                         
-                        anc_props = get_properties_for_class(anc_fqn)
+                        anc_props = self._get_properties_for_class(anc_fqn, structure_map)
                         if anc_props:
                             inherited_props_dict[anc_name] = anc_props
                     

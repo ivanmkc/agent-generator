@@ -3,6 +3,9 @@
 # Active
 
 # Completed
+## Generator
+- [x] Implement `reconstruct_constructor_signature` in `TargetRanker` to fix missing init signatures for Pydantic models.
+
 ## Tools
 - [x] `search_adk_knowledge` with param ("query":"context") is broken: "Error executing tool search_adk_knowledge: 'tuple' object has no attribute 'get'". Fixed by correcting the sort lambda in `KeywordSearchProvider`.
 
