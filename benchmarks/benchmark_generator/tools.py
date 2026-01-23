@@ -433,17 +433,48 @@ def scan_repository(repo_path: str, tool_context: ToolContext, coverage_file: Op
                 def visit_AsyncFunctionDef(self, node):
                     self._visit_any_function(node)
 
-                def _add_prop(self, name, type_hint, docstring=None):
+                def _is_init_excluded_field(self, node):
+                    """Detects if an assignment value is a Field(...) call with init=False."""
+                    try:
+                        if isinstance(node, ast.Call):
+                            # Check for Field/field call (heuristic: name is Field or field)
+                            is_field = False
+                            if isinstance(node.func, ast.Name) and node.func.id in ('Field', 'field'):
+                                is_field = True
+                            elif isinstance(node.func, ast.Attribute) and node.func.attr in ('Field', 'field'):
+                                is_field = True
+                            
+                            if is_field:
+                                for kw in node.keywords:
+                                    if kw.arg == 'init':
+                                        if isinstance(kw.value, ast.Constant) and kw.value.value is False:
+                                            return True
+                    except: pass
+                    return False
+
+                def _is_class_var(self, annotation_node):
+                    """Detects if a type annotation is ClassVar."""
+                    try:
+                        resolved = self.resolve_annotation(annotation_node)
+                        # Check for ClassVar or typing.ClassVar
+                        # resolve_annotation returns strings like "ClassVar[...]" or "typing.ClassVar[...]"
+                        return "ClassVar" in resolved and (resolved.startswith("ClassVar") or "typing.ClassVar" in resolved)
+                    except:
+                        return False
+
+                def _add_prop(self, name, type_hint, docstring=None, init_excluded=False):
                     if not self.current_class_fqn or self.in_function: return
                     # Avoid duplicates
                     props = structure_map[self.current_class_fqn]["props"]
                     if not any(p["name"] == name for p in props):
-                        props.append({"name": name, "type": type_hint, "docstring": docstring})
+                        props.append({"name": name, "type": type_hint, "docstring": docstring, "init_excluded": init_excluded})
 
                 def visit_Assign(self, node):
                     if self.current_class_fqn and not self.in_function:
                         # Try to infer type from value
                         type_hint = "Any"
+                        init_excluded = False
+                        
                         if isinstance(node.value, ast.Constant):
                             type_hint = type(node.value.value).__name__
                         elif isinstance(node.value, ast.Call):
@@ -451,16 +482,30 @@ def scan_repository(repo_path: str, tool_context: ToolContext, coverage_file: Op
                                 type_hint = self.imports.get(node.value.func.id, node.value.func.id)
                             elif isinstance(node.value.func, ast.Attribute):
                                 type_hint = self.resolve_annotation(node.value.func)
+                            
+                            # Check for Field(init=False)
+                            if self._is_init_excluded_field(node.value):
+                                init_excluded = True
 
                         for target in node.targets:
                             if isinstance(target, ast.Name) and not target.id.startswith("_"):
-                                self._add_prop(target.id, type_hint)
+                                self._add_prop(target.id, type_hint, init_excluded=init_excluded)
                     self.generic_visit(node)
 
                 def visit_AnnAssign(self, node):
                     if self.current_class_fqn and not self.in_function and isinstance(node.target, ast.Name) and not node.target.id.startswith("_"):
                         prop_type = self.resolve_annotation(node.annotation)
-                        self._add_prop(node.target.id, prop_type)
+                        
+                        init_excluded = False
+                        # Check ClassVar
+                        if self._is_class_var(node.annotation):
+                            init_excluded = True
+                        
+                        # Check Field(init=False) in value
+                        if node.value and self._is_init_excluded_field(node.value):
+                            init_excluded = True
+                            
+                        self._add_prop(node.target.id, prop_type, init_excluded=init_excluded)
                     self.generic_visit(node)
                 
                 # Removed old visit_ImportFrom that was here, merged into top class logic

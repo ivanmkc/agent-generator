@@ -100,8 +100,8 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, name: str, description: str, parent_agent: typing.Optional[google.adk.agents.base_agent.BaseAgent], sub_agents: list[google.adk.agents.base_agent.BaseAgent], before_agent_callback: typing.Optional[google.adk.agents.base_agent.BeforeAgentCallback], after_agent_callback: typing.Optional[google.adk.agents.base_agent.AfterAgentCallback], model: typing.Union[str, google.adk.models.base_llm.BaseLlm], instruction: typing.Union[str, google.adk.agents.llm_agent.InstructionProvider], global_instruction: typing.Union[str, google.adk.agents.llm_agent.InstructionProvider], static_instruction: typing.Optional[google.genai.types.ContentUnion], tools: list[google.adk.agents.llm_agent.ToolUnion], generate_content_config: typing.Optional[google.genai.types.GenerateContentConfig], disallow_transfer_to_parent: bool, disallow_transfer_to_peers: bool, include_contents: typing.Literal[default, none], input_schema: typing.Optional[type[pydantic.BaseModel]], output_schema:
-    typing.Optional[type[pydantic.BaseModel]], output_key: typing.Optional[str], planner: typing.Optional[google.adk.planners.base_planner.BasePlanner], code_executor: typing.Optional[google.adk.code_executors.base_code_executor.BaseCodeExecutor], before_model_callback: typing.Optional[google.adk.agents.llm_agent.BeforeModelCallback], after_model_callback: typing.Optional[google.adk.agents.llm_agent.AfterModelCallback], on_model_error_callback: typing.Optional[google.adk.agents.llm_agent.OnModelErrorCallback], before_tool_callback: typing.Optional[google.adk.agents.llm_agent.BeforeToolCallback], after_tool_callback: typing.Optional[google.adk.agents.llm_agent.AfterToolCallback], on_tool_error_callback: typing.Optional[google.adk.agents.llm_agent.OnToolErrorCallback]):'
+  constructor_signature: 'def __init__(self, *, name: str, description: str, sub_agents: list[google.adk.agents.base_agent.BaseAgent], before_agent_callback: typing.Optional[google.adk.agents.base_agent.BeforeAgentCallback], after_agent_callback: typing.Optional[google.adk.agents.base_agent.AfterAgentCallback], model: typing.Union[str, google.adk.models.base_llm.BaseLlm], instruction: typing.Union[str, google.adk.agents.llm_agent.InstructionProvider], global_instruction: typing.Union[str, google.adk.agents.llm_agent.InstructionProvider], static_instruction: typing.Optional[google.genai.types.ContentUnion], tools: list[google.adk.agents.llm_agent.ToolUnion], generate_content_config: typing.Optional[google.genai.types.GenerateContentConfig], disallow_transfer_to_parent: bool, disallow_transfer_to_peers: bool, include_contents: typing.Literal[default, none], input_schema: typing.Optional[type[pydantic.BaseModel]], output_schema: typing.Optional[type[pydantic.BaseModel]], output_key: typing.Optional[str],
+    planner: typing.Optional[google.adk.planners.base_planner.BasePlanner], code_executor: typing.Optional[google.adk.code_executors.base_code_executor.BaseCodeExecutor], before_model_callback: typing.Optional[google.adk.agents.llm_agent.BeforeModelCallback], after_model_callback: typing.Optional[google.adk.agents.llm_agent.AfterModelCallback], on_model_error_callback: typing.Optional[google.adk.agents.llm_agent.OnModelErrorCallback], before_tool_callback: typing.Optional[google.adk.agents.llm_agent.BeforeToolCallback], after_tool_callback: typing.Optional[google.adk.agents.llm_agent.AfterToolCallback], on_tool_error_callback: typing.Optional[google.adk.agents.llm_agent.OnToolErrorCallback]):'
   methods:
   - signature: 'def _run_async_impl(self, ctx: google.adk.agents.invocation_context.InvocationContext) -> typing.AsyncGenerator[google.adk.events.event.Event, None]:'
   - signature: 'def collect_agents(agent):'
@@ -356,7 +356,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, name: str, description: str, parent_agent: typing.Optional[google.adk.agents.base_agent.BaseAgent], sub_agents: list[google.adk.agents.base_agent.BaseAgent], before_agent_callback: typing.Optional[google.adk.agents.base_agent.BeforeAgentCallback], after_agent_callback: typing.Optional[google.adk.agents.base_agent.AfterAgentCallback], max_iterations: typing.Optional[int]):'
+  constructor_signature: 'def __init__(self, *, name: str, description: str, sub_agents: list[google.adk.agents.base_agent.BaseAgent], before_agent_callback: typing.Optional[google.adk.agents.base_agent.BeforeAgentCallback], after_agent_callback: typing.Optional[google.adk.agents.base_agent.AfterAgentCallback], max_iterations: typing.Optional[int]):'
   methods:
   - signature: 'def _run_async_impl(self, ctx: google.adk.agents.invocation_context.InvocationContext) -> typing.AsyncGenerator[google.adk.events.event.Event, None]:'
   properties:
@@ -550,7 +550,7 @@
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
   constructor_signature: 'def __init__(self, *, model_version: typing.Optional[str], content: typing.Optional[google.genai.types.Content], grounding_metadata: typing.Optional[google.genai.types.GroundingMetadata], partial: typing.Optional[bool], turn_complete: typing.Optional[bool], finish_reason: typing.Optional[google.genai.types.FinishReason], error_code: typing.Optional[str], error_message: typing.Optional[str], interrupted: typing.Optional[bool], custom_metadata: typing.Optional[dict[str, typing.Any]], usage_metadata: typing.Optional[google.genai.types.GenerateContentResponseUsageMetadata], live_session_resumption_update: typing.Optional[google.genai.types.LiveServerSessionResumptionUpdate], input_transcription: typing.Optional[google.genai.types.Transcription], output_transcription: typing.Optional[google.genai.types.Transcription], avg_logprobs: typing.Optional[float], logprobs_result: typing.Optional[google.genai.types.LogprobsResult], cache_metadata: typing.Optional[google.adk.models.cache_metadata.CacheMetadata],
-    citation_metadata: typing.Optional[google.genai.types.CitationMetadata], invocation_id: str, author: str, actions: google.adk.events.event_actions.EventActions, long_running_tool_ids: typing.Optional[set[str]], branch: typing.Optional[str], id: str, timestamp: float):'
+    citation_metadata: typing.Optional[google.genai.types.CitationMetadata], author: str, actions: google.adk.events.event_actions.EventActions, long_running_tool_ids: typing.Optional[set[str]], branch: typing.Optional[str], id: str, timestamp: float):'
   methods:
   - signature: 'def model_post_init(self, __context):'
     docstring: Post initialization logic for the event.
@@ -865,7 +865,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, name: str, description: str, parent_agent: typing.Optional[google.adk.agents.base_agent.BaseAgent], sub_agents: list[google.adk.agents.base_agent.BaseAgent], before_agent_callback: typing.Optional[google.adk.agents.base_agent.BeforeAgentCallback], after_agent_callback: typing.Optional[google.adk.agents.base_agent.AfterAgentCallback]):'
+  constructor_signature: 'def __init__(self, *, name: str, description: str, sub_agents: list[google.adk.agents.base_agent.BaseAgent], before_agent_callback: typing.Optional[google.adk.agents.base_agent.BeforeAgentCallback], after_agent_callback: typing.Optional[google.adk.agents.base_agent.AfterAgentCallback]):'
   methods:
   - signature: 'def _run_async_impl(self, ctx: google.adk.agents.invocation_context.InvocationContext) -> typing.AsyncGenerator[google.adk.events.event.Event, None]:'
   - signature: 'def task_completed():'
@@ -1375,7 +1375,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, name: str, description: str, parent_agent: typing.Optional[google.adk.agents.base_agent.BaseAgent], sub_agents: list[google.adk.agents.base_agent.BaseAgent], before_agent_callback: typing.Optional[google.adk.agents.base_agent.BeforeAgentCallback], after_agent_callback: typing.Optional[google.adk.agents.base_agent.AfterAgentCallback]):'
+  constructor_signature: 'def __init__(self, *, name: str, description: str, sub_agents: list[google.adk.agents.base_agent.BaseAgent], before_agent_callback: typing.Optional[google.adk.agents.base_agent.BeforeAgentCallback], after_agent_callback: typing.Optional[google.adk.agents.base_agent.AfterAgentCallback]):'
   methods:
   - signature: 'def _run_async_impl(self, ctx: google.adk.agents.invocation_context.InvocationContext) -> typing.AsyncGenerator[google.adk.events.event.Event, None]:'
     docstring: Core implementation for async agent execution.
@@ -1711,7 +1711,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, name: str, description: str, parent_agent: typing.Optional[google.adk.agents.base_agent.BaseAgent], sub_agents: list[google.adk.agents.base_agent.BaseAgent], before_agent_callback: typing.Optional[google.adk.agents.base_agent.BeforeAgentCallback], after_agent_callback: typing.Optional[google.adk.agents.base_agent.AfterAgentCallback]):'
+  constructor_signature: 'def __init__(self, *, name: str, description: str, sub_agents: list[google.adk.agents.base_agent.BaseAgent], before_agent_callback: typing.Optional[google.adk.agents.base_agent.BeforeAgentCallback], after_agent_callback: typing.Optional[google.adk.agents.base_agent.AfterAgentCallback]):'
   methods:
   - signature: 'def _run_async_impl(self, ctx: google.adk.agents.invocation_context.InvocationContext) -> typing.AsyncGenerator[google.adk.events.event.Event, None]:'
   properties:
@@ -2347,7 +2347,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, id: str, app_name: str, user_id: str, state: dict[str, typing.Any], events: list[google.adk.events.event.Event], last_update_time: float):'
+  constructor_signature: 'def __init__(self, *, id: str, app_name: str, user_id: str, state: dict[str, typing.Any], events: list[google.adk.events.event.Event]):'
   properties:
   - signature: 'model_config: pydantic.ConfigDict'
     docstring: The pydantic model config.
@@ -2425,7 +2425,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, name: str, description: str, parent_agent: typing.Optional[google.adk.agents.base_agent.BaseAgent], sub_agents: list[google.adk.agents.base_agent.BaseAgent], before_agent_callback: typing.Optional[google.adk.agents.base_agent.BeforeAgentCallback], after_agent_callback: typing.Optional[google.adk.agents.base_agent.AfterAgentCallback]):'
+  constructor_signature: 'def __init__(self, *, name: str, description: str, sub_agents: list[google.adk.agents.base_agent.BaseAgent], before_agent_callback: typing.Optional[google.adk.agents.base_agent.BeforeAgentCallback], after_agent_callback: typing.Optional[google.adk.agents.base_agent.AfterAgentCallback]):'
   methods:
   - signature: 'def clone(self: google.adk.agents.base_agent.SelfAgent, update: Mapping[str, Any] | None) -> google.adk.agents.base_agent.SelfAgent:'
     docstring: "Creates a copy of this agent instance.\n\nArgs:\n  update: Optional mapping of new values for the fields of the cloned agent.\n    The keys of the mapping are the names of the fields to be updated, and\n    the values are the new values for those fields.\n    For example: {\"name\": \"cloned_agent\"}\n\nReturns:\n  A new agent instance with identical configuration as the original\n  agent except for the fields specified in the update."
@@ -2886,8 +2886,8 @@
   - signature: 'OPEN_ID_CONNECT: str'
   - signature: 'SERVICE_ACCOUNT: str'
   omitted_inherited_members_from:
-  - str
   - Enum
+  - str
 - rank: 92
   id: google.adk.agents.sequential_agent
   name: sequential_agent
@@ -3500,7 +3500,7 @@
   usage_score: 0
   docstring: "An invocation context represents the data of a single invocation of an agent.\n\nAn invocation:\n  1. Starts with a user message and ends with a final response.\n  2. Can contain one or multiple agent calls.\n  3. Is handled by runner.run_async().\n\nAn invocation runs an agent until it does not request to transfer to another\nagent.\n\nAn agent call:\n  1. Is handled by agent.run().\n  2. Ends when agent.run() ends.\n\nAn LLM agent call is an agent with a BaseLLMFlow.\nAn LLM agent call can contain one or multiple steps.\n\nAn LLM agent runs steps in a loop until:\n  1. A final response is generated.\n  2. The agent transfers to another agent.\n  3. The end_invocation is set to true by any callbacks or tools.\n\nA step:\n  1. Calls the LLM only once and yields its response.\n  2. Calls the tools and yields their responses if requested.\n\nThe summarization of the function response is considered another step, since\nit is another llm call.\nA step ends when it's done calling\
     \ llm and tools, or if the end_invocation\nis set to true at any time.\n\n```\n   \u250C\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 invocation \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2510\n   \u250C\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 llm_agent_call_1 \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2510 \u250C\u2500 agent_call_2 \u2500\u2510\n   \u250C\u2500\u2500\u2500\u2500 step_1 \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2510 \u250C\u2500\u2500\u2500\u2500\u2500 step_2 \u2500\u2500\u2500\u2500\u2500\u2500\u2510\n   [call_llm] [call_tool] [call_llm] [transfer]\n```\n\n[Note: Inherited members from pydantic.BaseModel are omitted.]"
-  constructor_signature: 'def __init__(self, *, artifact_service: typing.Optional[google.adk.artifacts.base_artifact_service.BaseArtifactService], session_service: google.adk.sessions.base_session_service.BaseSessionService, memory_service: typing.Optional[google.adk.memory.base_memory_service.BaseMemoryService], credential_service: typing.Optional[google.adk.auth.credential_service.base_credential_service.BaseCredentialService], context_cache_config: typing.Optional[google.adk.agents.context_cache_config.ContextCacheConfig], invocation_id: str, branch: typing.Optional[str], agent: google.adk.agents.base_agent.BaseAgent, user_content: typing.Optional[google.genai.types.Content], session: google.adk.sessions.session.Session, agent_states: dict[str, dict[str, typing.Any]], end_of_agents: dict[str, bool], end_invocation: bool, live_request_queue: typing.Optional[google.adk.agents.live_request_queue.LiveRequestQueue], active_streaming_tools: typing.Optional[dict[str, google.adk.agents.active_streaming_tool.ActiveStreamingTool]],
+  constructor_signature: 'def __init__(self, *, artifact_service: typing.Optional[google.adk.artifacts.base_artifact_service.BaseArtifactService], session_service: google.adk.sessions.base_session_service.BaseSessionService, memory_service: typing.Optional[google.adk.memory.base_memory_service.BaseMemoryService], credential_service: typing.Optional[google.adk.auth.credential_service.base_credential_service.BaseCredentialService], context_cache_config: typing.Optional[google.adk.agents.context_cache_config.ContextCacheConfig], branch: typing.Optional[str], agent: google.adk.agents.base_agent.BaseAgent, user_content: typing.Optional[google.genai.types.Content], session: google.adk.sessions.session.Session, agent_states: dict[str, dict[str, typing.Any]], end_of_agents: dict[str, bool], end_invocation: bool, live_request_queue: typing.Optional[google.adk.agents.live_request_queue.LiveRequestQueue], active_streaming_tools: typing.Optional[dict[str, google.adk.agents.active_streaming_tool.ActiveStreamingTool]],
     transcription_cache: typing.Optional[list[google.adk.agents.transcription_entry.TranscriptionEntry]], live_session_resumption_handle: typing.Optional[str], input_realtime_cache: typing.Optional[list[google.adk.agents.invocation_context.RealtimeCacheEntry]], output_realtime_cache: typing.Optional[list[google.adk.agents.invocation_context.RealtimeCacheEntry]], run_config: typing.Optional[google.adk.agents.run_config.RunConfig], resumability_config: typing.Optional[google.adk.apps.app.ResumabilityConfig], plugin_manager: google.adk.plugins.plugin_manager.PluginManager, canonical_tools_cache: typing.Optional[list[google.adk.tools.base_tool.BaseTool]]):'
   methods:
   - signature: 'def is_resumable(self) -> bool:'
@@ -4838,7 +4838,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, user_id: typing.Optional[str], session_id: typing.Optional[str], invocation_id: typing.Optional[str], new_message: typing.Optional[google.genai.types.Content], state_delta: typing.Optional[dict[str, typing.Any]], run_config: typing.Optional[google.adk.runners.RunConfig]):'
+  constructor_signature: 'def __init__(self, *, user_id: typing.Optional[str], session_id: typing.Optional[str], new_message: typing.Optional[google.genai.types.Content], state_delta: typing.Optional[dict[str, typing.Any]], run_config: typing.Optional[google.adk.runners.RunConfig]):'
   properties:
   - signature: 'user_id: typing.Optional[str]'
   - signature: 'session_id: typing.Optional[str]'
@@ -5620,7 +5620,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, name: str, description: str, parent_agent: typing.Optional[google.adk.agents.base_agent.BaseAgent], sub_agents: list[google.adk.agents.base_agent.BaseAgent], before_agent_callback: typing.Optional[google.adk.agents.base_agent.BeforeAgentCallback], after_agent_callback: typing.Optional[google.adk.agents.base_agent.AfterAgentCallback], graph: langgraph.graph.graph.CompiledGraph, instruction: str):'
+  constructor_signature: 'def __init__(self, *, name: str, description: str, sub_agents: list[google.adk.agents.base_agent.BaseAgent], before_agent_callback: typing.Optional[google.adk.agents.base_agent.BeforeAgentCallback], after_agent_callback: typing.Optional[google.adk.agents.base_agent.AfterAgentCallback], graph: langgraph.graph.graph.CompiledGraph, instruction: str):'
   methods:
   - signature: 'def _run_async_impl(self, ctx: google.adk.agents.invocation_context.InvocationContext) -> typing.AsyncGenerator[google.adk.events.event.Event, None]:'
   properties:
@@ -7004,8 +7004,8 @@
   - signature: 'IMPLICIT: str'
   - signature: 'PASSWORD: str'
   omitted_inherited_members_from:
-  - str
   - Enum
+  - str
 - rank: 381
   id: google.adk.auth.auth_schemes.OAuthGrantType.from_flow
   name: from_flow
@@ -8259,7 +8259,7 @@
   group: Orphan
   usage_score: 0
   docstring: '[Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, app_name: str, user_id: str, session_id: str, new_message: google.genai.types.Content, streaming: bool, state_delta: typing.Optional[dict[str, typing.Any]], invocation_id: typing.Optional[str]):'
+  constructor_signature: 'def __init__(self, *, app_name: str, user_id: str, session_id: str, new_message: google.genai.types.Content, streaming: bool, state_delta: typing.Optional[dict[str, typing.Any]]):'
   properties:
   - signature: 'app_name: str'
   - signature: 'user_id: str'
@@ -11822,7 +11822,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, invocation_id: str, user_content: google.genai.types.Content, final_response: typing.Optional[google.genai.types.Content], intermediate_data: typing.Optional[google.adk.evaluation.eval_case.IntermediateDataType], creation_timestamp: float, rubrics: typing.Optional[list[google.adk.evaluation.eval_rubrics.Rubric]], app_details: typing.Optional[google.adk.evaluation.app_details.AppDetails]):'
+  constructor_signature: 'def __init__(self, *, user_content: google.genai.types.Content, final_response: typing.Optional[google.genai.types.Content], intermediate_data: typing.Optional[google.adk.evaluation.eval_case.IntermediateDataType], creation_timestamp: float, rubrics: typing.Optional[list[google.adk.evaluation.eval_rubrics.Rubric]], app_details: typing.Optional[google.adk.evaluation.app_details.AppDetails]):'
   properties:
   - signature: 'invocation_id: str'
     docstring: Unique identifier for the invocation.
@@ -19774,8 +19774,8 @@
   - signature: 'ENVIRONMENT_BROWSER: str'
     docstring: Operates in a web browser.
   omitted_inherited_members_from:
-  - str
   - Enum
+  - str
 - rank: 1427
   id: google.adk.tools.computer_use.base_computer.ComputerState
   name: ComputerState
@@ -30498,8 +30498,8 @@
     - signature: 'done: typing.Optional[bool]'
     - signature: 'error: typing.Optional[dict[str, typing.Any]]'
   omitted_inherited_members_from:
-  - _common.BaseModel
   - ABC
+  - _common.BaseModel
 - rank: 2081
   id: google.genai.types.GenerateVideosOperation.from_api_response
   name: from_api_response
@@ -32447,8 +32447,8 @@
     - signature: 'done: typing.Optional[bool]'
     - signature: 'error: typing.Optional[dict[str, typing.Any]]'
   omitted_inherited_members_from:
-  - _common.BaseModel
   - ABC
+  - _common.BaseModel
 - rank: 2171
   id: google.genai.types.ImportFileOperation.from_api_response
   name: from_api_response
@@ -39698,8 +39698,8 @@
     - signature: 'done: typing.Optional[bool]'
     - signature: 'error: typing.Optional[dict[str, typing.Any]]'
   omitted_inherited_members_from:
-  - _common.BaseModel
   - ABC
+  - _common.BaseModel
 - rank: 2505
   id: google.genai.types.UploadToFileSearchStoreOperation.from_api_response
   name: from_api_response

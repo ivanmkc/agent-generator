@@ -341,18 +341,26 @@ class TargetRanker:
             # For Pydantic/Dataclasses, collect all properties (fields) from the hierarchy
             fields = []
             seen_fields = set()
-            excluded_fields = {"model_config", "config_type"}
+            excluded_fields = {"model_config", "config_type", "parent_agent", "last_update_time", "invocation_id"}
             
             # Traverse roughly base-to-child to emulate init kwarg order (though Pydantic is flexible)
             for ancestor in reversed(hierarchy):
-                props = self._get_properties_for_class(ancestor, structure_map) 
-                for p in props:
-                    # p is MemberInfo, signature is usually "name: type"
-                    # We accept it as is to form the kwargs list
-                    name = p.signature.split(":")[0].strip()
+                # Access raw structure map to get 'init_excluded' flag
+                struct = structure_map.get(ancestor)
+                if not struct: continue
+                
+                for p in struct.get("props", []):
+                    name = p["name"]
+                    
+                    # 1. Check init_excluded flag (from ClassVar or Field(init=False))
+                    if p.get("init_excluded"):
+                        continue
+                        
+                    # 2. Check blacklist and duplicates
                     if name not in seen_fields and name not in excluded_fields:
                         seen_fields.add(name)
-                        fields.append(p.signature)
+                        # Reconstruct signature part
+                        fields.append(f"{name}: {p['type']}")
             
             if fields:
                 return f"def __init__(self, *, {', '.join(fields)}):"
