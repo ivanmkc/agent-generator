@@ -388,7 +388,7 @@ class TargetRanker:
             
             # 2. Tool Logic Verification (Integration Test)
             result_tools = subprocess.run(
-                ["python3", "-m", "pytest", "benchmarks/tests/integration/test_adk_knowledge_bug_repro.py"],
+                ["python3", "-m", "pytest", "tools/adk-knowledge-ext/tests/test_integration.py"],
                 capture_output=True,
                 text=True,
                 check=False

@@ -1,11 +1,8 @@
 {
   "mcpServers": {
     "adk-knowledge": {
-      "command": "python3",
-      "args": [
-        "-u",
-        "/app/tools/adk_knowledge_mcp.py"
-      ]
+      "command": "adk-knowledge-mcp",
+      "args": []
     }
   }
 }
