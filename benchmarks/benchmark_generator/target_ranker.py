@@ -378,6 +378,7 @@ class TargetRanker:
 
         logger.info("Running integrity verification...")
         try:
+            # 1. Structural Integrity
             result = subprocess.run(
                 ["python3", "-m", "pytest", "benchmarks/tests/test_ranked_targets.py"],
                 capture_output=True,
@@ -385,12 +386,32 @@ class TargetRanker:
                 check=False
             )
             
+            # 2. Tool Logic Verification (Integration Test)
+            result_tools = subprocess.run(
+                ["python3", "-m", "pytest", "benchmarks/tests/integration/test_adk_knowledge_bug_repro.py"],
+                capture_output=True,
+                text=True,
+                check=False
+            )
+            
+            passed = True
+            
             if result.returncode == 0:
-                logger.info("✅ Integrity check passed.")
+                logger.info("✅ Structural integrity check passed.")
             else:
-                logger.error("❌ Integrity check failed!")
+                passed = False
+                logger.error("❌ Structural integrity check failed!")
                 logger.error(result.stdout)
                 logger.error(result.stderr)
+                
+            if result_tools.returncode == 0:
+                logger.info("✅ Tool logic verification passed.")
+            else:
+                passed = False
+                logger.error("❌ Tool logic verification failed!")
+                logger.error(result_tools.stdout)
+                logger.error(result_tools.stderr)
+                
         except Exception as e:
             logger.error(f"Failed to run integrity check: {e}")
 

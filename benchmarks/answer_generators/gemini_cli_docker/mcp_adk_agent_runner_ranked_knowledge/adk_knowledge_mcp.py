@@ -249,6 +249,24 @@ def search_adk_knowledge(query: str, limit: int = 10) -> str:
     return "\n".join(lines)
 
 
+def _resolve_target(fqn: str) -> Tuple[Optional[Dict[str, Any]], str]:
+    """
+    Resolves a FQN to the closest matching item in the index and a suffix path.
+    Example: 'a.b.C.m' -> (Item('a.b.C'), 'm')
+    """
+    if fqn in _FQN_MAP:
+        return _FQN_MAP[fqn], ""
+        
+    parts = fqn.split(".")
+    for i in range(len(parts) - 1, 0, -1):
+        prefix = ".".join(parts[:i])
+        if prefix in _FQN_MAP:
+            suffix = ".".join(parts[i:])
+            return _FQN_MAP[prefix], suffix
+            
+    return None, fqn
+
+
 @mcp.tool()
 def read_adk_source_code(fqn: str) -> str:
     """
@@ -260,13 +278,14 @@ def read_adk_source_code(fqn: str) -> str:
     """
     _load_index()
     
-    target = _FQN_MAP.get(fqn)
+    target, suffix = _resolve_target(fqn)
+    
     if not target:
         return f"Symbol '{fqn}' not found in index."
         
     rel_path = target.get("file_path")
     if not rel_path:
-        return f"No file path recorded for {fqn}."
+        return f"No file path recorded for {target.get('fqn')}."
         
     if rel_path.startswith("env/"):
         full_path = Path("/workdir") / rel_path
@@ -280,22 +299,71 @@ def read_adk_source_code(fqn: str) -> str:
         content = full_path.read_text(encoding="utf-8")
         import ast
         tree = ast.parse(content)
-        target_name = fqn.split(".")[-1]
         
-        extracted_code = None
-        for node in tree.body:
-            if isinstance(node, (ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)):
-                if node.name == target_name:
-                    lines = content.splitlines()
-                    start = node.lineno - 1
-                    end = node.end_lineno
-                    extracted_code = "\n".join(lines[start:end])
-                    break
+        # Determine the AST search path
+        # If the target is a class/func, we start looking for THAT, then the suffix.
+        # If target is module/package (implied by file path but checking FQN parts might be safer), we just look for suffix.
         
-        if extracted_code:
+        # Strategy: 
+        # 1. Identify the 'root' name of the indexed symbol inside the file.
+        #    Usually the last part of target['fqn'].
+        #    Unless it's a module file where the 'fqn' is the module itself.
+        
+        target_fqn = target.get("id") or target.get("fqn") or target.get("name")
+        target_name = target_fqn.split(".")[-1]
+        
+        # Heuristic: if the file name matches the target name (e.g. `agent.py` vs `agent`), 
+        # it MIGHT be a module-level file. But ADK index usually points to classes.
+        # Let's try to find the target_name in the file first.
+        
+        search_path = [target_name]
+        if suffix:
+            search_path.extend(suffix.split("."))
+            
+        # Traverse AST
+        current_scope = tree.body
+        found_node = None
+        
+        # Optimization: If the indexed target is the module itself (rare in this specific index but possible),
+        # we might skip the first level if 'target_name' isn't a class/func in the file.
+        # But for now, we assume the index tracks symbols defined IN the file.
+        
+        for name in search_path:
+            node_match = None
+            for node in current_scope:
+                if isinstance(node, (ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)):
+                    if node.name == name:
+                        node_match = node
+                        break
+            
+            if node_match:
+                found_node = node_match
+                current_scope = node_match.body
+            else:
+                # If we fail to find the first part (target_name), maybe the target IS the file/module?
+                # If we are at the first step, we can try skipping it and searching for the next part (suffix).
+                # This handles case where index says "foo.bar" (module) and we want "foo.bar.Baz".
+                if found_node is None and name == target_name:
+                    continue # Treat as module, stay in current_scope (file root)
+                else:
+                    return f"Symbol '{name}' not found in AST of {rel_path} (Path: {search_path})"
+
+        if found_node:
+            lines = content.splitlines()
+            # ast lineno is 1-based
+            # We want to capture decorators too if possible, but basic lineno is start of def/class
+            # node.decorator_list has info but simple slicing from lineno-1 is usually okay-ish.
+            # Ideally we check decorators.
+            start_line = found_node.lineno - 1
+            if hasattr(found_node, 'decorator_list') and found_node.decorator_list:
+                start_line = found_node.decorator_list[0].lineno - 1
+                
+            end_line = found_node.end_lineno
+            extracted_code = "\n".join(lines[start_line:end_line])
             return f"=== Source: {fqn} ===\n\n{extracted_code}"
         else:
-            return f"=== File: {rel_path} (Symbol {target_name} not isolated) ===\n\n{content}"
+            # Fallback to whole file if we couldn't isolate but found the file
+            return f"=== File: {rel_path} (Symbol isolation failed) ===\n\n{content}"
 
     except Exception as e:
         return f"Error reading file: {e}"
@@ -310,12 +378,17 @@ def inspect_adk_symbol(fqn: str) -> str:
         fqn: The Fully Qualified Name (e.g., 'google.adk.agents.llm_agent.LlmAgent').
     """
     _load_index()
-    target = _FQN_MAP.get(fqn)
+    target, suffix = _resolve_target(fqn)
+    
     if not target:
         return f"Symbol '{fqn}' not found in index."
     
-    # Format nicely as YAML/Text
-    return yaml.safe_dump(target, sort_keys=False)
+    output = yaml.safe_dump(target, sort_keys=False)
+    
+    if suffix:
+        return f"Note: Symbol '{fqn}' is not explicitly indexed. Showing parent symbol '{target.get('fqn')}'.\n\n{output}"
+    
+    return output
 
 if __name__ == "__main__":
     _load_index()

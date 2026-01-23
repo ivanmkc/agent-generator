@@ -1,5 +1,9 @@
 # Todo List
 
+# Active
+## MCP Server
+- [ ] Fix bug where `read_adk_source_code` and `inspect_adk_symbol` fail for class methods (e.g. `BaseLlmConnection.send_history`) because they only look up top-level symbols in the index/AST.
+
 # Completed
 ## Runner
 - [x] Remove the adk-python repo from 'gemini-cli:mcp_adk_agent_runner_ranked_knowledge' and bundle it into the MCP boundary to force it to only use ranked targets.
@@ -52,4 +56,4 @@ distributed under the License is distributed on an "AS IS" BAS...`
 │   answer. However, the final response string emitted by the agent contained a lengthy conversational narrative ('Okay, I need to find  │
 │   an ADK plugin class...') preceding the JSON block. The benchmark's validation system attempted to parse the entire response string   │
 │   as JSON, resulting in a parsing error ('expected value at line 1 column 1') because the input did not start with a valid JSON        │
-│   character. 
+│   character.
