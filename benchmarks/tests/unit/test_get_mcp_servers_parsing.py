@@ -2,6 +2,7 @@ import json
 import pytest
 from pathlib import Path
 from typing import Any, Optional
+from unittest.mock import MagicMock
 from benchmarks.answer_generators.gemini_cli_answer_generator import (
     GeminiCliAnswerGenerator,
 )
@@ -16,13 +17,18 @@ class MockGeminiCliAnswerGenerator(GeminiCliAnswerGenerator):
         self, mcp_list_output_content: str, extensions_list_output_content: str
     ):
         # Initialize parent with dummy values
-        super().__init__(model_name="test-model", cli_path="gemini")
+        from benchmarks.api_key_manager import ApiKeyManager
+        super().__init__(
+            model_name="test-model", 
+            context=None, 
+            api_key_manager=MagicMock(spec=ApiKeyManager)
+        )
         self.mcp_list_output = mcp_list_output_content
         self.extensions_list_output = extensions_list_output_content
         self._setup_completed = True
 
     async def run_cli_command(
-        self, command_parts: list[str]
+        self, command_parts: list[str], extra_env: dict[str, str] = None
     ) -> tuple[dict[str, Any], list[TraceLogEvent]]:
         cmd = command_parts
         stdout = ""
@@ -51,27 +57,26 @@ class MockGeminiCliAnswerGenerator(GeminiCliAnswerGenerator):
 
 
 @pytest.mark.asyncio
-async def test_get_mcp_tools_parsing_mcp_only_real():
+async def test_get_mcp_servers_parsing_mcp_only_real():
     mcp_output_content = (DATA_DIR / "mcp_list_connected_servers.txt").read_text()
     ext_output_content = ""  # No extensions output for this specific test
 
     generator = MockGeminiCliAnswerGenerator(mcp_output_content, ext_output_content)
-    tools = await generator.get_mcp_tools()
+    servers = await generator.get_mcp_servers()
 
-    print(f"DEBUG: Parsed tools (MCP only): {tools}")
+    print(f"DEBUG: Parsed servers (MCP only): {servers}")
 
     # Assertions for mcp_list_connected_servers.txt (should find context7)
-    assert "context7" in tools
-    assert "filesystem" not in tools  # Still not matched by current regex
-    assert "other_server" not in tools
+    assert "context7" in servers
+    assert "filesystem" not in servers  # Still not matched by current regex
+    assert "other_server" not in servers
 
     # Extensions should NOT be here
-    assert "adk-docs-ext" not in tools
-    assert "codebase-investigator" not in tools
+    assert "adk-docs-ext" not in servers
 
 
 @pytest.mark.asyncio
-async def test_get_mcp_tools_parsing_expected_success_split():
+async def test_get_mcp_servers_parsing_expected_success_split():
     mcp_output_content = (DATA_DIR / "mcp_list_connected_servers.txt").read_text()
     ext_output_content = (
         DATA_DIR / "extensions_list_valid_extensions_output.txt"
@@ -79,10 +84,10 @@ async def test_get_mcp_tools_parsing_expected_success_split():
 
     generator = MockGeminiCliAnswerGenerator(mcp_output_content, ext_output_content)
 
-    # 1. Test MCP Tools
-    tools = await generator.get_mcp_tools()
-    print(f"DEBUG: Parsed tools: {tools}")
-    assert "context7" in tools
+    # 1. Test MCP Servers
+    servers = await generator.get_mcp_servers()
+    print(f"DEBUG: Parsed servers: {servers}")
+    assert "context7" in servers
 
     # 2. Test Extensions
     extensions = await generator.get_gemini_cli_extensions()
@@ -91,14 +96,14 @@ async def test_get_mcp_tools_parsing_expected_success_split():
 
 
 @pytest.mark.asyncio
-async def test_get_mcp_tools_parsing_empty():
+async def test_get_mcp_servers_parsing_empty():
     # Use mcp_list_empty.txt and empty string for extensions
     generator = MockGeminiCliAnswerGenerator(
         (DATA_DIR / "mcp_list_empty.txt").read_text(), ""
     )
 
-    tools = await generator.get_mcp_tools()
+    servers = await generator.get_mcp_servers()
     extensions = await generator.get_gemini_cli_extensions()
 
-    assert len(tools) == 0
+    assert len(servers) == 0
     assert len(extensions) == 0

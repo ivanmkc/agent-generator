@@ -337,11 +337,15 @@ class TestAdkTools(unittest.IsolatedAsyncioTestCase):
             mock_run_shell.assert_called_once()
             cmd = mock_run_shell.call_args[0][0]
             self.assertIn("python3", cmd)
-            self.assertIn("_ad_run_", cmd)
+            # Check if any element in cmd contains 'adk_agent_runner.py'
+            self.assertTrue(any("adk_agent_runner.py" in arg for arg in cmd))
             self.assertIn("--agent-file", cmd)
-            self.assertIn("--prompt 'test prompt'", cmd)
-            self.assertIn(f"--model-name {model}", cmd)
-            self.assertIn(f"--initial-state '{initial_state_str}'", cmd)
+            self.assertIn("--prompt", cmd)
+            self.assertIn("test prompt", cmd)
+            self.assertIn("--model-name", cmd)
+            self.assertIn(model, cmd)
+            self.assertIn("--initial-state", cmd)
+            self.assertIn(initial_state_str, cmd)
 
             # Cleanup check
             files = list(self.workspace_path.glob("agent_to_run_*.py"))
@@ -367,9 +371,10 @@ class TestAdkTools(unittest.IsolatedAsyncioTestCase):
             self.assertLess(len(result), 3000)
             
             # Verify full logs were written
-            log_file = self.workspace_path / "_last_run.log"
-            self.assertTrue(log_file.exists())
-            self.assertEqual(log_file.read_text(encoding="utf-8"), long_output)
+            # Find the log file in the workspace
+            log_files = list(self.workspace_path.glob("*.log"))
+            self.assertTrue(len(log_files) > 0)
+            self.assertEqual(log_files[0].read_text(encoding="utf-8"), long_output)
 
     async def test_read_full_execution_logs(self):
         log_content = "Full execution log content"

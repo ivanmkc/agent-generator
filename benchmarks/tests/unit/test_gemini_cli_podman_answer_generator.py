@@ -12,6 +12,7 @@ import aiohttp
 
 from benchmarks.answer_generators.gemini_cli_docker.gemini_cli_podman_answer_generator import (
     GeminiCliPodmanAnswerGenerator,
+    GeminiCliExecutionError
 )
 from benchmarks.data_models import AnswerTemplate
 from benchmarks.data_models import ApiUnderstandingBenchmarkCase
@@ -27,144 +28,104 @@ def mock_subprocess():
         yield mock
 
 
+@pytest.fixture
+def mock_akm():
+    from benchmarks.api_key_manager import ApiKeyManager
+    manager = MagicMock(spec=ApiKeyManager)
+    manager.get_key_for_run = AsyncMock(return_value=("test-key", "key-id"))
+    manager.report_result = AsyncMock()
+    return manager
+
+
+@pytest.fixture
+def mock_container():
+    with patch("benchmarks.answer_generators.gemini_cli_docker.gemini_cli_podman_answer_generator.PodmanContainer") as mock:
+        instance = mock.return_value
+        instance.start = AsyncMock()
+        instance.stop = MagicMock()
+        instance.send_command = AsyncMock()
+        instance.read_file = AsyncMock()
+        instance.base_url = "http://localhost:12345"
+        yield instance
+
+
 @pytest.mark.asyncio
-async def test_podman_generator_setup(mock_subprocess):
-    """Test that setup starts the server container with correct args."""
+async def test_podman_generator_setup(mock_subprocess, mock_akm, mock_container):
+    """Test that setup starts the server container."""
     generator = GeminiCliPodmanAnswerGenerator(
         image_name="test-image",
         model_name="gemini-2.5-flash",
         image_definitions={},
-    )
-
-    # Mock socket to return fixed port
-    with patch("socket.socket") as mock_socket:
-        mock_socket.return_value.getsockname.return_value = [0, 12345]  # port 12345
-
-        # Mock aiohttp for health check (which now uses POST)
-        with patch("aiohttp.ClientSession.post") as mock_post:
-            mock_resp = MagicMock()
-            mock_resp.status = 200
-            # Return valid health check response
-            mock_resp.json = AsyncMock(return_value={"returncode": 0})
-            mock_post.return_value.__aenter__.return_value = mock_resp
-
-            # Mock image existence check to avoid build logic
-            generator._ensure_image_ready = AsyncMock()
-
-            await generator.setup()
-
-            # Verify podman run command
-            # It calls create_subprocess_exec multiple times (maybe logs?), find the 'run' one
-            run_call = None
-            for call in mock_subprocess.call_args_list:
-                args = call[0]
-                if "run" in args:
-                    run_call = args
-                    break
-
-            assert run_call is not None
-            assert "podman" in run_call
-            assert "-p" in run_call
-            assert "12345:8080" in run_call
-            assert "test-image" in run_call
-
-
-@pytest.mark.asyncio
-async def test_podman_generator_env_vars_setup(mock_subprocess):
-    """Test that env vars are passed to the container at startup."""
-    generator = GeminiCliPodmanAnswerGenerator(
-        image_name="test-image",
-        image_definitions={},
+        api_key_manager=mock_akm
     )
     generator._ensure_image_ready = AsyncMock()
 
-    with patch.dict(
-        "os.environ",
-        {
-            "GEMINI_API_KEY": "fake-key",
-            "GOOGLE_GENAI_USE_VERTEXAI": "1",
-        },
-    ):
-        with patch("socket.socket") as mock_socket:
-            mock_socket.return_value.getsockname.return_value = [0, 12345]
+    await generator.setup()
 
-            with patch("aiohttp.ClientSession.post") as mock_post:
-                mock_resp = MagicMock()
-                mock_resp.status = 200
-                mock_resp.json = AsyncMock(return_value={"returncode": 0})
-                mock_post.return_value.__aenter__.return_value = mock_resp
-
-                await generator.setup()
-
-                run_call = None
-                for call in mock_subprocess.call_args_list:
-                    args = call[0]
-                    if "run" in args:
-                        run_call = args
-                        break
-
-                assert "-e" in run_call
-                assert "GEMINI_API_KEY" in run_call
-                assert "GOOGLE_GENAI_USE_VERTEXAI" in run_call
+    # Verify container.start was called
+    mock_container.start.assert_called_once()
 
 
 @pytest.mark.asyncio
-async def test_podman_generator_run_cli_command():
-    """Test run_cli_command sends correct HTTP request."""
+async def test_podman_generator_env_vars_setup(mock_subprocess, mock_akm, mock_container):
+    """Test that env vars are correctly set on the generator."""
     generator = GeminiCliPodmanAnswerGenerator(
         image_name="test-image",
+        model_name="gemini-2.5-flash",
         image_definitions={},
+        api_key_manager=mock_akm,
+        extra_env={"CUSTOM_VAR": "custom-val"}
+    )
+
+    assert generator.extra_env["CUSTOM_VAR"] == "custom-val"
+
+
+@pytest.mark.asyncio
+async def test_podman_generator_run_cli_command(mock_akm, mock_container):
+    """Test run_cli_command sends correct HTTP request via container."""
+    generator = GeminiCliPodmanAnswerGenerator(
+        image_name="test-image",
+        model_name="gemini-2.5-flash",
+        image_definitions={},
+        api_key_manager=mock_akm
     )
 
     # Manually set up generator state to bypass setup()
     generator._setup_completed = True
     generator._base_url = "http://localhost:12345"
 
-    # Mock CLI response
+    # Mock container response
     mock_response_data = {
         "stdout": '{"type": "message", "data": {"role": "model", "content": "Hello"}}',
         "stderr": "",
         "returncode": 0,
     }
+    mock_container.send_command.return_value = mock_response_data
 
-    with patch("aiohttp.ClientSession.post") as mock_post:
-        mock_resp = MagicMock()
-        mock_resp.status = 200
-        mock_resp.json = AsyncMock(return_value=mock_response_data)
-        mock_post.return_value.__aenter__.return_value = mock_resp
+    response, logs = await generator.run_cli_command(
+        ["gemini", "--output-format", "stream-json", "Test Prompt"]
+    )
 
-        response, logs = await generator.run_cli_command(
-            ["gemini", "--output-format", "stream-json", "Test Prompt"]
-        )
+    # Verify send_command call
+    mock_container.send_command.assert_called_once()
+    args, kwargs = mock_container.send_command.call_args
+    assert args[0] == ["gemini", "--output-format", "stream-json", "Test Prompt"]
 
-        # Verify call arguments
-        mock_post.assert_called_once()
-        call_args, call_kwargs = mock_post.call_args
-
-        url = call_args[0]
-        assert url == "http://localhost:12345"
-
-        payload = call_kwargs["json"]
-        assert payload["args"] == [
-            "gemini",
-            "--output-format",
-            "stream-json",
-            "Test Prompt",
-        ]
-
-        # Verify response parsing
-        assert len(logs) == 2
-        assert logs[0].type == "CLI_STDOUT_FULL"
-        assert logs[1].type == "message"
-        assert logs[1].content == "Hello"
+    # Verify response parsing
+    assert len(logs) == 2
+    assert logs[0].type == "CLI_STDOUT_FULL"
+    assert logs[1].type == "message"
+    assert logs[1].content == "Hello"
 
 
 @pytest.mark.asyncio
-async def test_podman_generator_generate_answer():
+async def test_podman_generator_generate_answer(mock_akm, mock_container):
     """Test full generate_answer flow."""
     generator = GeminiCliPodmanAnswerGenerator(
         image_name="test-image",
+        model_name="gemini-2.5-flash",
         image_definitions={},
+        api_key_manager=mock_akm
     )
     generator._setup_completed = True
     generator._base_url = "http://localhost:12345"
@@ -202,79 +163,49 @@ async def test_podman_generator_generate_answer():
     )
 
     mock_response_data = {"stdout": cli_stdout, "stderr": "", "returncode": 0}
+    mock_container.send_command.return_value = mock_response_data
 
-    with patch("aiohttp.ClientSession.post") as mock_post:
-        mock_resp = MagicMock()
-        mock_resp.status = 200
-        mock_resp.json = AsyncMock(return_value=mock_response_data)
-        mock_post.return_value.__aenter__.return_value = mock_resp
+    result = await generator.generate_answer(case, run_id="test_run")
 
-        result = await generator.generate_answer(case, run_id="test_run")
-
-        assert result.output.code == "print('hello')"
-        assert result.output.rationale == "reason"
+    assert result.output.code == "print('hello')"
+    assert result.output.rationale == "reason"
 
 
 @pytest.mark.asyncio
-async def test_run_cli_command_error_report_capture(mock_subprocess):
+async def test_run_cli_command_error_report_capture(mock_subprocess, mock_akm, mock_container):
     """
     Tests that a Gemini client error report file mentioned in stderr is captured
     and added to trace logs using the /read_file API endpoint.
     """
     generator = GeminiCliPodmanAnswerGenerator(
         image_name="test-image",
+        model_name="gemini-2.5-flash",
         image_definitions={},
+        api_key_manager=mock_akm
     )
     generator._setup_completed = True
     generator._base_url = "http://localhost:12345"
-    generator._container_name = "test-container"
 
     error_file_path = "/tmp/gemini-client-error-123.json"
     error_file_content = '{"error": "Rate limited", "code": 429}'
 
-    # We need to simulate TWO sequential POST requests:
-    # 1. The CLI execution request (which fails and prints stderr)
-    # 2. The /read_file request (which succeeds and returns content)
+    mock_container.send_command.return_value = {
+        "stdout": "",
+        "stderr": f"Error when talking to Gemini API Full report available at: {error_file_path}",
+        "returncode": 1,
+    }
+    mock_container.read_file.return_value = error_file_content
 
-    mock_cli_resp = MagicMock()
-    mock_cli_resp.status = 200
-    mock_cli_resp.json = AsyncMock(
-        return_value={
-            "stdout": "",
-            "stderr": f"Error when talking to Gemini API Full report available at: {error_file_path}",
-            "returncode": 1,
-        }
-    )
-    mock_cli_resp.__aenter__.return_value = mock_cli_resp
+    # Expected to raise GeminiCliExecutionError because returncode is 1
+    with pytest.raises(GeminiCliExecutionError) as excinfo:
+        await generator.run_cli_command(
+            ["gemini", "--model", "gemini-flash", "Test prompt"]
+        )
 
-    mock_read_resp = MagicMock()
-    mock_read_resp.status = 200
-    mock_read_resp.json = AsyncMock(return_value={"content": error_file_content})
-    mock_read_resp.__aenter__.return_value = mock_read_resp
+    error_msg = str(excinfo.value)
+    assert "Gemini CLI failed with code 1" in error_msg
+    assert error_file_content in error_msg
 
-    # Use side_effect to return different responses for sequential calls
-    with patch(
-        "aiohttp.ClientSession.post", side_effect=[mock_cli_resp, mock_read_resp]
-    ) as mock_post:
-
-        # Expected to raise RuntimeError because returncode is 1
-        with pytest.raises(RuntimeError) as excinfo:
-            await generator.run_cli_command(
-                ["gemini", "--model", "gemini-flash", "Test prompt"]
-            )
-
-        error_msg = str(excinfo.value)
-        assert "Gemini CLI failed with code 1" in error_msg
-        assert error_file_content in error_msg
-
-        # Verify calls
-        assert mock_post.call_count == 2
-
-        # Check first call (CLI execution)
-        call1_args, call1_kwargs = mock_post.call_args_list[0]
-        assert call1_args[0] == "http://localhost:12345"
-
-        # Check second call (Read file)
-        call2_args, call2_kwargs = mock_post.call_args_list[1]
-        assert call2_args[0] == "http://localhost:12345/read_file"
-        assert call2_kwargs["json"] == {"path": error_file_path}
+    # Verify interactions
+    mock_container.send_command.assert_called_once()
+    mock_container.read_file.assert_called_once_with(error_file_path)

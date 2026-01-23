@@ -32,9 +32,15 @@ async def test_docker_command_construction_api_key():
     """Test that Docker command is constructed correctly with GEMINI_API_KEY."""
 
     with patch.dict(os.environ, {"GEMINI_API_KEY": "test-key"}, clear=True):
+        from benchmarks.api_key_manager import ApiKeyManager
+        mock_akm = MagicMock(spec=ApiKeyManager)
+        mock_akm.get_key_for_run = AsyncMock(return_value=("test-key", "key-id"))
+        mock_akm.report_result = AsyncMock()
+
         generator = GeminiCliDockerAnswerGenerator(
             model_name="gemini-2.5-flash",
             image_name="gemini-cli:adk-python",
+            api_key_manager=mock_akm
         )
         generator._setup_completed = True
 
@@ -150,7 +156,15 @@ async def test_docker_command_construction_vertex_adc():
     }
 
     with patch.dict(os.environ, env_vars, clear=True):
-        generator = GeminiCliDockerAnswerGenerator(image_name="gemini-cli:adk-python")
+        from benchmarks.api_key_manager import ApiKeyManager
+        mock_akm = MagicMock(spec=ApiKeyManager)
+        mock_akm.get_key_for_run = AsyncMock(return_value=("test-key", "key-id"))
+        mock_akm.report_result = AsyncMock()
+
+        generator = GeminiCliDockerAnswerGenerator(
+            image_name="gemini-cli:adk-python",
+            api_key_manager=mock_akm
+        )
         generator._setup_completed = True
 
         inner_model_json = {
