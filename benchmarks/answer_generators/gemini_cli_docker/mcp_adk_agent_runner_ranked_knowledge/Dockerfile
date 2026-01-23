@@ -1,12 +1,12 @@
-ARG BASE_IMAGE=gemini-cli:adk-python
+ARG BASE_IMAGE=gemini-cli:base
 FROM ${BASE_IMAGE}
 
 # Install Python MCP SDK and YAML parser
 RUN pip install --no-cache-dir mcp pyyaml rank-bm25
 
-# Install adk-python
-RUN pip install --no-cache-dir /workdir/repos/adk-python
-RUN mv /workdir/repos/adk-python /app/adk-python && rm -rf /workdir/repos
+# Clone and Install adk-python
+RUN mkdir -p /app && git clone --branch v1.20.0 https://github.com/google/adk-python.git /app/adk-python
+RUN pip install --no-cache-dir /app/adk-python
 
 # Create directory for app data
 RUN mkdir -p /app/data /app/tools

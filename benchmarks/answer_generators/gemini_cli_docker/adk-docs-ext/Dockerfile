@@ -9,9 +9,6 @@ ENV GEMINI_CONFIG_DIR=/root/.gemini/
 # Copy settings.json
 COPY settings.json /root/.gemini/settings.json
 
-# Copy INSTRUCTIONS.md
-COPY INSTRUCTIONS.md /workdir/INSTRUCTIONS.md
-
 # Install the extension
 RUN echo "Y" | gemini extensions install https://github.com/derailed-dash/adk-docs-ext
 

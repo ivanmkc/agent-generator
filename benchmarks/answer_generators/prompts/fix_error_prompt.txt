@@ -9,7 +9,7 @@ Output a JSON object with the following fields:
 1. `rationale`: A detailed explanation of the changes made and why they were necessary.
 2. `code`: The complete, corrected Python file content.
 
-CRITICAL: The `code` field MUST define a function with the exact signature: `def create_agent(model_name: str) -> BaseAgent:`
+CRITICAL: The `code` field MUST define the function `create_agent`. Its signature MUST be: `def create_agent(model_name: str) -> BaseAgent:`
 
 DO NOT include any other functions or classes in your output unless they are part of the original unfixed file that you are fixing. The code should be a complete and valid Python file and **must include all necessary imports** for the code to function correctly. Verify that your code is syntactically valid and that all strings (especially triple-quoted docstrings) are properly terminated.
 

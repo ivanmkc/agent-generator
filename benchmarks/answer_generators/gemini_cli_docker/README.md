@@ -8,7 +8,7 @@ The sandbox server (`base/cli_server.py`) is built using **FastAPI** and **Uvico
 
 *   **High Concurrency:** The server uses `asyncio` to handle concurrent requests efficiently. A single container instance can handle **100+ concurrent requests** without blocking, limited only by system resources (CPU/RAM) rather than thread limits.
 *   **Non-Blocking:** CLI commands are executed as non-blocking subprocesses, allowing the event loop to continue serving other requests while waiting for long-running operations (like LLM generation or shell commands).
-*   **Optimization:** This architecture allows `GeminiCliCloudRunAnswerGenerator` to achieve high throughput even with `max_instance_count=1`, preventing `429 Rate Exceeded` errors during parallel benchmark execution.
+*   **Optimization:** This architecture allows for high throughput during parallel benchmark execution.
 
 ## Tuning Concurrency
 
@@ -21,15 +21,6 @@ Running benchmarks locally on macOS/Windows uses a Podman VM, which has strict r
 *   **Global Limit (`MAX_GLOBAL_CONCURRENCY`):** **10** (Recommended safe maximum).
     *   *Reason:* While the VM might have enough RAM, the `gvproxy` networking stack often becomes unstable with higher concurrent connection counts (e.g., >25), leading to "Connection Refused" errors.
 *   **Memory Requirement:** The Podman VM **must** be provisioned with at least **8GB RAM** (`podman machine set --memory 8192`).
-
-### 2. Cloud Run (Horizontal Scaling)
-
-Cloud Run allows for much higher concurrency via horizontal scaling.
-
-*   **Per-Instance Limit (`MAX_INSTANCE_CONCURRENCY`):** **10**.
-    *   *Reason:* Node.js processes consume ~100-200MB memory each. 10 concurrent requests fit safely within a 4GB instance.
-*   **Global Limit (`MAX_GLOBAL_CONCURRENCY`):** **40+**.
-    *   *Reason:* Cloud Run automatically scales out to ~4-10 instances to handle this load with zero infrastructure errors.
 
 ### How to Recalculate Limits
 
@@ -129,109 +120,3 @@ For a permanent solution, investigate your Podman configuration files *inside yo
 
 *   **`/etc/containers/registries.conf`** or **`~/.config/containers/registries.conf`**: Ensure that `gemini-cli` is not implicitly being mapped to a remote registry, or explicitly add `localhost/gemini-cli` to your `[registries.insecure]` or `[registries.search]` lists if you intend to manage it locally.
 *   **`/etc/containers/policy.json`** or **`~/.config/containers/policy.json`**: Review policies that might restrict local image resolution or impose signing requirements that block un-pushed local images.
-
-## Cloud Run Deployment
-
-## Cloud Run Deployment
-
-To run benchmarks against a Cloud Run hosted environment (instead of local Docker), you can deploy the sandbox as a service.
-
-#### Prerequisites
-
-To deploy a `GeminiCliCloudRunAnswerGenerator`, ensure the following Google Cloud prerequisites are met:
-
-```bash
-export YOUR_GCP_PROJECT_ID=<YOUR_GCP_PROJECT_ID> # Replace with your GCP Project ID
-export YOUR_GCP_EMAIL_ADDRESS=<YOUR_GCP_EMAIL_ADDRESS> # Replace with your GCP email
-export YOUR_GCP_REGION=<YOUR_GCP_REGION> # Replace with your GCP region
-export PROJECT_NUMBER=$(gcloud projects describe $YOUR_GCP_PROJECT_ID --format='value(projectNumber)')
-export CLOUD_BUILD_SERVICE_ACCOUNT="serviceAccount:$PROJECT_NUMBER@cloudbuild.gserviceaccount.com"
-export COMPUTE_ENGINE_SERVICE_ACCOUNT="serviceAccount:$PROJECT_NUMBER-compute@developer.gserviceaccount.com"
-```
-
-1.  **Enable Cloud Build API**: This API is required for building Docker images from your source code.
-    *   Visit: [https://console.cloud.google.com/apis/api/cloudbuild.googleapis.com/overview](https://console.cloud.google.com/apis/api/cloudbuild.googleapis.com/overview)
-    *   Select your project and click "Enable".
-
-2.  **Grant Cloud Run Invoker Role (to your user)**: Your Google Cloud user account needs permission to invoke the deployed Cloud Run service for testing and interaction.
-    *   Run in your terminal:
-        ```bash        
-        gcloud run services add-iam-policy-binding gemini-cli-sandbox \
-            --member="user:$YOUR_GCP_EMAIL_ADDRESS" \
-            --role="roles/run.invoker" \
-            --region="$YOUR_GCP_REGION"
-        ```
-    *   Default region for benchmarks is `us-central1`.
-
-3.  **Grant Storage Object Viewer Role (to Cloud Build Service Account)**: The Cloud Build service account requires permission to read the source code archives uploaded to your GCS staging bucket. To apply this role at the project level (for all buckets in the project):
-    *   Run in your terminal:
-        ```bash
-        gcloud projects add-iam-policy-binding $YOUR_GCP_PROJECT_ID \
-            --member="$CLOUD_BUILD_SERVICE_ACCOUNT" \
-            --role="roles/storage.objectViewer"
-gcloud projects add-iam-policy-binding $YOUR_GCP_PROJECT_ID \
-            --member="$COMPUTE_ENGINE_SERVICE_ACCOUNT" \
-            --role="roles/storage.objectViewer"
-        ```
-
-4.  **Grant Logs Writer Role (to Cloud Build Service Account)**: The Cloud Build service account requires permission to write build logs to Cloud Logging.
-    *   Run in your terminal:
-        ```bash
-        gcloud projects add-iam-policy-binding $YOUR_GCP_PROJECT_ID \
-            --member="$CLOUD_BUILD_SERVICE_ACCOUNT" \
-            --role="roles/logging.logWriter"
-
-gcloud projects add-iam-policy-binding $YOUR_GCP_PROJECT_ID \
-            --member="$COMPUTE_ENGINE_SERVICE_ACCOUNT" \
-            --role="roles/logging.logWriter"            
-        ```
-
-5.  **Grant Logs Viewer Role (to your user)**: To debug build failures by viewing logs in the Google Cloud Console, your user account needs the Logs Viewer role.
-    Run in your terminal:
-        ```bash
-        gcloud projects add-iam-policy-binding $YOUR_GCP_PROJECT_ID \
-            --member="user:$YOUR_GCP_EMAIL_ADDRESS" \
-            --role="roles/logging.viewer"
-        ```
-    **Note**: This command was crucial for resolving the "You don't have permission to view the logs" error during test execution. The initial "Cloud Run deployment failed" error (related to `storage.objects.get` permissions) was addressed by refactoring the GCS upload logic in `benchmarks/answer_generators/cloud_deploy_utils.py` to use the `google-cloud-storage` Python client directly, ensuring proper credentials for Cloud Build access to staged source code.
-
-6.  **Grant Artifact Registry Writer Role (to Cloud Build Service Account)**: The Cloud Build service account needs permission to push built Docker images to Artifact Registry (which backs gcr.io in newer projects).
-    *   Run in your terminal:
-        ```bash
-        gcloud projects add-iam-policy-binding $YOUR_GCP_PROJECT_ID \
-            --member="$CLOUD_BUILD_SERVICE_ACCOUNT" \
-            --role="roles/artifactregistry.writer"
-
-gcloud projects add-iam-policy-binding $YOUR_GCP_PROJECT_ID \
-            --member="$COMPUTE_ENGINE_SERVICE_ACCOUNT" \
-            --role="roles/artifactregistry.writer"
-        ```
-
-7.  **Grant Artifact Registry CreateOnPush Writer Role (to Cloud Build Service Account)**: If the `gcr.io` repository does not exist in Artifact Registry, this role allows Cloud Build to create it automatically when pushing an image for the first time.
-    *   Run in your terminal:
-        ```bash
-        gcloud projects add-iam-policy-binding $YOUR_GCP_PROJECT_ID \
-            --member="$CLOUD_BUILD_SERVICE_ACCOUNT" \
-            --role="roles/artifactregistry.createOnPushWriter"
-        ```
-
-8.  **Setup Application Default Credentials (ADC)**: For local tests to authenticate with the deployed Cloud Run service, you must generate local credentials.
-    *   Run in your terminal:
-        ```bash
-        gcloud auth application-default login
-        ```
-    *   Follow the browser prompt to log in with your Google Cloud user account.
-
-#### Deployment Usage
-
-**Cloud Run:**
-```python
-from benchmarks.answer_generators.gemini_cli_docker import GeminiCliCloudRunAnswerGenerator
-
-generator_cloud = GeminiCliCloudRunAnswerGenerator(
-    service_name="gemini-cli-sandbox",
-    dockerfile_dir="benchmarks/answer_generators/gemini_cli_docker/adk-python",
-    model_name="gemini-2.5-flash",
-    auto_deploy=True  # Auto-deploys if version mismatch
-)
-```

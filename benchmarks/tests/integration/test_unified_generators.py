@@ -49,9 +49,6 @@ try:
     from benchmarks.answer_generators.gemini_cli_docker.gemini_cli_podman_answer_generator import (
         GeminiCliPodmanAnswerGenerator,
     )
-    from benchmarks.answer_generators.gemini_cli_docker.gemini_cli_cloud_run_answer_generator import (
-        GeminiCliCloudRunAnswerGenerator,
-    )
     from benchmarks.answer_generators.gemini_cli_docker.image_definitions import (
         IMAGE_DEFINITIONS,
     )
@@ -89,10 +86,10 @@ async def test_generator_capabilities(test_case: GeneratorTestCase) -> None:
     # 2. MCP Tools Check
     checks_performed = True
     print(f"[{test_case.id}] Fetching MCP tools...")
-    actual_mcp = await generator.get_mcp_tools()
+    actual_mcp = await generator.get_mcp_servers()
     print(f"[{test_case.id}] Discovered MCP tools: {actual_mcp}")
 
-    for expected in test_case.expected_mcp_tools:
+    for expected in test_case.expected_mcp_servers:
         assert any(
             expected in t for t in actual_mcp
         ), f"[{test_case.id}] Expected MCP tool '{expected}' not found. Available: {actual_mcp}"
@@ -247,11 +244,11 @@ async def run_orchestrator():
     from benchmarks.tests.integration.test_config import GENERATOR_METADATA
 
     # Configuration for generators that need sequential execution
-    # We filter specifically for Podman and Cloud Run types which require orchestration
+    # We filter specifically for Podman which requires orchestration
     generators = [
         config
         for config in GENERATOR_METADATA.values()
-        if config.type in ["podman", "cloud_run"]
+        if config.type in ["podman"]
     ]
 
     print("=== Starting Sequential Integration Test Suite ===")

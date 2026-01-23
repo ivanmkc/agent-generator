@@ -243,13 +243,13 @@ class GeminiCliAnswerGenerator(GeminiAnswerGenerator):
         """Performs any necessary setup (e.g., starting containers)."""
         self._setup_completed = True
 
-    async def get_mcp_tools(self) -> list[str]:
-        """Returns a list of available MCP tools (servers)."""
+    async def get_mcp_servers(self) -> list[str]:
+        """Returns a list of available MCP servers."""
         if not self._setup_completed:
             raise RuntimeError(
                 f"Generator {self.name} has not been set up. Please call setup() first."
             )
-        tools = []
+        servers = []
 
         try:
             mcp_res, _ = await self.run_cli_command([self.cli_path, "mcp", "list"])
@@ -265,35 +265,26 @@ class GeminiCliAnswerGenerator(GeminiAnswerGenerator):
                 ):
                     continue
 
-                # 2. Extract part before the first colon (tools list) or status indicator
-                # TS Output: "✓ ${serverName} (from ...): tool1, tool2"
-                # OR: "✓ ${serverName} (${transport}) - ${status}"
+                # 2. Extract Server Name
+                # Output formats:
+                # "✓ server-name (transport) - status"
+                # "✓ server-name (from ...): tool1, tool2"
                 
                 # Strip leading checkmarks/dots
                 clean_line = re.sub(r"^[✓✗…*]?\s*", "", clean_line)
                 
-                if ":" in clean_line:
-                    prefix, tools_raw = clean_line.split(":", 1)
-                    
-                    # Process Server Name (remove "(from ...)" or "(stdio)")
-                    server_name = re.sub(r"\s*\(.*\).*", "", prefix).strip()
+                # Extract the server name (everything before the first parenthesis or colon)
+                # Matches "server-name" in "server-name (stdio)..."
+                match = re.search(r"^([^\(\:]+)", clean_line)
+                if match:
+                    server_name = match.group(1).strip()
                     if server_name:
-                        tools.append(server_name)
-                    
-                    # Process Tools
-                    for t in tools_raw.split(","):
-                        t_stripped = t.strip()
-                        if t_stripped:
-                            tools.append(t_stripped)
-                else:
-                    # Handle "name (transport) - status"
-                    server_name = re.sub(r"\s*\(.*\).*", "", clean_line).strip()
-                    if server_name:
-                        tools.append(server_name)
-        except Exception as e:
-            logging.warning(f"Failed to list MCP tools: {e}")
+                        servers.append(server_name)
 
-        return list(set(tools))
+        except Exception as e:
+            logging.warning(f"Failed to list MCP servers: {e}")
+
+        return list(set(servers))
 
     async def get_gemini_cli_extensions(self) -> list[str]:
         """Returns a list of available Gemini CLI extensions."""

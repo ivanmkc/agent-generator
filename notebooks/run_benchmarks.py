@@ -34,7 +34,6 @@ from benchmarks import benchmark_orchestrator
 from benchmarks.benchmark_candidates import CANDIDATE_GENERATORS
 from benchmarks.answer_generators.gemini_cli_docker import (
     GeminiCliPodmanAnswerGenerator,
-    GeminiCliCloudRunAnswerGenerator,
 )
 from benchmarks.answer_generators.base import AnswerGenerator
 from benchmarks.config import PODMAN_CONFIG
@@ -239,23 +238,6 @@ async def run_comparison(
                 #             model_name=generator.model_name,
                 #             context_instruction=generator.context_instruction,
                 #             service_url=generator._base_url,
-                #         )
-
-                # # For Cloud Run generators, create a lightweight proxy that points to the deployed service
-                # elif isinstance(generator, GeminiCliCloudRunAnswerGenerator):
-                #     if hasattr(generator, "service_url") and generator.service_url:
-                #         logger.log_message(
-                #             f"Creating proxy for execution at {generator.service_url}"
-                #         )
-                #         target_generator = GeminiCliCloudRunAnswerGenerator(
-                #             dockerfile_dir=generator.dockerfile_dir,
-                #             service_name=generator.service_name,
-                #             project_id=generator.project_id,
-                #             region=generator.region,
-                #             model_name=generator.model_name,
-                #             context_instruction=generator.context_instruction,
-                #             service_url=generator.service_url,
-                #             image_name=generator.image_name,
                 #         )
 
                 # Adjust concurrency for heavy generators

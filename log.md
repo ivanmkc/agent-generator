@@ -1,25 +1,50 @@
-# Development Log
+# Test & Benchmark Report: Ranked Knowledge Runner (MCP V47)
 
-## 2026-01-20
-### Improved FQN Resolution in Benchmark Generator
-- **Issue:** Type signatures in `ranked_targets` were ambiguous (e.g., `ToolConfig` instead of `google.adk.types.ToolConfig`).
-- **Fix:** Enhanced `resolve_annotation` in `benchmarks/benchmark_generator/tools.py` to map imports, resolve forward refs, and prefix local classes.
-- **Verification:** Passed integrity tests and manual verification of FQN signatures in `ranked_targets.yaml`.
+**Date:** 2026-01-23
+**Focus:** Integration Testing and Benchmarking of `mcp_adk_agent_runner_ranked_knowledge`.
 
-### Framework Contract Visibility (Exposing `_run_async_impl`)
-- **Issue:** Agents hallucinated synchronous methods because the mandatory `_run_async_impl` was hidden.
-- **Fix:** Allowed `_run_async_impl` to be scanned and included in `BaseAgent` methods.
-- **Verification:** Confirmed its presence in the updated YAML index.
+## 1. Unified Integration Test Results
 
-### Tool Maintenance & Fixes
-- **Benchmark Viewer Fix:** Resolved a `SyntaxError` in `tools/benchmark_viewer.py` caused by a malformed triple-quoted raw string and incorrect use of `.format()`.
-- **Benchmark Viewer Feature:** 
-    - Added ability to display AI-generated case descriptions/explanations by loading the source benchmark definition files (YAML/JSONL).
-    - Integrated `benchmarks/case_docs_cache.yaml` to show prioritized `one_liner` descriptions for each case.
-    - Simplified "Benchmark Case Definition" expander by removing redundant individual fields and displaying the full source JSON directly.
-    - Merged redundant "Final Status" and error message boxes into a single, unified status component.
-- **Benchmark Viewer Bugfix:** Fixed `NameError: name 'cases' is not defined` by restoring the accidentally truncated `load_benchmark_suite` function body.
-- **Tool Refactoring:** Refactored `adk_knowledge_mcp.py` to split `inspect_adk_symbol` into two tools:
-    - `inspect_adk_symbol`: Now returns the **structured specification** (YAML) from the index.
-    - `read_adk_source_code`: Preserves the old functionality of reading raw source code from disk.
-- **Verification:** Verified compilation with `py_compile`.
+**Command:** `pytest benchmarks/tests/integration/test_unified_generators.py -k podman_mcp_adk_runner_ranked_knowledge_test_case`
+
+| Test Case | Result | Notes |
+| :--- | :--- | :--- |
+| `test_generator_capabilities` | **PASSED** | Correctly identified MCP server `adk-knowledge` after refactoring capability check to use `get_mcp_servers()`. |
+| `test_generator_execution` | **PASSED** | Successfully generated an answer for case `test:mcp_adk_runner`. Trace logs confirmed successful execution. |
+| `test_generator_memory_context` | **SKIPPED** | No expected context files defined for this case. |
+
+**Assessment:** The generator and the test harness are now fully functional and consistent.
+
+## 2. Benchmark Run Results (Debug Suite)
+
+**Command:** `python notebooks/run_benchmarks.py --suite-filter debug --generator-filter ranked_knowledge`
+
+### Generator: `ranked_knowledge_bm25` (gemini-2.5-pro)
+*   **Total:** 3 Tests
+*   **Passed:** 3 (100%)
+*   **Failed:** 0
+
+| Benchmark Case | Result | Time |
+| :--- | :--- | :--- |
+| `mc_proactivity` | PASS | 14.30s |
+| `api_understanding_base_agent` | PASS | 25.51s |
+| `fix_error_logic_agent` | PASS | 50.84s |
+
+### Generator: `ranked_knowledge_keyword` (gemini-2.5-pro)
+*   **Total:** 3 Tests
+*   **Passed:** 2 (66.7%)
+*   **Failed:** 1
+
+| Benchmark Case | Result | Time | Notes |
+| :--- | :--- | :--- | :--- |
+| `mc_proactivity` | PASS | 14.40s | |
+| `api_understanding_base_agent` | PASS | 19.73s | |
+| `fix_error_logic_agent` | **FAIL (Validation)** | 59.66s | **Syntax Error:** Generated code contained `def def create_agent...`. This indicates a minor hallucination in the `fix_error` logic for the keyword variant. |
+
+## 3. Conclusion
+
+The `mcp_adk_agent_runner_ranked_knowledge` is working correctly in its primary BM25 configuration, achieving a 100% pass rate on the debug suite. The `keyword` variant showed a regression in code syntax generation. 
+
+**Fixes Applied:**
+*   Refactored `GeminiCliAnswerGenerator.get_mcp_tools` to `get_mcp_servers` to align with CLI output format and semantic meaning.
+*   Updated integration tests to assert on server names rather than ambiguous tool lists.

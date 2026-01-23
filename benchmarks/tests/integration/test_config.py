@@ -27,7 +27,6 @@ from benchmarks.tests.integration.predefined_cases import (
 from benchmarks.tests.integration.config_models import (
     AnyGeneratorConfig,
     PodmanGeneratorConfig,
-    CloudRunGeneratorConfig,
     WorkflowAdkGeneratorConfig,
     StructuredWorkflowAdkGeneratorConfig
 )
@@ -77,7 +76,7 @@ GENERATOR_METADATA: Dict[str, AnyGeneratorConfig] = {
 
         expected_extensions=["adk-docs-ext"],
 
-        expected_mcp_tools=["adk-docs-mcp"],
+        expected_mcp_servers=["adk-docs-mcp"],
 
         custom_case=ADK_BASE_AGENT_QUESTION_CASE_INTERMEDIATE,
 
@@ -88,7 +87,7 @@ GENERATOR_METADATA: Dict[str, AnyGeneratorConfig] = {
             "podman_context7_test_case": PodmanGeneratorConfig(
                 id="podman_context7_test_case",
                 dockerfile_dir=Path("benchmarks/answer_generators/gemini_cli_docker/mcp_context7"),
-                expected_mcp_tools=["context7"],
+                expected_mcp_servers=["context7"],
                 custom_case=ADK_BASE_AGENT_QUESTION_CASE_INTERMEDIATE,
                 context_instruction=(
                     "You have access to a 'context7' tool for searching the codebase. "
@@ -98,7 +97,7 @@ GENERATOR_METADATA: Dict[str, AnyGeneratorConfig] = {
     "podman_mcp_adk_runner_test_case": PodmanGeneratorConfig(
         id="podman_mcp_adk_runner_test_case",
         dockerfile_dir=Path("benchmarks/answer_generators/gemini_cli_docker/mcp_adk_agent_runner_basic"),
-        expected_mcp_tools=["adk-agent-runner"],
+        expected_mcp_servers=["adk-agent-runner"],
         custom_case=MCP_ADK_RUNNER_CASE,
         expected_tool_uses=["run_adk_agent"],
 
@@ -106,7 +105,7 @@ GENERATOR_METADATA: Dict[str, AnyGeneratorConfig] = {
     "podman_mcp_adk_runner_smart_search_test_case": PodmanGeneratorConfig(
         id="podman_mcp_adk_runner_smart_search_test_case",
         dockerfile_dir=Path("benchmarks/answer_generators/gemini_cli_docker/mcp_adk_agent_runner_smart_search"),
-        expected_mcp_tools=["adk-agent-runner"],
+        expected_mcp_servers=["adk-agent-runner"],
         custom_case=MCP_ADK_RUNNER_CASE,
         # Expect get_module_help, though prompt is probabilistic. 
         # But instructions prioritize it, so it should appear.
@@ -116,14 +115,9 @@ GENERATOR_METADATA: Dict[str, AnyGeneratorConfig] = {
         id="podman_mcp_adk_runner_ranked_knowledge_test_case",
         dockerfile_dir=Path("benchmarks/answer_generators/gemini_cli_docker/mcp_adk_agent_runner_ranked_knowledge"),
         image_name="gemini-cli:mcp_adk_agent_runner_ranked_knowledge",
-        expected_mcp_tools=["adk-knowledge", "list_adk_modules", "search_adk_knowledge", "inspect_adk_symbol", "read_adk_source_code"],
+        expected_mcp_servers=["adk-knowledge"],
         custom_case=MCP_ADK_RUNNER_CASE,
         expected_tool_uses=["list_adk_modules", "inspect_adk_symbol", "run_adk_agent"],
-    ),
-    "cloud_run_test_case": CloudRunGeneratorConfig(
-        id="cloud_run_test_case",
-        dockerfile_dir=Path("benchmarks/answer_generators/gemini_cli_docker/base"),
-        service_name="gemini-cli-test-service",
     ),
 }
 

@@ -31,7 +31,7 @@ class GeneratorConfig(BaseModel, abc.ABC):
     id: str
     expected_context_files: List[str] = Field(default_factory=list)
     expected_extensions: List[str] = Field(default_factory=list)
-    expected_mcp_tools: List[str] = Field(default_factory=list)
+    expected_mcp_servers: List[str] = Field(default_factory=list)
     custom_case: Optional[BaseBenchmarkCase] = None
     expected_tool_uses: List[str] = Field(default_factory=list)
     expected_sub_agent_calls: Optional[List[str]] = Field(default=None)
@@ -93,42 +93,6 @@ class PodmanGeneratorConfig(GeneratorConfig):
         )
 
 
-class CloudRunGeneratorConfig(GeneratorConfig):
-    """
-    Configuration specific to Cloud Run-based generators.
-
-    Attributes:
-        type: Literal "cloud_run".
-        dockerfile_dir: Path to the directory containing the Dockerfile.
-        service_name: Name of the Cloud Run service.
-        region: Google Cloud region (default: us-central1).
-        service_url: Optional URL if using an existing service (proxy mode).
-    """
-
-    type: Literal["cloud_run"] = "cloud_run"
-    dockerfile_dir: Path
-    service_name: str
-    region: str = "us-central1"
-    service_url: Optional[str] = None
-
-    def create_generator(self, model_name: str, project_id: str, api_key_manager: ApiKeyManager) -> AnswerGenerator:
-        """
-        Creates a Cloud Run-based AnswerGenerator instance based on this configuration.
-        """
-        from benchmarks.answer_generators.gemini_cli_docker import (
-            GeminiCliCloudRunAnswerGenerator,
-        )
-        
-        return GeminiCliCloudRunAnswerGenerator(
-            model_name=model_name,
-            dockerfile_dir=self.dockerfile_dir,
-            service_name=self.service_name,
-            project_id=project_id,
-            region=self.region,
-            api_key_manager=api_key_manager,
-            service_url=self.service_url,
-        )
-
 class WorkflowAdkGeneratorConfig(GeneratorConfig):
     """
     Configuration specific to Workflow ADK-based generators.
@@ -172,7 +136,6 @@ class StructuredWorkflowAdkGeneratorConfig(GeneratorConfig):
 # Union type for the configuration dictionary values
 AnyGeneratorConfig = Union[
     PodmanGeneratorConfig, 
-    CloudRunGeneratorConfig, 
     WorkflowAdkGeneratorConfig, 
     StructuredWorkflowAdkGeneratorConfig
 ]

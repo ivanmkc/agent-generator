@@ -89,7 +89,7 @@ class GeneratorTestCase:
 
     # Simple lists of strings for expected tools
     expected_gemini_cli_extensions: List[str] = field(default_factory=list)
-    expected_mcp_tools: List[str] = field(default_factory=list)
+    expected_mcp_servers: List[str] = field(default_factory=list)
     expected_context_files: List[str] = field(default_factory=list)
 
     custom_case: BaseBenchmarkCase = field(default=None)
@@ -162,7 +162,6 @@ def workspace_dir(tmp_path_factory: pytest.TempPathFactory) -> Path:
 from benchmarks.tests.integration.test_config import TEST_CASE_FIXTURES
 from benchmarks.tests.integration.config_models import (
     PodmanGeneratorConfig,
-    CloudRunGeneratorConfig,
 )
 
 
@@ -198,8 +197,6 @@ async def managed_generator_test_case(
 
         if gen_type == "podman" and not has_cmd("podman"):
             pytest.skip("Podman not installed")
-        if gen_type == "cloud_run" and not has_env("GOOGLE_CLOUD_PROJECT"):
-            pytest.skip("GOOGLE_CLOUD_PROJECT not set")
 
     # Instantiate the correct generator class
     project_id = os.environ.get("GOOGLE_CLOUD_PROJECT", None)
@@ -212,7 +209,7 @@ async def managed_generator_test_case(
         id=config.id,
         generator=gen,
         expected_gemini_cli_extensions=config.expected_extensions,
-        expected_mcp_tools=config.expected_mcp_tools,
+        expected_mcp_servers=config.expected_mcp_servers,
         expected_context_files=config.expected_context_files,
         custom_case=config.custom_case,
         expected_tool_uses=config.expected_tool_uses,
@@ -265,8 +262,6 @@ async def test_case(
 
                 if gen_type == "podman" and not has_cmd("podman"):
                     pytest.skip("Podman not installed")
-                if gen_type == "cloud_run" and not has_env("GOOGLE_CLOUD_PROJECT"):
-                    pytest.skip("GOOGLE_CLOUD_PROJECT not set")
 
             # Instantiate generator
             project_id = os.environ.get("GOOGLE_CLOUD_PROJECT", None)
@@ -282,7 +277,7 @@ async def test_case(
                 id=config.id,
                 generator=gen,
                 expected_gemini_cli_extensions=config.expected_extensions,
-                expected_mcp_tools=config.expected_mcp_tools,
+                expected_mcp_servers=config.expected_mcp_servers,
                 expected_context_files=config.expected_context_files,
                 custom_case=custom_case_instance,
                 expected_tool_uses=config.expected_tool_uses,
