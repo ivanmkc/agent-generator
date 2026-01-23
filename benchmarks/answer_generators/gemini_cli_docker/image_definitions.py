@@ -57,7 +57,7 @@ IMAGE_DEFINITIONS: Dict[str, ImageDefinition] = {
         build_args={"BASE_IMAGE": f"{IMAGE_PREFIX}:adk-python"},
     ),
     f"{IMAGE_PREFIX}:mcp_adk_agent_runner_ranked_knowledge": ImageDefinition(
-        source_dir="../../",
+        source_dir="../../../",
         dockerfile="mcp_adk_agent_runner_ranked_knowledge/Dockerfile",
         description="**Ranked Knowledge Runner (V47 Port):** This runner incorporates the high-fidelity 'Ranked Knowledge Index' from Experiment 67 (V47) directly into the Gemini CLI environment via a custom MCP server. It exposes `search_adk_knowledge` and `inspect_adk_symbol` tools, allowing the CLI agent to perform the same grounded retrieval as the Python-based sequential agent.",
         dependencies=[f"{IMAGE_PREFIX}:adk-python"],

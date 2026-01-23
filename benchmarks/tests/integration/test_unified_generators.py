@@ -262,28 +262,18 @@ async def run_orchestrator():
         print(f"\n>>> Preparing Generator: {gen_id} ({gen_type})")
 
         generator = None
-        # Instantiate
-        if gen_type == "podman":
-            generator = GeminiCliPodmanAnswerGenerator(
-                dockerfile_dir=Path(config.dockerfile_dir),
-                image_name=config.image_name,
-                image_definitions=IMAGE_DEFINITIONS,
+        # Instantiate via config factory
+        from benchmarks.api_key_manager import ApiKeyManager
+        project_id = os.environ.get("GOOGLE_CLOUD_PROJECT", None)
+        
+        try:
+            generator = config.create_generator(
                 model_name="gemini-2.5-flash",
+                project_id=project_id,
+                api_key_manager=ApiKeyManager()
             )
-        elif gen_type == "cloud_run":
-            # Check for Project ID
-            if not os.environ.get("GOOGLE_CLOUD_PROJECT"):
-                print(f"!!! Skipping {gen_id}: GOOGLE_CLOUD_PROJECT not set.")
-                continue
-
-            generator = GeminiCliCloudRunAnswerGenerator(
-                dockerfile_dir=Path(config.dockerfile_dir),
-                service_name=config.service_name,
-                region=getattr(config, "region", "us-central1"),
-                model_name="gemini-2.5-flash",
-            )
-        else:
-            print(f"!!! Unknown generator type: {gen_type}")
+        except Exception as e:
+            print(f"!!! [{gen_id}] Initialization FAILED: {e}")
             continue
 
         try:

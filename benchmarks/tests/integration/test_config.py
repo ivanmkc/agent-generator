@@ -104,19 +104,21 @@ GENERATOR_METADATA: Dict[str, AnyGeneratorConfig] = {
 
     ),
     "podman_mcp_adk_runner_smart_search_test_case": PodmanGeneratorConfig(
-
         id="podman_mcp_adk_runner_smart_search_test_case",
-
         dockerfile_dir=Path("benchmarks/answer_generators/gemini_cli_docker/mcp_adk_agent_runner_smart_search"),
-
         expected_mcp_tools=["adk-agent-runner"],
-
         custom_case=MCP_ADK_RUNNER_CASE,
-
         # Expect get_module_help, though prompt is probabilistic. 
         # But instructions prioritize it, so it should appear.
         expected_tool_uses=["get_module_help", "run_adk_agent"],
-
+    ),
+    "podman_mcp_adk_runner_ranked_knowledge_test_case": PodmanGeneratorConfig(
+        id="podman_mcp_adk_runner_ranked_knowledge_test_case",
+        dockerfile_dir=Path("benchmarks/answer_generators/gemini_cli_docker/mcp_adk_agent_runner_ranked_knowledge"),
+        image_name="gemini-cli:mcp_adk_agent_runner_ranked_knowledge",
+        expected_mcp_tools=["adk-knowledge"],
+        custom_case=MCP_ADK_RUNNER_CASE,
+        expected_tool_uses=["list_adk_modules", "inspect_adk_symbol", "run_adk_agent"],
     ),
     "cloud_run_test_case": CloudRunGeneratorConfig(
         id="cloud_run_test_case",
