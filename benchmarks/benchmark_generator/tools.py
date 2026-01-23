@@ -462,18 +462,66 @@ def scan_repository(repo_path: str, tool_context: ToolContext, coverage_file: Op
                     except:
                         return False
 
-                def _add_prop(self, name, type_hint, docstring=None, init_excluded=False):
+                def _extract_field_default(self, node):
+                    """Extracts effective default value from Field(...) call or raw value."""
+                    try:
+                        if isinstance(node, ast.Call):
+                            # Check for Field/field call
+                            is_field = False
+                            if isinstance(node.func, ast.Name) and node.func.id in ('Field', 'field'):
+                                is_field = True
+                            elif isinstance(node.func, ast.Attribute) and node.func.attr in ('Field', 'field'):
+                                is_field = True
+                            
+                            if is_field:
+                                for kw in node.keywords:
+                                    if kw.arg == 'default':
+                                        return ast.unparse(kw.value)
+                                    # Handle default_factory? usually implies dynamic default.
+                                    # We could return None to imply no static default.
+                                return None # Field used but no static default found
+                        
+                        # Not a Field call, just use the value
+                        return ast.unparse(node)
+                    except:
+                        return None
+
+                def _add_prop(self, name, type_hint, docstring=None, init_excluded=False, default_value=None):
                     if not self.current_class_fqn or self.in_function: return
-                    # Avoid duplicates
+                    
                     props = structure_map[self.current_class_fqn]["props"]
-                    if not any(p["name"] == name for p in props):
-                        props.append({"name": name, "type": type_hint, "docstring": docstring, "init_excluded": init_excluded})
+                    existing = next((p for p in props if p["name"] == name), None)
+                    
+                    if existing:
+                        # Merge details
+                        if docstring and not existing.get("docstring"):
+                            existing["docstring"] = docstring
+                        if init_excluded:
+                            existing["init_excluded"] = True
+                        if default_value is not None:
+                            existing["default_value"] = default_value
+                        # Update type if we have a better one? (e.g. Any -> specific)
+                        if existing["type"] == "Any" and type_hint != "Any":
+                            existing["type"] = type_hint
+                    else:
+                        props.append({
+                            "name": name, 
+                            "type": type_hint, 
+                            "docstring": docstring, 
+                            "init_excluded": init_excluded,
+                            "default_value": default_value
+                        })
 
                 def visit_Assign(self, node):
                     if self.current_class_fqn and not self.in_function:
                         # Try to infer type from value
                         type_hint = "Any"
                         init_excluded = False
+                        default_value = None
+                        
+                        # Extract default
+                        if node.value:
+                            default_value = self._extract_field_default(node.value)
                         
                         if isinstance(node.value, ast.Constant):
                             type_hint = type(node.value.value).__name__
@@ -489,7 +537,7 @@ def scan_repository(repo_path: str, tool_context: ToolContext, coverage_file: Op
 
                         for target in node.targets:
                             if isinstance(target, ast.Name) and not target.id.startswith("_"):
-                                self._add_prop(target.id, type_hint, init_excluded=init_excluded)
+                                self._add_prop(target.id, type_hint, init_excluded=init_excluded, default_value=default_value)
                     self.generic_visit(node)
 
                 def visit_AnnAssign(self, node):
@@ -497,15 +545,20 @@ def scan_repository(repo_path: str, tool_context: ToolContext, coverage_file: Op
                         prop_type = self.resolve_annotation(node.annotation)
                         
                         init_excluded = False
+                        default_value = None
+                        
                         # Check ClassVar
                         if self._is_class_var(node.annotation):
                             init_excluded = True
                         
-                        # Check Field(init=False) in value
-                        if node.value and self._is_init_excluded_field(node.value):
-                            init_excluded = True
+                        if node.value:
+                            default_value = self._extract_field_default(node.value)
                             
-                        self._add_prop(node.target.id, prop_type, init_excluded=init_excluded)
+                            # Check Field(init=False) in value
+                            if self._is_init_excluded_field(node.value):
+                                init_excluded = True
+                            
+                        self._add_prop(node.target.id, prop_type, init_excluded=init_excluded, default_value=default_value)
                     self.generic_visit(node)
                 
                 # Removed old visit_ImportFrom that was here, merged into top class logic

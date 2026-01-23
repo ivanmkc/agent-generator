@@ -360,6 +360,10 @@ class TargetRanker:
                 for p in struct.get("props", []):
                     name = p["name"]
                     
+                    # DEBUG
+                    # if name == "speech_config" or name == "max_llm_calls":
+                    #    print(f"[DEBUG] Prop {name}: {p}")
+
                     # 1. Check init_excluded flag (from ClassVar or Field(init=False))
                     if p.get("init_excluded"):
                         continue
@@ -368,7 +372,10 @@ class TargetRanker:
                     if name not in seen_fields and name not in CONSTRUCTOR_EXCLUDED_FIELDS:
                         seen_fields.add(name)
                         # Reconstruct signature part
-                        fields.append(f"{name}: {p['type']}")
+                        sig = f"{name}: {p['type']}"
+                        if p.get("default_value") is not None:
+                            sig += f" = {p['default_value']}"
+                        fields.append(sig)
             
             if fields:
                 return f"def __init__(self, *, {', '.join(fields)}):"
