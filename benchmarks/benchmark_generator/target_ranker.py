@@ -291,14 +291,14 @@ class TargetRanker:
         if has_init:
             return None # Already has explicit init
 
-        # 2. Analyze MRO to detect Pydantic models or inherit parent __init__
+        # 2. Analyze MRO to detect Pydantic models, Dataclasses, or inherit parent __init__
         # This uses BFS to gather the hierarchy. 
         # Note: A proper MRO linearization would be better but BFS is a decent proxy for gathering members.
         queue = [cls_fqn]
         visited = {cls_fqn}
         hierarchy = [] 
         
-        is_pydantic = False
+        is_generated_init = False
         first_init_sig = None
 
         while queue:
@@ -312,8 +312,14 @@ class TargetRanker:
             bases = curr_struct.get("bases", [])
             for b in bases:
                 if "BaseModel" in b or "pydantic" in b.lower():
-                    is_pydantic = True
+                    is_generated_init = True
             
+            # Check decorators for Dataclass marker
+            decorators = curr_struct.get("decorators", [])
+            for d in decorators:
+                if "dataclass" in d:
+                    is_generated_init = True
+
             # Check for inherited __init__ (if we haven't found one yet)
             if not first_init_sig and curr != cls_fqn:
                  curr_children = curr_struct.get("children", [])
@@ -331,8 +337,8 @@ class TargetRanker:
                     visited.add(p)
                     queue.append(p)
         
-        if is_pydantic:
-            # For Pydantic, collect all properties (fields) from the hierarchy
+        if is_generated_init:
+            # For Pydantic/Dataclasses, collect all properties (fields) from the hierarchy
             fields = []
             seen_fields = set()
             
@@ -524,7 +530,7 @@ class TargetRanker:
             )
             
             if tid in structure_map:
-                # Constructor Reconstruction (NEW)
+                # Constructor Reconstruction
                 reconstructed_init = self.reconstruct_constructor_signature(tid, structure_map, entity_map, adk_inheritance)
                 if reconstructed_init:
                      target_model.constructor_signature = reconstructed_init

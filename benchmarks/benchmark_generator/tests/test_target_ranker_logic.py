@@ -74,6 +74,28 @@ class TestTargetRankerLogic:
         assert "parent_field: int" in result
         assert "child_field: str" in result
 
+    def test_reconstruct_constructor_dataclass(self, ranker):
+        """Should reconstruct signature for dataclass by aggregating fields."""
+        
+        structure_map = {
+            "pkg.Data": {
+                "type": "Class",
+                "bases": [],
+                "decorators": ["dataclass"],
+                "children": [],
+                "props": [{"name": "field1", "type": "int", "docstring": "Field 1"}]
+            }
+        }
+        
+        entity_map = {}
+        adk_inheritance = {} # No inheritance
+        
+        result = ranker.reconstruct_constructor_signature("pkg.Data", structure_map, entity_map, adk_inheritance)
+        
+        assert result is not None
+        assert "def __init__(self, *," in result
+        assert "field1: int" in result
+
     def test_reconstruct_constructor_inherited_init(self, ranker):
         """Should return parent's __init__ signature if not Pydantic."""
         

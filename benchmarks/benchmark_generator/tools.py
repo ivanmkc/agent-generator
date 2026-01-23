@@ -277,10 +277,26 @@ def scan_repository(repo_path: str, tool_context: ToolContext, coverage_file: Op
                             bases.append(base.id)
                         elif isinstance(base, ast.Attribute):
                             bases.append(ast.unparse(base))
+
+                    # Extract Decorators
+                    decorators = []
+                    for decorator in node.decorator_list:
+                        try:
+                            if isinstance(decorator, ast.Name):
+                                decorators.append(decorator.id)
+                            elif isinstance(decorator, ast.Attribute):
+                                decorators.append(ast.unparse(decorator))
+                            elif isinstance(decorator, ast.Call):
+                                if isinstance(decorator.func, ast.Name):
+                                    decorators.append(decorator.func.id)
+                                elif isinstance(decorator.func, ast.Attribute):
+                                    decorators.append(ast.unparse(decorator.func))
+                        except:
+                            pass
                     
                     # Structure Map
                     structure_map[class_fqn] = {
-                        "type": "Class", "name": node.name, "children": [], "params": {}, "props": [], "bases": bases
+                        "type": "Class", "name": node.name, "children": [], "params": {}, "props": [], "bases": bases, "decorators": decorators
                     }
                     structure_map[self.mod_fqn]["children"].append(class_fqn)
                     
