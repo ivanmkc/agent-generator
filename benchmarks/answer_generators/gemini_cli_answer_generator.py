@@ -253,7 +253,8 @@ class GeminiCliAnswerGenerator(GeminiAnswerGenerator):
 
         try:
             mcp_res, _ = await self.run_cli_command([self.cli_path, "mcp", "list"])
-            for line in mcp_res.get("stdout", "").splitlines():
+            stdout = mcp_res.get("stdout", "")
+            for line in stdout.splitlines():
                 # 1. Clean the line of ANSI codes immediately
                 clean_line = self._strip_ansi(line).strip()
 
@@ -264,22 +265,31 @@ class GeminiCliAnswerGenerator(GeminiAnswerGenerator):
                 ):
                     continue
 
-                # 2. Extract part before the first colon
-                # TS Output: "${statusIndicator} ${serverName} (from ...): ..."
-                # Example: "✓ weather (from ext): ..."
-                tool_name_with_status = clean_line.split(":", 1)[0].strip()
-
-                # 3. Remove leading status indicators
-                # TS uses: ✓, …, ✗. Added * just in case.
-                tool_name_candidate = re.sub(r"^[✓✗…*]?\s*", "", tool_name_with_status)
-
-                # 4. Remove "(from extension_name)" suffix
-                tool_name_candidate = re.sub(
-                    r"\s*\(from\s+.*\)", "", tool_name_candidate
-                ).strip()
-
-                if tool_name_candidate:
-                    tools.append(tool_name_candidate)
+                # 2. Extract part before the first colon (tools list) or status indicator
+                # TS Output: "✓ ${serverName} (from ...): tool1, tool2"
+                # OR: "✓ ${serverName} (${transport}) - ${status}"
+                
+                # Strip leading checkmarks/dots
+                clean_line = re.sub(r"^[✓✗…*]?\s*", "", clean_line)
+                
+                if ":" in clean_line:
+                    prefix, tools_raw = clean_line.split(":", 1)
+                    
+                    # Process Server Name (remove "(from ...)" or "(stdio)")
+                    server_name = re.sub(r"\s*\(.*\).*", "", prefix).strip()
+                    if server_name:
+                        tools.append(server_name)
+                    
+                    # Process Tools
+                    for t in tools_raw.split(","):
+                        t_stripped = t.strip()
+                        if t_stripped:
+                            tools.append(t_stripped)
+                else:
+                    # Handle "name (transport) - status"
+                    server_name = re.sub(r"\s*\(.*\).*", "", clean_line).strip()
+                    if server_name:
+                        tools.append(server_name)
         except Exception as e:
             logging.warning(f"Failed to list MCP tools: {e}")
 

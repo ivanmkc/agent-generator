@@ -495,7 +495,7 @@ benchmarks:
   file: src/google/adk/agents/parallel_agent.py
 - id: api_understanding:which_top_level_wrapper_class_is_used_to_attach_pl
   category: Core Class Signatures & Initialization
-  question: Which top-level wrapper class is used to attach plugins to an agent application?
+  question: Which top-level wrapper class is used to configure global application settings, such as attaching plugins and setting event compaction policies, for an agent-based application?
   rationale: For advanced configurations, wrap your root agent in an `App` object. The `App` class provides parameters for adding plugins, configuring event compaction, and managing other application-level settings.
   benchmark_type: api_understanding
   template: identifier

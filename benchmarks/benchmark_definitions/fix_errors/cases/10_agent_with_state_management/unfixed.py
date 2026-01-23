@@ -14,10 +14,6 @@ def create_agent(model_name: str) -> BaseAgent:
       1. "writer_agent": Writes the value 'xyz' to the session state key "secret_word".
       2. "reader_agent": Reads the value from "secret_word" and outputs it.
 
-      Requirements:
-      - The 'writer' agent should write the value 'xyz' to a key named 'my_value' in the session state.
-      - The 'reader' agent should read the value from 'my_value' and the final response must contain 'xyz'.
-
   Args:
       model_name: The name of the LLM model to use.
 

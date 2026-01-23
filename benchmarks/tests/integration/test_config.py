@@ -116,7 +116,7 @@ GENERATOR_METADATA: Dict[str, AnyGeneratorConfig] = {
         id="podman_mcp_adk_runner_ranked_knowledge_test_case",
         dockerfile_dir=Path("benchmarks/answer_generators/gemini_cli_docker/mcp_adk_agent_runner_ranked_knowledge"),
         image_name="gemini-cli:mcp_adk_agent_runner_ranked_knowledge",
-        expected_mcp_tools=["adk-knowledge"],
+        expected_mcp_tools=["adk-knowledge", "list_adk_modules", "search_adk_knowledge", "inspect_adk_symbol", "read_adk_source_code"],
         custom_case=MCP_ADK_RUNNER_CASE,
         expected_tool_uses=["list_adk_modules", "inspect_adk_symbol", "run_adk_agent"],
     ),
