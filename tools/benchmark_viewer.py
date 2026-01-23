@@ -1360,10 +1360,9 @@ def main():
                 
                 # 6. Validation Error (Global for the case)
                 with sub_tabs[5]:
-                    st.markdown("#### Overall Case Validation Error")
-                    st.markdown("Global validation result for the benchmark case.")
                     if result_obj.validation_error:
-                        st.error(f"Validation failed for the overall case: {result_obj.validation_error}")
+                        st.error("Validation Failed")
+                        st.code(result_obj.validation_error, language="text")
                     else:
                         st.success("Overall case validation passed.")
 
