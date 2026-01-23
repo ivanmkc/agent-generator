@@ -382,23 +382,29 @@ def render_logs(logs):
     
     # Grouping Logic on trace_logs
     grouped_events = []
-    i = 0
-    while i < len(trace_logs):
+    skip_indices = set()
+    
+    for i in range(len(trace_logs)):
+        if i in skip_indices:
+            continue
+            
         event = trace_logs[i]
         e_type = event.get("type", "unknown")
 
         # Try to pair tool_use with tool_result
         if e_type == "tool_use":
-            # Look ahead for the corresponding result
             result_event = None
-            j = i + 1
-            while j < len(logs):
-                if logs[j].get("type") == "tool_result":
-                    result_event = logs[j]
-                    logs.pop(j)  # Consume it from our local copy
+            # Look ahead for the corresponding result within trace_logs
+            for j in range(i + 1, len(trace_logs)):
+                if j in skip_indices:
+                    continue
+                
+                candidate = trace_logs[j]
+                if candidate.get("type") == "tool_result":
+                    result_event = candidate
+                    skip_indices.add(j)
                     break
-                j += 1
-
+            
             grouped_events.append(
                 {
                     "type": "tool_interaction",
@@ -408,8 +414,6 @@ def render_logs(logs):
             )
         else:
             grouped_events.append(event)
-
-        i += 1
 
     # --- Tool Chain Summary ---
     tool_chain_data = []
@@ -522,19 +526,19 @@ def render_logs(logs):
         # 2. Model Response
         elif e_type == "model_response":
             with st.chat_message("ai"):
-                st.write(event.get("content"))
+                st.markdown(event.get("content"))
         
         elif e_type == "message":
             role = event.get("role", "unknown")
             if role == "user":
                 with st.chat_message("user"):
-                    st.write(event.get("content"))
+                    st.markdown(event.get("content"))
             elif role == "model":
                 with st.chat_message("ai"):
-                    st.write(event.get("content"))
+                    st.markdown(event.get("content"))
             else:
                 with st.chat_message(role): # Generic role
-                    st.write(event.get("content"))
+                    st.markdown(event.get("content"))
 
         # 4. Critical Errors
         elif e_type == "GEMINI_CLIENT_ERROR":
@@ -615,6 +619,7 @@ def _get_concise_error_message(row, case_trace_logs) -> str:
 
 def main():
     st.set_page_config(page_title="Benchmark Viewer", layout="wide")
+
     st.title("📊 ADK Benchmark Viewer")
     
     # Display Storage Mode
@@ -622,6 +627,19 @@ def main():
         st.caption(f"☁️ Storage Mode: GCS Bucket (`{BENCHMARK_GCS_BUCKET}`)")
     else:
         st.caption("📂 Storage Mode: Local Files")
+
+    # Inject custom CSS for word wrapping in code blocks and text
+    st.markdown("""
+        <style>
+        pre, code {
+            white-space: pre-wrap !important;
+            word-wrap: break-word !important;
+        }
+        div[data-testid="stMarkdownContainer"] p {
+            white-space: pre-wrap !important; 
+        }
+        </style>
+    """, unsafe_allow_html=True)
 
     # 1. Run Selection (Sidebar)
     runs = load_run_options()
@@ -1331,8 +1349,8 @@ def main():
                     else:
                         st.json([t.model_dump() for t in active_trace_logs])
 
-                # 4. Generation Error
-                with sub_tabs[3]:
+                # 5. Generation Error
+                with sub_tabs[4]:
                     st.markdown("#### Generation Error Details")
                     st.markdown("Error details if the attempt failed to produce an answer.")
                     if attempt.status != "success":
@@ -1340,8 +1358,8 @@ def main():
                     else:
                         st.info("Generation successful for this attempt.")
                 
-                # 5. Validation Error (Global for the case)
-                with sub_tabs[4]:
+                # 6. Validation Error (Global for the case)
+                with sub_tabs[5]:
                     st.markdown("#### Overall Case Validation Error")
                     st.markdown("Global validation result for the benchmark case.")
                     if result_obj.validation_error:
@@ -1349,8 +1367,8 @@ def main():
                     else:
                         st.success("Overall case validation passed.")
 
-                # 6. Metadata
-                with sub_tabs[5]:
+                # 7. Metadata
+                with sub_tabs[6]:
                     st.markdown("#### Attempt Metadata")
                     st.markdown("Token usage and other execution metadata.")
                     st.caption("Note: Top-level statistics (header) typically reflect the final successful attempt. Usage for failed attempts is visible in the 'Run Overview'.")
