@@ -45,6 +45,15 @@ EXEMPTION_PHRASES = [
     "This method is only for use by Agent Development Kit.",
 ]
 
+# Fields to exclude from reconstructed constructor signatures
+CONSTRUCTOR_EXCLUDED_FIELDS = {
+    "model_config",      # Universal Pydantic V2 internal; configures model behavior and is never a constructor arg.
+    "config_type",       # Universal ADK Agent pattern; a ClassVar used for schema lookups, not instance data.
+    "parent_agent",      # Universal framework field for hierarchy management; set automatically when adding sub-agents.
+    "last_update_time",  # Universal metadata pattern for stateful objects; tracking is managed by the system/persistence layer.
+    "invocation_id",     # Universal framework ID for event correlation; system-generated to ensure uniqueness across the run.
+}
+
 class MockAgent(BaseAgent):
     async def _run_async_impl(self, ctx: InvocationContext):
         if False: yield None
@@ -341,7 +350,6 @@ class TargetRanker:
             # For Pydantic/Dataclasses, collect all properties (fields) from the hierarchy
             fields = []
             seen_fields = set()
-            excluded_fields = {"model_config", "config_type", "parent_agent", "last_update_time", "invocation_id"}
             
             # Traverse roughly base-to-child to emulate init kwarg order (though Pydantic is flexible)
             for ancestor in reversed(hierarchy):
@@ -357,7 +365,7 @@ class TargetRanker:
                         continue
                         
                     # 2. Check blacklist and duplicates
-                    if name not in seen_fields and name not in excluded_fields:
+                    if name not in seen_fields and name not in CONSTRUCTOR_EXCLUDED_FIELDS:
                         seen_fields.add(name)
                         # Reconstruct signature part
                         fields.append(f"{name}: {p['type']}")

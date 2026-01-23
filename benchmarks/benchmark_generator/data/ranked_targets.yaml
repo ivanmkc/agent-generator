@@ -726,8 +726,8 @@
     BaseModel:
     - signature: 'model_config: pydantic.ConfigDict'
   omitted_inherited_members_from:
-  - pydantic.BaseModel
   - ABC
+  - pydantic.BaseModel
 - rank: 12
   id: google.adk.sessions.in_memory_session_service.InMemorySessionService
   name: InMemorySessionService
@@ -2886,8 +2886,8 @@
   - signature: 'OPEN_ID_CONNECT: str'
   - signature: 'SERVICE_ACCOUNT: str'
   omitted_inherited_members_from:
-  - Enum
   - str
+  - Enum
 - rank: 92
   id: google.adk.agents.sequential_agent
   name: sequential_agent
@@ -7004,8 +7004,8 @@
   - signature: 'IMPLICIT: str'
   - signature: 'PASSWORD: str'
   omitted_inherited_members_from:
-  - Enum
   - str
+  - Enum
 - rank: 381
   id: google.adk.auth.auth_schemes.OAuthGrantType.from_flow
   name: from_flow
@@ -19774,8 +19774,8 @@
   - signature: 'ENVIRONMENT_BROWSER: str'
     docstring: Operates in a web browser.
   omitted_inherited_members_from:
-  - Enum
   - str
+  - Enum
 - rank: 1427
   id: google.adk.tools.computer_use.base_computer.ComputerState
   name: ComputerState
@@ -30498,8 +30498,8 @@
     - signature: 'done: typing.Optional[bool]'
     - signature: 'error: typing.Optional[dict[str, typing.Any]]'
   omitted_inherited_members_from:
-  - ABC
   - _common.BaseModel
+  - ABC
 - rank: 2081
   id: google.genai.types.GenerateVideosOperation.from_api_response
   name: from_api_response
@@ -32447,8 +32447,8 @@
     - signature: 'done: typing.Optional[bool]'
     - signature: 'error: typing.Optional[dict[str, typing.Any]]'
   omitted_inherited_members_from:
-  - ABC
   - _common.BaseModel
+  - ABC
 - rank: 2171
   id: google.genai.types.ImportFileOperation.from_api_response
   name: from_api_response
@@ -39698,8 +39698,8 @@
     - signature: 'done: typing.Optional[bool]'
     - signature: 'error: typing.Optional[dict[str, typing.Any]]'
   omitted_inherited_members_from:
-  - ABC
   - _common.BaseModel
+  - ABC
 - rank: 2505
   id: google.genai.types.UploadToFileSearchStoreOperation.from_api_response
   name: from_api_response
