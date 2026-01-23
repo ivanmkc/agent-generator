@@ -100,8 +100,8 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, config_type: typing.ClassVar[type[google.adk.agents.base_agent_config.BaseAgentConfig]], name: str, description: str, parent_agent: typing.Optional[google.adk.agents.base_agent.BaseAgent], sub_agents: list[google.adk.agents.base_agent.BaseAgent], before_agent_callback: typing.Optional[google.adk.agents.base_agent.BeforeAgentCallback], after_agent_callback: typing.Optional[google.adk.agents.base_agent.AfterAgentCallback], model: typing.Union[str, google.adk.models.base_llm.BaseLlm], instruction: typing.Union[str, google.adk.agents.llm_agent.InstructionProvider], global_instruction: typing.Union[str, google.adk.agents.llm_agent.InstructionProvider], static_instruction: typing.Optional[google.genai.types.ContentUnion], tools: list[google.adk.agents.llm_agent.ToolUnion], generate_content_config: typing.Optional[google.genai.types.GenerateContentConfig], disallow_transfer_to_parent: bool, disallow_transfer_to_peers:
-    bool, include_contents: typing.Literal[default, none], input_schema: typing.Optional[type[pydantic.BaseModel]], output_schema: typing.Optional[type[pydantic.BaseModel]], output_key: typing.Optional[str], planner: typing.Optional[google.adk.planners.base_planner.BasePlanner], code_executor: typing.Optional[google.adk.code_executors.base_code_executor.BaseCodeExecutor], before_model_callback: typing.Optional[google.adk.agents.llm_agent.BeforeModelCallback], after_model_callback: typing.Optional[google.adk.agents.llm_agent.AfterModelCallback], on_model_error_callback: typing.Optional[google.adk.agents.llm_agent.OnModelErrorCallback], before_tool_callback: typing.Optional[google.adk.agents.llm_agent.BeforeToolCallback], after_tool_callback: typing.Optional[google.adk.agents.llm_agent.AfterToolCallback], on_tool_error_callback: typing.Optional[google.adk.agents.llm_agent.OnToolErrorCallback]):'
+  constructor_signature: 'def __init__(self, *, name: str, description: str, parent_agent: typing.Optional[google.adk.agents.base_agent.BaseAgent], sub_agents: list[google.adk.agents.base_agent.BaseAgent], before_agent_callback: typing.Optional[google.adk.agents.base_agent.BeforeAgentCallback], after_agent_callback: typing.Optional[google.adk.agents.base_agent.AfterAgentCallback], model: typing.Union[str, google.adk.models.base_llm.BaseLlm], instruction: typing.Union[str, google.adk.agents.llm_agent.InstructionProvider], global_instruction: typing.Union[str, google.adk.agents.llm_agent.InstructionProvider], static_instruction: typing.Optional[google.genai.types.ContentUnion], tools: list[google.adk.agents.llm_agent.ToolUnion], generate_content_config: typing.Optional[google.genai.types.GenerateContentConfig], disallow_transfer_to_parent: bool, disallow_transfer_to_peers: bool, include_contents: typing.Literal[default, none], input_schema: typing.Optional[type[pydantic.BaseModel]], output_schema:
+    typing.Optional[type[pydantic.BaseModel]], output_key: typing.Optional[str], planner: typing.Optional[google.adk.planners.base_planner.BasePlanner], code_executor: typing.Optional[google.adk.code_executors.base_code_executor.BaseCodeExecutor], before_model_callback: typing.Optional[google.adk.agents.llm_agent.BeforeModelCallback], after_model_callback: typing.Optional[google.adk.agents.llm_agent.AfterModelCallback], on_model_error_callback: typing.Optional[google.adk.agents.llm_agent.OnModelErrorCallback], before_tool_callback: typing.Optional[google.adk.agents.llm_agent.BeforeToolCallback], after_tool_callback: typing.Optional[google.adk.agents.llm_agent.AfterToolCallback], on_tool_error_callback: typing.Optional[google.adk.agents.llm_agent.OnToolErrorCallback]):'
   methods:
   - signature: 'def _run_async_impl(self, ctx: google.adk.agents.invocation_context.InvocationContext) -> typing.AsyncGenerator[google.adk.events.event.Event, None]:'
   - signature: 'def collect_agents(agent):'
@@ -297,7 +297,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, speech_config: typing.Optional[google.genai.types.SpeechConfig], response_modalities: typing.Optional[list[str]], save_input_blobs_as_artifacts: bool, support_cfc: bool, streaming_mode: google.adk.agents.run_config.StreamingMode, output_audio_transcription: typing.Optional[google.genai.types.AudioTranscriptionConfig], input_audio_transcription: typing.Optional[google.genai.types.AudioTranscriptionConfig], realtime_input_config: typing.Optional[google.genai.types.RealtimeInputConfig], enable_affective_dialog: typing.Optional[bool], proactivity: typing.Optional[google.genai.types.ProactivityConfig], session_resumption: typing.Optional[google.genai.types.SessionResumptionConfig], context_window_compression: typing.Optional[google.genai.types.ContextWindowCompressionConfig], save_live_blob: bool, save_live_audio: bool, max_llm_calls: int, custom_metadata: typing.Optional[dict[str, typing.Any]]):'
+  constructor_signature: 'def __init__(self, *, speech_config: typing.Optional[google.genai.types.SpeechConfig], response_modalities: typing.Optional[list[str]], save_input_blobs_as_artifacts: bool, support_cfc: bool, streaming_mode: google.adk.agents.run_config.StreamingMode, output_audio_transcription: typing.Optional[google.genai.types.AudioTranscriptionConfig], input_audio_transcription: typing.Optional[google.genai.types.AudioTranscriptionConfig], realtime_input_config: typing.Optional[google.genai.types.RealtimeInputConfig], enable_affective_dialog: typing.Optional[bool], proactivity: typing.Optional[google.genai.types.ProactivityConfig], session_resumption: typing.Optional[google.genai.types.SessionResumptionConfig], context_window_compression: typing.Optional[google.genai.types.ContextWindowCompressionConfig], save_live_blob: bool, save_live_audio: bool, max_llm_calls: int, custom_metadata: typing.Optional[dict[str, typing.Any]]):'
   methods:
   - signature: 'def check_for_deprecated_save_live_audio(cls, data: typing.Any) -> typing.Any:'
     docstring: If save_live_audio is passed, use it to set save_live_blob.
@@ -356,7 +356,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, config_type: typing.ClassVar[type[google.adk.agents.base_agent_config.BaseAgentConfig]], name: str, description: str, parent_agent: typing.Optional[google.adk.agents.base_agent.BaseAgent], sub_agents: list[google.adk.agents.base_agent.BaseAgent], before_agent_callback: typing.Optional[google.adk.agents.base_agent.BeforeAgentCallback], after_agent_callback: typing.Optional[google.adk.agents.base_agent.AfterAgentCallback], max_iterations: typing.Optional[int]):'
+  constructor_signature: 'def __init__(self, *, name: str, description: str, parent_agent: typing.Optional[google.adk.agents.base_agent.BaseAgent], sub_agents: list[google.adk.agents.base_agent.BaseAgent], before_agent_callback: typing.Optional[google.adk.agents.base_agent.BeforeAgentCallback], after_agent_callback: typing.Optional[google.adk.agents.base_agent.AfterAgentCallback], max_iterations: typing.Optional[int]):'
   methods:
   - signature: 'def _run_async_impl(self, ctx: google.adk.agents.invocation_context.InvocationContext) -> typing.AsyncGenerator[google.adk.events.event.Event, None]:'
   properties:
@@ -442,8 +442,8 @@
   usage_score: 16
   docstring: "LLM response class that provides the first candidate response from the\n\nmodel if available. Otherwise, returns error code and message.\n\nAttributes:\n  content: The content of the response.\n  grounding_metadata: The grounding metadata of the response.\n  partial: Indicates whether the text content is part of an unfinished text\n    stream. Only used for streaming mode and when the content is plain text.\n  turn_complete: Indicates whether the response from the model is complete.\n    Only used for streaming mode.\n  error_code: Error code if the response is an error. Code varies by model.\n  error_message: Error message if the response is an error.\n  interrupted: Flag indicating that LLM was interrupted when generating the\n    content. Usually it's due to user interruption during a bidi streaming.\n  custom_metadata: The custom metadata of the LlmResponse.\n  input_transcription: Audio transcription of user input.\n  output_transcription: Audio transcription of model\
     \ output.\n  avg_logprobs: Average log probability of the generated tokens.\n  logprobs_result: Detailed log probabilities for chosen and top candidate tokens.\n\n[Note: Inherited members from pydantic.BaseModel are omitted.]"
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, model_version: typing.Optional[str], content: typing.Optional[google.genai.types.Content], grounding_metadata: typing.Optional[google.genai.types.GroundingMetadata], partial: typing.Optional[bool], turn_complete: typing.Optional[bool], finish_reason: typing.Optional[google.genai.types.FinishReason], error_code: typing.Optional[str], error_message: typing.Optional[str], interrupted: typing.Optional[bool], custom_metadata: typing.Optional[dict[str, typing.Any]], usage_metadata: typing.Optional[google.genai.types.GenerateContentResponseUsageMetadata], live_session_resumption_update: typing.Optional[google.genai.types.LiveServerSessionResumptionUpdate], input_transcription: typing.Optional[google.genai.types.Transcription], output_transcription: typing.Optional[google.genai.types.Transcription], avg_logprobs: typing.Optional[float], logprobs_result: typing.Optional[google.genai.types.LogprobsResult], cache_metadata:
-    typing.Optional[google.adk.models.cache_metadata.CacheMetadata], citation_metadata: typing.Optional[google.genai.types.CitationMetadata]):'
+  constructor_signature: 'def __init__(self, *, model_version: typing.Optional[str], content: typing.Optional[google.genai.types.Content], grounding_metadata: typing.Optional[google.genai.types.GroundingMetadata], partial: typing.Optional[bool], turn_complete: typing.Optional[bool], finish_reason: typing.Optional[google.genai.types.FinishReason], error_code: typing.Optional[str], error_message: typing.Optional[str], interrupted: typing.Optional[bool], custom_metadata: typing.Optional[dict[str, typing.Any]], usage_metadata: typing.Optional[google.genai.types.GenerateContentResponseUsageMetadata], live_session_resumption_update: typing.Optional[google.genai.types.LiveServerSessionResumptionUpdate], input_transcription: typing.Optional[google.genai.types.Transcription], output_transcription: typing.Optional[google.genai.types.Transcription], avg_logprobs: typing.Optional[float], logprobs_result: typing.Optional[google.genai.types.LogprobsResult], cache_metadata: typing.Optional[google.adk.models.cache_metadata.CacheMetadata],
+    citation_metadata: typing.Optional[google.genai.types.CitationMetadata]):'
   methods:
   - signature: 'def create(generate_content_response: google.genai.types.GenerateContentResponse) -> google.adk.models.llm_response.LlmResponse:'
     docstring: "Creates an LlmResponse from a GenerateContentResponse.\n\nArgs:\n  generate_content_response: The GenerateContentResponse to create the\n    LlmResponse from.\n\nReturns:\n  The LlmResponse."
@@ -549,8 +549,8 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, model_version: typing.Optional[str], content: typing.Optional[google.genai.types.Content], grounding_metadata: typing.Optional[google.genai.types.GroundingMetadata], partial: typing.Optional[bool], turn_complete: typing.Optional[bool], finish_reason: typing.Optional[google.genai.types.FinishReason], error_code: typing.Optional[str], error_message: typing.Optional[str], interrupted: typing.Optional[bool], custom_metadata: typing.Optional[dict[str, typing.Any]], usage_metadata: typing.Optional[google.genai.types.GenerateContentResponseUsageMetadata], live_session_resumption_update: typing.Optional[google.genai.types.LiveServerSessionResumptionUpdate], input_transcription: typing.Optional[google.genai.types.Transcription], output_transcription: typing.Optional[google.genai.types.Transcription], avg_logprobs: typing.Optional[float], logprobs_result: typing.Optional[google.genai.types.LogprobsResult], cache_metadata:
-    typing.Optional[google.adk.models.cache_metadata.CacheMetadata], citation_metadata: typing.Optional[google.genai.types.CitationMetadata], invocation_id: str, author: str, actions: google.adk.events.event_actions.EventActions, long_running_tool_ids: typing.Optional[set[str]], branch: typing.Optional[str], id: str, timestamp: float):'
+  constructor_signature: 'def __init__(self, *, model_version: typing.Optional[str], content: typing.Optional[google.genai.types.Content], grounding_metadata: typing.Optional[google.genai.types.GroundingMetadata], partial: typing.Optional[bool], turn_complete: typing.Optional[bool], finish_reason: typing.Optional[google.genai.types.FinishReason], error_code: typing.Optional[str], error_message: typing.Optional[str], interrupted: typing.Optional[bool], custom_metadata: typing.Optional[dict[str, typing.Any]], usage_metadata: typing.Optional[google.genai.types.GenerateContentResponseUsageMetadata], live_session_resumption_update: typing.Optional[google.genai.types.LiveServerSessionResumptionUpdate], input_transcription: typing.Optional[google.genai.types.Transcription], output_transcription: typing.Optional[google.genai.types.Transcription], avg_logprobs: typing.Optional[float], logprobs_result: typing.Optional[google.genai.types.LogprobsResult], cache_metadata: typing.Optional[google.adk.models.cache_metadata.CacheMetadata],
+    citation_metadata: typing.Optional[google.genai.types.CitationMetadata], invocation_id: str, author: str, actions: google.adk.events.event_actions.EventActions, long_running_tool_ids: typing.Optional[set[str]], branch: typing.Optional[str], id: str, timestamp: float):'
   methods:
   - signature: 'def model_post_init(self, __context):'
     docstring: Post initialization logic for the event.
@@ -695,7 +695,7 @@
 
 
     [Note: Inherited members from ABC, pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, artifacts: dict[str, list[google.adk.artifacts.in_memory_artifact_service._ArtifactEntry]]):'
+  constructor_signature: 'def __init__(self, *, artifacts: dict[str, list[google.adk.artifacts.in_memory_artifact_service._ArtifactEntry]]):'
   methods:
   - signature: 'def save_artifact(self, *, app_name: str, user_id: str, filename: str, artifact: google.genai.types.Part, session_id: typing.Optional[str]=None, custom_metadata: typing.Optional[dict[str, typing.Any]]=None) -> int:'
   - signature: 'def load_artifact(self, *, app_name: str, user_id: str, filename: str, session_id: typing.Optional[str]=None, version: typing.Optional[int]=None) -> typing.Optional[google.genai.types.Part]:'
@@ -726,8 +726,8 @@
     BaseModel:
     - signature: 'model_config: pydantic.ConfigDict'
   omitted_inherited_members_from:
-  - ABC
   - pydantic.BaseModel
+  - ABC
 - rank: 12
   id: google.adk.sessions.in_memory_session_service.InMemorySessionService
   name: InMemorySessionService
@@ -776,7 +776,7 @@
   group: Seed
   usage_score: 10
   docstring: "Wrapper around litellm.\n\nThis wrapper can be used with any of the models supported by litellm. The\nenvironment variable(s) needed for authenticating with the model endpoint must\nbe set prior to instantiating this class.\n\nExample usage:\n```\nos.environ[\"VERTEXAI_PROJECT\"] = \"your-gcp-project-id\"\nos.environ[\"VERTEXAI_LOCATION\"] = \"your-gcp-location\"\n\nagent = Agent(\n    model=LiteLlm(model=\"vertex_ai/claude-3-7-sonnet@20250219\"),\n    ...\n)\n```\n\nAttributes:\n  model: The name of the LiteLlm model.\n  llm_client: The LLM client to use for the model.\n\n[Note: Inherited members from pydantic.BaseModel are omitted.]"
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, model: str, llm_client: google.adk.models.lite_llm.LiteLLMClient):'
+  constructor_signature: 'def __init__(self, *, model: str, llm_client: google.adk.models.lite_llm.LiteLLMClient):'
   methods:
   - signature: 'def generate_content_async(self, llm_request: google.adk.models.llm_request.LlmRequest, stream: bool) -> typing.AsyncGenerator[google.adk.models.llm_response.LlmResponse, None]:'
     docstring: "Generates content asynchronously.\n\nArgs:\n  llm_request: LlmRequest, the request to send to the LiteLlm model.\n  stream: bool = False, whether to do streaming call.\n\nYields:\n  LlmResponse: The model response."
@@ -865,7 +865,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, config_type: typing.ClassVar[type[google.adk.agents.base_agent_config.BaseAgentConfig]], name: str, description: str, parent_agent: typing.Optional[google.adk.agents.base_agent.BaseAgent], sub_agents: list[google.adk.agents.base_agent.BaseAgent], before_agent_callback: typing.Optional[google.adk.agents.base_agent.BeforeAgentCallback], after_agent_callback: typing.Optional[google.adk.agents.base_agent.AfterAgentCallback]):'
+  constructor_signature: 'def __init__(self, *, name: str, description: str, parent_agent: typing.Optional[google.adk.agents.base_agent.BaseAgent], sub_agents: list[google.adk.agents.base_agent.BaseAgent], before_agent_callback: typing.Optional[google.adk.agents.base_agent.BeforeAgentCallback], after_agent_callback: typing.Optional[google.adk.agents.base_agent.AfterAgentCallback]):'
   methods:
   - signature: 'def _run_async_impl(self, ctx: google.adk.agents.invocation_context.InvocationContext) -> typing.AsyncGenerator[google.adk.events.event.Event, None]:'
   - signature: 'def task_completed():'
@@ -1021,7 +1021,7 @@
   group: Seed
   usage_score: 6
   docstring: "A few-shot example.\n\nAttributes:\n  input: The input content for the example.\n  output: The expected output content for the example.\n\n[Note: Inherited members from pydantic.BaseModel are omitted.]"
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, input: google.genai.types.Content, output: list[google.genai.types.Content]):'
+  constructor_signature: 'def __init__(self, *, input: google.genai.types.Content, output: list[google.genai.types.Content]):'
   properties:
   - signature: 'input: google.genai.types.Content'
   - signature: 'output: list[google.genai.types.Content]'
@@ -1088,7 +1088,7 @@
   group: Seed
   usage_score: 5
   docstring: "Integration for Gemini models.\n\nAttributes:\n  model: The name of the Gemini model.\n\n[Note: Inherited members from pydantic.BaseModel are omitted.]"
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, model: str, speech_config: typing.Optional[google.genai.types.SpeechConfig], retry_options: typing.Optional[google.genai.types.HttpRetryOptions]):'
+  constructor_signature: 'def __init__(self, *, model: str, speech_config: typing.Optional[google.genai.types.SpeechConfig], retry_options: typing.Optional[google.genai.types.HttpRetryOptions]):'
   methods:
   - signature: 'def supported_models(cls) -> list[str]:'
     docstring: "Provides the list of supported models.\n\nReturns:\n  A list of supported models."
@@ -1151,7 +1151,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, name: str, root_agent: google.adk.agents.base_agent.BaseAgent, plugins: list[google.adk.plugins.base_plugin.BasePlugin], events_compaction_config: typing.Optional[google.adk.apps.app.EventsCompactionConfig], context_cache_config: typing.Optional[google.adk.agents.context_cache_config.ContextCacheConfig], resumability_config: typing.Optional[google.adk.apps.app.ResumabilityConfig]):'
+  constructor_signature: 'def __init__(self, *, name: str, root_agent: google.adk.agents.base_agent.BaseAgent, plugins: list[google.adk.plugins.base_plugin.BasePlugin], events_compaction_config: typing.Optional[google.adk.apps.app.EventsCompactionConfig], context_cache_config: typing.Optional[google.adk.agents.context_cache_config.ContextCacheConfig], resumability_config: typing.Optional[google.adk.apps.app.ResumabilityConfig]):'
   properties:
   - signature: 'model_config: pydantic.ConfigDict'
   - signature: 'name: str'
@@ -1224,7 +1224,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, write_mode: google.adk.tools.bigquery.config.WriteMode, maximum_bytes_billed: typing.Optional[int], max_query_result_rows: int, application_name: typing.Optional[str], compute_project_id: typing.Optional[str], location: typing.Optional[str], job_labels: typing.Optional[dict[str, str]]):'
+  constructor_signature: 'def __init__(self, *, write_mode: google.adk.tools.bigquery.config.WriteMode, maximum_bytes_billed: typing.Optional[int], max_query_result_rows: int, application_name: typing.Optional[str], compute_project_id: typing.Optional[str], location: typing.Optional[str], job_labels: typing.Optional[dict[str, str]]):'
   methods:
   - signature: 'def validate_maximum_bytes_billed(cls, v):'
     docstring: Validate the maximum bytes billed.
@@ -1328,7 +1328,7 @@
   usage_score: 4
   docstring: "Data class representing an authentication credential.\n\nTo exchange for the actual credential, please use\nCredentialExchanger.exchange_credential().\n\nExamples: API Key Auth\nAuthCredential(\n    auth_type=AuthCredentialTypes.API_KEY,\n    api_key=\"1234\",\n)\n\nExample: HTTP Auth\nAuthCredential(\n    auth_type=AuthCredentialTypes.HTTP,\n    http=HttpAuth(\n        scheme=\"basic\",\n        credentials=HttpCredentials(username=\"user\", password=\"password\"),\n    ),\n)\n\nExample: OAuth2 Bearer Token in HTTP Header\nAuthCredential(\n    auth_type=AuthCredentialTypes.HTTP,\n    http=HttpAuth(\n        scheme=\"bearer\",\n        credentials=HttpCredentials(token=\"eyAkaknabna....\"),\n    ),\n)\n\nExample: OAuth2 Auth with Authorization Code Flow\nAuthCredential(\n    auth_type=AuthCredentialTypes.OAUTH2,\n    oauth2=OAuth2Auth(\n        client_id=\"1234\",\n        client_secret=\"secret\",\n    ),\n)\n\nExample: OpenID Connect Auth\nAuthCredential(\n    auth_type=AuthCredentialTypes.OPEN_ID_CONNECT,\n\
     \    oauth2=OAuth2Auth(\n        client_id=\"1234\",\n        client_secret=\"secret\",\n        redirect_uri=\"https://example.com\",\n        scopes=[\"scope1\", \"scope2\"],\n    ),\n)\n\nExample: Auth with resource reference\nAuthCredential(\n    auth_type=AuthCredentialTypes.API_KEY,\n    resource_ref=\"projects/1234/locations/us-central1/resources/resource1\",\n)\n\n[Note: Inherited members from pydantic.BaseModel are omitted.]"
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, auth_type: google.adk.auth.auth_credential.AuthCredentialTypes, resource_ref: typing.Optional[str], api_key: typing.Optional[str], http: typing.Optional[google.adk.auth.auth_credential.HttpAuth], service_account: typing.Optional[google.adk.auth.auth_credential.ServiceAccount], oauth2: typing.Optional[google.adk.auth.auth_credential.OAuth2Auth]):'
+  constructor_signature: 'def __init__(self, *, auth_type: google.adk.auth.auth_credential.AuthCredentialTypes, resource_ref: typing.Optional[str], api_key: typing.Optional[str], http: typing.Optional[google.adk.auth.auth_credential.HttpAuth], service_account: typing.Optional[google.adk.auth.auth_credential.ServiceAccount], oauth2: typing.Optional[google.adk.auth.auth_credential.OAuth2Auth]):'
   properties:
   - signature: 'auth_type: google.adk.auth.auth_credential.AuthCredentialTypes'
   - signature: 'resource_ref: typing.Optional[str]'
@@ -1375,7 +1375,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, config_type: typing.ClassVar[type[google.adk.agents.base_agent_config.BaseAgentConfig]], name: str, description: str, parent_agent: typing.Optional[google.adk.agents.base_agent.BaseAgent], sub_agents: list[google.adk.agents.base_agent.BaseAgent], before_agent_callback: typing.Optional[google.adk.agents.base_agent.BeforeAgentCallback], after_agent_callback: typing.Optional[google.adk.agents.base_agent.AfterAgentCallback]):'
+  constructor_signature: 'def __init__(self, *, name: str, description: str, parent_agent: typing.Optional[google.adk.agents.base_agent.BaseAgent], sub_agents: list[google.adk.agents.base_agent.BaseAgent], before_agent_callback: typing.Optional[google.adk.agents.base_agent.BeforeAgentCallback], after_agent_callback: typing.Optional[google.adk.agents.base_agent.AfterAgentCallback]):'
   methods:
   - signature: 'def _run_async_impl(self, ctx: google.adk.agents.invocation_context.InvocationContext) -> typing.AsyncGenerator[google.adk.events.event.Event, None]:'
     docstring: Core implementation for async agent execution.
@@ -1456,7 +1456,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, skip_summarization: typing.Optional[bool], state_delta: dict[str, object], artifact_delta: dict[str, int], transfer_to_agent: typing.Optional[str], escalate: typing.Optional[bool], requested_auth_configs: dict[str, google.adk.auth.auth_tool.AuthConfig], requested_tool_confirmations: dict[str, google.adk.tools.tool_confirmation.ToolConfirmation], compaction: typing.Optional[google.adk.events.event_actions.EventCompaction], end_of_agent: typing.Optional[bool], agent_state: typing.Optional[dict[str, typing.Any]], rewind_before_invocation_id: typing.Optional[str]):'
+  constructor_signature: 'def __init__(self, *, skip_summarization: typing.Optional[bool], state_delta: dict[str, object], artifact_delta: dict[str, int], transfer_to_agent: typing.Optional[str], escalate: typing.Optional[bool], requested_auth_configs: dict[str, google.adk.auth.auth_tool.AuthConfig], requested_tool_confirmations: dict[str, google.adk.tools.tool_confirmation.ToolConfirmation], compaction: typing.Optional[google.adk.events.event_actions.EventCompaction], end_of_agent: typing.Optional[bool], agent_state: typing.Optional[dict[str, typing.Any]], rewind_before_invocation_id: typing.Optional[str]):'
   properties:
   - signature: 'model_config: pydantic.ConfigDict'
     docstring: The pydantic model config.
@@ -1668,7 +1668,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, client_id: typing.Optional[str], client_secret: typing.Optional[str], auth_uri: typing.Optional[str], state: typing.Optional[str], redirect_uri: typing.Optional[str], auth_response_uri: typing.Optional[str], auth_code: typing.Optional[str], access_token: typing.Optional[str], refresh_token: typing.Optional[str], expires_at: typing.Optional[int], expires_in: typing.Optional[int], audience: typing.Optional[str]):'
+  constructor_signature: 'def __init__(self, *, client_id: typing.Optional[str], client_secret: typing.Optional[str], auth_uri: typing.Optional[str], state: typing.Optional[str], redirect_uri: typing.Optional[str], auth_response_uri: typing.Optional[str], auth_code: typing.Optional[str], access_token: typing.Optional[str], refresh_token: typing.Optional[str], expires_at: typing.Optional[int], expires_in: typing.Optional[int], audience: typing.Optional[str]):'
   properties:
   - signature: 'client_id: typing.Optional[str]'
   - signature: 'client_secret: typing.Optional[str]'
@@ -1711,7 +1711,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, config_type: typing.ClassVar[type[google.adk.agents.base_agent_config.BaseAgentConfig]], name: str, description: str, parent_agent: typing.Optional[google.adk.agents.base_agent.BaseAgent], sub_agents: list[google.adk.agents.base_agent.BaseAgent], before_agent_callback: typing.Optional[google.adk.agents.base_agent.BeforeAgentCallback], after_agent_callback: typing.Optional[google.adk.agents.base_agent.AfterAgentCallback]):'
+  constructor_signature: 'def __init__(self, *, name: str, description: str, parent_agent: typing.Optional[google.adk.agents.base_agent.BaseAgent], sub_agents: list[google.adk.agents.base_agent.BaseAgent], before_agent_callback: typing.Optional[google.adk.agents.base_agent.BeforeAgentCallback], after_agent_callback: typing.Optional[google.adk.agents.base_agent.AfterAgentCallback]):'
   methods:
   - signature: 'def _run_async_impl(self, ctx: google.adk.agents.invocation_context.InvocationContext) -> typing.AsyncGenerator[google.adk.events.event.Event, None]:'
   properties:
@@ -1997,7 +1997,7 @@
   group: Seed
   usage_score: 2
   docstring: "Parameters for the MCP Stdio connection.\n\nAttributes:\n    server_params: Parameters for the MCP Stdio server.\n    timeout: Timeout in seconds for establishing the connection to the MCP\n      stdio server.\n\n[Note: Inherited members from pydantic.BaseModel are omitted.]"
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, server_params: mcp.StdioServerParameters, timeout: float):'
+  constructor_signature: 'def __init__(self, *, server_params: mcp.StdioServerParameters, timeout: float):'
   properties:
   - signature: 'server_params: mcp.StdioServerParameters'
   - signature: 'timeout: float'
@@ -2014,7 +2014,7 @@
   group: Seed
   usage_score: 2
   docstring: "Parameters for the MCP SSE connection.\n\nSee MCP SSE Client documentation for more details.\nhttps://github.com/modelcontextprotocol/python-sdk/blob/main/src/mcp/client/sse.py\n\nAttributes:\n    url: URL for the MCP SSE server.\n    headers: Headers for the MCP SSE connection.\n    timeout: Timeout in seconds for establishing the connection to the MCP SSE\n      server.\n    sse_read_timeout: Timeout in seconds for reading data from the MCP SSE\n      server.\n\n[Note: Inherited members from pydantic.BaseModel are omitted.]"
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, url: str, headers: dict[str, Any] | None, timeout: float, sse_read_timeout: float):'
+  constructor_signature: 'def __init__(self, *, url: str, headers: dict[str, Any] | None, timeout: float, sse_read_timeout: float):'
   properties:
   - signature: 'url: str'
   - signature: 'headers: dict[str, Any] | None'
@@ -2033,7 +2033,7 @@
   group: Seed
   usage_score: 2
   docstring: "Parameters for the MCP Streamable HTTP connection.\n\nSee MCP Streamable HTTP Client documentation for more details.\nhttps://github.com/modelcontextprotocol/python-sdk/blob/main/src/mcp/client/streamable_http.py\n\nAttributes:\n    url: URL for the MCP Streamable HTTP server.\n    headers: Headers for the MCP Streamable HTTP connection.\n    timeout: Timeout in seconds for establishing the connection to the MCP\n      Streamable HTTP server.\n    sse_read_timeout: Timeout in seconds for reading data from the MCP\n      Streamable HTTP server.\n    terminate_on_close: Whether to terminate the MCP Streamable HTTP server\n      when the connection is closed.\n\n[Note: Inherited members from pydantic.BaseModel are omitted.]"
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, url: str, headers: dict[str, Any] | None, timeout: float, sse_read_timeout: float, terminate_on_close: bool):'
+  constructor_signature: 'def __init__(self, *, url: str, headers: dict[str, Any] | None, timeout: float, sse_read_timeout: float, terminate_on_close: bool):'
   properties:
   - signature: 'url: str'
   - signature: 'headers: dict[str, Any] | None'
@@ -2089,7 +2089,7 @@
   group: Seed
   usage_score: 2
   docstring: "Represents the response from a memory search.\n\nAttributes:\n    memories: A list of memory entries that relate to the search query.\n\n[Note: Inherited members from pydantic.BaseModel are omitted.]"
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, memories: list[google.adk.memory.memory_entry.MemoryEntry]):'
+  constructor_signature: 'def __init__(self, *, memories: list[google.adk.memory.memory_entry.MemoryEntry]):'
   properties:
   - signature: 'memories: list[google.adk.memory.memory_entry.MemoryEntry]'
   inherited_properties:
@@ -2108,7 +2108,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, content: google.genai.types.Content, custom_metadata: dict[str, typing.Any], id: typing.Optional[str], author: typing.Optional[str], timestamp: typing.Optional[str]):'
+  constructor_signature: 'def __init__(self, *, content: google.genai.types.Content, custom_metadata: dict[str, typing.Any], id: typing.Optional[str], author: typing.Optional[str], timestamp: typing.Optional[str]):'
   properties:
   - signature: 'content: google.genai.types.Content'
     docstring: The main content of the memory.
@@ -2142,7 +2142,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, auth_scheme: google.adk.auth.auth_schemes.AuthScheme, raw_auth_credential: typing.Optional[google.adk.auth.auth_credential.AuthCredential], exchanged_auth_credential: typing.Optional[google.adk.auth.auth_credential.AuthCredential], credential_key: typing.Optional[str]):'
+  constructor_signature: 'def __init__(self, *, auth_scheme: google.adk.auth.auth_schemes.AuthScheme, raw_auth_credential: typing.Optional[google.adk.auth.auth_credential.AuthCredential], exchanged_auth_credential: typing.Optional[google.adk.auth.auth_credential.AuthCredential], credential_key: typing.Optional[str]):'
   methods:
   - signature: 'def get_credential_key(self):'
     docstring: 'Builds a hash key based on auth_scheme and raw_auth_credential used to
@@ -2199,7 +2199,7 @@
   group: Seed
   usage_score: 2
   docstring: "Configuration for context caching across all agents in an app.\n\nThis configuration enables and controls context caching behavior for\nall LLM agents in an app. When this config is present on an app, context\ncaching is enabled for all agents. When absent (None), context caching\nis disabled.\n\nContext caching can significantly reduce costs and improve response times\nby reusing previously processed context across multiple requests.\n\nAttributes:\n    cache_intervals: Maximum number of invocations to reuse the same cache before refreshing it\n    ttl_seconds: Time-to-live for cache in seconds\n    min_tokens: Minimum tokens required to enable caching\n\n[Note: Inherited members from pydantic.BaseModel are omitted.]"
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, cache_intervals: int, ttl_seconds: int, min_tokens: int):'
+  constructor_signature: 'def __init__(self, *, cache_intervals: int, ttl_seconds: int, min_tokens: int):'
   methods:
   - signature: 'def ttl_string(self) -> str:'
     docstring: Get TTL as string format for cache creation.
@@ -2240,7 +2240,7 @@
   group: Seed
   usage_score: 2
   docstring: "Integration with Claude models served from Vertex AI.\n\nAttributes:\n  model: The name of the Claude model.\n  max_tokens: The maximum number of tokens to generate.\n\n[Note: Inherited members from pydantic.BaseModel are omitted.]"
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, model: str, max_tokens: int):'
+  constructor_signature: 'def __init__(self, *, model: str, max_tokens: int):'
   properties:
   - signature: 'model: str'
   inherited_methods:
@@ -2347,7 +2347,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, id: str, app_name: str, user_id: str, state: dict[str, typing.Any], events: list[google.adk.events.event.Event], last_update_time: float):'
+  constructor_signature: 'def __init__(self, *, id: str, app_name: str, user_id: str, state: dict[str, typing.Any], events: list[google.adk.events.event.Event], last_update_time: float):'
   properties:
   - signature: 'model_config: pydantic.ConfigDict'
     docstring: The pydantic model config.
@@ -2425,7 +2425,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, config_type: typing.ClassVar[type[google.adk.agents.base_agent_config.BaseAgentConfig]], name: str, description: str, parent_agent: typing.Optional[google.adk.agents.base_agent.BaseAgent], sub_agents: list[google.adk.agents.base_agent.BaseAgent], before_agent_callback: typing.Optional[google.adk.agents.base_agent.BeforeAgentCallback], after_agent_callback: typing.Optional[google.adk.agents.base_agent.AfterAgentCallback]):'
+  constructor_signature: 'def __init__(self, *, name: str, description: str, parent_agent: typing.Optional[google.adk.agents.base_agent.BaseAgent], sub_agents: list[google.adk.agents.base_agent.BaseAgent], before_agent_callback: typing.Optional[google.adk.agents.base_agent.BeforeAgentCallback], after_agent_callback: typing.Optional[google.adk.agents.base_agent.AfterAgentCallback]):'
   methods:
   - signature: 'def clone(self: google.adk.agents.base_agent.SelfAgent, update: Mapping[str, Any] | None) -> google.adk.agents.base_agent.SelfAgent:'
     docstring: "Creates a copy of this agent instance.\n\nArgs:\n  update: Optional mapping of new values for the fields of the cloned agent.\n    The keys of the mapping are the names of the fields to be updated, and\n    the values are the new values for those fields.\n    For example: {\"name\": \"cloned_agent\"}\n\nReturns:\n  A new agent instance with identical configuration as the original\n  agent except for the fields specified in the update."
@@ -3026,7 +3026,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, max_query_result_rows: int):'
+  constructor_signature: 'def __init__(self, *, max_query_result_rows: int):'
   properties:
   - signature: 'max_query_result_rows: int'
     docstring: Maximum number of rows to return from a query result.
@@ -3076,7 +3076,7 @@
   usage_score: 0
   docstring: "Represents Google Service Account configuration.\n\nAttributes:\n  type: The type should be \"service_account\".\n  project_id: The project ID.\n  private_key_id: The ID of the private key.\n  private_key: The private key.\n  client_email: The client email.\n  client_id: The client ID.\n  auth_uri: The authorization URI.\n  token_uri: The token URI.\n  auth_provider_x509_cert_url: URL for auth provider's X.509 cert.\n  client_x509_cert_url: URL for the client's X.509 cert.\n  universe_domain: The universe domain.\n\nExample:\n\n    config = ServiceAccountCredential(\n        type_=\"service_account\",\n        project_id=\"your_project_id\",\n        private_key_id=\"your_private_key_id\",\n        private_key=\"-----BEGIN PRIVATE KEY-----...\",\n        client_email=\"...@....iam.gserviceaccount.com\",\n        client_id=\"your_client_id\",\n        auth_uri=\"https://accounts.google.com/o/oauth2/auth\",\n        token_uri=\"https://oauth2.googleapis.com/token\",\n       \
     \ auth_provider_x509_cert_url=\"https://www.googleapis.com/oauth2/v1/certs\",\n        client_x509_cert_url=\"https://www.googleapis.com/robot/v1/metadata/x509/...\",\n        universe_domain=\"googleapis.com\"\n    )\n\n    config = ServiceAccountConfig.model_construct(**{\n        ...service account config dict\n    })\n\n[Note: Inherited members from pydantic.BaseModel are omitted.]"
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, type_: str, project_id: str, private_key_id: str, private_key: str, client_email: str, client_id: str, auth_uri: str, token_uri: str, auth_provider_x509_cert_url: str, client_x509_cert_url: str, universe_domain: str):'
+  constructor_signature: 'def __init__(self, *, type_: str, project_id: str, private_key_id: str, private_key: str, client_email: str, client_id: str, auth_uri: str, token_uri: str, auth_provider_x509_cert_url: str, client_x509_cert_url: str, universe_domain: str):'
   properties:
   - signature: 'type_: str'
   - signature: 'project_id: str'
@@ -3108,7 +3108,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, service_account_credential: typing.Optional[google.adk.auth.auth_credential.ServiceAccountCredential], scopes: typing.List[str], use_default_credential: typing.Optional[bool]):'
+  constructor_signature: 'def __init__(self, *, service_account_credential: typing.Optional[google.adk.auth.auth_credential.ServiceAccountCredential], scopes: typing.List[str], use_default_credential: typing.Optional[bool]):'
   properties:
   - signature: 'service_account_credential: typing.Optional[google.adk.auth.auth_credential.ServiceAccountCredential]'
   - signature: 'scopes: typing.List[str]'
@@ -3397,7 +3397,7 @@
   group: Dependency
   usage_score: 0
   docstring: "LLM request class that allows passing in tools, output schema and system\n\ninstructions to the model.\n\nAttributes:\n  model: The model name.\n  contents: The contents to send to the model.\n  config: Additional config for the generate content request.\n  tools_dict: The tools dictionary.\n  cache_config: Context cache configuration for this request.\n  cache_metadata: Cache metadata from previous requests, used for cache management.\n\n[Note: Inherited members from pydantic.BaseModel are omitted.]"
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, model: typing.Optional[str], contents: list[google.genai.types.Content], config: google.genai.types.GenerateContentConfig, live_connect_config: google.genai.types.LiveConnectConfig, tools_dict: dict[str, google.adk.tools.base_tool.BaseTool], cache_config: typing.Optional[google.adk.agents.context_cache_config.ContextCacheConfig], cache_metadata: typing.Optional[google.adk.models.cache_metadata.CacheMetadata], cacheable_contents_token_count: typing.Optional[int]):'
+  constructor_signature: 'def __init__(self, *, model: typing.Optional[str], contents: list[google.genai.types.Content], config: google.genai.types.GenerateContentConfig, live_connect_config: google.genai.types.LiveConnectConfig, tools_dict: dict[str, google.adk.tools.base_tool.BaseTool], cache_config: typing.Optional[google.adk.agents.context_cache_config.ContextCacheConfig], cache_metadata: typing.Optional[google.adk.models.cache_metadata.CacheMetadata], cacheable_contents_token_count: typing.Optional[int]):'
   methods:
   - signature: 'def append_instructions(self, instructions: typing.Union[list[str], google.genai.types.Content]) -> list[google.genai.types.Content]:'
     docstring: "Appends instructions to the system instruction.\n\nArgs:\n  instructions: The instructions to append. Can be:\n    - list[str]: Strings to append/concatenate to system instruction\n    - types.Content: Content object to append to system instruction\n\nReturns:\n  List of user contents from non-text parts (when instructions is types.Content\n  with non-text parts). Empty list otherwise.\n\nNote: Model API requires system_instruction to be a string. Non-text parts\nin Content are processed with references in system_instruction and returned\nas user contents.\n\nBehavior:\n  - list[str]: concatenates with existing system_instruction using \\n\\n\n  - types.Content: extracts text parts with references to non-text parts,\n    returns non-text parts as user contents"
@@ -3500,8 +3500,8 @@
   usage_score: 0
   docstring: "An invocation context represents the data of a single invocation of an agent.\n\nAn invocation:\n  1. Starts with a user message and ends with a final response.\n  2. Can contain one or multiple agent calls.\n  3. Is handled by runner.run_async().\n\nAn invocation runs an agent until it does not request to transfer to another\nagent.\n\nAn agent call:\n  1. Is handled by agent.run().\n  2. Ends when agent.run() ends.\n\nAn LLM agent call is an agent with a BaseLLMFlow.\nAn LLM agent call can contain one or multiple steps.\n\nAn LLM agent runs steps in a loop until:\n  1. A final response is generated.\n  2. The agent transfers to another agent.\n  3. The end_invocation is set to true by any callbacks or tools.\n\nA step:\n  1. Calls the LLM only once and yields its response.\n  2. Calls the tools and yields their responses if requested.\n\nThe summarization of the function response is considered another step, since\nit is another llm call.\nA step ends when it's done calling\
     \ llm and tools, or if the end_invocation\nis set to true at any time.\n\n```\n   \u250C\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 invocation \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2510\n   \u250C\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 llm_agent_call_1 \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2510 \u250C\u2500 agent_call_2 \u2500\u2510\n   \u250C\u2500\u2500\u2500\u2500 step_1 \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2510 \u250C\u2500\u2500\u2500\u2500\u2500 step_2 \u2500\u2500\u2500\u2500\u2500\u2500\u2510\n   [call_llm] [call_tool] [call_llm] [transfer]\n```\n\n[Note: Inherited members from pydantic.BaseModel are omitted.]"
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, artifact_service: typing.Optional[google.adk.artifacts.base_artifact_service.BaseArtifactService], session_service: google.adk.sessions.base_session_service.BaseSessionService, memory_service: typing.Optional[google.adk.memory.base_memory_service.BaseMemoryService], credential_service: typing.Optional[google.adk.auth.credential_service.base_credential_service.BaseCredentialService], context_cache_config: typing.Optional[google.adk.agents.context_cache_config.ContextCacheConfig], invocation_id: str, branch: typing.Optional[str], agent: google.adk.agents.base_agent.BaseAgent, user_content: typing.Optional[google.genai.types.Content], session: google.adk.sessions.session.Session, agent_states: dict[str, dict[str, typing.Any]], end_of_agents: dict[str, bool], end_invocation: bool, live_request_queue: typing.Optional[google.adk.agents.live_request_queue.LiveRequestQueue], active_streaming_tools: typing.Optional[dict[str,
-    google.adk.agents.active_streaming_tool.ActiveStreamingTool]], transcription_cache: typing.Optional[list[google.adk.agents.transcription_entry.TranscriptionEntry]], live_session_resumption_handle: typing.Optional[str], input_realtime_cache: typing.Optional[list[google.adk.agents.invocation_context.RealtimeCacheEntry]], output_realtime_cache: typing.Optional[list[google.adk.agents.invocation_context.RealtimeCacheEntry]], run_config: typing.Optional[google.adk.agents.run_config.RunConfig], resumability_config: typing.Optional[google.adk.apps.app.ResumabilityConfig], plugin_manager: google.adk.plugins.plugin_manager.PluginManager, canonical_tools_cache: typing.Optional[list[google.adk.tools.base_tool.BaseTool]]):'
+  constructor_signature: 'def __init__(self, *, artifact_service: typing.Optional[google.adk.artifacts.base_artifact_service.BaseArtifactService], session_service: google.adk.sessions.base_session_service.BaseSessionService, memory_service: typing.Optional[google.adk.memory.base_memory_service.BaseMemoryService], credential_service: typing.Optional[google.adk.auth.credential_service.base_credential_service.BaseCredentialService], context_cache_config: typing.Optional[google.adk.agents.context_cache_config.ContextCacheConfig], invocation_id: str, branch: typing.Optional[str], agent: google.adk.agents.base_agent.BaseAgent, user_content: typing.Optional[google.genai.types.Content], session: google.adk.sessions.session.Session, agent_states: dict[str, dict[str, typing.Any]], end_of_agents: dict[str, bool], end_invocation: bool, live_request_queue: typing.Optional[google.adk.agents.live_request_queue.LiveRequestQueue], active_streaming_tools: typing.Optional[dict[str, google.adk.agents.active_streaming_tool.ActiveStreamingTool]],
+    transcription_cache: typing.Optional[list[google.adk.agents.transcription_entry.TranscriptionEntry]], live_session_resumption_handle: typing.Optional[str], input_realtime_cache: typing.Optional[list[google.adk.agents.invocation_context.RealtimeCacheEntry]], output_realtime_cache: typing.Optional[list[google.adk.agents.invocation_context.RealtimeCacheEntry]], run_config: typing.Optional[google.adk.agents.run_config.RunConfig], resumability_config: typing.Optional[google.adk.apps.app.ResumabilityConfig], plugin_manager: google.adk.plugins.plugin_manager.PluginManager, canonical_tools_cache: typing.Optional[list[google.adk.tools.base_tool.BaseTool]]):'
   methods:
   - signature: 'def is_resumable(self) -> bool:'
     docstring: Returns whether the current invocation is resumable.
@@ -3610,7 +3610,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, agent_class: typing.Union[typing.Literal[BaseAgent], str], name: str, description: str, sub_agents: typing.Optional[typing.List[google.adk.agents.common_configs.AgentRefConfig]], before_agent_callbacks: typing.Optional[typing.List[google.adk.agents.common_configs.CodeConfig]], after_agent_callbacks: typing.Optional[typing.List[google.adk.agents.common_configs.CodeConfig]]):'
+  constructor_signature: 'def __init__(self, *, agent_class: typing.Union[typing.Literal[BaseAgent], str], name: str, description: str, sub_agents: typing.Optional[typing.List[google.adk.agents.common_configs.AgentRefConfig]], before_agent_callbacks: typing.Optional[typing.List[google.adk.agents.common_configs.CodeConfig]], after_agent_callbacks: typing.Optional[typing.List[google.adk.agents.common_configs.CodeConfig]]):'
   properties:
   - signature: 'model_config: pydantic.ConfigDict'
   - signature: 'agent_class: typing.Union[typing.Literal[BaseAgent], str]'
@@ -3796,7 +3796,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, hint: str, confirmed: bool, payload: typing.Optional[typing.Any]):'
+  constructor_signature: 'def __init__(self, *, hint: str, confirmed: bool, payload: typing.Optional[typing.Any]):'
   properties:
   - signature: 'model_config: pydantic.ConfigDict'
     docstring: The pydantic model config.
@@ -4226,7 +4226,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, summarizer: typing.Optional[google.adk.apps.base_events_summarizer.BaseEventsSummarizer], compaction_interval: int, overlap_size: int):'
+  constructor_signature: 'def __init__(self, *, summarizer: typing.Optional[google.adk.apps.base_events_summarizer.BaseEventsSummarizer], compaction_interval: int, overlap_size: int):'
   properties:
   - signature: 'model_config: pydantic.ConfigDict'
   - signature: 'summarizer: typing.Optional[google.adk.apps.base_events_summarizer.BaseEventsSummarizer]'
@@ -4275,7 +4275,7 @@
   group: Dependency
   usage_score: 0
   docstring: "A code executor that uses Vertex Code Interpreter Extension to execute code.\n\nAttributes:\n  resource_name: If set, load the existing resource name of the code\n    interpreter extension instead of creating a new one. Format:\n    projects/123/locations/us-central1/extensions/456\n\n[Note: Inherited members from pydantic.BaseModel are omitted.]"
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, optimize_data_file: bool, stateful: bool, error_retry_attempts: int, code_block_delimiters: typing.List[tuple[str, str]], execution_result_delimiters: tuple[str, str], resource_name: str):'
+  constructor_signature: 'def __init__(self, *, optimize_data_file: bool, stateful: bool, error_retry_attempts: int, code_block_delimiters: typing.List[tuple[str, str]], execution_result_delimiters: tuple[str, str], resource_name: str):'
   methods:
   - signature: 'def execute_code(self, invocation_context: google.adk.agents.invocation_context.InvocationContext, code_execution_input: google.adk.code_executors.code_execution_utils.CodeExecutionInput) -> google.adk.code_executors.code_execution_utils.CodeExecutionResult:'
   properties:
@@ -4370,7 +4370,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, model: str, speech_config: typing.Optional[google.genai.types.SpeechConfig], retry_options: typing.Optional[google.genai.types.HttpRetryOptions]):'
+  constructor_signature: 'def __init__(self, *, model: str, speech_config: typing.Optional[google.genai.types.SpeechConfig], retry_options: typing.Optional[google.genai.types.HttpRetryOptions]):'
   methods:
   - signature: 'def supported_models(cls) -> list[str]:'
     docstring: 'Provides the list of supported models.
@@ -4477,7 +4477,7 @@
   group: Dependency
   usage_score: 0
   docstring: "A code executor that uses Agent Engine Code Execution Sandbox to execute code.\n\nAttributes:\n  sandbox_resource_name: If set, load the existing resource name of the code\n    interpreter extension instead of creating a new one. Format:\n    projects/123/locations/us-central1/reasoningEngines/456/sandboxEnvironments/789\n\n[Note: Inherited members from pydantic.BaseModel are omitted.]"
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, optimize_data_file: bool, stateful: bool, error_retry_attempts: int, code_block_delimiters: typing.List[tuple[str, str]], execution_result_delimiters: tuple[str, str], sandbox_resource_name: str):'
+  constructor_signature: 'def __init__(self, *, optimize_data_file: bool, stateful: bool, error_retry_attempts: int, code_block_delimiters: typing.List[tuple[str, str]], execution_result_delimiters: tuple[str, str], sandbox_resource_name: str):'
   methods:
   - signature: 'def execute_code(self, invocation_context: google.adk.agents.invocation_context.InvocationContext, code_execution_input: google.adk.code_executors.code_execution_utils.CodeExecutionInput) -> google.adk.code_executors.code_execution_utils.CodeExecutionResult:'
   properties:
@@ -4568,7 +4568,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, optimize_data_file: bool, stateful: bool, error_retry_attempts: int, code_block_delimiters: typing.List[tuple[str, str]], execution_result_delimiters: tuple[str, str]):'
+  constructor_signature: 'def __init__(self, *, optimize_data_file: bool, stateful: bool, error_retry_attempts: int, code_block_delimiters: typing.List[tuple[str, str]], execution_result_delimiters: tuple[str, str]):'
   methods:
   - signature: 'def execute_code(self, invocation_context: google.adk.agents.invocation_context.InvocationContext, code_execution_input: google.adk.code_executors.code_execution_utils.CodeExecutionInput) -> google.adk.code_executors.code_execution_utils.CodeExecutionResult:'
   - signature: 'def process_llm_request(self, llm_request: google.adk.models.LlmRequest) -> None:'
@@ -4838,7 +4838,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, user_id: typing.Optional[str], session_id: typing.Optional[str], invocation_id: typing.Optional[str], new_message: typing.Optional[google.genai.types.Content], state_delta: typing.Optional[dict[str, typing.Any]], run_config: typing.Optional[google.adk.runners.RunConfig]):'
+  constructor_signature: 'def __init__(self, *, user_id: typing.Optional[str], session_id: typing.Optional[str], invocation_id: typing.Optional[str], new_message: typing.Optional[google.genai.types.Content], state_delta: typing.Optional[dict[str, typing.Any]], run_config: typing.Optional[google.adk.runners.RunConfig]):'
   properties:
   - signature: 'user_id: typing.Optional[str]'
   - signature: 'session_id: typing.Optional[str]'
@@ -4952,7 +4952,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, a2a_part_converter: google.adk.a2a.converters.part_converter.A2APartToGenAIPartConverter, gen_ai_part_converter: google.adk.a2a.converters.part_converter.GenAIPartToA2APartConverter, request_converter: google.adk.a2a.converters.request_converter.A2ARequestToAgentRunRequestConverter, event_converter: google.adk.a2a.converters.event_converter.AdkEventToA2AEventsConverter):'
+  constructor_signature: 'def __init__(self, *, a2a_part_converter: google.adk.a2a.converters.part_converter.A2APartToGenAIPartConverter, gen_ai_part_converter: google.adk.a2a.converters.part_converter.GenAIPartToA2APartConverter, request_converter: google.adk.a2a.converters.request_converter.A2ARequestToAgentRunRequestConverter, event_converter: google.adk.a2a.converters.event_converter.AdkEventToA2AEventsConverter):'
   properties:
   - signature: 'a2a_part_converter: google.adk.a2a.converters.part_converter.A2APartToGenAIPartConverter'
   - signature: 'gen_ai_part_converter: google.adk.a2a.converters.part_converter.GenAIPartToA2APartConverter'
@@ -5138,7 +5138,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, task: typing.Optional[asyncio.Task], stream: typing.Optional[google.adk.agents.live_request_queue.LiveRequestQueue]):'
+  constructor_signature: 'def __init__(self, *, task: typing.Optional[asyncio.Task], stream: typing.Optional[google.adk.agents.live_request_queue.LiveRequestQueue]):'
   properties:
   - signature: 'model_config: pydantic.ConfigDict'
     docstring: The pydantic model config.
@@ -5289,7 +5289,6 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict):'
   properties:
   - signature: 'model_config: pydantic.ConfigDict'
   inherited_properties:
@@ -5377,7 +5376,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, config_path: typing.Optional[str], code: typing.Optional[str]):'
+  constructor_signature: 'def __init__(self, *, config_path: typing.Optional[str], code: typing.Optional[str]):'
   methods:
   - signature: 'def validate_exactly_one_field(self) -> google.adk.agents.common_configs.AgentRefConfig:'
   properties:
@@ -5409,7 +5408,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, name: typing.Optional[str], value: typing.Any):'
+  constructor_signature: 'def __init__(self, *, name: typing.Optional[str], value: typing.Any):'
   properties:
   - signature: 'model_config: pydantic.ConfigDict'
   - signature: 'name: typing.Optional[str]'
@@ -5438,7 +5437,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, name: str, args: typing.Optional[typing.List[google.adk.agents.common_configs.ArgumentConfig]]):'
+  constructor_signature: 'def __init__(self, *, name: str, args: typing.Optional[typing.List[google.adk.agents.common_configs.ArgumentConfig]]):'
   properties:
   - signature: 'model_config: pydantic.ConfigDict'
   - signature: 'name: str'
@@ -5588,7 +5587,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, role: str, data: google.genai.types.Blob, timestamp: float):'
+  constructor_signature: 'def __init__(self, *, role: str, data: google.genai.types.Blob, timestamp: float):'
   properties:
   - signature: 'model_config: pydantic.ConfigDict'
     docstring: The pydantic model config.
@@ -5621,7 +5620,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, config_type: typing.ClassVar[type[google.adk.agents.base_agent_config.BaseAgentConfig]], name: str, description: str, parent_agent: typing.Optional[google.adk.agents.base_agent.BaseAgent], sub_agents: list[google.adk.agents.base_agent.BaseAgent], before_agent_callback: typing.Optional[google.adk.agents.base_agent.BeforeAgentCallback], after_agent_callback: typing.Optional[google.adk.agents.base_agent.AfterAgentCallback], graph: langgraph.graph.graph.CompiledGraph, instruction: str):'
+  constructor_signature: 'def __init__(self, *, name: str, description: str, parent_agent: typing.Optional[google.adk.agents.base_agent.BaseAgent], sub_agents: list[google.adk.agents.base_agent.BaseAgent], before_agent_callback: typing.Optional[google.adk.agents.base_agent.BeforeAgentCallback], after_agent_callback: typing.Optional[google.adk.agents.base_agent.AfterAgentCallback], graph: langgraph.graph.graph.CompiledGraph, instruction: str):'
   methods:
   - signature: 'def _run_async_impl(self, ctx: google.adk.agents.invocation_context.InvocationContext) -> typing.AsyncGenerator[google.adk.events.event.Event, None]:'
   properties:
@@ -5718,7 +5717,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, content: typing.Optional[google.genai.types.Content], blob: typing.Optional[google.genai.types.Blob], activity_start: typing.Optional[google.genai.types.ActivityStart], activity_end: typing.Optional[google.genai.types.ActivityEnd], close: bool):'
+  constructor_signature: 'def __init__(self, *, content: typing.Optional[google.genai.types.Content], blob: typing.Optional[google.genai.types.Blob], activity_start: typing.Optional[google.genai.types.ActivityStart], activity_end: typing.Optional[google.genai.types.ActivityEnd], close: bool):'
   properties:
   - signature: 'model_config: pydantic.ConfigDict'
     docstring: The pydantic model config.
@@ -5898,7 +5897,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, agent_class: typing.Union[typing.Literal[BaseAgent], str], name: str, description: str, sub_agents: typing.Optional[typing.List[google.adk.agents.common_configs.AgentRefConfig]], before_agent_callbacks: typing.Optional[typing.List[google.adk.agents.common_configs.CodeConfig]], after_agent_callbacks: typing.Optional[typing.List[google.adk.agents.common_configs.CodeConfig]], model: typing.Optional[str], model_code: typing.Optional[google.adk.agents.common_configs.CodeConfig], instruction: str, static_instruction: typing.Optional[google.genai.types.ContentUnion], disallow_transfer_to_parent: typing.Optional[bool], disallow_transfer_to_peers: typing.Optional[bool], input_schema: typing.Optional[google.adk.agents.common_configs.CodeConfig], output_schema: typing.Optional[google.adk.agents.common_configs.CodeConfig], output_key: typing.Optional[str], include_contents: typing.Literal[default, none], tools: typing.Optional[list[google.adk.tools.tool_configs.ToolConfig]],
+  constructor_signature: 'def __init__(self, *, agent_class: typing.Union[typing.Literal[BaseAgent], str], name: str, description: str, sub_agents: typing.Optional[typing.List[google.adk.agents.common_configs.AgentRefConfig]], before_agent_callbacks: typing.Optional[typing.List[google.adk.agents.common_configs.CodeConfig]], after_agent_callbacks: typing.Optional[typing.List[google.adk.agents.common_configs.CodeConfig]], model: typing.Optional[str], model_code: typing.Optional[google.adk.agents.common_configs.CodeConfig], instruction: str, static_instruction: typing.Optional[google.genai.types.ContentUnion], disallow_transfer_to_parent: typing.Optional[bool], disallow_transfer_to_peers: typing.Optional[bool], input_schema: typing.Optional[google.adk.agents.common_configs.CodeConfig], output_schema: typing.Optional[google.adk.agents.common_configs.CodeConfig], output_key: typing.Optional[str], include_contents: typing.Literal[default, none], tools: typing.Optional[list[google.adk.tools.tool_configs.ToolConfig]],
     before_model_callbacks: typing.Optional[typing.List[google.adk.agents.common_configs.CodeConfig]], after_model_callbacks: typing.Optional[typing.List[google.adk.agents.common_configs.CodeConfig]], before_tool_callbacks: typing.Optional[typing.List[google.adk.agents.common_configs.CodeConfig]], after_tool_callbacks: typing.Optional[typing.List[google.adk.agents.common_configs.CodeConfig]], generate_content_config: typing.Optional[google.genai.types.GenerateContentConfig]):'
   properties:
   - signature: 'model_config: pydantic.ConfigDict'
@@ -5950,7 +5949,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, current_sub_agent: str, times_looped: int):'
+  constructor_signature: 'def __init__(self, *, current_sub_agent: str, times_looped: int):'
   properties:
   - signature: 'current_sub_agent: str'
     docstring: The name of the current sub-agent to run in the loop.
@@ -5982,7 +5981,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, agent_class: typing.Union[typing.Literal[BaseAgent], str], name: str, description: str, sub_agents: typing.Optional[typing.List[google.adk.agents.common_configs.AgentRefConfig]], before_agent_callbacks: typing.Optional[typing.List[google.adk.agents.common_configs.CodeConfig]], after_agent_callbacks: typing.Optional[typing.List[google.adk.agents.common_configs.CodeConfig]], max_iterations: typing.Optional[int]):'
+  constructor_signature: 'def __init__(self, *, agent_class: typing.Union[typing.Literal[BaseAgent], str], name: str, description: str, sub_agents: typing.Optional[typing.List[google.adk.agents.common_configs.AgentRefConfig]], before_agent_callbacks: typing.Optional[typing.List[google.adk.agents.common_configs.CodeConfig]], after_agent_callbacks: typing.Optional[typing.List[google.adk.agents.common_configs.CodeConfig]], max_iterations: typing.Optional[int]):'
   properties:
   - signature: 'model_config: pydantic.ConfigDict'
   - signature: 'agent_class: str'
@@ -6059,7 +6058,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, agent_class: typing.Union[typing.Literal[BaseAgent], str], name: str, description: str, sub_agents: typing.Optional[typing.List[google.adk.agents.common_configs.AgentRefConfig]], before_agent_callbacks: typing.Optional[typing.List[google.adk.agents.common_configs.CodeConfig]], after_agent_callbacks: typing.Optional[typing.List[google.adk.agents.common_configs.CodeConfig]]):'
+  constructor_signature: 'def __init__(self, *, agent_class: typing.Union[typing.Literal[BaseAgent], str], name: str, description: str, sub_agents: typing.Optional[typing.List[google.adk.agents.common_configs.AgentRefConfig]], before_agent_callbacks: typing.Optional[typing.List[google.adk.agents.common_configs.CodeConfig]], after_agent_callbacks: typing.Optional[typing.List[google.adk.agents.common_configs.CodeConfig]]):'
   properties:
   - signature: 'model_config: pydantic.ConfigDict'
   - signature: 'agent_class: str'
@@ -6175,7 +6174,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, current_sub_agent: str):'
+  constructor_signature: 'def __init__(self, *, current_sub_agent: str):'
   properties:
   - signature: 'current_sub_agent: str'
     docstring: The name of the current sub-agent to run.
@@ -6205,7 +6204,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, agent_class: typing.Union[typing.Literal[BaseAgent], str], name: str, description: str, sub_agents: typing.Optional[typing.List[google.adk.agents.common_configs.AgentRefConfig]], before_agent_callbacks: typing.Optional[typing.List[google.adk.agents.common_configs.CodeConfig]], after_agent_callbacks: typing.Optional[typing.List[google.adk.agents.common_configs.CodeConfig]]):'
+  constructor_signature: 'def __init__(self, *, agent_class: typing.Union[typing.Literal[BaseAgent], str], name: str, description: str, sub_agents: typing.Optional[typing.List[google.adk.agents.common_configs.AgentRefConfig]], before_agent_callbacks: typing.Optional[typing.List[google.adk.agents.common_configs.CodeConfig]], after_agent_callbacks: typing.Optional[typing.List[google.adk.agents.common_configs.CodeConfig]]):'
   properties:
   - signature: 'model_config: pydantic.ConfigDict'
   - signature: 'agent_class: str'
@@ -6240,7 +6239,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, role: typing.Optional[str], data: typing.Union[google.genai.types.Blob, google.genai.types.Content]):'
+  constructor_signature: 'def __init__(self, *, role: typing.Optional[str], data: typing.Union[google.genai.types.Blob, google.genai.types.Content]):'
   properties:
   - signature: 'model_config: pydantic.ConfigDict'
     docstring: The pydantic model config.
@@ -6282,7 +6281,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, is_resumable: bool):'
+  constructor_signature: 'def __init__(self, *, is_resumable: bool):'
   properties:
   - signature: 'is_resumable: bool'
     docstring: 'Whether the app supports agent resumption.
@@ -6430,7 +6429,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, version: int, canonical_uri: str, custom_metadata: dict[str, typing.Any], create_time: float, mime_type: typing.Optional[str]):'
+  constructor_signature: 'def __init__(self, *, version: int, canonical_uri: str, custom_metadata: dict[str, typing.Any], create_time: float, mime_type: typing.Optional[str]):'
   properties:
   - signature: 'model_config: pydantic.ConfigDict'
   - signature: 'version: int'
@@ -6663,7 +6662,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, version: int, canonical_uri: str, custom_metadata: dict[str, typing.Any], create_time: float, mime_type: typing.Optional[str], file_name: str):'
+  constructor_signature: 'def __init__(self, *, version: int, canonical_uri: str, custom_metadata: dict[str, typing.Any], create_time: float, mime_type: typing.Optional[str], file_name: str):'
   properties:
   - signature: 'model_config: pydantic.ConfigDict'
   - signature: 'file_name: str'
@@ -6837,7 +6836,6 @@
   group: Orphan
   usage_score: 0
   docstring: '[Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict):'
   properties:
   - signature: 'model_config: pydantic.ConfigDict'
     docstring: The pydantic model config.
@@ -6857,7 +6855,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, scheme: str, credentials: google.adk.auth.auth_credential.HttpCredentials):'
+  constructor_signature: 'def __init__(self, *, scheme: str, credentials: google.adk.auth.auth_credential.HttpCredentials):'
   properties:
   - signature: 'scheme: str'
   - signature: 'credentials: google.adk.auth.auth_credential.HttpCredentials'
@@ -6880,7 +6878,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, username: typing.Optional[str], password: typing.Optional[str], token: typing.Optional[str]):'
+  constructor_signature: 'def __init__(self, *, username: typing.Optional[str], password: typing.Optional[str], token: typing.Optional[str]):'
   methods:
   - signature: 'def model_validate(cls, data: typing.Dict[str, typing.Any]) -> google.adk.auth.auth_credential.HttpCredentials:'
   properties:
@@ -7059,7 +7057,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, function_call_id: str, auth_config: google.adk.auth.auth_tool.AuthConfig):'
+  constructor_signature: 'def __init__(self, *, function_call_id: str, auth_config: google.adk.auth.auth_tool.AuthConfig):'
   properties:
   - signature: 'function_call_id: str'
   - signature: 'auth_config: google.adk.auth.auth_tool.AuthConfig'
@@ -7430,7 +7428,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, issuer: str, authorization_endpoint: str, token_endpoint: str, scopes_supported: typing.Optional[typing.List[str]], registration_endpoint: typing.Optional[str]):'
+  constructor_signature: 'def __init__(self, *, issuer: str, authorization_endpoint: str, token_endpoint: str, scopes_supported: typing.Optional[typing.List[str]], registration_endpoint: typing.Optional[str]):'
   properties:
   - signature: 'issuer: str'
   - signature: 'authorization_endpoint: str'
@@ -7482,7 +7480,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, resource: str, authorization_servers: typing.List[str]):'
+  constructor_signature: 'def __init__(self, *, resource: str, authorization_servers: typing.List[str]):'
   properties:
   - signature: 'resource: str'
   - signature: 'authorization_servers: typing.List[str]'
@@ -7666,7 +7664,7 @@
   group: Orphan
   usage_score: 0
   docstring: '[Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, eval_id: str, session_id: str, user_id: str):'
+  constructor_signature: 'def __init__(self, *, eval_id: str, session_id: str, user_id: str):'
   properties:
   - signature: 'eval_id: str'
   - signature: 'session_id: str'
@@ -8070,7 +8068,7 @@
   group: Orphan
   usage_score: 0
   docstring: '[Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, name: str, root_agent_name: str, description: str, language: typing.Literal[yaml, python]):'
+  constructor_signature: 'def __init__(self, *, name: str, root_agent_name: str, description: str, language: typing.Literal[yaml, python]):'
   properties:
   - signature: 'name: str'
   - signature: 'root_agent_name: str'
@@ -8089,7 +8087,7 @@
   group: Orphan
   usage_score: 0
   docstring: '[Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, eval_set: google.adk.evaluation.eval_set.EvalSet):'
+  constructor_signature: 'def __init__(self, *, eval_set: google.adk.evaluation.eval_set.EvalSet):'
   properties:
   - signature: 'eval_set: google.adk.evaluation.eval_set.EvalSet'
   inherited_properties:
@@ -8105,7 +8103,7 @@
   group: Orphan
   usage_score: 0
   docstring: '[Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, session_id: typing.Optional[str], state: typing.Optional[dict[str, typing.Any]], events: typing.Optional[list[google.adk.events.event.Event]]):'
+  constructor_signature: 'def __init__(self, *, session_id: typing.Optional[str], state: typing.Optional[dict[str, typing.Any]], events: typing.Optional[list[google.adk.events.event.Event]]):'
   properties:
   - signature: 'session_id: typing.Optional[str]'
   - signature: 'state: typing.Optional[dict[str, typing.Any]]'
@@ -8131,7 +8129,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, eval_set_result_id: str, eval_set_result_name: typing.Optional[str], eval_set_id: str, eval_case_results: list[google.adk.evaluation.eval_result.EvalCaseResult], creation_timestamp: float):'
+  constructor_signature: 'def __init__(self, *, eval_set_result_id: str, eval_set_result_name: typing.Optional[str], eval_set_id: str, eval_case_results: list[google.adk.evaluation.eval_result.EvalCaseResult], creation_timestamp: float):'
   inherited_properties:
     EvalSetResult:
     - signature: 'model_config: pydantic.ConfigDict'
@@ -8152,7 +8150,7 @@
   group: Orphan
   usage_score: 0
   docstring: '[Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, dot_src: str):'
+  constructor_signature: 'def __init__(self, *, dot_src: str):'
   properties:
   - signature: 'dot_src: str'
   inherited_properties:
@@ -8197,7 +8195,7 @@
   group: Orphan
   usage_score: 0
   docstring: '[Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, apps: list[google.adk.cli.adk_web_server.AppInfo]):'
+  constructor_signature: 'def __init__(self, *, apps: list[google.adk.cli.adk_web_server.AppInfo]):'
   properties:
   - signature: 'apps: list[google.adk.cli.adk_web_server.AppInfo]'
   inherited_properties:
@@ -8213,7 +8211,7 @@
   group: Orphan
   usage_score: 0
   docstring: '[Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, eval_result_ids: list[str]):'
+  constructor_signature: 'def __init__(self, *, eval_result_ids: list[str]):'
   properties:
   - signature: 'eval_result_ids: list[str]'
   inherited_properties:
@@ -8229,7 +8227,7 @@
   group: Orphan
   usage_score: 0
   docstring: '[Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, eval_set_ids: list[str]):'
+  constructor_signature: 'def __init__(self, *, eval_set_ids: list[str]):'
   properties:
   - signature: 'eval_set_ids: list[str]'
   inherited_properties:
@@ -8245,7 +8243,7 @@
   group: Orphan
   usage_score: 0
   docstring: '[Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, metrics_info: list[google.adk.evaluation.eval_metrics.MetricInfo]):'
+  constructor_signature: 'def __init__(self, *, metrics_info: list[google.adk.evaluation.eval_metrics.MetricInfo]):'
   properties:
   - signature: 'metrics_info: list[google.adk.evaluation.eval_metrics.MetricInfo]'
   inherited_properties:
@@ -8261,7 +8259,7 @@
   group: Orphan
   usage_score: 0
   docstring: '[Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, app_name: str, user_id: str, session_id: str, new_message: google.genai.types.Content, streaming: bool, state_delta: typing.Optional[dict[str, typing.Any]], invocation_id: typing.Optional[str]):'
+  constructor_signature: 'def __init__(self, *, app_name: str, user_id: str, session_id: str, new_message: google.genai.types.Content, streaming: bool, state_delta: typing.Optional[dict[str, typing.Any]], invocation_id: typing.Optional[str]):'
   properties:
   - signature: 'app_name: str'
   - signature: 'user_id: str'
@@ -8283,7 +8281,7 @@
   group: Orphan
   usage_score: 0
   docstring: '[Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, eval_ids: list[str], eval_case_ids: list[str], eval_metrics: list[google.adk.evaluation.eval_metrics.EvalMetric]):'
+  constructor_signature: 'def __init__(self, *, eval_ids: list[str], eval_case_ids: list[str], eval_metrics: list[google.adk.evaluation.eval_metrics.EvalMetric]):'
   properties:
   - signature: 'eval_ids: list[str]'
   - signature: 'eval_case_ids: list[str]'
@@ -8301,7 +8299,7 @@
   group: Orphan
   usage_score: 0
   docstring: '[Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, run_eval_results: list[google.adk.cli.adk_web_server.RunEvalResult]):'
+  constructor_signature: 'def __init__(self, *, run_eval_results: list[google.adk.cli.adk_web_server.RunEvalResult]):'
   properties:
   - signature: 'run_eval_results: list[google.adk.cli.adk_web_server.RunEvalResult]'
   inherited_properties:
@@ -8317,7 +8315,7 @@
   group: Orphan
   usage_score: 0
   docstring: '[Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, eval_set_file: str, eval_set_id: str, eval_id: str, final_eval_status: google.adk.evaluation.eval_metrics.EvalStatus, eval_metric_results: list[tuple[google.adk.evaluation.eval_metrics.EvalMetric, google.adk.evaluation.eval_metrics.EvalMetricResult]], overall_eval_metric_results: list[google.adk.evaluation.eval_metrics.EvalMetricResult], eval_metric_result_per_invocation: list[google.adk.evaluation.eval_metrics.EvalMetricResultPerInvocation], user_id: str, session_id: str):'
+  constructor_signature: 'def __init__(self, *, eval_set_file: str, eval_set_id: str, eval_id: str, final_eval_status: google.adk.evaluation.eval_metrics.EvalStatus, eval_metric_results: list[tuple[google.adk.evaluation.eval_metrics.EvalMetric, google.adk.evaluation.eval_metrics.EvalMetricResult]], overall_eval_metric_results: list[google.adk.evaluation.eval_metrics.EvalMetricResult], eval_metric_result_per_invocation: list[google.adk.evaluation.eval_metrics.EvalMetricResultPerInvocation], user_id: str, session_id: str):'
   properties:
   - signature: 'eval_set_file: str'
   - signature: 'eval_set_id: str'
@@ -8344,7 +8342,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, filename: str, artifact: google.genai.types.Part, custom_metadata: typing.Optional[dict[str, typing.Any]]):'
+  constructor_signature: 'def __init__(self, *, filename: str, artifact: google.genai.types.Part, custom_metadata: typing.Optional[dict[str, typing.Any]]):'
   properties:
   - signature: 'filename: str'
   - signature: 'artifact: google.genai.types.Part'
@@ -8365,7 +8363,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, session_id: str):'
+  constructor_signature: 'def __init__(self, *, session_id: str):'
   properties:
   - signature: 'session_id: str'
     docstring: The ID of the session to add to memory.
@@ -8385,7 +8383,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, state_delta: dict[str, typing.Any]):'
+  constructor_signature: 'def __init__(self, *, state_delta: dict[str, typing.Any]):'
   properties:
   - signature: 'state_delta: dict[str, typing.Any]'
     docstring: The state changes to apply to the session.
@@ -8975,7 +8973,7 @@
   group: Orphan
   usage_score: 0
   docstring: '[Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, state: dict[str, object], queries: list[str]):'
+  constructor_signature: 'def __init__(self, *, state: dict[str, object], queries: list[str]):'
   properties:
   - signature: 'state: dict[str, object]'
   - signature: 'queries: list[str]'
@@ -9856,7 +9854,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, llm_request: typing.Optional[google.adk.models.llm_request.LlmRequest], llm_response: typing.Optional[google.adk.models.llm_response.LlmResponse]):'
+  constructor_signature: 'def __init__(self, *, llm_request: typing.Optional[google.adk.models.llm_request.LlmRequest], llm_response: typing.Optional[google.adk.models.llm_response.LlmResponse]):'
   properties:
   - signature: 'model_config: pydantic.ConfigDict'
   - signature: 'llm_request: typing.Optional[google.adk.models.llm_request.LlmRequest]'
@@ -9879,7 +9877,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, user_message_index: int, agent_name: str, llm_recording: typing.Optional[google.adk.cli.plugins.recordings_schema.LlmRecording], tool_recording: typing.Optional[google.adk.cli.plugins.recordings_schema.ToolRecording]):'
+  constructor_signature: 'def __init__(self, *, user_message_index: int, agent_name: str, llm_recording: typing.Optional[google.adk.cli.plugins.recordings_schema.LlmRecording], tool_recording: typing.Optional[google.adk.cli.plugins.recordings_schema.ToolRecording]):'
   properties:
   - signature: 'model_config: pydantic.ConfigDict'
   - signature: 'user_message_index: int'
@@ -9906,7 +9904,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, recordings: list[google.adk.cli.plugins.recordings_schema.Recording]):'
+  constructor_signature: 'def __init__(self, *, recordings: list[google.adk.cli.plugins.recordings_schema.Recording]):'
   properties:
   - signature: 'model_config: pydantic.ConfigDict'
   - signature: 'recordings: list[google.adk.cli.plugins.recordings_schema.Recording]'
@@ -9927,7 +9925,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, tool_call: typing.Optional[google.genai.types.FunctionCall], tool_response: typing.Optional[google.genai.types.FunctionResponse]):'
+  constructor_signature: 'def __init__(self, *, tool_call: typing.Optional[google.genai.types.FunctionCall], tool_response: typing.Optional[google.genai.types.FunctionResponse]):'
   properties:
   - signature: 'model_config: pydantic.ConfigDict'
   - signature: 'tool_call: typing.Optional[google.genai.types.FunctionCall]'
@@ -10416,7 +10414,6 @@
   group: Orphan
   usage_score: 0
   docstring: '[Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict):'
   properties:
   - signature: 'model_config: pydantic.ConfigDict'
   omitted_inherited_members_from:
@@ -10491,7 +10488,7 @@
   group: Orphan
   usage_score: 0
   docstring: '[Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, eval_sets_manager: google.adk.evaluation.gcs_eval_sets_manager.GcsEvalSetsManager, eval_set_results_manager: google.adk.evaluation.gcs_eval_set_results_manager.GcsEvalSetResultsManager):'
+  constructor_signature: 'def __init__(self, *, eval_sets_manager: google.adk.evaluation.gcs_eval_sets_manager.GcsEvalSetsManager, eval_set_results_manager: google.adk.evaluation.gcs_eval_set_results_manager.GcsEvalSetResultsManager):'
   properties:
   - signature: 'model_config: pydantic.ConfigDict'
   - signature: 'eval_sets_manager: google.adk.evaluation.gcs_eval_sets_manager.GcsEvalSetsManager'
@@ -10671,7 +10668,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, value: google.adk.cli.utils.shared_value.T):'
+  constructor_signature: 'def __init__(self, *, value: google.adk.cli.utils.shared_value.T):'
   properties:
   - signature: 'model_config: pydantic.ConfigDict'
   - signature: 'value: google.adk.cli.utils.shared_value.T'
@@ -10717,7 +10714,7 @@
   group: Orphan
   usage_score: 0
   docstring: "Abstract base class for all code executors.\n\nThe code executor allows the agent to execute code blocks from model responses\nand incorporate the execution results into the final response.\n\nAttributes:\n  optimize_data_file: If true, extract and process data files from the model\n    request and attach them to the code executor. Supported data file\n    MimeTypes are [text/csv]. Default to False.\n  stateful: Whether the code executor is stateful. Default to False.\n  error_retry_attempts: The number of attempts to retry on consecutive code\n    execution errors. Default to 2.\n  code_block_delimiters: The list of the enclosing delimiters to identify the\n    code blocks.\n  execution_result_delimiters: The delimiters to format the code execution\n    result.\n\n[Note: Inherited members from pydantic.BaseModel are omitted.]"
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, optimize_data_file: bool, stateful: bool, error_retry_attempts: int, code_block_delimiters: typing.List[tuple[str, str]], execution_result_delimiters: tuple[str, str]):'
+  constructor_signature: 'def __init__(self, *, optimize_data_file: bool, stateful: bool, error_retry_attempts: int, code_block_delimiters: typing.List[tuple[str, str]], execution_result_delimiters: tuple[str, str]):'
   methods:
   - signature: 'def execute_code(self, invocation_context: google.adk.agents.invocation_context.InvocationContext, code_execution_input: google.adk.code_executors.code_execution_utils.CodeExecutionInput) -> google.adk.code_executors.code_execution_utils.CodeExecutionResult:'
     docstring: "Executes code and return the code execution result.\n\nArgs:\n  invocation_context: The invocation context of the code execution.\n  code_execution_input: The code execution input.\n\nReturns:\n  The code execution result."
@@ -10978,7 +10975,7 @@
   group: Orphan
   usage_score: 0
   docstring: "A code executor that uses a custom container to execute code.\n\nAttributes:\n  base_url: Optional. The base url of the user hosted Docker client.\n  image: The tag of the predefined image or custom image to run on the\n    container. Either docker_path or image must be set.\n  docker_path: The path to the directory containing the Dockerfile. If set,\n    build the image from the dockerfile path instead of using the predefined\n    image. Either docker_path or image must be set.\n\n[Note: Inherited members from pydantic.BaseModel are omitted.]"
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, optimize_data_file: bool, stateful: bool, error_retry_attempts: int, code_block_delimiters: typing.List[tuple[str, str]], execution_result_delimiters: tuple[str, str], base_url: typing.Optional[str], image: str, docker_path: str):'
+  constructor_signature: 'def __init__(self, *, optimize_data_file: bool, stateful: bool, error_retry_attempts: int, code_block_delimiters: typing.List[tuple[str, str]], execution_result_delimiters: tuple[str, str], base_url: typing.Optional[str], image: str, docker_path: str):'
   methods:
   - signature: 'def execute_code(self, invocation_context: google.adk.agents.invocation_context.InvocationContext, code_execution_input: google.adk.code_executors.code_execution_utils.CodeExecutionInput) -> google.adk.code_executors.code_execution_utils.CodeExecutionResult:'
   properties:
@@ -11104,7 +11101,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, optimize_data_file: bool, stateful: bool, error_retry_attempts: int, code_block_delimiters: typing.List[tuple[str, str]], execution_result_delimiters: tuple[str, str], namespace: str, image: str, timeout_seconds: int, cpu_requested: str, mem_requested: str, cpu_limit: str, mem_limit: str, kubeconfig_path: str | None, kubeconfig_context: str | None):'
+  constructor_signature: 'def __init__(self, *, optimize_data_file: bool, stateful: bool, error_retry_attempts: int, code_block_delimiters: typing.List[tuple[str, str]], execution_result_delimiters: tuple[str, str], namespace: str, image: str, timeout_seconds: int, cpu_requested: str, mem_requested: str, cpu_limit: str, mem_limit: str, kubeconfig_path: str | None, kubeconfig_context: str | None):'
   methods:
   - signature: 'def execute_code(self, invocation_context: google.adk.agents.invocation_context.InvocationContext, code_execution_input: google.adk.code_executors.code_execution_utils.CodeExecutionInput) -> google.adk.code_executors.code_execution_utils.CodeExecutionResult:'
     docstring: Orchestrates the secure execution of a code snippet on GKE.
@@ -11171,7 +11168,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, optimize_data_file: bool, stateful: bool, error_retry_attempts: int, code_block_delimiters: typing.List[tuple[str, str]], execution_result_delimiters: tuple[str, str]):'
+  constructor_signature: 'def __init__(self, *, optimize_data_file: bool, stateful: bool, error_retry_attempts: int, code_block_delimiters: typing.List[tuple[str, str]], execution_result_delimiters: tuple[str, str]):'
   methods:
   - signature: 'def execute_code(self, invocation_context: google.adk.agents.invocation_context.InvocationContext, code_execution_input: google.adk.code_executors.code_execution_utils.CodeExecutionInput) -> google.adk.code_executors.code_execution_utils.CodeExecutionResult:'
   properties:
@@ -11392,7 +11389,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, name: str, instructions: str, tool_declarations: google.genai.types.ToolListUnion):'
+  constructor_signature: 'def __init__(self, *, name: str, instructions: str, tool_declarations: google.genai.types.ToolListUnion):'
   properties:
   - signature: 'name: str'
     docstring: The name of the Agent that uniquely identifies it in the App.
@@ -11421,7 +11418,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, agent_details: dict[str, google.adk.evaluation.app_details.AgentDetails]):'
+  constructor_signature: 'def __init__(self, *, agent_details: dict[str, google.adk.evaluation.app_details.AgentDetails]):'
   methods:
   - signature: 'def get_developer_instructions(self, agent_name: str) -> str:'
     docstring: Returns a string containing the developer instructions.
@@ -11503,7 +11500,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, eval_metrics: list[google.adk.evaluation.eval_metrics.EvalMetric], parallelism: int):'
+  constructor_signature: 'def __init__(self, *, eval_metrics: list[google.adk.evaluation.eval_metrics.EvalMetric], parallelism: int):'
   properties:
   - signature: 'model_config: pydantic.ConfigDict'
   - signature: 'eval_metrics: list[google.adk.evaluation.eval_metrics.EvalMetric]'
@@ -11521,7 +11518,7 @@
   group: Orphan
   usage_score: 0
   docstring: '[Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, inference_results: list[google.adk.evaluation.base_eval_service.InferenceResult], evaluate_config: google.adk.evaluation.base_eval_service.EvaluateConfig):'
+  constructor_signature: 'def __init__(self, *, inference_results: list[google.adk.evaluation.base_eval_service.InferenceResult], evaluate_config: google.adk.evaluation.base_eval_service.EvaluateConfig):'
   properties:
   - signature: 'model_config: pydantic.ConfigDict'
   - signature: 'inference_results: list[google.adk.evaluation.base_eval_service.InferenceResult]'
@@ -11542,7 +11539,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, labels: typing.Optional[dict[str, str]], parallelism: int):'
+  constructor_signature: 'def __init__(self, *, labels: typing.Optional[dict[str, str]], parallelism: int):'
   properties:
   - signature: 'model_config: pydantic.ConfigDict'
   - signature: 'labels: typing.Optional[dict[str, str]]'
@@ -11563,7 +11560,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, app_name: str, eval_set_id: str, eval_case_ids: typing.Optional[list[str]], inference_config: google.adk.evaluation.base_eval_service.InferenceConfig):'
+  constructor_signature: 'def __init__(self, *, app_name: str, eval_set_id: str, eval_case_ids: typing.Optional[list[str]], inference_config: google.adk.evaluation.base_eval_service.InferenceConfig):'
   properties:
   - signature: 'model_config: pydantic.ConfigDict'
   - signature: 'app_name: str'
@@ -11586,7 +11583,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, app_name: str, eval_set_id: str, eval_case_id: str, inferences: typing.Optional[list[google.adk.evaluation.eval_case.Invocation]], session_id: typing.Optional[str], status: google.adk.evaluation.base_eval_service.InferenceStatus, error_message: typing.Optional[str]):'
+  constructor_signature: 'def __init__(self, *, app_name: str, eval_set_id: str, eval_case_id: str, inferences: typing.Optional[list[google.adk.evaluation.eval_case.Invocation]], session_id: typing.Optional[str], status: google.adk.evaluation.base_eval_service.InferenceStatus, error_message: typing.Optional[str]):'
   properties:
   - signature: 'model_config: pydantic.ConfigDict'
   - signature: 'app_name: str'
@@ -11633,7 +11630,6 @@
   group: Orphan
   usage_score: 0
   docstring: '[Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict):'
   properties:
   - signature: 'model_config: pydantic.ConfigDict'
   omitted_inherited_members_from:
@@ -11663,7 +11659,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, starting_prompt: str, conversation_plan: str):'
+  constructor_signature: 'def __init__(self, *, starting_prompt: str, conversation_plan: str):'
   properties:
   - signature: 'starting_prompt: str'
     docstring: 'Starting prompt for the conversation.
@@ -11719,7 +11715,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, scenarios: list[google.adk.evaluation.conversation_scenarios.ConversationScenario]):'
+  constructor_signature: 'def __init__(self, *, scenarios: list[google.adk.evaluation.conversation_scenarios.ConversationScenario]):'
   properties:
   - signature: 'scenarios: list[google.adk.evaluation.conversation_scenarios.ConversationScenario]'
   inherited_properties:
@@ -11752,7 +11748,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, eval_id: str, conversation: typing.Optional[google.adk.evaluation.eval_case.StaticConversation], conversation_scenario: typing.Optional[google.adk.evaluation.conversation_scenarios.ConversationScenario], session_input: typing.Optional[google.adk.evaluation.eval_case.SessionInput], creation_timestamp: float, rubrics: typing.Optional[list[google.adk.evaluation.eval_rubrics.Rubric]], final_session_state: typing.Optional[google.adk.evaluation.eval_case.SessionState]):'
+  constructor_signature: 'def __init__(self, *, eval_id: str, conversation: typing.Optional[google.adk.evaluation.eval_case.StaticConversation], conversation_scenario: typing.Optional[google.adk.evaluation.conversation_scenarios.ConversationScenario], session_input: typing.Optional[google.adk.evaluation.eval_case.SessionInput], creation_timestamp: float, rubrics: typing.Optional[list[google.adk.evaluation.eval_rubrics.Rubric]], final_session_state: typing.Optional[google.adk.evaluation.eval_case.SessionState]):'
   methods:
   - signature: 'def ensure_conversation_xor_conversation_scenario(self) -> google.adk.evaluation.eval_case.EvalCase:'
   properties:
@@ -11802,7 +11798,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, tool_uses: list[google.genai.types.FunctionCall], tool_responses: list[google.genai.types.FunctionResponse], intermediate_responses: list[tuple[str, list[google.genai.types.Part]]]):'
+  constructor_signature: 'def __init__(self, *, tool_uses: list[google.genai.types.FunctionCall], tool_responses: list[google.genai.types.FunctionResponse], intermediate_responses: list[tuple[str, list[google.genai.types.Part]]]):'
   properties:
   - signature: 'tool_uses: list[google.genai.types.FunctionCall]'
     docstring: Tool use trajectory in chronological order.
@@ -11826,7 +11822,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, invocation_id: str, user_content: google.genai.types.Content, final_response: typing.Optional[google.genai.types.Content], intermediate_data: typing.Optional[google.adk.evaluation.eval_case.IntermediateDataType], creation_timestamp: float, rubrics: typing.Optional[list[google.adk.evaluation.eval_rubrics.Rubric]], app_details: typing.Optional[google.adk.evaluation.app_details.AppDetails]):'
+  constructor_signature: 'def __init__(self, *, invocation_id: str, user_content: google.genai.types.Content, final_response: typing.Optional[google.genai.types.Content], intermediate_data: typing.Optional[google.adk.evaluation.eval_case.IntermediateDataType], creation_timestamp: float, rubrics: typing.Optional[list[google.adk.evaluation.eval_rubrics.Rubric]], app_details: typing.Optional[google.adk.evaluation.app_details.AppDetails]):'
   properties:
   - signature: 'invocation_id: str'
     docstring: Unique identifier for the invocation.
@@ -11873,7 +11869,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, author: str, content: typing.Optional[google.genai.types.Content]):'
+  constructor_signature: 'def __init__(self, *, author: str, content: typing.Optional[google.genai.types.Content]):'
   properties:
   - signature: 'author: str'
     docstring: The name of the agent that authored/owned this event.
@@ -11895,7 +11891,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, invocation_events: list[google.adk.evaluation.eval_case.InvocationEvent]):'
+  constructor_signature: 'def __init__(self, *, invocation_events: list[google.adk.evaluation.eval_case.InvocationEvent]):'
   properties:
   - signature: 'invocation_events: list[google.adk.evaluation.eval_case.InvocationEvent]'
     docstring: A list of invocation events.
@@ -11915,7 +11911,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, app_name: str, user_id: str, state: google.adk.evaluation.eval_case.SessionState):'
+  constructor_signature: 'def __init__(self, *, app_name: str, user_id: str, state: google.adk.evaluation.eval_case.SessionState):'
   properties:
   - signature: 'app_name: str'
     docstring: The name of the app.
@@ -11981,7 +11977,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, criteria: dict[str, typing.Union[google.adk.evaluation.eval_metrics.Threshold, google.adk.evaluation.eval_metrics.BaseCriterion]], user_simulator_config: typing.Optional[google.adk.evaluation.simulation.user_simulator.BaseUserSimulatorConfig]):'
+  constructor_signature: 'def __init__(self, *, criteria: dict[str, typing.Union[google.adk.evaluation.eval_metrics.Threshold, google.adk.evaluation.eval_metrics.BaseCriterion]], user_simulator_config: typing.Optional[google.adk.evaluation.simulation.user_simulator.BaseUserSimulatorConfig]):'
   properties:
   - signature: 'model_config: pydantic.ConfigDict'
   - signature: 'criteria: dict[str, typing.Union[google.adk.evaluation.eval_metrics.Threshold, google.adk.evaluation.eval_metrics.BaseCriterion]]'
@@ -12028,7 +12024,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, threshold: google.adk.evaluation.eval_metrics.Threshold):'
+  constructor_signature: 'def __init__(self, *, threshold: google.adk.evaluation.eval_metrics.Threshold):'
   properties:
   - signature: 'model_config: pydantic.ConfigDict'
   - signature: 'threshold: google.adk.evaluation.eval_metrics.Threshold'
@@ -12048,7 +12044,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, metric_name: str, threshold: float, judge_model_options: typing.Optional[google.adk.evaluation.eval_metrics.JudgeModelOptions], criterion: typing.Optional[google.adk.evaluation.eval_metrics.BaseCriterion]):'
+  constructor_signature: 'def __init__(self, *, metric_name: str, threshold: float, judge_model_options: typing.Optional[google.adk.evaluation.eval_metrics.JudgeModelOptions], criterion: typing.Optional[google.adk.evaluation.eval_metrics.BaseCriterion]):'
   properties:
   - signature: 'metric_name: str'
   - signature: 'threshold: float'
@@ -12070,7 +12066,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, metric_name: str, threshold: float, judge_model_options: typing.Optional[google.adk.evaluation.eval_metrics.JudgeModelOptions], criterion: typing.Optional[google.adk.evaluation.eval_metrics.BaseCriterion], score: typing.Optional[float], eval_status: google.adk.evaluation.eval_metrics.EvalStatus, details: google.adk.evaluation.eval_metrics.EvalMetricResultDetails):'
+  constructor_signature: 'def __init__(self, *, metric_name: str, threshold: float, judge_model_options: typing.Optional[google.adk.evaluation.eval_metrics.JudgeModelOptions], criterion: typing.Optional[google.adk.evaluation.eval_metrics.BaseCriterion], score: typing.Optional[float], eval_status: google.adk.evaluation.eval_metrics.EvalStatus, details: google.adk.evaluation.eval_metrics.EvalMetricResultDetails):'
   properties:
   - signature: 'score: typing.Optional[float]'
   - signature: 'eval_status: google.adk.evaluation.eval_metrics.EvalStatus'
@@ -12093,7 +12089,7 @@
   group: Orphan
   usage_score: 0
   docstring: '[Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, rubric_scores: typing.Optional[list[google.adk.evaluation.eval_rubrics.RubricScore]]):'
+  constructor_signature: 'def __init__(self, *, rubric_scores: typing.Optional[list[google.adk.evaluation.eval_rubrics.RubricScore]]):'
   properties:
   - signature: 'rubric_scores: typing.Optional[list[google.adk.evaluation.eval_rubrics.RubricScore]]'
   inherited_properties:
@@ -12112,7 +12108,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, actual_invocation: google.adk.evaluation.eval_case.Invocation, expected_invocation: typing.Optional[google.adk.evaluation.eval_case.Invocation], eval_metric_results: list[google.adk.evaluation.eval_metrics.EvalMetricResult]):'
+  constructor_signature: 'def __init__(self, *, actual_invocation: google.adk.evaluation.eval_case.Invocation, expected_invocation: typing.Optional[google.adk.evaluation.eval_case.Invocation], eval_metric_results: list[google.adk.evaluation.eval_metrics.EvalMetricResult]):'
   properties:
   - signature: 'actual_invocation: google.adk.evaluation.eval_case.Invocation'
   - signature: 'expected_invocation: typing.Optional[google.adk.evaluation.eval_case.Invocation]'
@@ -12147,7 +12143,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, threshold: google.adk.evaluation.eval_metrics.Threshold, judge_model_options: google.adk.evaluation.eval_metrics.JudgeModelOptions, evaluate_intermediate_nl_responses: bool):'
+  constructor_signature: 'def __init__(self, *, threshold: google.adk.evaluation.eval_metrics.Threshold, judge_model_options: google.adk.evaluation.eval_metrics.JudgeModelOptions, evaluate_intermediate_nl_responses: bool):'
   properties:
   - signature: 'judge_model_options: google.adk.evaluation.eval_metrics.JudgeModelOptions'
   - signature: 'evaluate_intermediate_nl_responses: bool'
@@ -12170,7 +12166,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, min_value: float, open_at_min: bool, max_value: float, open_at_max: bool):'
+  constructor_signature: 'def __init__(self, *, min_value: float, open_at_min: bool, max_value: float, open_at_max: bool):'
   properties:
   - signature: 'min_value: float'
   - signature: 'open_at_min: bool'
@@ -12192,7 +12188,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, judge_model: str, judge_model_config: typing.Optional[google.genai.types.GenerateContentConfig], num_samples: int):'
+  constructor_signature: 'def __init__(self, *, judge_model: str, judge_model_config: typing.Optional[google.genai.types.GenerateContentConfig], num_samples: int):'
   properties:
   - signature: 'judge_model: str'
   - signature: 'judge_model_config: typing.Optional[google.genai.types.GenerateContentConfig]'
@@ -12213,7 +12209,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, threshold: google.adk.evaluation.eval_metrics.Threshold, judge_model_options: google.adk.evaluation.eval_metrics.JudgeModelOptions):'
+  constructor_signature: 'def __init__(self, *, threshold: google.adk.evaluation.eval_metrics.Threshold, judge_model_options: google.adk.evaluation.eval_metrics.JudgeModelOptions):'
   properties:
   - signature: 'judge_model_options: google.adk.evaluation.eval_metrics.JudgeModelOptions'
   inherited_properties:
@@ -12256,7 +12252,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, metric_name: str, description: str, metric_value_info: google.adk.evaluation.eval_metrics.MetricValueInfo):'
+  constructor_signature: 'def __init__(self, *, metric_name: str, description: str, metric_value_info: google.adk.evaluation.eval_metrics.MetricValueInfo):'
   properties:
   - signature: 'metric_name: str'
   - signature: 'description: str'
@@ -12277,7 +12273,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, interval: typing.Optional[google.adk.evaluation.eval_metrics.Interval]):'
+  constructor_signature: 'def __init__(self, *, interval: typing.Optional[google.adk.evaluation.eval_metrics.Interval]):'
   properties:
   - signature: 'interval: typing.Optional[google.adk.evaluation.eval_metrics.Interval]'
   inherited_properties:
@@ -12315,7 +12311,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, threshold: google.adk.evaluation.eval_metrics.Threshold, judge_model_options: google.adk.evaluation.eval_metrics.JudgeModelOptions, rubrics: list[google.adk.evaluation.eval_rubrics.Rubric]):'
+  constructor_signature: 'def __init__(self, *, threshold: google.adk.evaluation.eval_metrics.Threshold, judge_model_options: google.adk.evaluation.eval_metrics.JudgeModelOptions, rubrics: list[google.adk.evaluation.eval_rubrics.Rubric]):'
   properties:
   - signature: 'judge_model_options: google.adk.evaluation.eval_metrics.JudgeModelOptions'
   - signature: 'rubrics: list[google.adk.evaluation.eval_rubrics.Rubric]'
@@ -12338,7 +12334,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, threshold: google.adk.evaluation.eval_metrics.Threshold, match_type: MatchType):'
+  constructor_signature: 'def __init__(self, *, threshold: google.adk.evaluation.eval_metrics.Threshold, match_type: MatchType):'
   properties:
   - signature: 'match_type: MatchType'
   inherited_properties:
@@ -12367,7 +12363,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, eval_set_file: typing.Optional[str], eval_set_id: str, eval_id: str, final_eval_status: google.adk.evaluation.evaluator.EvalStatus, eval_metric_results: typing.Optional[list[tuple[google.adk.evaluation.eval_metrics.EvalMetric, google.adk.evaluation.eval_metrics.EvalMetricResult]]], overall_eval_metric_results: list[google.adk.evaluation.eval_metrics.EvalMetricResult], eval_metric_result_per_invocation: list[google.adk.evaluation.eval_metrics.EvalMetricResultPerInvocation], session_id: str, session_details: typing.Optional[google.adk.sessions.session.Session], user_id: typing.Optional[str]):'
+  constructor_signature: 'def __init__(self, *, eval_set_file: typing.Optional[str], eval_set_id: str, eval_id: str, final_eval_status: google.adk.evaluation.evaluator.EvalStatus, eval_metric_results: typing.Optional[list[tuple[google.adk.evaluation.eval_metrics.EvalMetric, google.adk.evaluation.eval_metrics.EvalMetricResult]]], overall_eval_metric_results: list[google.adk.evaluation.eval_metrics.EvalMetricResult], eval_metric_result_per_invocation: list[google.adk.evaluation.eval_metrics.EvalMetricResultPerInvocation], session_id: str, session_details: typing.Optional[google.adk.sessions.session.Session], user_id: typing.Optional[str]):'
   properties:
   - signature: 'model_config: pydantic.ConfigDict'
   - signature: 'eval_set_file: typing.Optional[str]'
@@ -12404,7 +12400,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, eval_set_result_id: str, eval_set_result_name: typing.Optional[str], eval_set_id: str, eval_case_results: list[google.adk.evaluation.eval_result.EvalCaseResult], creation_timestamp: float):'
+  constructor_signature: 'def __init__(self, *, eval_set_result_id: str, eval_set_result_name: typing.Optional[str], eval_set_id: str, eval_case_results: list[google.adk.evaluation.eval_result.EvalCaseResult], creation_timestamp: float):'
   properties:
   - signature: 'model_config: pydantic.ConfigDict'
   - signature: 'eval_set_result_id: str'
@@ -12435,7 +12431,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, rubric_id: str, rubric_content: google.adk.evaluation.eval_rubrics.RubricContent, description: typing.Optional[str], type: typing.Optional[str]):'
+  constructor_signature: 'def __init__(self, *, rubric_id: str, rubric_content: google.adk.evaluation.eval_rubrics.RubricContent, description: typing.Optional[str], type: typing.Optional[str]):'
   properties:
   - signature: 'rubric_id: str'
   - signature: 'rubric_content: google.adk.evaluation.eval_rubrics.RubricContent'
@@ -12457,7 +12453,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, text_property: typing.Optional[str]):'
+  constructor_signature: 'def __init__(self, *, text_property: typing.Optional[str]):'
   properties:
   - signature: 'text_property: typing.Optional[str]'
   inherited_properties:
@@ -12476,7 +12472,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, rubric_id: str, rationale: typing.Optional[str], score: typing.Optional[float]):'
+  constructor_signature: 'def __init__(self, *, rubric_id: str, rationale: typing.Optional[str], score: typing.Optional[float]):'
   properties:
   - signature: 'rubric_id: str'
   - signature: 'rationale: typing.Optional[str]'
@@ -12504,7 +12500,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, eval_set_id: str, name: typing.Optional[str], description: typing.Optional[str], eval_cases: list[google.adk.evaluation.eval_case.EvalCase], creation_timestamp: float):'
+  constructor_signature: 'def __init__(self, *, eval_set_id: str, name: typing.Optional[str], description: typing.Optional[str], eval_cases: list[google.adk.evaluation.eval_case.EvalCase], creation_timestamp: float):'
   properties:
   - signature: 'eval_set_id: str'
     docstring: Unique identifier for the eval set.
@@ -12693,7 +12689,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, eval_case: google.adk.evaluation.eval_case.EvalCase, responses: list[list[google.adk.evaluation.eval_case.Invocation]]):'
+  constructor_signature: 'def __init__(self, *, eval_case: google.adk.evaluation.eval_case.EvalCase, responses: list[list[google.adk.evaluation.eval_case.Invocation]]):'
   properties:
   - signature: 'eval_case: google.adk.evaluation.eval_case.EvalCase'
   - signature: 'responses: list[list[google.adk.evaluation.eval_case.Invocation]]'
@@ -12756,7 +12752,7 @@
   group: Orphan
   usage_score: 0
   docstring: '[Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, overall_score: typing.Optional[float], overall_eval_status: google.adk.evaluation.eval_metrics.EvalStatus, per_invocation_results: list[google.adk.evaluation.evaluator.PerInvocationResult], overall_rubric_scores: typing.Optional[list[google.adk.evaluation.eval_rubrics.RubricScore]]):'
+  constructor_signature: 'def __init__(self, *, overall_score: typing.Optional[float], overall_eval_status: google.adk.evaluation.eval_metrics.EvalStatus, per_invocation_results: list[google.adk.evaluation.evaluator.PerInvocationResult], overall_rubric_scores: typing.Optional[list[google.adk.evaluation.eval_rubrics.RubricScore]]):'
   properties:
   - signature: 'overall_score: typing.Optional[float]'
     docstring: Overall score, based on each invocation.
@@ -12808,7 +12804,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, actual_invocation: google.adk.evaluation.eval_case.Invocation, expected_invocation: typing.Optional[google.adk.evaluation.eval_case.Invocation], score: typing.Optional[float], eval_status: google.adk.evaluation.eval_metrics.EvalStatus, rubric_scores: typing.Optional[list[google.adk.evaluation.eval_rubrics.RubricScore]]):'
+  constructor_signature: 'def __init__(self, *, actual_invocation: google.adk.evaluation.eval_case.Invocation, expected_invocation: typing.Optional[google.adk.evaluation.eval_case.Invocation], score: typing.Optional[float], eval_status: google.adk.evaluation.eval_metrics.EvalStatus, rubric_scores: typing.Optional[list[google.adk.evaluation.eval_rubrics.RubricScore]]):'
   properties:
   - signature: 'actual_invocation: google.adk.evaluation.eval_case.Invocation'
   - signature: 'expected_invocation: typing.Optional[google.adk.evaluation.eval_case.Invocation]'
@@ -13310,7 +13306,7 @@
   group: Orphan
   usage_score: 0
   docstring: '[Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, score: typing.Optional[float], rubric_scores: typing.Optional[list[google.adk.evaluation.eval_metrics.RubricScore]]):'
+  constructor_signature: 'def __init__(self, *, score: typing.Optional[float], rubric_scores: typing.Optional[list[google.adk.evaluation.eval_metrics.RubricScore]]):'
   properties:
   - signature: 'score: typing.Optional[float]'
   - signature: 'rubric_scores: typing.Optional[list[google.adk.evaluation.eval_metrics.RubricScore]]'
@@ -14158,7 +14154,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, property_text: typing.Optional[str], rationale: typing.Optional[str], score: typing.Optional[float]):'
+  constructor_signature: 'def __init__(self, *, property_text: typing.Optional[str], rationale: typing.Optional[str], score: typing.Optional[float]):'
   properties:
   - signature: 'property_text: typing.Optional[str]'
   - signature: 'rationale: typing.Optional[str]'
@@ -14522,7 +14518,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, model: str, model_configuration: google.genai.types.GenerateContentConfig, max_allowed_invocations: int):'
+  constructor_signature: 'def __init__(self, *, model: str, model_configuration: google.genai.types.GenerateContentConfig, max_allowed_invocations: int):'
   properties:
   - signature: 'model: str'
   - signature: 'model_configuration: google.genai.types.GenerateContentConfig'
@@ -14599,7 +14595,6 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict):'
   properties:
   - signature: 'model_config: pydantic.ConfigDict'
   inherited_properties:
@@ -14615,7 +14610,7 @@
   group: Orphan
   usage_score: 0
   docstring: '[Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, status: google.adk.evaluation.simulation.user_simulator.Status, user_message: typing.Optional[google.genai.types.Content]):'
+  constructor_signature: 'def __init__(self, *, status: google.adk.evaluation.simulation.user_simulator.Status, user_message: typing.Optional[google.genai.types.Content]):'
   methods:
   - signature: 'def ensure_user_message_iff_success(self) -> google.adk.evaluation.simulation.user_simulator.NextUserMessage:'
   properties:
@@ -14835,7 +14830,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, start_timestamp: float, end_timestamp: float, compacted_content: google.genai.types.Content):'
+  constructor_signature: 'def __init__(self, *, start_timestamp: float, end_timestamp: float, compacted_content: google.genai.types.Content):'
   properties:
   - signature: 'model_config: pydantic.ConfigDict'
     docstring: The pydantic model config.
@@ -15617,7 +15612,7 @@
   group: Orphan
   usage_score: 0
   docstring: "Integration with Claude models via the Anthropic API.\n\nAttributes:\n  model: The name of the Claude model.\n  max_tokens: The maximum number of tokens to generate.\n\n[Note: Inherited members from pydantic.BaseModel are omitted.]"
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, model: str, max_tokens: int):'
+  constructor_signature: 'def __init__(self, *, model: str, max_tokens: int):'
   methods:
   - signature: 'def supported_models(cls) -> list[str]:'
   - signature: 'def generate_content_async(self, llm_request: google.adk.models.llm_request.LlmRequest, stream: bool) -> typing.AsyncGenerator[google.adk.models.llm_response.LlmResponse, None]:'
@@ -15661,7 +15656,7 @@
   group: Orphan
   usage_score: 0
   docstring: '[Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, system_instruction: str, messages: typing.Iterable[anthropic.types.MessageParam], tools: list[anthropic.types.ToolParam]):'
+  constructor_signature: 'def __init__(self, *, system_instruction: str, messages: typing.Iterable[anthropic.types.MessageParam], tools: list[anthropic.types.ToolParam]):'
   properties:
   - signature: 'system_instruction: str'
   - signature: 'messages: typing.Iterable[anthropic.types.MessageParam]'
@@ -15736,7 +15731,7 @@
   group: Orphan
   usage_score: 0
   docstring: "A BaseLlm implementation for calling Apigee proxy.\n\nAttributes:\n  model: The name of the Gemini model.\n\n[Note: Inherited members from pydantic.BaseModel are omitted.]"
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, model: str, speech_config: typing.Optional[google.genai.types.SpeechConfig], retry_options: typing.Optional[google.genai.types.HttpRetryOptions]):'
+  constructor_signature: 'def __init__(self, *, model: str, speech_config: typing.Optional[google.genai.types.SpeechConfig], retry_options: typing.Optional[google.genai.types.HttpRetryOptions]):'
   methods:
   - signature: 'def supported_models(cls) -> list[str]:'
     docstring: "Provides the list of supported models.\n\nReturns:\n  A list of supported models."
@@ -15814,7 +15809,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, model: str):'
+  constructor_signature: 'def __init__(self, *, model: str):'
   methods:
   - signature: 'def supported_models(cls) -> list[str]:'
     docstring: Returns a list of supported models in regex for LlmRegistry.
@@ -15930,7 +15925,7 @@
   usage_score: 0
   docstring: "Metadata for context cache associated with LLM responses.\n\nThis class stores cache identification, usage tracking, and lifecycle\ninformation for a particular cache instance. It can be in two states:\n\n1. Active cache state: cache_name is set, all fields populated\n2. Fingerprint-only state: cache_name is None, only fingerprint and\n   contents_count are set for prefix matching\n\nToken counts (cached and total) are available in the LlmResponse.usage_metadata\nand should be accessed from there to avoid duplication.\n\nAttributes:\n    cache_name: The full resource name of the cached content (e.g.,\n        'projects/123/locations/us-central1/cachedContents/456').\n        None when no active cache exists (fingerprint-only state).\n    expire_time: Unix timestamp when the cache expires. None when no\n        active cache exists.\n    fingerprint: Hash of cacheable contents (instruction + tools + contents).\n        Always present for prefix matching.\n    invocations_used:\
     \ Number of invocations this cache has been used for.\n        None when no active cache exists.\n    contents_count: Number of contents. When active cache exists, this is\n        the count of cached contents. When no active cache exists, this is\n        the total count of contents in the request.\n    created_at: Unix timestamp when the cache was created. None when\n        no active cache exists.\n\n[Note: Inherited members from pydantic.BaseModel are omitted.]"
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, cache_name: typing.Optional[str], expire_time: typing.Optional[float], fingerprint: str, invocations_used: typing.Optional[int], contents_count: int, created_at: typing.Optional[float]):'
+  constructor_signature: 'def __init__(self, *, cache_name: typing.Optional[str], expire_time: typing.Optional[float], fingerprint: str, invocations_used: typing.Optional[int], contents_count: int, created_at: typing.Optional[float]):'
   methods:
   - signature: 'def expire_soon(self) -> bool:'
     docstring: Check if the cache will expire soon (with 2-minute buffer).
@@ -16119,7 +16114,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, name: str, parameters: dict[str, typing.Any]):'
+  constructor_signature: 'def __init__(self, *, name: str, parameters: dict[str, typing.Any]):'
   properties:
   - signature: 'name: str'
   - signature: 'parameters: dict[str, typing.Any]'
@@ -16189,7 +16184,7 @@
   group: Orphan
   usage_score: 0
   docstring: '[Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, id: typing.Optional[str], name: typing.Optional[str], args: typing.Optional[str], index: typing.Optional[int]):'
+  constructor_signature: 'def __init__(self, *, id: typing.Optional[str], name: typing.Optional[str], args: typing.Optional[str], index: typing.Optional[int]):'
   properties:
   - signature: 'id: typing.Optional[str]'
   - signature: 'name: typing.Optional[str]'
@@ -16240,7 +16235,7 @@
   group: Orphan
   usage_score: 0
   docstring: '[Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, parts: typing.List[google.genai.types.Part]):'
+  constructor_signature: 'def __init__(self, *, parts: typing.List[google.genai.types.Part]):'
   properties:
   - signature: 'parts: typing.List[google.genai.types.Part]'
   inherited_properties:
@@ -16256,7 +16251,7 @@
   group: Orphan
   usage_score: 0
   docstring: '[Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, text: str):'
+  constructor_signature: 'def __init__(self, *, text: str):'
   properties:
   - signature: 'text: str'
   inherited_properties:
@@ -16272,7 +16267,7 @@
   group: Orphan
   usage_score: 0
   docstring: '[Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, prompt_tokens: int, completion_tokens: int, total_tokens: int, cached_prompt_tokens: int):'
+  constructor_signature: 'def __init__(self, *, prompt_tokens: int, completion_tokens: int, total_tokens: int, cached_prompt_tokens: int):'
   properties:
   - signature: 'prompt_tokens: int'
   - signature: 'completion_tokens: int'
@@ -17627,7 +17622,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, response_type: str, error_type: str, error_details: str, retry_count: int, reflection_guidance: str):'
+  constructor_signature: 'def __init__(self, *, response_type: str, error_type: str, error_details: str, retry_count: int, reflection_guidance: str):'
   properties:
   - signature: 'response_type: str'
   - signature: 'error_type: str'
@@ -17821,7 +17816,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, num_recent_events: typing.Optional[int], after_timestamp: typing.Optional[float]):'
+  constructor_signature: 'def __init__(self, *, num_recent_events: typing.Optional[int], after_timestamp: typing.Optional[float]):'
   properties:
   - signature: 'num_recent_events: typing.Optional[int]'
   - signature: 'after_timestamp: typing.Optional[float]'
@@ -17844,7 +17839,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, sessions: list[google.adk.sessions.session.Session]):'
+  constructor_signature: 'def __init__(self, *, sessions: list[google.adk.sessions.session.Session]):'
   properties:
   - signature: 'sessions: list[google.adk.sessions.session.Session]'
   inherited_properties:
@@ -18563,7 +18558,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, agent: google.adk.agents.common_configs.AgentRefConfig, skip_summarization: bool, include_plugins: bool):'
+  constructor_signature: 'def __init__(self, *, agent: google.adk.agents.common_configs.AgentRefConfig, skip_summarization: bool, include_plugins: bool):'
   properties:
   - signature: 'agent: google.adk.agents.common_configs.AgentRefConfig'
     docstring: The reference to the agent instance.
@@ -19941,7 +19936,7 @@
   group: Orphan
   usage_score: 0
   docstring: '[Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, tool: str, name: str, description: str):'
+  constructor_signature: 'def __init__(self, *, tool: str, name: str, description: str):'
   properties:
   - signature: 'tool: str'
     docstring: The fully qualified path of the CrewAI tool instance.
@@ -20101,7 +20096,7 @@
   group: Orphan
   usage_score: 0
   docstring: '[Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, examples: typing.Union[list[google.adk.examples.example.Example], str]):'
+  constructor_signature: 'def __init__(self, *, examples: typing.Union[list[google.adk.examples.example.Example], str]):'
   properties:
   - signature: 'examples: typing.Union[list[google.adk.examples.example.Example], str]'
     docstring: 'The examples to add to the LLM request. User can either provide a list of
@@ -20679,7 +20674,7 @@
   group: Orphan
   usage_score: 0
   docstring: '[Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, tool: str, name: str, description: str):'
+  constructor_signature: 'def __init__(self, *, tool: str, name: str, description: str):'
   properties:
   - signature: 'tool: str'
     docstring: The fully qualified path of the Langchain tool instance.
@@ -20716,7 +20711,7 @@
   group: Orphan
   usage_score: 0
   docstring: '[Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, memories: list[google.adk.memory.memory_entry.MemoryEntry]):'
+  constructor_signature: 'def __init__(self, *, memories: list[google.adk.memory.memory_entry.MemoryEntry]):'
   properties:
   - signature: 'memories: list[google.adk.memory.memory_entry.MemoryEntry]'
   inherited_properties:
@@ -21059,7 +21054,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, stdio_server_params: typing.Optional[mcp.StdioServerParameters], stdio_connection_params: typing.Optional[google.adk.tools.mcp_tool.mcp_session_manager.StdioConnectionParams], sse_connection_params: typing.Optional[google.adk.tools.mcp_tool.mcp_session_manager.SseConnectionParams], streamable_http_connection_params: typing.Optional[google.adk.tools.mcp_tool.mcp_session_manager.StreamableHTTPConnectionParams], tool_filter: typing.Optional[typing.List[str]], tool_name_prefix: typing.Optional[str], auth_scheme: typing.Optional[google.adk.auth.auth_schemes.AuthScheme], auth_credential: typing.Optional[google.adk.auth.auth_credential.AuthCredential]):'
+  constructor_signature: 'def __init__(self, *, stdio_server_params: typing.Optional[mcp.StdioServerParameters], stdio_connection_params: typing.Optional[google.adk.tools.mcp_tool.mcp_session_manager.StdioConnectionParams], sse_connection_params: typing.Optional[google.adk.tools.mcp_tool.mcp_session_manager.SseConnectionParams], streamable_http_connection_params: typing.Optional[google.adk.tools.mcp_tool.mcp_session_manager.StreamableHTTPConnectionParams], tool_filter: typing.Optional[typing.List[str]], tool_name_prefix: typing.Optional[str], auth_scheme: typing.Optional[google.adk.auth.auth_schemes.AuthScheme], auth_credential: typing.Optional[google.adk.auth.auth_credential.AuthCredential]):'
   properties:
   - signature: 'stdio_server_params: typing.Optional[mcp.StdioServerParameters]'
   - signature: 'stdio_connection_params: typing.Optional[google.adk.tools.mcp_tool.mcp_session_manager.StdioConnectionParams]'
@@ -21098,7 +21093,7 @@
   group: Orphan
   usage_score: 0
   docstring: "Represents OpenID Connect configuration.\n\nAttributes:\n    client_id: The client ID.\n    auth_uri: The authorization URI.\n    token_uri: The token URI.\n    client_secret: The client secret.\n\nExample:\n    config = OpenIdConfig(\n        client_id=\"your_client_id\",\n        auth_uri=\"https://accounts.google.com/o/oauth2/auth\",\n        token_uri=\"https://oauth2.googleapis.com/token\",\n        client_secret=\"your_client_secret\",\n        redirect\n    )\n\n[Note: Inherited members from pydantic.BaseModel are omitted.]"
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, client_id: str, auth_uri: str, token_uri: str, client_secret: str, redirect_uri: typing.Optional[str]):'
+  constructor_signature: 'def __init__(self, *, client_id: str, auth_uri: str, token_uri: str, client_secret: str, redirect_uri: typing.Optional[str]):'
   properties:
   - signature: 'client_id: str'
   - signature: 'auth_uri: str'
@@ -21333,7 +21328,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, original_name: str, param_location: str, param_schema: typing.Union[str, fastapi.openapi.models.Schema], description: typing.Optional[str], py_name: typing.Optional[str], type_value: type[typing.Any], type_hint: str, required: bool):'
+  constructor_signature: 'def __init__(self, *, original_name: str, param_location: str, param_schema: typing.Union[str, fastapi.openapi.models.Schema], description: typing.Optional[str], py_name: typing.Optional[str], type_value: type[typing.Any], type_hint: str, required: bool):'
   methods:
   - signature: 'def model_post_init(self, _: typing.Any):'
   - signature: 'def to_arg_string(self):'
@@ -21499,7 +21494,7 @@
   group: Orphan
   usage_score: 0
   docstring: '[Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, base_url: str, path: str, method: str):'
+  constructor_signature: 'def __init__(self, *, base_url: str, path: str, method: str):'
   properties:
   - signature: 'base_url: str'
   - signature: 'path: str'
@@ -21517,7 +21512,7 @@
   group: Orphan
   usage_score: 0
   docstring: '[Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, name: str, description: str, endpoint: google.adk.tools.openapi_tool.openapi_spec_parser.openapi_spec_parser.OperationEndpoint, operation: fastapi.openapi.models.Operation, parameters: typing.List[google.adk.tools.openapi_tool.common.common.ApiParameter], return_value: google.adk.tools.openapi_tool.common.common.ApiParameter, auth_scheme: typing.Optional[google.adk.auth.auth_schemes.AuthScheme], auth_credential: typing.Optional[google.adk.auth.auth_credential.AuthCredential], additional_context: typing.Optional[typing.Any]):'
+  constructor_signature: 'def __init__(self, *, name: str, description: str, endpoint: google.adk.tools.openapi_tool.openapi_spec_parser.openapi_spec_parser.OperationEndpoint, operation: fastapi.openapi.models.Operation, parameters: typing.List[google.adk.tools.openapi_tool.common.common.ApiParameter], return_value: google.adk.tools.openapi_tool.common.common.ApiParameter, auth_scheme: typing.Optional[google.adk.auth.auth_schemes.AuthScheme], auth_credential: typing.Optional[google.adk.auth.auth_credential.AuthCredential], additional_context: typing.Optional[typing.Any]):'
   properties:
   - signature: 'name: str'
   - signature: 'description: str'
@@ -21785,7 +21780,7 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, state: google.adk.tools.openapi_tool.openapi_spec_parser.tool_auth_handler.AuthPreparationState, auth_scheme: typing.Optional[google.adk.auth.auth_schemes.AuthScheme], auth_credential: typing.Optional[google.adk.auth.auth_credential.AuthCredential]):'
+  constructor_signature: 'def __init__(self, *, state: google.adk.tools.openapi_tool.openapi_spec_parser.tool_auth_handler.AuthPreparationState, auth_scheme: typing.Optional[google.adk.auth.auth_schemes.AuthScheme], auth_credential: typing.Optional[google.adk.auth.auth_credential.AuthCredential]):'
   properties:
   - signature: 'state: google.adk.tools.openapi_tool.openapi_spec_parser.tool_auth_handler.AuthPreparationState'
   - signature: 'auth_scheme: typing.Optional[google.adk.auth.auth_schemes.AuthScheme]'
@@ -22144,7 +22139,6 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict):'
   properties:
   - signature: 'model_config: pydantic.ConfigDict'
   inherited_properties:
@@ -22163,7 +22157,6 @@
 
 
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict):'
   properties:
   - signature: 'model_config: pydantic.ConfigDict'
   inherited_properties:
@@ -22180,7 +22173,7 @@
   usage_score: 0
   docstring: "The configuration for a tool.\n\nThe config supports these types of tools:\n1. ADK built-in tools\n2. User-defined tool instances\n3. User-defined tool classes\n4. User-defined functions that generate tool instances\n5. User-defined function tools\n\nFor examples:\n\n  1. For ADK built-in tool instances or classes in `google.adk.tools` package,\n  they can be referenced directly with the `name` and optionally with\n  `args`.\n\n  ```\n  tools:\n    - name: google_search\n    - name: AgentTool\n      args:\n        agent: ./another_agent.yaml\n        skip_summarization: true\n  ```\n\n  2. For user-defined tool instances, the `name` is the fully qualified path\n  to the tool instance.\n\n  ```\n  tools:\n    - name: my_package.my_module.my_tool\n  ```\n\n  3. For user-defined tool classes (custom tools), the `name` is the fully\n  qualified path to the tool class and `args` is the arguments for the tool.\n\n  ```\n  tools:\n    - name: my_package.my_module.my_tool_class\n \
     \     args:\n        my_tool_arg1: value1\n        my_tool_arg2: value2\n  ```\n\n  4. For user-defined functions that generate tool instances, the `name` is\n  the fully qualified path to the function and `args` is passed to the\n  function as arguments.\n\n  ```\n  tools:\n    - name: my_package.my_module.my_tool_function\n      args:\n        my_function_arg1: value1\n        my_function_arg2: value2\n  ```\n\n  The function must have the following signature:\n  ```\n  def my_function(args: ToolArgsConfig) -> BaseTool:\n    ...\n  ```\n\n  5. For user-defined function tools, the `name` is the fully qualified path\n  to the function.\n\n  ```\n  tools:\n    - name: my_package.my_module.my_function_tool\n  ```\n\n  If the above use cases don't suffice, users can define a custom tool config\n  by extending BaseToolConfig and override from_config() in the custom tool.\n\n[Note: Inherited members from pydantic.BaseModel are omitted.]"
-  constructor_signature: 'def __init__(self, *, model_config: pydantic.ConfigDict, name: str, args: typing.Optional[google.adk.tools.tool_configs.ToolArgsConfig]):'
+  constructor_signature: 'def __init__(self, *, name: str, args: typing.Optional[google.adk.tools.tool_configs.ToolArgsConfig]):'
   properties:
   - signature: 'model_config: pydantic.ConfigDict'
   - signature: 'name: str'
@@ -35115,7 +35108,7 @@
 
 
     [Note: Inherited members from _common.BaseModel are omitted.]'
-  constructor_signature: 'def __init__(self, *, name: typing.Optional[str], custom_function: typing.Optional[typing.Callable[Ellipsis, typing.Any]], prompt_template: typing.Optional[str], judge_model_system_instruction: typing.Optional[str], return_raw_output: typing.Optional[bool], parse_and_reduce_fn: typing.Optional[typing.Callable[Ellipsis, typing.Any]], aggregate_summary_fn: typing.Optional[typing.Callable[Ellipsis, typing.Any]], model_config: pydantic.ConfigDict):'
+  constructor_signature: 'def __init__(self, *, name: typing.Optional[str], custom_function: typing.Optional[typing.Callable[Ellipsis, typing.Any]], prompt_template: typing.Optional[str], judge_model_system_instruction: typing.Optional[str], return_raw_output: typing.Optional[bool], parse_and_reduce_fn: typing.Optional[typing.Callable[Ellipsis, typing.Any]], aggregate_summary_fn: typing.Optional[typing.Callable[Ellipsis, typing.Any]]):'
   methods:
   - signature: 'def validate_name(self) -> google.genai.types.Metric:'
   - signature: 'def to_yaml_file(self, file_path: str, version: typing.Optional[str]) -> None:'

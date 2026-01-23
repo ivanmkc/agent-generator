@@ -341,6 +341,7 @@ class TargetRanker:
             # For Pydantic/Dataclasses, collect all properties (fields) from the hierarchy
             fields = []
             seen_fields = set()
+            excluded_fields = {"model_config", "config_type"}
             
             # Traverse roughly base-to-child to emulate init kwarg order (though Pydantic is flexible)
             for ancestor in reversed(hierarchy):
@@ -349,7 +350,7 @@ class TargetRanker:
                     # p is MemberInfo, signature is usually "name: type"
                     # We accept it as is to form the kwargs list
                     name = p.signature.split(":")[0].strip()
-                    if name not in seen_fields:
+                    if name not in seen_fields and name not in excluded_fields:
                         seen_fields.add(name)
                         fields.append(p.signature)
             
