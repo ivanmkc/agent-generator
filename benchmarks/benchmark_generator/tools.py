@@ -477,8 +477,11 @@ def scan_repository(repo_path: str, tool_context: ToolContext, coverage_file: Op
                                 for kw in node.keywords:
                                     if kw.arg == 'default':
                                         return ast.unparse(kw.value)
-                                    # Handle default_factory? usually implies dynamic default.
-                                    # We could return None to imply no static default.
+                                    if kw.arg == 'default_factory':
+                                        val = ast.unparse(kw.value)
+                                        if val in ('list', 'dict', 'set'):
+                                            return f"{val}()"
+                                        return f"Factory({val})"
                                 return None # Field used but no static default found
                         
                         # Not a Field call, just use the value
