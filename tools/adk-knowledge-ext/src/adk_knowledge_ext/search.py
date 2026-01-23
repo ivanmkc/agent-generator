@@ -99,7 +99,7 @@ class KeywordSearchProvider(SearchProvider):
                 matches.append((score, item))
         
         # Sort by score desc, then by original rank
-        matches.sort(key=lambda x: (-x[0], x.get("rank", 9999)))
+        matches.sort(key=lambda x: (-x[0], x[1].get("rank", 9999)))
         return matches[:limit]
 
 def get_search_provider(provider_type: str = "bm25") -> SearchProvider:

@@ -119,7 +119,18 @@ def inspect_adk_symbol(fqn: str) -> str:
     output = yaml.safe_dump(target, sort_keys=False)
     
     if suffix:
-        return f"Note: Symbol '{fqn}' is not explicitly indexed. Showing parent symbol '{target.get('id') or target.get('fqn')}'.\n\n{output}"
+        # Attempt to read source for the specific symbol to provide more context
+        source_snippet = ""
+        rel_path = target.get("file_path")
+        if rel_path:
+            target_fqn = target.get("id") or target.get("fqn") or target.get("name")
+            try:
+                # Reuse the reader to get the specific method/property source
+                source_snippet = reader.read_source(rel_path, target_fqn, suffix)
+            except Exception as e:
+                source_snippet = f"(Could not retrieve source: {e})"
+        
+        return f"Note: Symbol '{fqn}' is not explicitly indexed. Showing parent symbol '{target.get('id') or target.get('fqn')}'.\n\n{output}\n\n{source_snippet}"
     
     return output
 
