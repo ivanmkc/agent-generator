@@ -107,11 +107,28 @@ class KeywordSearchProvider(SearchProvider):
         matches.sort(key=lambda x: (-x[0], x[1].get("rank", 9999)))
         return matches[:limit]
 
+class HybridSearchProvider(SearchProvider):
+    """Tries BM25 first, falls back to Keyword search if zero results found."""
+    def __init__(self, bm25: BM25SearchProvider, keyword: KeywordSearchProvider):
+        self._bm25 = bm25
+        self._keyword = keyword
+
+    def build_index(self, items: List[Dict[str, Any]]):
+        self._bm25.build_index(items)
+        self._keyword.build_index(items)
+
+    def search(self, query: str, limit: int) -> List[Tuple[float, Dict[str, Any]]]:
+        results = self._bm25.search(query, limit)
+        if not results:
+            logger.info(f"BM25 returned 0 results for '{query}'. Falling back to Keyword search.")
+            results = self._keyword.search(query, limit)
+        return results
+
 def get_search_provider(provider_type: str = "bm25") -> SearchProvider:
     if provider_type == "bm25":
         try:
             import rank_bm25
-            return BM25SearchProvider()
+            return HybridSearchProvider(BM25SearchProvider(), KeywordSearchProvider())
         except ImportError:
             logger.warning("rank_bm25 not found, falling back to keyword search.")
             return KeywordSearchProvider()
