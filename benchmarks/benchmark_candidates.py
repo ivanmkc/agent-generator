@@ -36,7 +36,8 @@ from benchmarks.answer_generators.gemini_cli_docker.image_definitions import (
 class ModelName(enum.StrEnum):
     GEMINI_2_5_FLASH = "gemini-2.5-flash"
     GEMINI_2_5_PRO = "gemini-2.5-pro"
-    GEMINI_3_0_PRO = "gemini-3.0-pro"
+
+    # Warning: Using Gemini 3 may lead to inability to use quota for gemini-cli itself
     GEMINI_3_PRO_PREVIEW = "gemini-3-pro-preview"
 
 api_key_manager = ApiKeyManager()
@@ -52,20 +53,30 @@ CANDIDATE_GENERATORS = [
     #     api_key_manager=api_key_manager,
     #     experiment_id="basic"
     # ),
+    create_hybrid_generator_v47(
+        model_name=ModelName.GEMINI_2_5_PRO,
+        api_key_manager=api_key_manager,
+    ),
+    GeminiCliPodmanAnswerGenerator(
+        image_definitions=IMAGE_DEFINITIONS,
+        image_name="gemini-cli:adk-docs-ext",
+        model_name=ModelName.GEMINI_2_5_FLASH,
+        api_key_manager=api_key_manager,
+    ),
     GeminiCliPodmanAnswerGenerator(
         image_definitions=IMAGE_DEFINITIONS,
         image_name="gemini-cli:mcp_adk_agent_runner_ranked_knowledge",
-        model_name=ModelName.GEMINI_2_5_PRO,
+        model_name=ModelName.GEMINI_2_5_FLASH,
         api_key_manager=api_key_manager,
         extra_env={"ADK_SEARCH_PROVIDER": "bm25"},
         experiment_id="ranked_knowledge_bm25"
     ),
-    GeminiCliPodmanAnswerGenerator(
-        image_definitions=IMAGE_DEFINITIONS,
-        image_name="gemini-cli:mcp_adk_agent_runner_ranked_knowledge",
-        model_name=ModelName.GEMINI_2_5_PRO,
-        api_key_manager=api_key_manager,
-        extra_env={"ADK_SEARCH_PROVIDER": "keyword"},
-        experiment_id="ranked_knowledge_keyword"
-    ),
+    # GeminiCliPodmanAnswerGenerator(
+    #     image_definitions=IMAGE_DEFINITIONS,
+    #     image_name="gemini-cli:mcp_adk_agent_runner_ranked_knowledge",
+    #     model_name=ModelName.GEMINI_2_5_PRO,
+    #     api_key_manager=api_key_manager,
+    #     extra_env={"ADK_SEARCH_PROVIDER": "keyword"},
+    #     experiment_id="ranked_knowledge_keyword"
+    # ),
 ]

@@ -133,9 +133,30 @@ class StructuredWorkflowAdkGeneratorConfig(GeneratorConfig):
             api_key_manager=api_key_manager
         )
 
+class HybridAdkGeneratorConfig(GeneratorConfig):
+    """
+    Configuration specific to Hybrid ADK-based generators (V47).
+
+    Attributes:
+        type: Literal "hybrid_adk".
+    """
+    type: Literal["hybrid_adk"] = "hybrid_adk"
+
+    def create_generator(self, model_name: str, project_id: str, api_key_manager: ApiKeyManager) -> AnswerGenerator:
+        """
+        Creates a HybridAdkAnswerGenerator instance (via factory).
+        """
+        from benchmarks.answer_generators.experiment_67 import create_hybrid_generator_v47
+
+        return create_hybrid_generator_v47(
+            model_name=model_name,
+            api_key_manager=api_key_manager
+        )
+
 # Union type for the configuration dictionary values
 AnyGeneratorConfig = Union[
     PodmanGeneratorConfig, 
     WorkflowAdkGeneratorConfig, 
-    StructuredWorkflowAdkGeneratorConfig
+    StructuredWorkflowAdkGeneratorConfig,
+    HybridAdkGeneratorConfig
 ]

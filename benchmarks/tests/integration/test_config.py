@@ -28,7 +28,8 @@ from benchmarks.tests.integration.config_models import (
     AnyGeneratorConfig,
     PodmanGeneratorConfig,
     WorkflowAdkGeneratorConfig,
-    StructuredWorkflowAdkGeneratorConfig
+    StructuredWorkflowAdkGeneratorConfig,
+    HybridAdkGeneratorConfig
 )
 
 # Map fixture names to their configuration metadata
@@ -55,6 +56,24 @@ GENERATOR_METADATA: Dict[str, AnyGeneratorConfig] = {
             "run_analysis_agent",
             "final_verifier",
             "teardown_agent",
+        ],
+        custom_case=STRUCTURED_WORKFLOW_CASE,
+    ),
+    "hybrid_adk_test_case": HybridAdkGeneratorConfig(
+        id="hybrid_adk_test_case",
+        expected_context_files=[],
+        expected_tool_uses=["search_ranked_targets", "write_file"],
+        expected_sub_agent_calls=[
+            "setup",
+            "router",
+            "retrieval_worker",
+            "implementation_planner",
+            "verification_planner",
+            "candidate_creator",
+            "code_based_runner",
+            "run_analyst",
+            "final_verifier",
+            "teardown",
         ],
         custom_case=STRUCTURED_WORKFLOW_CASE,
     ),

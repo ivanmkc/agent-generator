@@ -211,7 +211,7 @@ class PostProcessedAdkAnswerGenerator(AdkAnswerGenerator):
         current_key = None
 
         if self.api_key_manager:
-             current_key, api_key_id = self.api_key_manager.get_key_for_run(run_id, KeyType.GEMINI_API)
+             current_key, api_key_id = await self.api_key_manager.get_key_for_run(run_id, KeyType.GEMINI_API)
         
         token = adk_execution_context.set({"api_key": current_key, "key_id": api_key_id})
         
@@ -271,7 +271,8 @@ class PostProcessedAdkAnswerGenerator(AdkAnswerGenerator):
                 
             output = output_schema.model_validate_json(response.text)
             
-            self.api_key_manager.report_result(KeyType.GEMINI_API, api_key_id, success=True)
+            if self.api_key_manager:
+                await self.api_key_manager.report_result(KeyType.GEMINI_API, api_key_id, success=True)
             return GeneratedAnswer(
                 output=output, 
                 trace_logs=trace_logs, 
@@ -281,7 +282,7 @@ class PostProcessedAdkAnswerGenerator(AdkAnswerGenerator):
 
         except Exception as e:
             if self.api_key_manager:
-                self.api_key_manager.report_result(KeyType.GEMINI_API, api_key_id, success=False, error_message=str(e))
+                await self.api_key_manager.report_result(KeyType.GEMINI_API, api_key_id, success=False, error_message=str(e))
             raise BenchmarkGenerationError(f"Generation failed: {e}", original_exception=e, api_key_id=api_key_id) from e
         finally:
             if token: adk_execution_context.reset(token)
