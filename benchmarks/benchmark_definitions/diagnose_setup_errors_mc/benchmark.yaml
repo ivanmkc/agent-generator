@@ -257,7 +257,7 @@ benchmarks:
   explanation: '`clone` validates that updated fields exist on the agent class.'
   benchmark_type: multiple_choice
 - id: diagnose_setup_errors_mc:sequential_empty_subagents
-  question: You initialize a `SequentialAgent` without `sub_agents`. What happens?
+  question: You initialize a `SequentialAgent` without providing the `sub_agents` argument. What happens?
   code_snippet_ref:
     file: benchmarks/benchmark_definitions/diagnose_setup_errors_mc/snippets.py
     section: sequential_empty_subagents
@@ -352,7 +352,7 @@ benchmarks:
   explanation: The `parent_agent` field is marked `init=False`, so Pydantic prevents setting it in __init__.
   benchmark_type: multiple_choice
 - id: diagnose_setup_errors_mc:cache_ttl_string
-  question: You initialize `ContextCacheConfig` with `ttl` as a string. What error occurs?
+  question: You initialize `ContextCacheConfig` with `ttl_seconds` as a string. What error occurs?
   code_snippet_ref:
     file: benchmarks/benchmark_definitions/diagnose_setup_errors_mc/snippets.py
     section: cache_ttl_string
@@ -364,20 +364,6 @@ benchmarks:
     E: None of the above
   correct_answer: B
   explanation: '`ttl` must be an integer (seconds).'
-  benchmark_type: multiple_choice
-- id: diagnose_setup_errors_mc:app_extra_args
-  question: You initialize `App` with both `root_agent` and `agents` (hypothetical old API). If `agents` is not a valid parameter, what happens?
-  code_snippet_ref:
-    file: benchmarks/benchmark_definitions/diagnose_setup_errors_mc/snippets.py
-    section: app_extra_args
-  options:
-    A: No error, agents is ignored.
-    B: 'TypeError: __init__() got an unexpected keyword argument ''agents''.'
-    C: ValueError.
-    D: 'ValidationError: Extra inputs are not permitted.'
-    E: None of the above
-  correct_answer: D
-  explanation: Pydantic models with `extra='forbid'` raise ValidationError for unknown arguments.
   benchmark_type: multiple_choice
 - id: diagnose_setup_errors_mc:compaction_overlap_negative
   question: You initialize `EventsCompactionConfig` with `overlap_size=-1`. What error occurs?
@@ -404,8 +390,8 @@ benchmarks:
     C: ValidationError
     D: No error.
     E: None of the above
-  correct_answer: C
-  explanation: Pydantic validation ensures `compaction_interval` has the correct type/constraints.
+  correct_answer: D
+  explanation: Pydantic validation allows 0 as a valid integer here (unless specifically constrained).
   benchmark_type: multiple_choice
 - id: diagnose_setup_errors_mc:compaction_summarizer_string
   question: You initialize `EventsCompactionConfig` with `summarizer='string'`. What error occurs?
