@@ -92,9 +92,24 @@ artifact_manager = ArtifactManager(bucket_name=BENCHMARK_GCS_BUCKET)
 # --- Helper Functions ---
 
 
+def get_run_status(run_id: str) -> str:
+    """Determines the status of a run based on file existence."""
+    # Check for results.json (Completed)
+    if artifact_manager.get_file(run_id, "results.json"):
+        return "Completed"
+    # Check for trace.yaml (In Progress or Failed)
+    if artifact_manager.get_file(run_id, "trace.yaml"):
+        return "Pending/Failed"
+    return "Empty"
+
 def load_run_options():
-    """Returns a list of available benchmark run directories/prefixes."""
-    return artifact_manager.list_runs()
+    """Returns a list of available benchmark run directories/prefixes with status."""
+    run_ids = artifact_manager.list_runs()
+    runs = []
+    for r in run_ids:
+        status = get_run_status(r)
+        runs.append({"id": r, "status": status})
+    return runs
 
 
 @st.cache_data
@@ -647,10 +662,17 @@ def main():
         st.error("No benchmark runs found in `benchmark_runs/`.")
         return
 
-    selected_run = st.sidebar.selectbox("Select Run", runs)
+    # Use index to select item
+    selected_run_obj = st.sidebar.selectbox(
+        "Select Run", 
+        runs, 
+        format_func=lambda r: f"{'✅' if r['status'] == 'Completed' else '⚠️' if r['status'] == 'Pending/Failed' else '⚪'} {r['id']} ({r['status']})"
+    )
 
-    if not selected_run:
+    if not selected_run_obj:
         return
+
+    selected_run = selected_run_obj["id"]
 
     # 2. Load Data
     results_list = load_results(selected_run)
@@ -1283,7 +1305,7 @@ def main():
                 st.caption(f"Generation Status: {attempt.status} | Duration: {attempt.duration:.2f}s | Tokens: {total_tokens}{exit_str}")
 
                 # Nested Tabs for deep dive
-                sub_tabs = st.tabs(["Diff & Code", "Trace Logs", "CLI Output", "Raw Events", "Generation Error", "Validation Error", "Metadata"])
+                sub_tabs = st.tabs(["Diff & Code", "Trace Logs", "CLI Output", "Raw Events", "Errors", "Metadata"])
                 
                 # 1. Diff & Code
                 with sub_tabs[0]:
@@ -1349,25 +1371,28 @@ def main():
                     else:
                         st.json([t.model_dump() for t in active_trace_logs])
 
-                # 5. Generation Error
+                # 5. Errors (Consolidated)
                 with sub_tabs[4]:
-                    st.markdown("#### Generation Error Details")
-                    st.markdown("Error details if the attempt failed to produce an answer.")
+                    st.markdown("#### Error Analysis")
+                    
+                    has_error = False
+                    
+                    # Generation Error
                     if attempt.status != "success":
-                        st.error(f"Generation of answer failed: {attempt.error_message}")
-                    else:
-                        st.info("Generation successful for this attempt.")
-                
-                # 6. Validation Error (Global for the case)
-                with sub_tabs[5]:
+                        has_error = True
+                        st.error(f"**Generation Failed:** {attempt.error_message}")
+                    
+                    # Validation Error (Global for the case, but relevant here)
                     if result_obj.validation_error:
-                        st.error("Validation Failed")
+                        has_error = True
+                        st.error("**Validation Failed**")
                         st.code(result_obj.validation_error, language="text")
-                    else:
-                        st.success("Overall case validation passed.")
+                        
+                    if not has_error:
+                         st.success("No Generation or Validation errors detected for this attempt.")
 
-                # 7. Metadata
-                with sub_tabs[6]:
+                # 6. Metadata
+                with sub_tabs[5]:
                     st.markdown("#### Attempt Metadata")
                     st.markdown("Token usage and other execution metadata.")
                     st.caption("Note: Top-level statistics (header) typically reflect the final successful attempt. Usage for failed attempts is visible in the 'Run Overview'.")
