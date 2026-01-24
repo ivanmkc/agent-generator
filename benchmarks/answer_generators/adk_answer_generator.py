@@ -26,7 +26,6 @@ from benchmarks.data_models import (
 )
 from benchmarks.api_key_manager import ApiKeyManager, KeyType
 from benchmarks.answer_generators.adk_context import adk_execution_context
-from benchmarks.parsing.json_sanitizer import JsonSanitizer
 
 
 from google.adk.plugins.base_plugin import BasePlugin
@@ -219,8 +218,6 @@ class AdkAnswerGenerator(LlmAnswerGenerator):
                  self.model_name = m
              elif hasattr(m, "model"):
                  self.model_name = getattr(m, "model", "Unknown")
-        
-        self.sanitizer = JsonSanitizer(api_key_manager=self.api_key_manager, model_name=self.model_name)
 
     @property
     def name(self) -> str:
@@ -312,7 +309,12 @@ class AdkAnswerGenerator(LlmAnswerGenerator):
                 benchmark_type=benchmark_type
             )
             
-            output = await self.sanitizer.sanitize(response_text, output_schema_class, run_id)
+            if "```json" in response_text:
+                json_str = response_text.split("```json", 1)[1].split("```", 1)[0].strip()
+            else:
+                json_str = response_text.strip()
+
+            output = output_schema_class.model_validate_json(json_str)
 
             if self.api_key_manager:
                 await self.api_key_manager.report_result(KeyType.GEMINI_API, api_key_id, success=True)

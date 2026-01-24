@@ -24,7 +24,7 @@ or can sub_agents be omitted. Add a unit-test to test both out and update the un
 - configure_adk_features_mc:you_are_implementing_a_custom_tool_which_method_mu: This question is probably wrongly answered. Please check against code, write a test and fix.
 
 # Prioritized Features (From Design Docs)
-- [x] **Implement Robust LLM-Based JSON Extraction** (`docs/design_docs/llm_json_parsing.md`): Create a `JsonSanitizer` that uses a lightweight LLM to repair malformed JSON output from agents, reducing schema violation failures.
+- [ ] **Implement Robust LLM-Based JSON Extraction** (`docs/design_docs/llm_json_parsing.md`): Create a `JsonSanitizer` that uses a lightweight LLM to repair malformed JSON output from agents, reducing schema violation failures.
 - [ ] **Implement Search Suggestions** (`docs/design_docs/search_suggestions.md`): Update `search_adk_knowledge` to return "Did you mean?" suggestions using fuzzy matching when exact search yields zero results.
 - [ ] **Implement Usage-Ranked Pagination** (`docs/design_docs/list_modules_pagination.md`): Modify `list_adk_modules` to return high-usage classes on Page 1 instead of alphabetical sorting.
 - [ ] **Optimize Analysis Report Generation** (`docs/design_docs/optimize_analysis_report.md`): Implement caching and adaptive concurrency to speed up the `generate_ai_report.py` pipeline.
