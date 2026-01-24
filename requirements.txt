@@ -12,3 +12,4 @@ plotly
 colorama
 PyYAML
 google-cloud-storage
+rank-bm25
