@@ -1,4 +1,5 @@
 import logging
+import re
 from typing import List, Dict, Any, Tuple
 from abc import ABC, abstractmethod
 
@@ -35,9 +36,13 @@ class BM25SearchProvider(SearchProvider):
         for i, item in enumerate(items):
             fqn = item.get("id") or item.get("fqn") or item.get("name")
             if fqn:
+                # Tokenize FQN by dot and underscore to expose class names
+                # e.g. "google.adk.Tool" -> "google adk Tool"
+                fqn_parts = " ".join(re.split(r'[._]', fqn))
+                
                 # Create a rich text representation for search
                 # FQN gets boosted by repetition
-                doc_text = f"{fqn} {fqn} {fqn} " + (item.get("docstring") or "")
+                doc_text = f"{fqn_parts} {fqn} {fqn} {fqn} " + (item.get("docstring") or "")
                 tokenized_corpus.append(doc_text.lower().split())
                 self._corpus_map.append(i)
 
