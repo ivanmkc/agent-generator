@@ -5,6 +5,7 @@ from typing import Type, Optional, Any
 from pydantic import BaseModel
 from google.genai import Client, types
 from benchmarks.api_key_manager import ApiKeyManager, KeyType
+from benchmarks.config import MOST_POWERFUL_MODEL
 
 logger = logging.getLogger(__name__)
 
@@ -12,7 +13,7 @@ class JsonSanitizer:
     """
     Sanitizes and extracts structured JSON from potentially unstructured LLM output.
     """
-    def __init__(self, api_key_manager: Optional[ApiKeyManager] = None, model_name: str = "gemini-2.0-flash"):
+    def __init__(self, api_key_manager: Optional[ApiKeyManager] = None, model_name: str = MOST_POWERFUL_MODEL):
         self.api_key_manager = api_key_manager
         self.model_name = model_name
 
@@ -26,23 +27,24 @@ class JsonSanitizer:
         """Extracts content from ```json ... ``` blocks."""
         matches = re.findall(r"```json\s*(.*?)\s*```", text, re.DOTALL)
         if matches:
-            # Return the last block as it's usually the final answer
             return matches[-1]
         
-        # Try generic code block if json specific not found
         matches = re.findall(r"```\s*(.*?)\s*```", text, re.DOTALL)
         if matches:
             return matches[-1]
             
         return None
 
-    async def sanitize(self, text: str, schema: Type[BaseModel], run_id: str) -> BaseModel:
+    async def sanitize(self, text: str, schema: Type[BaseModel]) -> BaseModel:
         """
         Attempts to parse text into the given Pydantic schema using a multi-stage fallback strategy.
         
         Raises:
             ValueError: If all extraction methods fail.
         """
+        if not text:
+            raise ValueError("Input text is empty.")
+
         # Stage 1: Direct Parse
         clean_text = text.strip()
         obj = self._try_parse(clean_text, schema)
@@ -71,13 +73,10 @@ class JsonSanitizer:
             f"Target Schema:\n{schema.model_json_schema()}"
         )
 
-        api_key_id: Optional[str] = None
-        client: Optional[Client] = None
-        
         try:
-            # Use a separate key type or same? Using GEMINI_API for now.
-            # We don't want to consume the 'run' quota limit if possible, but we need a key.
-            # We'll use get_next_key directly to avoid run-state locking conflicts if any.
+            # We use a dedicated key call here. 
+            # Note: We don't have a 'run_id' here easily unless passed. 
+            # We'll grab a fresh key.
             api_key = await self.api_key_manager.get_next_key(KeyType.GEMINI_API)
             if not api_key:
                 raise ValueError("No API keys available for sanitizer.")

@@ -27,6 +27,7 @@ import textwrap
 from typing import Generic
 from typing import Optional
 from typing import TypeVar
+from pydantic import BaseModel
 
 from benchmarks.data_models import (
     ApiUnderstandingBenchmarkCase,
@@ -36,6 +37,7 @@ from benchmarks.data_models import BaseBenchmarkCase
 from benchmarks.data_models import BenchmarkResultType
 from benchmarks.data_models import FixErrorBenchmarkCase
 from benchmarks.data_models import GeneratedAnswer
+from benchmarks.data_models import MultipleChoiceAnswerOutput, FixErrorAnswerOutput, ApiUnderstandingAnswerOutput
 import benchmarks.validation_utils as validation_utils
 
 # A TypeVar to create a generic link between a runner and the case it handles.
@@ -44,6 +46,28 @@ BenchmarkCaseT = TypeVar("BenchmarkCaseT", bound=BaseBenchmarkCase)
 
 class BenchmarkRunner(abc.ABC, Generic[BenchmarkCaseT]):
     """Abstract base class for benchmark runners."""
+
+    async def ensure_valid_output(self, generated_answer: GeneratedAnswer, schema_class: type[BaseModel]) -> tuple[Optional[BaseModel], Optional[str]]:
+        """
+        Ensures the generated answer has a valid structured output. 
+        If 'output' is missing, attempts to sanitize 'raw_output' using the LLM sanitizer.
+        """
+        if generated_answer.output:
+            return generated_answer.output, None
+        
+        if not generated_answer.raw_output:
+            return None, "No output provided (parsing failed and no raw output captured)."
+
+        from benchmarks.parsing.json_sanitizer import JsonSanitizer
+        from benchmarks.api_key_manager import API_KEY_MANAGER
+        
+        sanitizer = JsonSanitizer(api_key_manager=API_KEY_MANAGER)
+        try:
+            output = await sanitizer.sanitize(generated_answer.raw_output, schema_class)
+            generated_answer.output = output # Patch for downstream usage
+            return output, None
+        except Exception as e:
+            return None, f"JSON Sanitization Failed: {e}"
 
     @abc.abstractmethod
     async def run_benchmark(
@@ -62,7 +86,19 @@ class MultipleChoiceRunner(BenchmarkRunner[MultipleChoiceBenchmarkCase]):
         generated_answer: GeneratedAnswer,
     ) -> tuple[BenchmarkResultType, Optional[str], Optional[str], Optional[str]]:
         """Checks if the answer matches the correct option."""
-        answer = generated_answer.output.answer.strip().upper()
+        
+        # 1. Ensure Output
+        output, error = await self.ensure_valid_output(generated_answer, MultipleChoiceAnswerOutput)
+        if not output:
+            from benchmarks.data_models import BenchmarkErrorType
+            return (
+                BenchmarkResultType.FAIL_VALIDATION,
+                f"Failed to parse answer: {error}",
+                None,
+                BenchmarkErrorType.MODEL_INCORRECT_ANSWER
+            )
+
+        answer = output.answer.strip().upper()
         correct = benchmark_case.correct_answer.strip().upper()
 
         if answer == correct:
@@ -222,7 +258,19 @@ sys.exit(1)
         generated_answer: GeneratedAnswer,
     ) -> tuple[BenchmarkResultType, str, str, Optional[str]]:
         """Runs a benchmark using pytest and returns the result and logs."""
-        code_to_test = generated_answer.output.code
+        
+        # 1. Ensure Output
+        output, error = await self.ensure_valid_output(generated_answer, FixErrorAnswerOutput)
+        if not output:
+            from benchmarks.data_models import BenchmarkErrorType
+            return (
+                BenchmarkResultType.FAIL_VALIDATION,
+                f"Failed to parse answer: {error}",
+                None,
+                BenchmarkErrorType.MODEL_INCORRECT_ANSWER
+            )
+
+        code_to_test = output.code
         project_root = Path(__file__).parent.parent
 
         try:
@@ -446,8 +494,19 @@ class ApiUnderstandingRunner(BenchmarkRunner[ApiUnderstandingBenchmarkCase]):
         generated_answer: GeneratedAnswer,
     ) -> tuple[BenchmarkResultType, str, None, Optional[str]]:
         """Validates the generated answer and returns the result and logs."""
+        
+        # 1. Ensure Output
+        output, error = await self.ensure_valid_output(generated_answer, ApiUnderstandingAnswerOutput)
+        if not output:
+            from benchmarks.data_models import BenchmarkErrorType
+            return (
+                BenchmarkResultType.FAIL_VALIDATION,
+                f"Failed to parse answer: {error}",
+                None,
+                BenchmarkErrorType.MODEL_INCORRECT_ANSWER
+            )
+
         all_errors = []
-        output = generated_answer.output
         code_to_test = output.code
 
         for ground_truth in benchmark_case.answers:
@@ -463,7 +522,7 @@ class ApiUnderstandingRunner(BenchmarkRunner[ApiUnderstandingBenchmarkCase]):
                     )
                 
                 # ROBUST PATH VALIDATION
-                gen_path = generated_answer.output.fully_qualified_class_name
+                gen_path = output.fully_qualified_class_name
                 exp_paths = ground_truth.fully_qualified_class_name
                 
                 # 1. Try Object Identity Check (handles re-exports/aliases)

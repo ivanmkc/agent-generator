@@ -474,7 +474,11 @@ class GeneratedAnswer(pydantic.BaseModel):
     LLM's function call result.
     """
 
-    output: AnswerOutput
+    output: Optional[AnswerOutput] = None
+
+    raw_output: Optional[str] = Field(
+        None, description="The raw string output from the model, populated if parsing fails."
+    )
 
     trace_logs: Optional[list[TraceLogEvent]] = Field(
         None, description="Detailed execution logs, traces, or tool call history."

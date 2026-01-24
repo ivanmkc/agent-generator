@@ -1,39 +1,38 @@
 # Design Doc: Robust LLM-Based JSON Extraction
 
-**Status:** Draft
+**Status:** Implemented
 **Author:** Gemini CLI Agent
 **Date:** 2026-01-24
 
 ## 1. Problem Statement
-Benchmark validation relies on the agent outputting valid JSON conforming to a specific schema (e.g., `FixErrorAnswerOutput`). Agents often output:
-- Markdown blocks (`json ... `).
-- Conversational preambles ("Here is the answer: ...").
-- Trailing text.
-- Malformed JSON (trailing commas, comments).
+Benchmark validation relies on the agent outputting valid JSON conforming to a specific schema. Agents often output:
+- Markdown blocks.
+- Conversational preambles.
+- Malformed JSON.
 
-Simple regex extraction (`{.*}`) is brittle.
+Simple regex extraction is brittle.
 
-## 2. Proposed Solution
-Introduce a **Parsing Layer** using a lightweight LLM (Gemini 2.0 Flash or similar) to sanitize output before validation.
+## 2. Solution: Validation-Phase Sanitization
+We introduce a **Parsing Layer** in the `BenchmarkRunner` (validation phase), not the Generator. This ensures the raw output of the agent is preserved, but the evaluation is robust to formatting errors.
 
 ### Workflow
-1.  **Agent Output:** `Raw Text`
-2.  **Validator:** Try `json.loads(Raw Text)`.
-3.  **Fallback 1:** Try regex extraction of code blocks.
-4.  **Fallback 2 (The New Step):** Call `LLM_Parser`.
-    - **Prompt:** "Extract the JSON object matching schema X from the following text. Repair any syntax errors."
-    - **Model:** `gemini-2.0-flash-exp` (Low latency, cheap).
-    - **Output:** Valid JSON string.
+1.  **Generator:** Produces `GeneratedAnswer`. If parsing fails, `output` is `None` and `raw_output` contains the text.
+2.  **BenchmarkRunner:** Calls `ensure_valid_output`.
+    - Checks if `output` is already valid.
+    - If not, invokes `JsonSanitizer` on `raw_output`.
+3.  **JsonSanitizer:**
+    - **Stage 1:** Direct JSON Parse.
+    - **Stage 2:** Regex Extraction (Code Blocks).
+    - **Stage 3:** LLM Extraction (Smart Repair).
+        - **Model:** Uses `MOST_POWERFUL_MODEL` (e.g., `gemini-3-pro-preview`) to ensure high-quality extraction and syntax repair.
+        - **Prompt:** "Extract valid JSON matching schema... Fix syntax errors."
 
 ## 3. Architecture
-- **Component:** `JsonSanitizer` class in `benchmarks/analysis`.
-- **Integration:** Call inside `AdkAnswerGenerator.generate_answer` (as post-processing) OR in the `benchmark_runner` validation phase.
-- **Note:** `PostProcessedAdkAnswerGenerator` already does this! We should standardize it for ALL generators, or at least the validation harness.
+- **Component:** `benchmarks/parsing/json_sanitizer.py`.
+- **Integration:** `BenchmarkRunner.ensure_valid_output` in `benchmarks/benchmark_runner.py`.
+- **Config:** `MOST_POWERFUL_MODEL` constant in `benchmarks/config.py`.
 
-## 4. Pros/Cons
-- **Pros:** Drastically higher pass rate for "Format Errors". Decouples reasoning from formatting.
-- **Cons:** Added latency and cost. Risk of the parser hallucinating data to fix the schema.
-
-## 5. Risk Mitigation
-- The parser must generally be "extractive" only.
-- Monitor "Parser Correction Rate" as a metric. If high, prompt engineering on the Agent is needed.
+## 4. Benefits
+- **Robustness:** Handles conversational output and minor syntax errors.
+- ** Separation of Concerns:** Generator focuses on content; Runner handles formatting validation.
+- **Consistency:** All benchmarks use the same high-quality extraction logic.

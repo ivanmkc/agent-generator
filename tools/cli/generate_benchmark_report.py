@@ -38,6 +38,7 @@ from tools.cli.generate_static_report import get_report_content
 from tools.analysis.doc_generator import DOC_MANAGER
 from tools.analysis.case_summarizer import CASE_DOC_MANAGER
 from benchmarks.benchmark_candidates import CANDIDATE_GENERATORS
+from benchmarks.config import MOST_POWERFUL_MODEL
 
 # Configure logging to suppress noisy libraries
 import logging
@@ -1096,7 +1097,7 @@ if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description="Generate Benchmark Report")
     parser.add_argument("run_id", nargs="?", help="Run ID or Directory (defaults to latest)")
-    parser.add_argument("--model-name", required=True, help="LLM Model Name (e.g. gemini-3-pro-preview)")
+    parser.add_argument("--model-name", default=MOST_POWERFUL_MODEL, help=f"LLM Model Name (default: {MOST_POWERFUL_MODEL})")
     
     args = parser.parse_args()
     

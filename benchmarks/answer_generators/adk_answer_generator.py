@@ -314,7 +314,20 @@ class AdkAnswerGenerator(LlmAnswerGenerator):
             else:
                 json_str = response_text.strip()
 
-            output = output_schema_class.model_validate_json(json_str)
+            try:
+                output = output_schema_class.model_validate_json(json_str)
+            except Exception:
+                # Return raw output to let the benchmark runner handle sanitization/validation
+                if self.api_key_manager:
+                    await self.api_key_manager.report_result(KeyType.GEMINI_API, api_key_id, success=True)
+                
+                return GeneratedAnswer(
+                    output=None,
+                    raw_output=response_text,
+                    trace_logs=trace_logs, 
+                    usage_metadata=usage_metadata,
+                    api_key_id=api_key_id
+                )
 
             if self.api_key_manager:
                 await self.api_key_manager.report_result(KeyType.GEMINI_API, api_key_id, success=True)

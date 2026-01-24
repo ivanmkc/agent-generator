@@ -50,3 +50,7 @@ class PodmanConfig:
 # Instantiate for usage
 CLOUD_RUN_CONFIG = CloudRunConfig()
 PODMAN_CONFIG = PodmanConfig()
+
+# Model Configuration
+# Use Gemini 1.5 Pro or newer experimental models for complex reasoning/extraction tasks.
+MOST_POWERFUL_MODEL: str = "gemini-3-pro-preview"
