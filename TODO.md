@@ -1,4 +1,42 @@
 # Todo List
+- Fix create_hybrid_generator_v47 and add to unified integration tests
+- Reorganize tools/ dir and flag redundant/obsolete files. Also check cli. Dismabiguate generate_forensic_report.py and generate_benchmark_report.py.
+- Create design doc for: Optimize analysis report generation. You might have to do time profiling first.
+- Viewer: Do we need both a generation error tab and a validation error tab? I feel like they can be consolidated because they are mutually exclusive. There should just be a universal error tab.
+- Check if fix_errors:08_custom_agent needs CustomConditionalAgent to have sub_agents passed in, such as:
+- Can we create one canonical agent that uses 99% of the API, with comments?
+
+```
+  root_agent = CustomConditionalAgent(
+      name="custom_conditional_agent",
+      agent_a=agent_a,
+      agent_b=agent_b,
+      sub_agents=[agent_a, agent_b],
+  )
+```
+
+or can sub_agents be omitted. Add a unit-test to test both out and update the unfixed, fixed and test accordingly.
+
+- Viewer's 'Select Run' dropdown should signify each row's state (pending, completed, failed, etc)
+- diagnose_setup_errors_mc:cache_ttl_string: Answer seems wrong as ttl is not a field, it should be ttl_seconds.
+
+Please double-check and verify with code.
+
+- diagnose_setup_errors_mc:compaction_interval_zero: Please double check the answer and verify with code.
+- diagnose_setup_errors_mc:sequential_empty_subagents: Is worded ambiguously since 'without' subagents could mean set to None or empty list. Make it clear what sub_agents is being set to.
+- search_adk_knowledge with params {"query":"ToolConfig"} returned "No matches found for 'ToolConfig'." for bm25 mode. This should not happen. reproduce and diagnose.
+- api_understanding:which_class_is_used_to_run_multiple_agents_concurr: is ambiguous as Runner can technically run multiple agents using run_async. reword question to make it clear 'what type of agent is used to run agents concurrently'.
+- Seems like list_adk_modules is only called with page=1. At what page do we see a cumulative usage of 99% or more? write a design doc for other list_adk_modules pagination strategies.
+- When a query or fqn for a tool (like inspect_adk_symbol) returns 0 results, perhaps return suggestions for 'close matches'? write a design doc on how you can implement this.
+- Hm, predict_runtime_behaviour with code_snippet_ref are problematic. Some are used for validation that the question is correct. Some are embedded into the question and shown to the user. Please go through each and check if each makes sense.
+- double check that predict_runtime_behavior_mc:duplicate_agent_name: Looks like validate_sub_agents_unique_names with log a warning.
+- double check: predict_runtime_behavior_mc:event_extra_fields_error
+- Improve: predict_runtime_behavior_mc:tool_session_id_injection: A little ambiguous.
+- api_understanding:which_specific_plugin_class_is_designed_to_observe: The answer might also be satisfied with google.adk.plugins.bigquery_agent_analytics_plugin.BigQueryAgentAnalyticsPlugin. We should rethink this question to be unambiguous.
+- search_adk_knowledge("query":"BuiltInCodeExecutor") gives "No matches found for 'BuiltInCodeExecutor'." using bm_25. debug this. write a unit test to assert the proper behaviour. Same thing for "EventsCompactionConfig". In fact write a unit test that tests for all search algorithms such that an entry with an exact keyword match must be returned for a given query, no matter what algorithm is used.
+- configure_adk_features_mc:which_class_allows_you_to_define_a_tool_from_an_op: The 'correct' answer, OpenAPITool, does not exist. OpenAPIToolset does though. This question is currently wrong.
+- configure_adk_features_mc:you_are_implementing_a_custom_tool_which_method_mu: This question is probably wrongly answered. Please check against code, write a test and fix.
+- Write a design doc to add a LLM JSON parsing step with the Gemini API (with gemini-3-pro-preview) and output_schema fallback, in case the validator still can't load the JSON from the answer generator as is.
 
 # Active
 
