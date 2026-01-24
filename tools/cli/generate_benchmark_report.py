@@ -34,7 +34,7 @@ from benchmarks.analysis import (
     Bcolors
 )
 from tools.analysis.analyze_benchmark_run import analyze_benchmark_run
-from tools.cli.audit_failures import get_report_content
+from tools.cli.generate_static_report import get_report_content
 from tools.analysis.doc_generator import DOC_MANAGER
 from tools.analysis.case_summarizer import CASE_DOC_MANAGER
 from benchmarks.benchmark_candidates import CANDIDATE_GENERATORS
