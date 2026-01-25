@@ -5,64 +5,69 @@
 **Date:** 2026-01-24
 
 ## 1. Problem Statement
-Evaluating and optimizing the retrieval component of an RAG system requires a ground-truth dataset where the relevance of a document to a query is **empirically proven**, not just assumed from metadata. Furthermore, complex tasks often require **multiple** distinct pieces of information (a "Knowledge Kernel") rather than a single document.
+Evaluating and optimizing the retrieval component of an RAG system requires a ground-truth dataset where the relevance of a document to a query is **empirically proven** via statistical causal inference, rather than assumed from metadata or subjective LLM judgment.
 
-**Goal:** Automate the extraction of a high-quality retrieval dataset by mining benchmarks and using a "Teacher Model" to rigorously label context relevance, supporting both single-hop and multi-hop scenarios.
+**Goal:** Automate the extraction of a high-quality retrieval dataset by mining benchmarks and using a **Monte Carlo Verification** process to establish the conditional dependence of task success on specific documents.
 
-## 2. Methodology: Empirical Relevance Validation
+## 2. Methodology: Monte Carlo Relevance Verification
 
-We do not trust that a class mentions in a benchmark answer is the *only* relevant context, nor that random documents are truly irrelevant. We determine relevance dynamically.
+We treat all potential documents (whether seeded from benchmark metadata or randomly sampled) as **candidates**. Their status as "Relevant" or "Irrelevant" is determined solely by whether their presence causally increases the probability of solving the task.
 
 ### 2.1 The Pipeline
 
 ```text
 +-------------------------+       +-------------------------+
-|   Benchmark Registry    | ----> |   Question Extractor    |
-| (YAML/JSON Definitions) |       | (Iterates all cases)    |
+|   Benchmark Registry    | ----> |   Candidate Pooler      |
+| (YAML/JSON Definitions) |       | (Mixes Seeded + Random) |
 +-------------------------+       +------------+------------+
                                             |
                                             v
                                    +-----------------+
-                                   |  Context Pool   |
-                                   | (Gold + Random) |
+                                   |  Monte Carlo    |
+                                   |  Sampler (Loop) |
                                    +-----------------+
                                             |
                                             v
-+-----------------------+       +-------------------------+
-|   Relevance Judge     | <---- | Pair: (Question, Ctx)   |
-| (Gemini 3 Pro)        |       |                         |
-+-----------------------+       +-------------------------+
-            |
-            v
-    [ Labeled Tuple: (Q, Ctx, Label: RELEVANT/IRRELEVANT) ]
+                                   +-----------------+
+                                   |  Blind Solver   |
+                                   |  (Attempts Task)|
+                                   +-----------------+
+                                            |
+                                            v
+    [ Result Log: (Context_Subset, Success/Fail) ] --> [ Statistical Analyzer ]
+                                                              |
+                                                              v
+                                                [ Verified Tuple: (Q, Relevant_Set) ]
 ```
 
-### 2.2 Validation Logic (The Judge)
+### 2.2 The Algorithm
 
-For each Question `Q` extracted from a benchmark:
-1.  **Candidate Selection:**
-    *   Select the "Target Class" (from benchmark metadata).
-    *   Select `N` "Random Classes" (potential negatives).
-    *   Select `M` "Hard Negatives" (BM25 top hits that aren't the target).
+For each Question `Q`:
 
-2.  **LLM Judgment (Empirical Labeling):**
-    *   **Model:** `gemini-3-pro-preview`.
-    *   **Prompt:**
-        > "User Question: {Q}
-        > Context: {Ctx}
-        > Task: Can you answer the user's question definitively using ONLY the provided context?
-        > Answer 'YES' only if the context contains the specific answer/code. Answer 'NO' if it is missing or irrelevant."
-    *   **Outcome:**
-        *   **YES:** Context is **Positive**.
-        *   **NO:** Context is **Negative**.
+1.  **Candidate Pooling:**
+    *   Let `C_seed` be the targets identified in the benchmark metadata (e.g., imports).
+    *   Let `C_random` be a set of randomly sampled targets.
+    *   `Pool = C_seed ∪ C_random`. All items are treated identically.
 
-### 2.3 Embedding Configuration
-When benchmarking or training using this dataset, strictly adhere to task-specific embedding types to maximize performance.
+2.  **Monte Carlo Trials:**
+    *   Run `N` trials (e.g., N=10).
+    *   In each trial `i`:
+        *   Randomly select a subset `S_i` from `Pool` (e.g., Bernoulli trial with p=0.5 for each item).
+        *   Prompt the **Blind Solver** (Gemini 3 Pro) to answer `Q` using *only* context `S_i`.
+        *   Validate the answer against the Ground Truth (using `ApiUnderstandingRunner` or `PytestRunner`).
+        *   Record `Result_i = 1` (Pass) or `0` (Fail).
 
-*   **Model:** `models/text-embedding-004` (or user-specified strongest).
-*   **Task Types:**
-    *   **Queries:** `RETRIEVAL_QUERY` (or `CODE_RETRIEVAL_QUERY` for code-heavy tasks).
-    *   **Documents:** `RETRIEVAL_DOCUMENT`.
+3.  **Statistical Analysis (Conditional Dependence):**
+    *   For each document `d` in `Pool`:
+        *   `Success_In`: Mean success rate of trials where `d ∈ S_i`.
+        *   `Success_Out`: Mean success rate of trials where `d ∉ S_i`.
+        *   `Delta_P = Success_In - Success_Out`.
+    *   **Verdict:**
+        *   If `Delta_P > Threshold` (e.g., 0.1), `d` is **Relevant**.
+        *   Otherwise, `d` is **Irrelevant** (Distractor).
+
+### 2.3 Benefit
+This approach eliminates "Hallucinated Relevance" (where an LLM *says* a doc is useful but doesn't actually need it) and "Missing Necessity" (where a doc is useful but not strictly required if the model has internal knowledge). It only keeps documents that **actually help**.
 
 ## 3. Dataset Schema
 
@@ -72,76 +77,63 @@ The output `retrieval_dataset.yaml`:
 pairs:
   - id: "fix_errors:01"
     query: "How do I create a minimal LlmAgent?"
-    # Verified by Gemini 3 Pro to contain the answer
-    positive_ctxs:
+    candidates:
       - fqn: "google.adk.agents.llm_agent.LlmAgent"
         text: "..."
-    # Verified by Gemini 3 Pro to NOT contain the answer
-    negative_ctxs:
+        empirical_relevance: "YES"
+        delta_p: 0.85  # Presence increased success by 85%
       - fqn: "google.adk.plugins.RetryPlugin"
         text: "..."
+        empirical_relevance: "NO"
+        delta_p: 0.02  # Statistical noise
+    metadata:
+      trials: 10
+      base_success_rate: 0.1
 ```
 
 ## 4. Implementation Plan
 
 ### Phase 1: The Extractor (`tools/extract_retrieval_data.py`)
-- **Action:** Update to fetch candidates but NOT label them yet.
+- Extracts `GroundTruth` data (test files, answer templates) required for the validator to run actual checks.
+- Generates the initial candidate pool.
 
-### Phase 2: The Judge (`tools/validate_retrieval_data.py`)
-- **Input:** Raw Candidates (Q, [Ctx1, Ctx2...]).
-- **Action:** Parallel calls to `gemini-3-pro-preview` to label each context.
-- **Output:** Verified `retrieval_dataset.yaml`.
+### Phase 2: The Validator (`tools/validate_retrieval_data.py`)
+- Implements the Monte Carlo loop.
+- Uses `benchmarks.benchmark_runner` to perform the actual validation logic (reusing existing infra).
+- Calculates `Delta_P` and annotates the dataset.
 
-### Phase 3: Evaluation (`notebooks/evaluate_retrieval.ipynb`)
-- **Action:** Update `EmbeddingRetriever` to use `task_type="RETRIEVAL_QUERY"` for queries and `task_type="RETRIEVAL_DOCUMENT"` for indexing.
+### Phase 3: Evaluation
+- Standard Recall/Precision metrics are calculated against the set of documents marked `empirical_relevance: "YES"`.
 
-## 5. Metrics
-*   **Recall@K:** Fraction of queries where at least one *Empirically Positive* document is in Top-K.
-*   **Precision@K:** Fraction of retrieved documents in Top-K that are *Empirically Positive*.
+## 5. Metrics & Evaluation Framework
 
-## 6. Multi-Context Evolution (Progressive Kernel Expansion)
+To rigorously assess the retrieval quality, we will calculate the following metrics for each search algorithm.
 
-Many tasks require combining information from multiple sources (e.g., "Create an agent with a tool" needs `LlmAgent` *and* `FunctionTool`). A single positive document is insufficient. We need to establish the **Required Kernel** (the minimal set of documents needed to answer the question).
+### 5.1 Recall at K (Recall@K)
+**Definition:** The proportion of queries where the *relevant* document appears in the top `K` results.
+*   **Formula:** `1` if Gold Context in Top-K else `0`. (Averaged over all queries).
+*   **Why it matters:** For an LLM Agent, if the correct tool/class isn't in the context window (Top-K), the agent *cannot* solve the task. This is the **primary metric**.
+*   **Targets:**
+    *   **Recall@1:** Perfect retrieval. (Ideal target: > 60%)
+    *   **Recall@5:** "Good enough" for an LLM to filter. (Ideal target: > 90%)
 
-### 6.1 Method: Progressive Expansion
-We evolve the dataset from single-doc mappings to multi-doc sets.
+### 5.2 Precision at K (Precision@K)
+**Definition:** The proportion of retrieved documents in the top `K` that are relevant.
+*   **Formula:** `(Number of Relevant Docs in Top-K) / K`.
+*   **Why it matters:** Low precision means the context window is filled with "noise" (distractors). This wastes tokens, increases cost, and can confuse the LLM (hallucination risk).
+*   **Trade-off:** We often sacrifice some Precision to maximize Recall, relying on the LLM to filter noise.
 
-**Algorithm:**
-1.  **Initial Seed:** Start with the primary target (e.g., `LlmAgent`).
-2.  **Sufficiency Check:** Ask Judge: "Can you answer Q with just {LlmAgent}?"
-    *   *Judge:* "No, I need to know how to define a tool."
-3.  **Expansion:** Search for the missing concept (e.g., "tool definition"). Add candidates (e.g., `FunctionTool`) to the candidate set.
-4.  **Set Validation:** Ask Judge: "Can you answer Q with {LlmAgent, FunctionTool}?"
-    *   *Judge:* "Yes." -> **Kernel Established: {LlmAgent, FunctionTool}**.
+### 5.3 Mean Reciprocal Rank (MRR)
+**Definition:** The average of the reciprocal ranks of the *first* relevant document.
+*   **Formula:** `1 / Rank_of_First_Correct_Result`. (e.g., if correct result is at #1, score 1.0; at #2, score 0.5).
+*   **Why it matters:** MRR rewards algorithms that put the right answer at the *very top*. This is crucial for Latency (agent stops searching earlier) and Trust.
 
-### 6.2 Alternative Proposals for Expansion
+### 5.4 Normalized Discounted Cumulative Gain (NDCG@K)
+**Definition:** A measure of ranking quality that accounts for the *position* of all relevant documents, giving higher weight to those near the top.
+*   **Why it matters:** Unlike Recall (binary), NDCG handles cases with *multiple* valid answers (e.g., `LlmAgent` and `BaseAgent` might both be relevant). It penalizes the system if the "best" answer is lower down the list.
 
-#### Proposal A: Static Import Mining (Fastest)
-*   **Logic:** For `fix_error` cases, the solution code (`fixed.py`) contains imports.
-*   **Assumption:** Every imported ADK class is part of the required kernel.
-*   **Pros:** Fast, no LLM required for discovery.
-*   **Cons:** Over-inclusion (some imports might be utility/optional).
-
-#### Proposal B: Agent-Driven Discovery (Most Robust)
-*   **Logic:** An `Agent` attempts to solve the task. Every time it searches/inspects a class and *uses* it in the final solution, add that class to the Kernel.
-*   **Pros:** Captures the actual retrieval path.
-*   **Cons:** Expensive and slow.
-
-### 6.3 Multi-Context Metrics
-
-When the ground truth is a **Set** (`G = {d1, d2, ...}`), standard Recall@K is insufficient.
-
-#### Metric 1: Set Recall (Kernel Completeness)
-*   **Definition:** The fraction of the *Required Kernel* found in the top K results.
-*   **Formula:** `|Retrieved_TopK ∩ Gold_Set| / |Gold_Set|`
-*   **Example:** Gold={A, B}. Retrieved={A, C, D}. Overlap={A}. Set Recall = 1/2 = 50%.
-*   **Target:** We want Set Recall = 100% (The agent has *all* necessary pieces).
-
-#### Metric 2: Success@K (Binary)
-*   **Definition:** 1 if `Set Recall == 100%`, else 0.
-*   **Why:** If even one piece is missing, the agent might fail. This is a stricter metric.
-
-#### Metric 3: Jaccard Similarity
-*   **Definition:** Intersection over Union between Retrieved and Gold sets.
-*   **Formula:** `|Retrieved ∩ Gold| / |Retrieved ∪ Gold|`
-*   **Why:** Penalizes fetching too much noise (Precision) while rewarding completeness (Recall).
+### 5.5 Failure Analysis Categories
+We will classify retrieval failures into buckets:
+1.  **Vocabulary Mismatch:** User used synonyms not present in docstring (e.g., "concurrent" vs "parallel"). -> *Fix: Vector Search.*
+2.  **Specificity Gap:** Query was too vague ("How to run agent") for a specific target (`ParallelAgent`). -> *Fix: Query Expansion.*
+3.  **Distractor Overlap:** A hard negative (`SequentialAgent`) scored higher due to shared keywords. -> *Fix: Reranking / Contrastive Training.*
