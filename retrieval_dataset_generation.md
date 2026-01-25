@@ -20,8 +20,14 @@
 
 ### 3. Implementation: Phase 2 (Validator)
 - **Task:** Create `tools/validate_retrieval_data.py`.
-- **Method:** Uses `gemini-3-pro-preview` to empirically verify if a context answers the question.
-- **Result:** Implemented and tested on subset.
+- **Method:** Implemented Monte Carlo Relevance Verification.
+- **Features:**
+    - Uses `EmbeddingRetriever` (Vector Search) to find "Hard Negatives" and plausible candidates.
+    - Runs `N=3` Bernoulli trials per case.
+    - Injects randomized context subsets directly into the prompt (no tools).
+    - Uses `ApiUnderstandingRunner`/`PytestBenchmarkRunner` to validate answers.
+    - Calculates `Delta P` (Impact Score) to determine empirical relevance.
+- **Result:** Pipeline runs successfully end-to-end. Verified integration of Vector Search candidates.
 
 ### 4. Implementation: Phase 3 (Evaluation)
 - **Task:** Create `tools/retrieval_benchmark_lib.py` and `notebooks/run_retrieval_eval.py`.
