@@ -1,39 +1,47 @@
 # Validator Pseudocode: Statistical Impact Scoring via Context Injection
 
 ## Overview
-We quantify the relevance of specific contexts (FQNs) by measuring their **impact** on the success rate of solving a benchmark query. The validator injects randomized subsets of context directly into the prompt and measures the causal lift in success rate.
+We quantify the relevance of specific contexts (FQNs) by measuring their **impact** on the success rate of solving a benchmark query. The validator dynamically builds a candidate pool and injects randomized subsets into the prompt to measure causal lift.
 
 ## 1. Candidate Selection (Pooling)
 
-Before running trials, we establish a diverse pool of candidates (typically 15-25 total).
+The validator is responsible for defining its own search space. It does not expect candidates to be pre-populated.
 
 ```python
-async def _get_initial_candidates(self, case: RetrievalCase) -> List[RetrievalContext]:
+async def _generate_candidate_pool(self, case: RetrievalCase) -> List[RetrievalContext]:
     """
-    Constructs the universe of candidates for the Monte Carlo simulation.
+    Constructs the universe of candidates for the Monte Carlo simulation from scratch.
     """
     candidates = {}
     
-    # A. Seeded "Gold" Candidates (from Benchmark Mining)
-    # - API Understanding: Extracted from `fully_qualified_class_name` (1-3 docs).
-    # - Fix Errors: Inferred by parsing imports from `fixed.py` (3-8 docs).
-    for ctx in case.positive_ctxs:
-        candidates[ctx.fqn] = ctx
+    # A. Mine "Gold" Candidates (Heuristic / Metadata)
+    # We look at the Ground Truth to find high-probability candidates.
+    if case.source == "api_understanding":
+        # Extract from answer FQNs
+        for fqn in case.ground_truth['answers_fqns']:
+            candidates[fqn] = self.fetch_context(fqn, source="gold_heuristic")
+elif case.source == "fix_errors":
+        # Extract from imports in solution code
+        for fqn in self.extract_imports(case.ground_truth['fixed_file']):
+            candidates[fqn] = self.fetch_context(fqn, source="gold_heuristic")
         
-    # B. Hard Negatives / Missed Positives (Vector Search)
-    # Retrieves 10 plausible candidates from the entire ADK corpus.
-    retrieved = await self.retriever.search(case.query, top_k=10)
+    # B. Vector Search (Hard Negatives / Missed Positives)
+    # We use a strong Retriever to find what a real search system would find.
+    retrieved = await self.retriever.search(case.query, top_k=15)
     for t in retrieved:
         if t.id not in candidates:
             candidates[t.id] = RetrievalContext(
-                fqn=t.id, text=t.docstring, type="retrieved"
+                fqn=t.id, text=t.docstring, source="vector_search"
             )
             
-    # C. Random Negatives (Noise/Control)
-    # 5 random targets to measure baseline noise tolerance.
-    for ctx in case.negative_ctxs:
-        if ctx.fqn not in candidates:
-            candidates[ctx.fqn] = ctx
+    # C. Random Negatives (Control Group)
+    # Add 5 random docs to measure baseline noise tolerance.
+    random_docs = self.corpus.sample_random(5)
+    for t in random_docs:
+        if t.id not in candidates:
+            candidates[t.id] = RetrievalContext(
+                fqn=t.id, text=t.docstring, source="random_noise"
+            )
             
     return list(candidates.values())
 ```
@@ -70,8 +78,8 @@ A tool that wraps a user-defined Python function...
 class DataValidator:
     
     async def validate_case(self, case: RetrievalCase):
-        # 1. Candidate Pool
-        candidates = await self._get_initial_candidates(case)
+        # 1. Generate Candidate Pool (Internal Logic)
+        candidates = await self._generate_candidate_pool(case)
         fqn_map = {c.fqn: c for c in candidates}
         
         # Statistics Containers
@@ -104,7 +112,6 @@ class DataValidator:
                     if is_correct: stats[f]['success_out'] += 1
 
         # 3. Calculate Impact Scores (Delta P)
-        # Impact = P(Success | Context Present) - P(Success | Context Absent)
         for f in stats:
             p_in = stats[f]['success_in'] / stats[f]['trials_in'] if stats[f]['trials_in'] > 0 else 0
             p_out = stats[f]['success_out'] / stats[f]['trials_out'] if stats[f]['trials_out'] > 0 else 0
