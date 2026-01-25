@@ -53,4 +53,5 @@ PODMAN_CONFIG = PodmanConfig()
 
 # Model Configuration
 # Use Gemini 1.5 Pro or newer experimental models for complex reasoning/extraction tasks.
-MOST_POWERFUL_MODEL: str = "gemini-3-pro-preview"
+from benchmarks.benchmark_candidates import ModelName
+MOST_POWERFUL_MODEL: str = ModelName.GEMINI_3_PRO_PREVIEW

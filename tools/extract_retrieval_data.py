@@ -23,6 +23,7 @@ class RetrievalPair(BaseModel):
     negative_ctxs: List[RetrievalContext] = Field(default_factory=list)
     source: str = Field(..., description="The benchmark suite source.")
     metadata: Dict[str, Any] = Field(default_factory=dict)
+    ground_truth: Dict[str, Any] = Field(default_factory=dict, description="Data required for empirical validation.")
 
 class RetrievalDataset(BaseModel):
     pairs: List[RetrievalPair] = Field(default_factory=list)
@@ -120,7 +121,8 @@ class RetrievalDataExtractor:
                     positive_ctxs=positive_ctxs,
                     negative_ctxs=negatives,
                     source="api_understanding",
-                    metadata={"category": b.get("category")}
+                    metadata={"category": b.get("category")},
+                    ground_truth={"answers": b.get("answers"), "template": b.get("template")}
                 ))
 
     def extract_fix_errors(self):
@@ -149,13 +151,16 @@ class RetrievalDataExtractor:
             positive_ctxs = []
             valid_gold_fqns = []
             for import_str in gold_fqns:
+                # 1. Try exact match
                 target = self.targets_index.get(import_str)
+                
+                # 2. Try by Class Name (e.g., LlmAgent)
                 if not target:
                     short_name = import_str.split('.')[-1]
                     candidates = self.name_to_fqn.get(short_name)
                     if candidates:
                         target = self.targets_index.get(candidates[0])
-                        import_str = candidates[0]
+                        import_str = candidates[0] # Update valid FQN
 
                 if target:
                     positive_ctxs.append(RetrievalContext(
@@ -173,7 +178,16 @@ class RetrievalDataExtractor:
                     positive_ctxs=positive_ctxs,
                     negative_ctxs=negatives,
                     source="fix_errors",
-                    metadata={"test_file": b.get("test_file")}
+                    metadata={"test_file": b.get("test_file")},
+                    ground_truth={
+                        "test_file": b.get("test_file"),
+                        "unfixed_file": b.get("unfixed_file"),
+                        "fixed_file": b.get("fixed_file"),
+                        "requirements": b.get("requirements"),
+                        "error_output": b.get("error_output"),
+                        "name": b.get("name"),
+                        "description": b.get("description")
+                    }
                 ))
 
     def _extract_adk_imports(self, file_path: Path) -> List[str]:
