@@ -6,6 +6,7 @@ import os
 import sys
 import random
 import time
+import json
 from typing import List, Dict, Any, Literal, Optional
 from pathlib import Path
 from pydantic import BaseModel, Field, ConfigDict
@@ -29,7 +30,6 @@ from benchmarks.data_models import (
     BenchmarkResultType
 )
 from benchmarks.benchmark_runner import ApiUnderstandingRunner, PytestBenchmarkRunner
-from benchmarks.config import MOST_POWERFUL_MODEL
 from benchmarks.parsing.json_sanitizer import JsonSanitizer
 from benchmarks.api_key_manager import API_KEY_MANAGER, KeyType
 from benchmarks.benchmark_candidates import ModelName
@@ -53,11 +53,11 @@ class DataValidator:
         self.sanitizer = JsonSanitizer(api_key_manager=self.api_key_manager, model_name=GENERATION_MODEL)
         self.retrievers = retrievers
         
-    async def validate_dataset(self, limit: Optional[int] = None, offset: int = 0):
+    async def validate_dataset(self, max_cases: Optional[int] = None, offset: int = 0):
         with open(self.input_path, 'r') as f:
             dataset = RetrievalDataset.model_validate(yaml.safe_load(f))
         
-        cases_to_process = dataset.cases[offset:offset+limit] if limit else dataset.cases[offset:]
+        cases_to_process = dataset.cases[offset:offset+max_cases] if max_cases else dataset.cases[offset:]
         print(f"{Fore.CYAN}Validating {len(cases_to_process)} cases using {GENERATION_MODEL}...{Style.RESET_ALL}")
         
         results = []
@@ -197,12 +197,29 @@ class DataValidator:
         """
         Generates answer with retry logic for quota limits.
         """
-        prompt = ""
+        target_schema = None
         if case.source == "api_understanding":
-            prompt = f"Context:\n{context}\n\nQuestion: {case.query}\n\nOutput JSON matching ApiUnderstandingAnswerOutput schema."
+            target_schema = ApiUnderstandingAnswerOutput
         elif case.source == "fix_errors":
-            prompt = f"Context:\n{context}\n\nTask: {case.query}\n\nOutput JSON matching FixErrorAnswerOutput schema."
-        else: return None
+            target_schema = FixErrorAnswerOutput
+        else: 
+            return None
+
+        # Inject schema definition into prompt
+        schema_json = json.dumps(target_schema.model_json_schema(), indent=2)
+        prompt = f"""You are an expert developer.
+Context:
+{context[:30000]}
+
+Task: {case.query}
+
+Instructions:
+1. Answer the question or fix the code using ONLY the provided context.
+2. You MUST output a valid JSON object matching the schema below.
+
+Target Schema:
+{schema_json}
+"""
 
         max_retries = 3
         backoff = 5
@@ -217,15 +234,18 @@ class DataValidator:
             client = genai.Client(api_key=key_val)
             
             try:
+                # Use response_schema in config for enforcement
                 response = await client.aio.models.generate_content(
                     model=GENERATION_MODEL,
                     contents=prompt,
-                    config={"response_mime_type": "application/json"}
+                    config={
+                        "response_mime_type": "application/json",
+                        "response_schema": target_schema
+                    }
                 )
                 
                 # Report success
                 await self.api_key_manager.report_result(KeyType.GEMINI_API, key_id, True)
-                # print(f"      DEBUG: Raw output: {response.text[:200]}...")
                 return GeneratedAnswer(raw_output=response.text)
                 
             except Exception as e:
@@ -258,7 +278,7 @@ class DataValidator:
             result, _, _, _ = await runner.run_benchmark(bcase, answer)
             return result == BenchmarkResultType.PASS
         except Exception as e: 
-            print(f"      {Fore.RED}API Validation Error: {e}{Style.RESET_ALL}")
+            # print(f"      {Fore.RED}API Validation Error: {e}{Style.RESET_ALL}")
             return False
 
     async def _validate_fix_errors(self, case: RetrievalCase, answer: GeneratedAnswer) -> bool:
@@ -275,14 +295,17 @@ class DataValidator:
             answer.output = await self.sanitizer.sanitize(answer.raw_output, FixErrorAnswerOutput)
             result, logs, _, _ = await runner.run_benchmark(bcase, answer)
             if result != BenchmarkResultType.PASS:
-                print(f"      {Fore.YELLOW}Runner Result: {result}{Style.RESET_ALL}")
-                # print(f"      DEBUG: Logs: {logs[:500]}...")
+                # print(f"      {Fore.YELLOW}Runner Result: {result}{Style.RESET_ALL}")
+                pass
             return result == BenchmarkResultType.PASS
         except Exception as e: 
-            print(f"      {Fore.RED}FixError Validation Error: {e}{Style.RESET_ALL}")
+            # print(f"      {Fore.RED}FixError Validation Error: {e}{Style.RESET_ALL}")
             return False
 
 if __name__ == "__main__":
+    # We use ApiKeyManager, so we don't need GEMINI_API_KEY env var strictly for the main loop
+    # But EmbeddingRetriever init still takes a key. We should give it a key from the manager.
+
     # Pre-fetch a key for embeddings
     key_val = asyncio.run(API_KEY_MANAGER.get_next_key(KeyType.GEMINI_API))
     if not key_val:
@@ -305,5 +328,4 @@ if __name__ == "__main__":
         "retrieval_dataset.yaml", "retrieval_dataset_verified.yaml",
         retrievers=[gold_miner, embedding_retriever, random_retriever]
     )
-    # Run on full dataset
     asyncio.run(validator.validate_dataset())
