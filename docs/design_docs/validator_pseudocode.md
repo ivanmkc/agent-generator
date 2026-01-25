@@ -1,9 +1,43 @@
-# Validator Pseudocode: Agentic Monte Carlo with Statistical Impact Scoring
+# Validator Pseudocode: Statistical Impact Scoring via Context Injection
 
 ## Overview
-We quantify the relevance of specific contexts (FQNs) by measuring their **impact** on the success rate of solving a benchmark query. We do not make a binary YES/NO decision; instead, we output a scalar score representing the conditional dependence.
+We quantify the relevance of specific contexts (FQNs) by measuring their **impact** on the success rate of solving a benchmark query. The validator injects randomized subsets of context directly into the prompt and measures the causal lift in success rate.
 
-## Architecture
+## 1. Candidate Selection (Pooling)
+
+Before running trials, we must establish a diverse pool of candidates to evaluate.
+
+```python
+async def _get_initial_candidates(self, case: RetrievalCase) -> List[RetrievalContext]:
+    """
+    Constructs the universe of candidates for the Monte Carlo simulation.
+    """
+    candidates = {}
+    
+    # A. Seeded "Gold" Candidates (from Benchmark Metadata)
+    # These are high-probability candidates but unverified.
+    for ctx in case.positive_ctxs:
+        candidates[ctx.fqn] = ctx
+        
+    # B. Hard Negatives / Missed Positives (Vector Search)
+    # We use a strong Retriever to find what the model *might* retrieve.
+    retrieved = await self.retriever.search(case.query, top_k=10)
+    for t in retrieved:
+        if t.id not in candidates:
+            candidates[t.id] = RetrievalContext(
+                fqn=t.id, text=t.docstring, type="retrieved"
+            )
+            
+    # C. Random Negatives (Noise)
+    # Control group to measure baseline performance with noise.
+    for ctx in case.negative_ctxs:
+        if ctx.fqn not in candidates:
+            candidates[ctx.fqn] = ctx
+            
+    return list(candidates.values())
+```
+
+## 2. Monte Carlo Validation Loop
 
 ```python
 class DataValidator:
@@ -14,8 +48,7 @@ class DataValidator:
         """
         
         # 1. Candidate Pool
-        # Mix of Gold (from metadata), Hard Negatives (Vector Search), and Random Negatives
-        candidates = case.positive_ctxs + case.negative_ctxs
+        candidates = await self._get_initial_candidates(case)
         fqn_map = {c.fqn: c for c in candidates}
         
         # Statistics Containers
@@ -37,8 +70,11 @@ class DataValidator:
             subset_ctxs = [fqn_map[f] for f in subset_fqns]
             
             # b. Construct Prompt with Injected Context
-            # No tool use; strictly inject the subset into the context window.
-            combined_context = "\n".join([c.text for c in subset_ctxs])
+            # Direct injection: The model sees ONLY these documents.
+            combined_context = "\n".join([
+                f"--- Document: {c.fqn} ---\n{c.text}\n" 
+                for c in subset_ctxs
+            ])
             
             # c. Attempt Task (Single Shot)
             # The model attempts to solve the task using ONLY the injected context.
@@ -59,18 +95,21 @@ class DataValidator:
 
         # 3. Calculate Impact Scores (Delta P)
         # Impact = P(Success | Context Present) - P(Success | Context Absent)
+        final_contexts = []
         for fqn in stats:
-            p_in = stats[fqn]['success_in'] / stats[fqn]['trials_in']
-            p_out = stats[fqn]['success_out'] / stats[fqn]['trials_out']
+            p_in = stats[fqn]['success_in'] / stats[fqn]['trials_in'] if stats[fqn]['trials_in'] > 0 else 0
+            p_out = stats[fqn]['success_out'] / stats[fqn]['trials_out'] if stats[fqn]['trials_out'] > 0 else 0
             
             impact_score = p_in - p_out
             
-            # Update the dataset with the scalar score
-            fqn_map[fqn].metadata['impact_score'] = impact_score
-            fqn_map[fqn].metadata['p_in'] = p_in
-            fqn_map[fqn].metadata['p_out'] = p_out
+            ctx = fqn_map[fqn]
+            ctx.metadata['impact_score'] = impact_score
+            ctx.metadata['p_in'] = p_in
+            ctx.metadata['p_out'] = p_out
+            final_contexts.append(ctx)
 
-        # The final dataset contains the raw scalar scores for downstream analysis/ranking.
-        # No hard thresholding is applied here.
+        # The final dataset contains the raw scalar scores.
+        # We replace the original lists with this unified, scored list.
+        case.candidates = final_contexts 
         return case
 ```
