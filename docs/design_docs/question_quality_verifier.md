@@ -28,7 +28,7 @@ The solution uses a specialized **Verifier Agent**—a high-capability LLM agent
             v                              | 2. Execute Tests
 +-----------+-----------+       +----------+----------+
 |    Verification       |       |   Verifier Agent    |
-|    Orchestrator       |-----> | (Gemini-3-Pro-Preview)|
+|    Orchestrator       |-----> | **(Gemini-3-Pro-Preview)**|
 +-----------+-----------+       +----------+----------+
             |                              |
             | 1. Provide Question          | 1. Research (search/inspect)
@@ -47,6 +47,7 @@ The solution uses a specialized **Verifier Agent**—a high-capability LLM agent
 The agent is configured as a "Codebase Researcher & Tester" with the following tools:
 - **Research:** `search_ranked_targets`, `inspect_fqn`, `read_file`.
 - **Execution:** `write_file`, `run_shell_command` (for running `pytest`).
+- **Model:** Must use `MOST_POWERFUL_MODEL` (e.g., `gemini-3-pro-preview`) to ensure reasoning depth.
 
 **System Instruction:**
 > "You are a Senior QA Engineer auditing a certification exam for the Google ADK. Your goal is to verify if a question is fair, accurate, and unambiguous. You MUST NOT rely on your internal knowledge. You MUST **prove** every claim (positive or negative) by writing and executing `pytest` scripts against the installed library."
@@ -65,24 +66,26 @@ The verification process follows a strict "Decompose -> Verify -> Verdict" loop.
           v
   2. CLAIM DECOMPOSITION
      - The Agent breaks down the Question and EACH Option into atomic claims.
-     - Example (Option A): "EventsCompactionConfig accepts 'interval' arg." -> Claim: True
-     - Example (Option B): "EventsCompactionConfig accepts 'freq' arg." -> Claim: False
+     - Example (Option A - True): "EventsCompactionConfig accepts 'interval' arg."
+     - Example (Option B - False): "EventsCompactionConfig accepts 'freq' arg."
           |
           v
   3. **EMPIRICAL VERIFICATION (The "Proof" Phase)**
      - **Constraint:** EVERY Claim must be proven via a `pytest` file.
      - `test_option_A.py`: `def test_A(): conf = EventsCompactionConfig(interval=5); assert conf.interval == 5`
+       -> MUST PASS (Proves Option A is valid).
      - `test_option_B.py`: `def test_B(): with pytest.raises(ValidationError): EventsCompactionConfig(freq=5)`
+       -> MUST PASS (Proves Option B is invalid, confirming it is a distractor).
           |
           v
   4. VERDICT SYNTHESIS
      - **Valid Question:**
-       - Correct Option: Script PASSED (Proving truth).
-       - Distractor Options: Scripts PASSED (Proving they successfully FAIL as expected).
+       - Correct Option Test: PASS.
+       - Distractor Option Tests: PASS (Asserting failure/invalidity).
      - **Ambiguous Question:**
-       - Multiple options correspond to "working" code.
+       - Multiple options pass "Validity" tests (e.g., test_B didn't raise exception).
      - **Incorrect Question:**
-       - The "Correct" option fails its test.
+       - The "Correct" option test fails.
           |
           v
   5. REPORT GENERATION
@@ -111,7 +114,8 @@ If Option B says *"Use `summarization_freq` to configure..."* (a non-existent fi
     import pytest
     from pydantic import ValidationError
     def test_option_B_invalidity():
-        # Distractor claims this works; we must prove it fails.
+        # Distractor claims this works; we must prove it DOES NOT work.
+        # This test PASSES if the code raises the expected error.
         with pytest.raises(ValidationError, match="Extra inputs not permitted"):
             EventsCompactionConfig(summarization_freq=5)
     ```
@@ -132,7 +136,7 @@ If the question asks *"What happens if you run X?"*:
 
 ### Phase 1: The `verify_benchmarks.py` Tool
 - **Script:** A CLI tool to iterate over `benchmarks/benchmark_definitions/*.yaml`.
-- **Runner:** Instantiates `AdkAnswerGenerator` with the `VerifierAgent` config.
+- **Runner:** Instantiates `AdkAnswerGenerator` with the `VerifierAgent` config, overriding `model_name` to `gemini-3-pro-preview`.
 - **Output:** Generates `quality_report.json` and a human-readable `quality_audit.md`.
 
 ### Phase 2: The Verifier Agent Prompt
@@ -152,14 +156,15 @@ For EACH option (A, B, C, D...):
 1. State the implicit claim.
 2. Write a `test_option_{letter}.py` file using `pytest`.
    - If the option is correct, assert success.
-   - If the option is wrong (distractor), use `with pytest.raises(...)` to assert failure.
+   - If the option is wrong (distractor), assert FAILURE (e.g. `with pytest.raises(...)`).
+   - DO NOT write a script that crashes. The script itself must PASS to prove your hypothesis.
 3. Execute `pytest test_option_{letter}.py`.
 4. Record the result.
 
 STEP 3: Evaluate.
 - Did the "Correct" option test PASS?
 - Did the "Distractor" option tests PASS (confirming they are invalid)?
-- If a Distractor test FAILED (meaning the code actually worked), the question is AMBIGUOUS.
+- If a Distractor test FAILED (meaning the code actually worked when it shouldn't have), the question is AMBIGUOUS.
 
 Output JSON: {
   "option_proofs": {
