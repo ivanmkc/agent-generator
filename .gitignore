@@ -36,3 +36,4 @@ repos/*.jsonl
 retrieval_dataset.yaml
 .gemini/
 *.jsonl
+retrieval_dataset_verified.yaml

@@ -78,7 +78,9 @@ class EmbeddingRetriever(AbstractRetriever):
             # We'll do simple asyncio gather
             tasks = [
                 self.client.aio.models.embed_content(
-                    model="text-embedding-004", contents=text
+                    model="text-embedding-004",
+                    contents=text,
+                    config={"task_type": "RETRIEVAL_DOCUMENT"},
                 )
                 for text in batch
             ]
@@ -101,7 +103,9 @@ class EmbeddingRetriever(AbstractRetriever):
 
     async def search(self, query: str, top_k: int = 5) -> List[RankedTarget]:
         query_resp = await self.client.aio.models.embed_content(
-            model="text-embedding-004", contents=query
+            model="text-embedding-004",
+            contents=query,
+            config={"task_type": "RETRIEVAL_QUERY"},
         )
         query_vec = np.array(query_resp.embeddings[0].values)
         

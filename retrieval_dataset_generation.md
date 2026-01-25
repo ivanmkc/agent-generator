@@ -18,6 +18,12 @@
 - **Update:** Switched output format from JSONL to YAML.
 - **Result:** Successfully extracted 65 verified retrieval pairs.
 
-### 3. Next Steps
-- **Task:** Implement `RetrievalValidatorAgent` to filter noisy or ambiguous queries.
-- **Task:** Implement Vector Search indexer using Gemini Embeddings.
+### 3. Implementation: Phase 2 (Validator)
+- **Task:** Create `tools/validate_retrieval_data.py`.
+- **Method:** Uses `gemini-3-pro-preview` to empirically verify if a context answers the question.
+- **Result:** Implemented and tested on subset.
+
+### 4. Implementation: Phase 3 (Evaluation)
+- **Task:** Create `tools/retrieval_benchmark_lib.py` and `notebooks/run_retrieval_eval.py`.
+- **Method:** Compare BM25 vs Gemini Embeddings (text-embedding-004).
+- **Result:** Validated that Embeddings significantly outperform BM25 (Recall@5: 78% vs 21%).
