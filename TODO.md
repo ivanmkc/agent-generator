@@ -19,6 +19,12 @@
 - [ ] **Verification:**
     - [ ] Add `benchmark_definitions/search_relevance` to test semantic queries.
 
+## 4. Synthetic Retrieval Dataset (`docs/design_docs/synthetic_retrieval_dataset.md`)
+- [ ] **Implementation:**
+    - [ ] Create `tools/generate_retrieval_data.py`.
+    - [ ] Generate `retrieval_dataset.jsonl` (Reverse RAG from `ranked_targets`).
+    - [ ] Use dataset to benchmark BM25 vs Vector search (Recall@K).
+
 # Active Legacy Tasks
 
 ## Benchmark Case Reviews & Fixes
