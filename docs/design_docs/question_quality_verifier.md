@@ -33,7 +33,7 @@ The solution uses a specialized **Verifier Agent**—a high-capability LLM agent
             |                              |
             | 1. Provide Question          | 1. Research (search/inspect)
             | 2. Provide Options           | 2. Decompose Claims
-            |                              | 3. **PROVE via CODE** (All Claims)
+            |                              | 3. **PROVE via PYTEST**
             | <---- Agent's Verdict -------+
             |
             v
@@ -46,14 +46,14 @@ The solution uses a specialized **Verifier Agent**—a high-capability LLM agent
 ### 2.2 The Verifier Agent
 The agent is configured as a "Codebase Researcher & Tester" with the following tools:
 - **Research:** `search_ranked_targets`, `inspect_fqn`, `read_file`.
-- **Execution:** `write_file`, `run_shell_command` (or `run_adk_agent`/`pytest`).
+- **Execution:** `write_file`, `run_shell_command` (for running `pytest`).
 
 **System Instruction:**
-> "You are a Senior QA Engineer auditing a certification exam for the Google ADK. Your goal is to verify if a question is fair, accurate, and unambiguous. You MUST NOT rely on your internal knowledge. You MUST **prove** every claim (positive or negative) by writing and executing a Python test script against the installed library."
+> "You are a Senior QA Engineer auditing a certification exam for the Google ADK. Your goal is to verify if a question is fair, accurate, and unambiguous. You MUST NOT rely on your internal knowledge. You MUST **prove** every claim (positive or negative) by writing and executing `pytest` scripts against the installed library."
 
 ## 3. Workflow Logic: Claim Decomposition & Verification
 
-The verification process follows a strict "Decompose -> Verify -> Verdict" loop. No confidence scalars are used; verification is binary (Proven/Disproven).
+The verification process follows a strict "Decompose -> Verify -> Verdict" loop. Verification is binary (Proven/Disproven) and asserted via automated tests.
 
 ```text
 [ Start Verification Loop ]
@@ -70,19 +70,19 @@ The verification process follows a strict "Decompose -> Verify -> Verdict" loop.
           |
           v
   3. **EMPIRICAL VERIFICATION (The "Proof" Phase)**
-     - **Constraint:** EVERY Claim must have a corresponding Python script.
-     - Script A: `try: EventsCompactionConfig(interval=5); print('PASS') except: print('FAIL')`
-     - Script B: `try: EventsCompactionConfig(freq=5); print('UNEXPECTED PASS') except ValidationError: print('EXPECTED FAIL')`
+     - **Constraint:** EVERY Claim must be proven via a `pytest` file.
+     - `test_option_A.py`: `def test_A(): conf = EventsCompactionConfig(interval=5); assert conf.interval == 5`
+     - `test_option_B.py`: `def test_B(): with pytest.raises(ValidationError): EventsCompactionConfig(freq=5)`
           |
           v
   4. VERDICT SYNTHESIS
      - **Valid Question:**
-       - Correct Option: Script PASSED (Proving it works).
-       - Distractor Options: Scripts FAILED (Proving they are invalid).
+       - Correct Option: Script PASSED (Proving truth).
+       - Distractor Options: Scripts PASSED (Proving they successfully FAIL as expected).
      - **Ambiguous Question:**
-       - Multiple Options PASSED.
+       - Multiple options correspond to "working" code.
      - **Incorrect Question:**
-       - Correct Option FAILED (or behavior didn't match).
+       - The "Correct" option fails its test.
           |
           v
   5. REPORT GENERATION
@@ -90,23 +90,43 @@ The verification process follows a strict "Decompose -> Verify -> Verdict" loop.
 
 ## 4. Proof Strategies (Detailed)
 
-The agent must rigorously prove why an option is Correct or Incorrect.
+The agent must rigorously prove claims using `pytest` assertions.
 
-### 4.1 Proving "True" Statements
+### 4.1 Proving "True" Statements (Positive Assertion)
 If Option A says *"Use `compaction_interval` to configure summarization frequency"*:
-*   **Action:** Write a script that initializes `EventsCompactionConfig(compaction_interval=5)`.
-*   **Verification:** Assert no `ValidationError` is raised and the property is set.
+*   **Action:** Write `test_option_A.py`.
+*   **Code Pattern:**
+    ```python
+    def test_option_A_validity():
+        config = EventsCompactionConfig(compaction_interval=5)
+        assert config.compaction_interval == 5, "Property should be set"
+    ```
+*   **Verification:** Run `pytest test_option_A.py`. Must PASS.
 
-### 4.2 Proving "False" Statements (Negative Proof)
-If Option B says *"Use `summarization_freq` to configure..."* (a non-existent field):
-*   **Action:** Write a script attempting `EventsCompactionConfig(summarization_freq=5)`.
-*   **Verification:** Assert that `ValidationError` ("Extra inputs not permitted") IS raised.
-    *   *Crucial:* If the script *runs without error*, Option B is actually Valid, making the question ambiguous!
+### 4.2 Proving "False" Statements (Negative Assertion)
+If Option B says *"Use `summarization_freq` to configure..."* (a non-existent field), this is a "False" claim that acts as a distractor.
+*   **Action:** Write `test_option_B.py` to prove it IS invalid.
+*   **Code Pattern:**
+    ```python
+    import pytest
+    from pydantic import ValidationError
+    def test_option_B_invalidity():
+        # Distractor claims this works; we must prove it fails.
+        with pytest.raises(ValidationError, match="Extra inputs not permitted"):
+            EventsCompactionConfig(summarization_freq=5)
+    ```
+*   **Verification:** Run `pytest test_option_B.py`. Must PASS (proving the exception occurred).
+    *   *Crucial:* If this test FAILS (i.e., the code ran without error), then Option B is actually VALID, and the question is ambiguous!
 
 ### 4.3 Proving Runtime Behavior
 If the question asks *"What happens if you run X?"*:
-*   **Action:** Write a script that actually runs X (using mocks if necessary for network calls).
-*   **Verification:** Capture stdout/stderr or return values and assert they match the option description.
+*   **Action:** Write `test_behavior.py`.
+*   **Code Pattern:**
+    ```python
+    def test_runtime_behavior():
+        result = run_x()
+        assert result == "expected_output", f"Got {result}"
+    ```
 
 ## 5. Implementation Plan
 
@@ -116,7 +136,7 @@ If the question asks *"What happens if you run X?"*:
 - **Output:** Generates `quality_report.json` and a human-readable `quality_audit.md`.
 
 ### Phase 2: The Verifier Agent Prompt
-We need a specialized prompt that forces the model to cite *evidence*.
+We need a specialized prompt that forces the model to cite `pytest` evidence.
 
 **Draft Prompt:**
 ```text
@@ -127,22 +147,24 @@ Options: {options}
 
 STEP 1: Research. Find relevant classes/methods.
 
-STEP 2: Decompose & Prove.
+STEP 2: Decompose & Prove via Pytest.
 For EACH option (A, B, C, D...):
-1. State the implicit claim (e.g., "This code runs without error", "This arg exists").
-2. Write a self-contained Python script to TEST that claim.
-3. Execute the script.
+1. State the implicit claim.
+2. Write a `test_option_{letter}.py` file using `pytest`.
+   - If the option is correct, assert success.
+   - If the option is wrong (distractor), use `with pytest.raises(...)` to assert failure.
+3. Execute `pytest test_option_{letter}.py`.
 4. Record the result.
 
 STEP 3: Evaluate.
-- Did the "Correct" option script succeed?
-- Did the "Distractor" option scripts fail (as expected)?
-- If a Distractor succeeded, the question is AMBIGUOUS.
+- Did the "Correct" option test PASS?
+- Did the "Distractor" option tests PASS (confirming they are invalid)?
+- If a Distractor test FAILED (meaning the code actually worked), the question is AMBIGUOUS.
 
 Output JSON: {
   "option_proofs": {
-    "A": {"claim": "...", "status": "Proven Valid"},
-    "B": {"claim": "...", "status": "Proven Invalid (Error: ...)"}
+    "A": {"claim": "...", "status": "Proven Valid (Pytest Passed)"},
+    "B": {"claim": "...", "status": "Proven Invalid (Pytest Passed on Exception)"}
   },
   "quality_rating": "Valid" | "Ambiguous" | "Incorrect",
   "critique": "..."
