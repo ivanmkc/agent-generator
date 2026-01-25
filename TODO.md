@@ -11,6 +11,14 @@
     - [ ] Create a loop to run verification on all cases in `benchmarks/benchmark_definitions`.
     - [ ] Generate `quality_report.md`.
 
+## 3. Vector Search for Ranked Targets (`docs/design_docs/vector_search_ranked_targets.md`)
+- [ ] **Implementation:**
+    - [ ] Create `tools/build_vector_index.py` to embed `ranked_targets.yaml`.
+    - [ ] Implement `VectorSearchProvider` in `AdkTools`.
+    - [ ] Integrate into `search_ranked_targets` (Hybrid BM25 + Vector).
+- [ ] **Verification:**
+    - [ ] Add `benchmark_definitions/search_relevance` to test semantic queries.
+
 # Active Legacy Tasks
 
 ## Benchmark Case Reviews & Fixes
