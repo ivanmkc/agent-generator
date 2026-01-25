@@ -1,105 +1,112 @@
 # Validator Pseudocode: Statistical Impact Scoring via Context Injection
 
 ## Overview
-We quantify the relevance of specific contexts (FQNs) by measuring their **impact** on the success rate of solving a benchmark query. The validator dynamically builds a candidate pool and injects randomized subsets into the prompt to measure causal lift.
+We quantify the relevance of specific contexts (FQNs) by measuring their **impact** on the success rate of solving a benchmark query. The validator dynamically builds a candidate pool from a raw query and measures causal lift via Monte Carlo trials.
 
-## 1. Candidate Selection (Pooling)
+## 1. Data Models
 
-The validator is responsible for defining its own search space. It does not expect candidates to be pre-populated.
+The input to the validator is a raw `RetrievalCase`. It contains only the task definition and the data required to verify a solution. It contains **no context or candidate information**.
 
 ```python
-async def _generate_candidate_pool(self, case: RetrievalCase) -> List[RetrievalContext]:
+class RetrievalCase(BaseModel):
+    """
+    A pure task definition mined from the benchmark suite.
+    """
+    id: str = Field(..., description="Unique benchmark ID (e.g. suite:slug)")
+    query: str = Field(..., description="The natural language task/question")
+    source: Literal["api_understanding", "fix_errors"]
+    ground_truth: Dict[str, Any] = Field(
+        ..., 
+        description="Metadata for validation (e.g., answer string, path to test_file)"
+    )
+
+class RetrievalContext(BaseModel):
+    """
+    A candidate document being evaluated for impact.
+    """
+    fqn: str
+    text: str
+    metadata: Dict[str, Any] = Field(default_factory=dict) # Stores impact_score, p_in, etc.
+```
+
+## 2. Candidate Selection (Pooling)
+
+The validator is responsible for defining its own search space.
+
+```python
+async def _generate_candidate_pool(
+    self, 
+    case: RetrievalCase, 
+    top_k_retrieved: int = 15, 
+    n_random_negatives: int = 5
+) -> List[RetrievalContext]:
     """
     Constructs the universe of candidates for the Monte Carlo simulation from scratch.
+    
+    Args:
+        top_k_retrieved: Number of candidates to fetch via Vector Search.
+        n_random_negatives: Number of random noise documents to include.
     """
     candidates = {}
     
     # A. Mine "Gold" Candidates (Heuristic / Metadata)
-    # We look at the Ground Truth to find high-probability candidates.
+    # Extract from Ground Truth to find high-probability candidates.
     if case.source == "api_understanding":
-        # Extract from answer FQNs
         for fqn in case.ground_truth['answers_fqns']:
-            candidates[fqn] = self.fetch_context(fqn, source="gold_heuristic")
-elif case.source == "fix_errors":
-        # Extract from imports in solution code
+            candidates[fqn] = self.fetch_context(fqn)
+    elif case.source == "fix_errors":
         for fqn in self.extract_imports(case.ground_truth['fixed_file']):
-            candidates[fqn] = self.fetch_context(fqn, source="gold_heuristic")
+            candidates[fqn] = self.fetch_context(fqn)
         
     # B. Vector Search (Hard Negatives / Missed Positives)
     # We use a strong Retriever to find what a real search system would find.
-    retrieved = await self.retriever.search(case.query, top_k=15)
+    retrieved = await self.retriever.search(case.query, top_k=top_k_retrieved)
     for t in retrieved:
         if t.id not in candidates:
-            candidates[t.id] = RetrievalContext(
-                fqn=t.id, text=t.docstring, source="vector_search"
-            )
+            candidates[t.id] = RetrievalContext(fqn=t.id, text=t.docstring)
             
-    # C. Random Negatives (Control Group)
-    # Add 5 random docs to measure baseline noise tolerance.
-    random_docs = self.corpus.sample_random(5)
+    # C. Random Negatives (Noise/Control Group)
+    random_docs = self.corpus.sample_random(n_random_negatives)
     for t in random_docs:
         if t.id not in candidates:
-            candidates[t.id] = RetrievalContext(
-                fqn=t.id, text=t.docstring, source="random_noise"
-            )
+            candidates[t.id] = RetrievalContext(fqn=t.id, text=t.docstring)
             
     return list(candidates.values())
 ```
 
-## 2. Monte Carlo Validation Loop
+## 3. Monte Carlo Validation Loop
 
-### 2.1 Sampling Density (The "Kernel" Size)
-We use **Bernoulli Sampling with p=0.5**.
-*   **Logic:** Every candidate in the pool has an independent 50% probability of being included in a trial.
-*   **Average Trial Size:** `0.5 * Pool_Size` (e.g., for a pool of 20, trials average 10 documents).
-*   **Statistical Rationale:** `p=0.5` provides the maximum number of unique combinations (highest entropy), allowing us to most effectively isolate the "Delta P" (impact) of each document across multiple trials.
+### 3.1 Sampling Density
+We use **Bernoulli Sampling with p=0.5**. Each candidate in the pool has an independent 50% probability of being included in a trial.
 
-### 2.2 Context Injection Format
-Documents are injected into the system prompt as a structured text block:
-
-```text
-DOCUMENTATION CONTEXT:
-The following ADK symbols are available for reference. Use them to answer the query.
-
-[START_DOCUMENT: google.adk.agents.llm_agent.LlmAgent]
-Class LlmAgent:
-LLM-based Agent implementation...
-[END_DOCUMENT]
-
-[START_DOCUMENT: google.adk.tools.function_tool.FunctionTool]
-Class FunctionTool:
-A tool that wraps a user-defined Python function...
-[END_DOCUMENT]
-```
-
-### 2.3 The Logic
+### 3.2 The Logic
 
 ```python
 class DataValidator:
     
-    async def validate_case(self, case: RetrievalCase):
-        # 1. Generate Candidate Pool (Internal Logic)
-        candidates = await self._generate_candidate_pool(case)
-        fqn_map = {c.fqn: c for c in candidates}
+    async def validate_case(self, case: RetrievalCase) -> List[RetrievalContext]:
+        # 1. Generate Candidate Pool
+        pool = await self._generate_candidate_pool(case, top_k_retrieved=15, n_random_negatives=5)
+        fqn_map = {c.fqn: c for c in pool}
         
         # Statistics Containers
         stats = {fqn: {'success_in': 0, 'trials_in': 0, 'success_out': 0, 'trials_out': 0} for fqn in fqn_map}
         
         # 2. Monte Carlo Loop
         for _ in range(N_TRIALS):
-            # a. Sample a subset (p=0.5 per item)
+            # a. Sample a subset
             subset_fqns = [f for f in fqn_map if random.random() > 0.5]
             
-            # b. Construct Prompt with Structured Injection
+            # b. Construct Prompt with Injected Context
             combined_context = "\n\n".join([
                 f"[START_DOCUMENT: {f}]\n{fqn_map[f].text}\n[END_DOCUMENT]" 
                 for f in subset_fqns
             ])
             
-            # c. Attempt Task (Single Shot Pass@1)
+            # c. Attempt Task (Single Shot)
             answer = await self.generate_answer(case.query, combined_context)
             
-            # d. Validate Answer via Benchmark Runner
+            # d. Validate Answer via Runner (Pass/Fail)
             is_correct = self.benchmark_runner.validate(case, answer)
             
             # e. Update Stats
@@ -119,6 +126,6 @@ class DataValidator:
             impact_score = p_in - p_out
             fqn_map[f].metadata.update({'impact_score': impact_score, 'p_in': p_in, 'p_out': p_out})
 
-        case.candidates = list(fqn_map.values())
-        return case
+        # Return the verified and scored candidates for this query
+        return list(fqn_map.values())
 ```
