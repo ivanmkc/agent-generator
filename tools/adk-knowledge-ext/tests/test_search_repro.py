@@ -13,7 +13,7 @@ class TestBM25Search(unittest.TestCase):
         provider = BM25SearchProvider()
         provider.build_index(items)
         
-        results = provider.search("ToolConfig", limit=1)
+        results = provider.search("ToolConfig", page=1, page_size=1)
         print(f"Results for 'ToolConfig': {results}")
         self.assertTrue(len(results) > 0, "Should find ToolConfig")
         self.assertEqual(results[0][1]["id"], "google.adk.tools.ToolConfig")
@@ -42,7 +42,7 @@ class TestBM25Search(unittest.TestCase):
         
         # 'ToolConfig' appears in 1/2 docs, so BM25 score is 0.0 (as seen in repro)
         # But Keyword search should find it by substring matching.
-        results = provider.search("ToolConfig", limit=1)
+        results = provider.search("ToolConfig", page=1, page_size=1)
         
         self.assertTrue(len(results) > 0, "Hybrid search should find ToolConfig via Keyword fallback")
         self.assertEqual(results[0][1]["id"], "google.adk.tools.ToolConfig")

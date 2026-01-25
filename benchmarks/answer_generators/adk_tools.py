@@ -25,6 +25,7 @@ import json
 import asyncio
 import functools
 import ast
+import sys
 from benchmarks.benchmark_generator.models import RankedTarget
 
 # Try to import yaml
@@ -33,14 +34,41 @@ try:
 except ImportError:
     yaml = None
 
+# Try to import adk_knowledge_ext for advanced search
+try:
+    # Add the extension path relative to this file
+    # benchmarks/answer_generators/adk_tools.py -> root -> tools/adk-knowledge-ext/src
+    ext_path = Path(__file__).resolve().parents[3] / "tools/adk-knowledge-ext/src"
+    if str(ext_path) not in sys.path:
+        sys.path.append(str(ext_path))
+    from adk_knowledge_ext.search import get_search_provider
+    HAS_SEARCH_PROVIDER = True
+except ImportError:
+    HAS_SEARCH_PROVIDER = False
+
 class AdkTools:
     def __init__(self, workspace_root: Path, venv_path: Path | None = None):
         self.workspace_root = workspace_root
         self.venv_path = venv_path
         self._stats_index = None
         self._coocc_index = None
+        self._search_provider = None
         self._load_stats_index()
         self._load_coocc_index()
+        self._init_search_provider()
+
+    def _init_search_provider(self):
+        """Initializes the search provider if available."""
+        if HAS_SEARCH_PROVIDER and yaml:
+            try:
+                targets = self._load_ranked_targets()
+                if targets:
+                    self._search_provider = get_search_provider("bm25")
+                    # Convert Pydantic models to dicts for the provider
+                    items = [t.model_dump() for t in targets]
+                    self._search_provider.build_index(items)
+            except Exception as e:
+                print(f"Failed to initialize search provider: {e}")
 
     def _load_stats_index(self):
         """Loads the pre-calculated API usage statistics from benchmarks/adk_stats.yaml."""
@@ -420,10 +448,39 @@ class AdkTools:
         except Exception as e:
             return f"Error reading ranked targets: {e}"
 
-    def search_ranked_targets(self, query: str | list[str], page: int = 1, page_size: int = 20) -> str:
+    def search_ranked_targets(self, query: str | list[str], page: int = 1, page_size: int = 10) -> str:
         """
         Searches the ranked targets index for FQNs or docstrings matching the query (or list of queries), paginated.
         """
+        if isinstance(query, list):
+            q_str = " ".join([str(q) for q in query])
+        else:
+            q_str = str(query)
+
+        if self._search_provider:
+            # Use advanced search provider (BM25 -> Keyword)
+            matches = self._search_provider.search(q_str, page=page, page_size=page_size)
+            
+            # Format results
+            if not matches:
+                return f"No targets found matching: {q_str}."
+            
+            # Retrieve total count is not directly exposed by search(), but page=1/size=10 implies partial.
+            # We can approximate total or just show page info.
+            # search() returns just the page slice.
+            
+            output = [f"--- Search Results for '{q_str}' (Page {page}) ---"]
+            
+            for score, item in matches:
+                fqn = item.get("id") or item.get("fqn")
+                rank = item.get("rank", "?")
+                doc = item.get("docstring") or "No description."
+                doc_summary = doc.split('\n')[0].strip()
+                if len(doc_summary) > 80: doc_summary = doc_summary[:77] + "... "
+                output.append(f"[{rank}] {fqn}: {doc_summary}")
+                
+            return "\n".join(output)
+
         try:
             if not yaml:
                 return "Error: PyYAML not installed."
