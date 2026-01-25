@@ -78,15 +78,15 @@ benchmarks:
   explanation: The correct base class is `BaseAgent` (from `google.adk.agents.base_agent`).
   benchmark_type: multiple_choice
 - id: configure_adk_features_mc:you_are_implementing_a_custom_tool_which_method_mu
-  question: You are implementing a custom tool. Which method must you implement from `BaseTool`?
+  question: You are implementing a custom tool by inheriting from `BaseTool`. Which method must you override to define the tool's execution logic?
   options:
     A: execute()
     B: run()
-    C: __call__()
-    D: The method defined in the tool's definition (schema).
+    C: run_async()
+    D: __call__()
     E: None of the above
-  correct_answer: D
-  explanation: '`BaseTool` implementation details depend on the specific tool type (e.g., `FunctionTool` wraps a callable), but generally, the runner invokes the underlying function.'
+  correct_answer: C
+  explanation: The `run_async` method is the standard interface for client-side tool execution in `BaseTool`.
   benchmark_type: multiple_choice
 - id: configure_adk_features_mc:what_is_the_correct_signature_for_a_before_tool_ca
   question: What is the correct signature for a `before_tool_callback` function?

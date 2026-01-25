@@ -302,7 +302,7 @@ benchmarks:
   file: src/google/adk/plugins/plugin_manager.py
 - id: api_understanding:which_specific_plugin_class_is_designed_to_observe
   category: Hooks and Lifecycle Methods
-  question: Which specific plugin class is designed to observe events without altering execution flow?
+  question: Which specific plugin class is designed as a standard logger to observe events and output them to the console without altering execution flow?
   rationale: An 'observational' plugin, such as `LoggingPlugin`, implements callback hooks for data gathering but always returns `None` from its callbacks to avoid interfering with the execution flow.
   benchmark_type: api_understanding
   template: identifier
@@ -481,7 +481,7 @@ benchmarks:
   file: src/google/adk/tools/google_search_tool.py
 - id: api_understanding:which_class_is_used_to_run_multiple_agents_concurr
   category: Core Class Signatures & Initialization
-  question: Which class is used to run multiple agents concurrently in ADK?
+  question: Which class is explicitly designed to run multiple sub-agents concurrently and aggregate their results?
   rationale: Use the `ParallelAgent`. Its `sub_agents` parameter takes a list of agent instances to be executed concurrently.
   benchmark_type: api_understanding
   template: identifier
