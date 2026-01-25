@@ -4,29 +4,20 @@ import logging
 from pathlib import Path
 from typing import List, Dict, Any, Optional, Literal
 from pydantic import BaseModel, Field, ConfigDict
+import sys
+
+# Add project root to path for imports
+sys.path.append(str(Path(__file__).parent.parent))
+# Add tools dir to path
+sys.path.append(str(Path(__file__).parent))
+
+from retrieval_benchmark_lib import (
+    RetrievalDataset, RetrievalCase, RetrievalContext
+)
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 logger = logging.getLogger(__name__)
-
-class RetrievalContext(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
-
-    fqn: str = Field(..., description="Fully qualified name of the target.")
-    text: str = Field(..., description="The docstring or content of the context.")
-    context_type: Literal["gold", "gold_inferred", "negative"] = Field(..., alias="type")
-
-class RetrievalCase(BaseModel):
-    id: str = Field(..., description="Unique identifier for the retrieval case.")
-    query: str = Field(..., description="The natural language query or question.")
-    positive_ctxs: List[RetrievalContext] = Field(default_factory=list)
-    negative_ctxs: List[RetrievalContext] = Field(default_factory=list)
-    source: str = Field(..., description="The benchmark suite source.")
-    metadata: Dict[str, Any] = Field(default_factory=dict)
-    ground_truth: Dict[str, Any] = Field(default_factory=dict, description="Data required for empirical validation.")
-
-class RetrievalDataset(BaseModel):
-    cases: List[RetrievalCase] = Field(default_factory=list)
 
 class RetrievalDataExtractor:
     def __init__(self, ranked_targets_path: str, benchmarks_root: str):
@@ -35,7 +26,7 @@ class RetrievalDataExtractor:
         self.targets_index: Dict[str, Dict[str, Any]] = {} # FQN -> Target Raw Data
         self.name_to_fqn: Dict[str, List[str]] = {} # Class Name -> List[FQN]
         self.all_fqns: List[str] = []
-        self.dataset = RetrievalDataset()
+        self.dataset = RetrievalDataset(cases=[])
 
     def load_ranked_targets(self):
         """Loads ranked_targets.yaml into an efficient index."""

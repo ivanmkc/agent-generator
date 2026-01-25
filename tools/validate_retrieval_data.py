@@ -29,6 +29,7 @@ from benchmarks.data_models import (
     BenchmarkResultType
 )
 from benchmarks.benchmark_runner import ApiUnderstandingRunner, PytestBenchmarkRunner
+from benchmarks.config import MOST_POWERFUL_MODEL
 from benchmarks.parsing.json_sanitizer import JsonSanitizer
 from benchmarks.api_key_manager import API_KEY_MANAGER, KeyType
 from benchmarks.benchmark_candidates import ModelName
@@ -52,11 +53,11 @@ class DataValidator:
         self.sanitizer = JsonSanitizer(api_key_manager=self.api_key_manager, model_name=GENERATION_MODEL)
         self.retrievers = retrievers
         
-    async def validate_dataset(self, limit: Optional[int] = None):
+    async def validate_dataset(self, limit: Optional[int] = None, offset: int = 0):
         with open(self.input_path, 'r') as f:
             dataset = RetrievalDataset.model_validate(yaml.safe_load(f))
         
-        cases_to_process = dataset.cases[:limit] if limit else dataset.cases
+        cases_to_process = dataset.cases[offset:offset+limit] if limit else dataset.cases[offset:]
         print(f"{Fore.CYAN}Validating {len(cases_to_process)} cases using {GENERATION_MODEL}...{Style.RESET_ALL}")
         
         results = []
@@ -224,6 +225,7 @@ class DataValidator:
                 
                 # Report success
                 await self.api_key_manager.report_result(KeyType.GEMINI_API, key_id, True)
+                # print(f"      DEBUG: Raw output: {response.text[:200]}...")
                 return GeneratedAnswer(raw_output=response.text)
                 
             except Exception as e:
@@ -236,7 +238,7 @@ class DataValidator:
                     print(f"    {Fore.YELLOW}Quota exceeded (429). Retrying in {wait_time}s...{Style.RESET_ALL}")
                     await asyncio.sleep(wait_time)
                 else:
-                    print(f"    {Fore.RED}Generation failed: {e}{Style.RESET_ALL}")
+                    # print(f"    {Fore.RED}Generation failed: {e}{Style.RESET_ALL}")
                     return None
                     
         return None
@@ -255,7 +257,9 @@ class DataValidator:
             answer.output = await self.sanitizer.sanitize(answer.raw_output, ApiUnderstandingAnswerOutput)
             result, _, _, _ = await runner.run_benchmark(bcase, answer)
             return result == BenchmarkResultType.PASS
-        except Exception: return False
+        except Exception as e: 
+            print(f"      {Fore.RED}API Validation Error: {e}{Style.RESET_ALL}")
+            return False
 
     async def _validate_fix_errors(self, case: RetrievalCase, answer: GeneratedAnswer) -> bool:
         gt = case.ground_truth
@@ -269,14 +273,16 @@ class DataValidator:
         runner = PytestBenchmarkRunner()
         try:
             answer.output = await self.sanitizer.sanitize(answer.raw_output, FixErrorAnswerOutput)
-            result, _, _, _ = await runner.run_benchmark(bcase, answer)
+            result, logs, _, _ = await runner.run_benchmark(bcase, answer)
+            if result != BenchmarkResultType.PASS:
+                print(f"      {Fore.YELLOW}Runner Result: {result}{Style.RESET_ALL}")
+                # print(f"      DEBUG: Logs: {logs[:500]}...")
             return result == BenchmarkResultType.PASS
-        except Exception: return False
+        except Exception as e: 
+            print(f"      {Fore.RED}FixError Validation Error: {e}{Style.RESET_ALL}")
+            return False
 
 if __name__ == "__main__":
-    # We use ApiKeyManager, so we don't need GEMINI_API_KEY env var strictly for the main loop
-    # But EmbeddingRetriever init still takes a key. We should give it a key from the manager.
-
     # Pre-fetch a key for embeddings
     key_val = asyncio.run(API_KEY_MANAGER.get_next_key(KeyType.GEMINI_API))
     if not key_val:
@@ -299,4 +305,5 @@ if __name__ == "__main__":
         "retrieval_dataset.yaml", "retrieval_dataset_verified.yaml",
         retrievers=[gold_miner, embedding_retriever, random_retriever]
     )
+    # Run on full dataset
     asyncio.run(validator.validate_dataset())

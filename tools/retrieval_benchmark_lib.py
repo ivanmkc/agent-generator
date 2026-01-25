@@ -1,7 +1,8 @@
 import yaml
 import numpy as np
+import random
 from abc import ABC, abstractmethod
-from typing import List, Dict, Any, Tuple
+from typing import List, Dict, Any, Tuple, Literal, Optional
 from pathlib import Path
 from pydantic import BaseModel, Field, ConfigDict
 from rank_bm25 import BM25Okapi
@@ -16,17 +17,22 @@ class RetrievalContext(BaseModel):
     fqn: str
     text: str
     context_type: str = Field(..., alias="type")
+    empirical_relevance: str = "UNKNOWN"
+    metadata: Dict[str, Any] = Field(default_factory=dict)
 
-class RetrievalPair(BaseModel):
+class RetrievalCase(BaseModel):
     id: str
     query: str
-    positive_ctxs: List[RetrievalContext]
-    negative_ctxs: List[RetrievalContext]
+    positive_ctxs: List[RetrievalContext] = Field(default_factory=list)
+    negative_ctxs: List[RetrievalContext] = Field(default_factory=list)
     source: str
     metadata: Dict[str, Any]
+    ground_truth: Dict[str, Any] = Field(default_factory=dict)
+    is_sufficient_set: bool = False
+    candidates: List[RetrievalContext] = Field(default_factory=list) # Unified pool
 
 class RetrievalDataset(BaseModel):
-    pairs: List[RetrievalPair]
+    cases: List[RetrievalCase]
 
 class RankedTarget(BaseModel):
     id: str # FQN
@@ -44,7 +50,7 @@ class AbstractRetriever(ABC):
         pass
 
     @abstractmethod
-    async def search(self, query: str, top_k: int = 5) -> List[RankedTarget]:
+    async def search(self, query: str, top_k: int = 5, case: Optional[RetrievalCase] = None) -> List[RankedTarget]:
         pass
 
 class BM25Retriever(AbstractRetriever):
@@ -57,7 +63,7 @@ class BM25Retriever(AbstractRetriever):
         tokenized_corpus = [doc.corpus_text.lower().split() for doc in documents]
         self.bm25 = BM25Okapi(tokenized_corpus)
 
-    async def search(self, query: str, top_k: int = 5) -> List[RankedTarget]:
+    async def search(self, query: str, top_k: int = 5, case: Optional[RetrievalCase] = None) -> List[RankedTarget]:
         tokenized_query = query.lower().split()
         scores = self.bm25.get_scores(tokenized_query)
         top_n = np.argsort(scores)[::-1][:top_k]
@@ -73,9 +79,6 @@ class EmbeddingRetriever(AbstractRetriever):
         all_embeddings = []
         for i in range(0, len(texts), batch_size):
             batch = texts[i : i + batch_size]
-            # Parallelize calls within batch if supported, or just batch call
-            # Gemini API supports batch embedding? Not easily via single call yet for diverse content
-            # We'll do simple asyncio gather
             tasks = [
                 self.client.aio.models.embed_content(
                     model="text-embedding-004",
@@ -91,13 +94,11 @@ class EmbeddingRetriever(AbstractRetriever):
     async def index(self, documents: List[RankedTarget]):
         self.documents = documents
         corpus_texts = [doc.corpus_text for doc in documents]
-        # Cache check?
         cache_path = Path(".gemini/cache/vectors.npy")
         print(f"Indexing {len(documents)} documents. Cache path: {cache_path}")
         
         if cache_path.exists():
             cached = np.load(cache_path)
-            print(f"Cache exists with shape: {cached.shape}")
             if len(cached) == len(documents):
                 self.embeddings = cached
                 print("Loaded embeddings from cache.")
@@ -107,20 +108,60 @@ class EmbeddingRetriever(AbstractRetriever):
         self.embeddings = await self._get_embeddings_batched(corpus_texts)
         cache_path.parent.mkdir(parents=True, exist_ok=True)
         np.save(cache_path, self.embeddings)
-        print(f"Saved embeddings to cache. Shape: {self.embeddings.shape}")
 
-    async def search(self, query: str, top_k: int = 5) -> List[RankedTarget]:
+    async def search(self, query: str, top_k: int = 5, case: Optional[RetrievalCase] = None) -> List[RankedTarget]:
+        if self.embeddings is None:
+            raise ValueError("Retriever index not loaded.")
+            
         query_resp = await self.client.aio.models.embed_content(
             model="text-embedding-004",
             contents=query,
             config={"task_type": "RETRIEVAL_QUERY"},
         )
         query_vec = np.array(query_resp.embeddings[0].values)
-        
-        # Cosine Similarity
         scores = np.dot(self.embeddings, query_vec)
         top_n = np.argsort(scores)[::-1][:top_k]
         return [self.documents[i] for i in top_n]
+
+class RandomRetriever(AbstractRetriever):
+    def __init__(self):
+        self.documents = []
+
+    async def index(self, documents: List[RankedTarget]):
+        self.documents = documents
+
+    async def search(self, query: str, top_k: int = 5, case: Optional[RetrievalCase] = None) -> List[RankedTarget]:
+        return random.sample(self.documents, min(top_k, len(self.documents)))
+
+class GoldMinerRetriever(AbstractRetriever):
+    """Retrieves candidates based on 'Gold' metadata in the case."""
+    def __init__(self):
+        self.documents = []
+        self.fqn_map = {}
+
+    async def index(self, documents: List[RankedTarget]):
+        self.documents = documents
+        self.fqn_map = {doc.id: doc for doc in documents}
+
+    async def search(self, query: str, top_k: int = 5, case: Optional[RetrievalCase] = None) -> List[RankedTarget]:
+        if not case:
+            return []
+        
+        results = []
+        # Extract from positive_ctxs which were mined by extractor
+        # Or parse Ground Truth again if needed. 
+        # Since extractor already did the mining and put it in positive_ctxs, we just return those.
+        # But wait, validate_retrieval_data.py now wants to regenerate pools.
+        # So we should trust the extractor's work or re-implement mining logic here?
+        # The design says "Gold Miner (Heuristic / Metadata)".
+        # Extractor populated positive_ctxs.
+        
+        # If we use positive_ctxs from case:
+        for ctx in case.positive_ctxs:
+            if ctx.fqn in self.fqn_map:
+                results.append(self.fqn_map[ctx.fqn])
+        
+        return results
 
 # --- Evaluation ---
 class RetrievalEvaluator:
@@ -141,26 +182,21 @@ class RetrievalEvaluator:
         mrr = 0
         
         print(f"Benchmarking {name}...")
-        for pair in tqdm(self.dataset.pairs):
-            gold_fqns = {ctx.fqn for ctx in pair.positive_ctxs}
-            results = await retriever.search(pair.query, top_k=5)
+        for case in tqdm(self.dataset.cases):
+            gold_fqns = {ctx.fqn for ctx in case.positive_ctxs}
+            results = await retriever.search(case.query, top_k=5, case=case)
             result_fqns = [r.id for r in results]
             
-            # Recall@1
-            if result_fqns[0] in gold_fqns:
+            if result_fqns and result_fqns[0] in gold_fqns:
                 recall_at_1 += 1
-                
-            # Recall@5
             if any(fqn in gold_fqns for fqn in result_fqns):
                 recall_at_5 += 1
-                
-            # MRR
             for i, fqn in enumerate(result_fqns):
                 if fqn in gold_fqns:
                     mrr += 1.0 / (i + 1)
                     break
         
-        total = len(self.dataset.pairs)
+        total = len(self.dataset.cases)
         return {
             "model": name,
             "recall@1": recall_at_1 / total,
