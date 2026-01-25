@@ -178,3 +178,45 @@ Output JSON: {
 
 ### Phase 3: Integration
 - Add a CI/CD step (weekly) to run the verifier on the `main` branch to catch drift (e.g., when ADK version bumps).
+
+## 6. Environment Isolation & Dependencies
+
+Executing dynamic verification scripts carries risks of state pollution and dependency conflicts.
+
+### 6.1 Sandbox Isolation
+- **Per-Task VirtualEnv:** Each verification run (or batch of runs) should operate in a clean environment.
+- **Temp Directory:** The `verifier_agent` must write its `test_*.py` files to a unique temporary directory (e.g., `/tmp/adk_verify_<uuid>`).
+- **Cleanup:** `teardown_agent` or `CodeBasedTeardownAgent` must forcefully remove these directories after the verdict is rendered.
+
+### 6.2 Handling Imports
+- **PYTHONPATH:** The runner script (`verify_benchmarks.py`) must ensure `PYTHONPATH` includes the local `adk-python` source or the installed `site-packages` where `google.adk` lives.
+- **AdkTools:** The agent's `read_file` and `run_shell_command` tools will be scoped to the workspace root.
+- **Mocking:** If the test requires external services (e.g., Gemini API), the agent should be instructed to use `unittest.mock` to simulate responses, ensuring tests are deterministic and offline-capable where possible.
+
+## 7. ADK Implementation Logic
+
+The workflow translates to a standard ADK `SequentialAgent` pipeline.
+
+```text
+                  +--------------------------------+
+                  |   AdkAnswerGenerator (Runner)  |
+                  +--------------------------------+
+                                 |
+                                 v
++-----------------------------------------------------------------------+
+|  SequentialAgent: "verifier_workflow"                                 |
+|                                                                       |
+|  1. [SetupAgent]                                                      |
+|     - Create tmp dir.                                                 |
+|     - Check ADK install.                                              |
+|                                                                       |
+|  2. [LlmAgent] "verifier_logic"                                       |
+|     - Tools: `search_ranked_targets`, `inspect_fqn`, `write_file`,    |
+|              `run_shell_command` (pytest).                            |
+|     - Loop: Research -> Write Test -> Run Test -> Analyze.            |
+|     - Max Iterations: 10 (Allow robust testing of all options).       |
+|                                                                       |
+|  3. [CodeBasedTeardownAgent]                                          |
+|     - Delete tmp dir.                                                 |
++-----------------------------------------------------------------------+
+```
