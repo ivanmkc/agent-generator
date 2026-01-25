@@ -19,9 +19,7 @@ from colorama import init, Fore, Style
 init()
 
 # Add project root to path for imports
-sys.path.append(str(Path(__file__).parent.parent))
-# Add tools dir to path
-sys.path.append(str(Path(__file__).parent))
+sys.path.append(str(Path(__file__).parent.parent.parent))
 
 from benchmarks.data_models import (
     ApiUnderstandingBenchmarkCase, FixErrorBenchmarkCase, MultipleChoiceBenchmarkCase,
@@ -29,14 +27,12 @@ from benchmarks.data_models import (
     BenchmarkType, AnswerTemplate, StringMatchAnswer, GeneratedAnswer,
     BenchmarkResultType
 )
-from benchmarks.benchmark_runner import (
-    ApiUnderstandingRunner, PytestBenchmarkRunner, MultipleChoiceRunner
-)
+from benchmarks.benchmark_runner import ApiUnderstandingRunner, PytestBenchmarkRunner, MultipleChoiceRunner
 from benchmarks.config import MOST_POWERFUL_MODEL
 from benchmarks.parsing.json_sanitizer import JsonSanitizer
 from benchmarks.api_key_manager import API_KEY_MANAGER, KeyType
 from benchmarks.benchmark_candidates import ModelName
-from retrieval_benchmark_lib import (
+from tools.retrieval_dataset_generation.lib import (
     EmbeddingRetriever, RankedTarget, RetrievalDataset, RetrievalCase, 
     RetrievalContext, AbstractRetriever, GoldMinerRetriever, RandomRetriever
 )
@@ -144,8 +140,7 @@ class DataValidator:
                         is_success = await self._validate_fix_errors(case, generated_answer)
                     elif case.source == "multiple_choice":
                         is_success = await self._validate_multiple_choice(case, generated_answer)
-                except Exception as e:
-                    # print(f"Validation exception for {case.id}: {e}")
+                except Exception:
                     is_success = False
             
             status_char = f"{Fore.GREEN}PASS{Style.RESET_ALL}" if is_success else f"{Fore.RED}FAIL{Style.RESET_ALL}"
@@ -164,12 +159,28 @@ class DataValidator:
         verified_neg = []
         
         for f in fqns:
-            p_in = success_in[f] / trials_in[f] if trials_in[f] > 0 else 0.0
-            p_out = success_out[f] / trials_out[f] if trials_out[f] > 0 else 0.0
+            n_in = trials_in[f]
+            n_out = trials_out[f]
+            
+            p_in = success_in[f] / n_in if n_in > 0 else 0.0
+            p_out = success_out[f] / n_out if n_out > 0 else 0.0
+            
             delta_p = p_in - p_out
             
+            # Confidence Stats (Standard Error)
+            se_in = (p_in * (1 - p_in) / n_in) ** 0.5 if n_in > 0 else 0.0
+            se_out = (p_out * (1 - p_out) / n_out) ** 0.5 if n_out > 0 else 0.0
+            
             ctx = c_map[f]
-            ctx.metadata.update({"delta_p": round(delta_p, 2), "p_in": round(p_in, 2), "p_out": round(p_out, 2)})
+            ctx.metadata.update({
+                "delta_p": round(delta_p, 2),
+                "p_in": round(p_in, 2),
+                "p_out": round(p_out, 2),
+                "n_in": n_in,
+                "n_out": n_out,
+                "se_in": round(se_in, 3),
+                "se_out": round(se_out, 3)
+            })
             
             if delta_p > 0.05:
                 ctx.empirical_relevance = "YES"
@@ -222,8 +233,9 @@ class DataValidator:
         question_text = case.query
         if case.source == "multiple_choice":
             options = case.metadata.get("options", {})
-            opt_str = "\n".join([f"{k}: {v}" for k, v in options.items()])
-            question_text = f"{case.query}\n\nOptions:\n{opt_str}"
+            if options:
+                opt_str = "\n".join([f"{k}: {v}" for k, v in options.items()])
+                question_text = f"{case.query}\n\nOptions:\n{opt_str}"
 
         prompt = f"""You are an expert developer.
 Context:
@@ -252,6 +264,7 @@ Target Schema:
             client = genai.Client(api_key=key_val)
             
             try:
+                # Use response_schema in config for enforcement
                 response = await client.aio.models.generate_content(
                     model=GENERATION_MODEL,
                     contents=prompt,
@@ -294,7 +307,9 @@ Target Schema:
             answer.output = await self.sanitizer.sanitize(answer.raw_output, ApiUnderstandingAnswerOutput)
             result, _, _, _ = await runner.run_benchmark(bcase, answer)
             return result == BenchmarkResultType.PASS
-        except Exception: return False
+        except Exception as e: 
+            print(f"      {Fore.RED}API Validation Error: {e}{Style.RESET_ALL}")
+            return False
 
     async def _validate_fix_errors(self, case: RetrievalCase, answer: GeneratedAnswer) -> bool:
         gt = case.ground_truth
@@ -308,9 +323,14 @@ Target Schema:
         runner = PytestBenchmarkRunner()
         try:
             answer.output = await self.sanitizer.sanitize(answer.raw_output, FixErrorAnswerOutput)
-            result, _, _, _ = await runner.run_benchmark(bcase, answer)
+            result, logs, _, _ = await runner.run_benchmark(bcase, answer)
+            if result != BenchmarkResultType.PASS:
+                # print(f"      {Fore.YELLOW}Runner Result: {result}{Style.RESET_ALL}")
+                pass
             return result == BenchmarkResultType.PASS
-        except Exception: return False
+        except Exception as e: 
+            print(f"      {Fore.RED}FixError Validation Error: {e}{Style.RESET_ALL}")
+            return False
 
     async def _validate_multiple_choice(self, case: RetrievalCase, answer: GeneratedAnswer) -> bool:
         gt = case.ground_truth
@@ -327,7 +347,9 @@ Target Schema:
             answer.output = await self.sanitizer.sanitize(answer.raw_output, MultipleChoiceAnswerOutput)
             result, _, _, _ = await runner.run_benchmark(bcase, answer)
             return result == BenchmarkResultType.PASS
-        except Exception: return False
+        except Exception as e: 
+            print(f"      {Fore.RED}MC Validation Error: {e}{Style.RESET_ALL}")
+            return False
 
 if __name__ == "__main__":
     # Pre-fetch a key for embeddings

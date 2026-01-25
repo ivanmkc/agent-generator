@@ -18,18 +18,13 @@
 - **Update:** Switched output format from JSONL to YAML.
 - **Result:** Successfully extracted 65 verified retrieval pairs.
 
-### 3. Implementation: Phase 2 (Validator)
-- **Task:** Create `tools/validate_retrieval_data.py`.
-- **Method:** Implemented Monte Carlo Relevance Verification with Agentic Solving.
-- **Features:**
-    - **Decoupled Retrievers:** Uses a list of `AbstractRetriever` objects (GoldMiner, Embedding, Random) to build the candidate pool.
-    - **Empirical Validation:** Runs `N=3` Bernoulli trials (p=0.5). Injects context directly into prompt using `[START_DOCUMENT]` delimiters.
-    - **Robust Generation:** Uses `JsonSanitizer` with schema injection and `response_schema` API enforcement.
-    - **Causal Analysis:** Calculates `Delta P` (Impact Score) to identify relevant documents.
-    - **Verified Results:** Successfully identified high-impact contexts (Delta P = +1.0) for MC questions.
-- **Result:** Pipeline is fully operational and produces high-quality, verified retrieval benchmarks.
-
-### 4. Implementation: Phase 3 (Evaluation)
-- **Task:** Create `tools/retrieval_benchmark_lib.py` and `notebooks/run_retrieval_eval.py`.
-- **Method:** Compare BM25 vs Gemini Embeddings (text-embedding-004).
-- **Result:** Validated that Embeddings significantly outperform BM25 (Recall@5: 78% vs 21% on unverified data). Now ready for verified baseline.
+### 5. Refactoring & Cleanup
+- **Task:** Organized tools into `tools/retrieval_dataset_generation/`.
+- **Refactoring:**
+    - Moved `extract_retrieval_data.py` -> `extract_data.py`.
+    - Moved `validate_retrieval_data.py` -> `validate_data.py`.
+    - Moved `retrieval_benchmark_lib.py` -> `lib.py`.
+    - Updated imports and `sys.path`.
+- **Enhancement:** Added `confidence` stats (`n_in`, `se_in`, etc.) to metadata.
+- **Verification:** Ran successful test on 1 case with full pipeline.
+- **Status:** Ready for full-scale generation.

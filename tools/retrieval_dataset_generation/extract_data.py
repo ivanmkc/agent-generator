@@ -8,11 +8,9 @@ import sys
 import re
 
 # Add project root to path for imports
-sys.path.append(str(Path(__file__).parent.parent))
-# Add tools dir to path
-sys.path.append(str(Path(__file__).parent))
+sys.path.append(str(Path(__file__).parent.parent.parent))
 
-from retrieval_benchmark_lib import (
+from tools.retrieval_dataset_generation.lib import (
     RetrievalDataset, RetrievalCase, RetrievalContext
 )
 
