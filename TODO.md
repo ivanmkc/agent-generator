@@ -21,11 +21,12 @@
 
 ## 3. Optimize Analysis Report Generation (`docs/design_docs/optimize_analysis_report.md`)
 - [ ] **Implementation:**
-    - [ ] Implement `AnalysisCache` (JSON/SQLite) to store `ForensicInsight` by trace hash.
-    - [ ] Update `LogAnalyzer` to check cache before calling LLM.
-    - [ ] Implement adaptive concurrency/throttling for API calls.
+    - [ ] Implement `TraceSlicer` to prune trace logs to the relevant "error window" before LLM calls.
+    - [ ] Update `LogAnalyzer` to use **Flash** for individual attempt mapping and **Pro** for case/generator reduction.
+    - [ ] Implement a streaming pipeline to begin "Reduce" tasks as soon as their "Map" dependencies are ready.
+    - [ ] Add regex-based `StaticHeuristics` to skip LLM calls for obvious errors (e.g., Quota, ModuleNotFound).
 - [ ] **Verification:**
-    - [ ] Benchmark report generation time on a repeated run (should be near-instant).
+    - [ ] Profile a 100-failure run and compare total time against the unoptimized baseline.
 
 ## 4. Question Quality Verifier (`docs/design_docs/question_quality_verifier.md`)
 - [ ] **Implementation:**

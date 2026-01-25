@@ -5,47 +5,50 @@
 **Date:** 2026-01-24
 
 ## 1. Problem Statement
-The current `generate_benchmark_report.py` (now `generate_ai_report.py`) process can be slow, especially for large benchmark runs with many failures. The "Map-Reduce" strategy for forensic analysis involves numerous LLM calls (one per attempt, then per case, then per generator). 
+The current `generate_ai_report.py` process is slow during its first (and usually only) run for a benchmark directory. The "Map-Reduce" strategy for forensic analysis involves a high volume of LLM calls that are often constrained by sequential processing, redundant context transmission, and strict rate limits.
 
 **Bottlenecks:**
-- **Latency:** Sequential or semi-parallel LLM calls.
-- **Quota:** Hitting API rate limits with high concurrency.
-- **Redundancy:** Re-analyzing unchanged cases in repeated runs.
+- **High Input Latency:** Sending full, uncompressed trace logs for every attempt increases model latency and token costs.
+- **Quota Starvation:** Fixed concurrency often triggers 429 errors, leading to long backoff periods.
+- **Hierarchical Overhead:** Waiting for all "Map" tasks (attempts) to finish before starting "Reduce" tasks (cases) creates an orchestration bottleneck.
 
 ## 2. Goals
-- Reduce end-to-end report generation time by 50%.
-- minimize API cost and quota usage.
-- Improve caching and incremental analysis.
+- Reduce the time required for a first-run report by 60%.
+- Minimize token usage by pruning redundant trace data.
+- Improve throughput by using adaptive concurrency.
 
 ## 3. Proposed Solutions
 
-### A. Incremental Analysis (Caching)
+### A. Intelligent Context Pruning (Static Slicing)
 **Strategy:**
-- Hash the `trace_logs` and `error_message` for each attempt.
-- Store the `ForensicInsight` in a persistent database (SQLite or simple JSON cache) keyed by this hash.
-- Before calling the LLM, check the cache.
-- **Impact:** Instant analysis for repeated failures (common in regression testing).
+- Before calling the LLM, use a static analyzer to slice the `trace_logs`.
+- Focus on events near the error timestamp or the final 5 tool calls.
+- **Impact:** Reduces input tokens by 70-80%, significantly speeding up model response time.
 
-### B. Adaptive Concurrency Control
+### B. Adaptive Concurrency & Global Throttling
 **Strategy:**
-- Instead of a fixed Semaphore(10), implement a dynamic throttler that respects the 429 Retry-After headers globally.
-- Group requests by "complexity" (token count) to pack them efficiently if using batch APIs (future).
+- Replace the fixed `asyncio.Semaphore` with an `AdaptiveThrottler`.
+- Monitor response headers for `Retry-After` or `Rate-Limit` info.
+- Scale concurrency up until the first warning, then back off. This maximizes throughput without hitting hard 300s penalties.
 
-### C. Hierarchical Summarization (Tree Reduction)
+### C. Multi-Model Tiering (Flash-First)
 **Strategy:**
-- Instead of Map (Attempt) -> Reduce (Case) -> Reduce (Generator), skip the Attempt level for "simple" errors.
-- **Heuristic:** If the error is a known pattern (regex match on `ModuleNotFoundError`, `ImportError`), generate a static insight without LLM. Only use LLM for "Logic Errors" or "Hallucinations".
+- Use **Gemini Flash** for the "Map" stage (analyzing individual attempts). It is significantly faster and cheaper.
+- Reserve **Gemini Pro** for the "Reduce" stage (synthesizing case patterns and generator forensics) where deep reasoning is required.
+- **Impact:** Decreases total execution time and cost without sacrificing high-level insights.
 
-### D. Profiling First
-**Task:**
-- Instrument `generate_benchmark_report.py` with fine-grained timers.
-- Measure:
-    - Time spent in `_analyze_attempt` vs `_reduce_case_insights`.
-    - Time spent waiting for rate limits.
-    - Time loading large JSONs.
+### D. Streaming Pipeline (Early Reduction)
+**Strategy:**
+- Instead of waiting for *all* attempts in a case to finish, start the Case Reduction as soon as its attempts are ready.
+- Implement as a graph of async tasks rather than a linear sequence of `gather()` calls.
+
+### E. Static Heuristics (LLM-Skip)
+**Strategy:**
+- Identify obvious failure modes (e.g., specific Python Tracebacks, Quota errors) via regex.
+- Generate a "Static Insight" instantly and skip the LLM call for that attempt.
 
 ## 4. Implementation Plan
-1. **Profile:** Add `time.time()` logs around key async gathers.
-2. **Cache:** Implement `AnalysisCache` class using `sqlite3`.
-3. **Heuristics:** Add a `StaticAnalyzer` pass before the `LLMAnalyzer`.
-4. **Refactor:** Decouple the `LogAnalyzer` into a pipeline of `[Cache -> Static -> LLM]`.
+1. **Profiling:** Add fine-grained instrumentation to identify if the bottleneck is network, model processing, or orchestration.
+2. **Context Slicer:** Implement a `TraceSlicer` utility to extract relevant snippets.
+3. **Adaptive Throttler:** Implement the throttler and integrate it into `LogAnalyzer`.
+4. **Flash Routing:** Update `LogAnalyzer` to accept a `base_model` (Flash) and `synthesis_model` (Pro).
