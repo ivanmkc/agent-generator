@@ -14,3 +14,10 @@
 - **Task:** Create `tools/extract_retrieval_data.py`.
 - **Sub-task:** Load `ranked_targets.yaml` to get the universe of valid targets.
 - **Sub-task:** Load `benchmarks/benchmark_definitions/**/*.yaml`.
+- **Update:** Refactored to use Pydantic models for all data structures.
+- **Update:** Switched output format from JSONL to YAML.
+- **Result:** Successfully extracted 65 verified retrieval pairs.
+
+### 3. Next Steps
+- **Task:** Implement `RetrievalValidatorAgent` to filter noisy or ambiguous queries.
+- **Task:** Implement Vector Search indexer using Gemini Embeddings.

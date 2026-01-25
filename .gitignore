@@ -33,3 +33,4 @@ node_modules
 *.log
 
 repos/*.jsonl
+retrieval_dataset.yaml
