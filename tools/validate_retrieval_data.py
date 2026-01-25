@@ -352,4 +352,5 @@ if __name__ == "__main__":
         "retrieval_dataset.yaml", "retrieval_dataset_verified.yaml",
         retrievers=[gold_miner, embedding_retriever, random_retriever]
     )
+    # Run on full dataset
     asyncio.run(validator.validate_dataset())
