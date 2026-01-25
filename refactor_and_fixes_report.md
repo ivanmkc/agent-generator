@@ -57,37 +57,39 @@ This report details the changes made to address the `TODO.md` items, including t
     *   Deleted `debugging.py` (Redundant functionality).
 *   **Rationale:** `generate_static_report` clearly indicates it runs locally without LLM calls, distinguishing it from the AI version.
 
-## 5. Documentation
+## 5. Documentation & Features
 
-*   **Task:** Create Design Docs for future work.
-*   **Output:** Created 5 documents in `docs/design_docs/`:
-    1.  `optimize_analysis_report.md` (Caching & Adaptive Concurrency)
-    2.  `list_modules_pagination.md` (Usage-ranked browsing)
-    3.  `search_suggestions.md` (Levenshtein/Fuzzy matching for 0 results)
-    4.  `llm_json_parsing.md` (Robust output sanitization)
-    5.  `question_quality_verifier.md` (Auto-audit of benchmarks)
+*   **Task:** Create Design Docs and implement prioritized features.
+*   **Output:** Created 5 documents in `docs/design_docs/`.
+*   **Implementation:** Implemented **Robust LLM-Based JSON Extraction** (`benchmarks/parsing/json_sanitizer.py`).
+    *   **Architecture:** Validation Phase Sanitization (Runner-side).
+    *   **Logic:** Multi-stage fallback (Direct -> Regex -> LLM Repair).
+    *   **Model:** Uses `gemini-3-pro-preview` for high-fidelity extraction.
 
 ## 6. Verification & Regression Testing
 
 To prevent future regressions of these fixes, the following permanent unit tests have been added and verified:
 
 ### A. Search Logic (`tools/adk-knowledge-ext/tests/test_search_repro.py`)
-*   **Target:** `BM25SearchProvider` tokenization.
-*   **Test Case:** Searches for a class name suffix (e.g., `ToolConfig`) and verifies that it successfully matches an FQN (e.g., `google.adk.tools.ToolConfig`).
-*   **Verification:** Confirmed that splitting on dots/underscores correctly exposes the class name as a separate token for BM25.
+*   **Target:** `BM25SearchProvider` tokenization & Hybrid Fallback.
+*   **Test Case:** Searches for a class name suffix (e.g., `ToolConfig`) and verifies that it successfully matches an FQN. Verified cascading fallback from BM25 to Keyword search.
+*   **Verification:** Confirmed that splitting on dots/underscores correctly exposes the class name as a separate token for BM25, and that the Hybrid provider correctly switches strategies when needed.
 
 ### B. Benchmark Reality (`benchmarks/tests/unit/test_benchmark_definitions_reality.py`)
 *   **Target:** `diagnose_setup_errors_mc` consistency.
 *   **Test Cases:**
-    *   `test_reality_cache_ttl_seconds_validation`: Confirms `ttl_seconds` is the valid field and correctly identifies type errors.
-    *   `test_reality_compaction_interval_zero_allowed`: Confirms `compaction_interval=0` does NOT raise a ValidationError in the current ADK version.
-    *   `test_reality_sequential_empty_subagents`: Confirms `SequentialAgent` allows empty sub-agent lists.
-*   **Rationale:** These tests act as a "reality check" between our benchmark data (YAML) and the ADK library code.
+    *   `test_reality_cache_ttl_seconds_validation`: Confirms `ttl_seconds` is the valid field.
+    *   `test_reality_compaction_interval_zero_allowed`: Confirms `compaction_interval=0` is allowed.
+    *   `test_reality_sequential_empty_subagents`: Confirms empty sub-agents list is valid.
 
 ### C. Viewer Logic (`tools/test_benchmark_viewer.py`)
 *   **Target:** Run status detection.
-*   **Test Cases:** `test_get_run_status_completed`, `test_get_run_status_pending`.
-*   **Verification:** Verified that the sidebar dropdown correctly identifies runs based on file presence (`results.json`, `trace.yaml`) using a mocked artifact manager.
+*   **Verification:** Verified status icon logic with mocked filesystem.
+
+### D. JSON Sanitizer (`benchmarks/tests/unit/test_json_sanitizer.py`, `integration/test_json_formatting.py`)
+*   **Target:** Output extraction robustness.
+*   **Unit Tests:** Verified extraction from plain JSON, Markdown blocks, and simulated LLM repair calls.
+*   **Integration Test:** `test_json_sanitizer_integration` simulates a generator returning malformed text and asserts that the `BenchmarkRunner` successfully repairs and validates it using the sanitizer.
 
 ---
 **Status:** All tasks in the active batch are complete. The `TODO.md` has been updated and all regression tests are passing.
