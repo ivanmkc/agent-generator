@@ -54,7 +54,7 @@ CANDIDATE_GENERATORS = [
     #     experiment_id="basic"
     # ),
     create_hybrid_generator_v47(
-        model_name=ModelName.GEMINI_2_5_PRO,
+        model_name=ModelName.GEMINI_2_5_FLASH,
         api_key_manager=api_key_manager,
     ),
     GeminiCliPodmanAnswerGenerator(

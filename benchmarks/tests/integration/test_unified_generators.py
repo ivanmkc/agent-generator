@@ -84,15 +84,20 @@ async def test_generator_capabilities(test_case: GeneratorTestCase) -> None:
         )
 
     # 2. MCP Tools Check
-    checks_performed = True
-    print(f"[{test_case.id}] Fetching MCP tools...")
-    actual_mcp = await generator.get_mcp_servers()
-    print(f"[{test_case.id}] Discovered MCP tools: {actual_mcp}")
+    if hasattr(generator, "get_mcp_servers"):
+        checks_performed = True
+        print(f"[{test_case.id}] Fetching MCP tools...")
+        actual_mcp = await generator.get_mcp_servers()
+        print(f"[{test_case.id}] Discovered MCP tools: {actual_mcp}")
 
-    for expected in test_case.expected_mcp_servers:
-        assert any(
-            expected in t for t in actual_mcp
-        ), f"[{test_case.id}] Expected MCP tool '{expected}' not found. Available: {actual_mcp}"
+        for expected in test_case.expected_mcp_servers:
+            assert any(
+                expected in t for t in actual_mcp
+            ), f"[{test_case.id}] Expected MCP tool '{expected}' not found. Available: {actual_mcp}"
+    elif test_case.expected_mcp_servers:
+        pytest.fail(
+            f"[{test_case.id}] Configured to expect MCP servers {test_case.expected_mcp_servers}, but generator does not support 'get_mcp_servers'."
+        )
 
     if not checks_performed:
         pytest.skip(

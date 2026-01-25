@@ -220,17 +220,6 @@ benchmarks:
   correct_answer: A
   explanation: '`ParallelAgent` aggregates results from all its sub-agents.'
   benchmark_type: multiple_choice
-- id: configure_adk_features_mc:what_is_the_model_client_property_on_an_llmagent_u
-  question: What is the `model_client` property on an `LlmAgent` used for?
-  options:
-    A: To configure HTTP proxies.
-    B: To change the model name at runtime.
-    C: It is an internal property and should not be used.
-    D: To directly access the underlying GenAI client for raw API calls.
-    E: None of the above
-  correct_answer: D
-  explanation: It provides access to the configured model client wrapper.
-  benchmark_type: multiple_choice
 - id: configure_adk_features_mc:how_do_you_specify_that_a_tool_function_should_not
   question: How do you specify that a function tool should *not* return its output to the model, but instead save it directly to the session state?
   options:
@@ -278,7 +267,7 @@ benchmarks:
 - id: configure_adk_features_mc:you_want_to_automatically_save_any_file_blobs_imag
   question: You want to automatically save any file blobs (images, audio) sent by the user as artifacts in the artifact service. Which plugin should you use?
   options:
-    A: SaveArtifactsPlugin
+    A: SaveFilesAsArtifactsPlugin
     B: BlobStoragePlugin
     C: FilePersistencePlugin
     D: ArtifactSaverPlugin
@@ -311,12 +300,12 @@ benchmarks:
 - id: configure_adk_features_mc:you_need_to_retry_a_tool_execution_automatically_i
   question: You need to retry a tool execution automatically if the tool raises a specific exception or returns an error. Which plugin can help?
   options:
-    A: ToolErrorPlugin
+    A: ReflectAndRetryToolPlugin
     B: RetryPlugin
     C: RobustnessPlugin
     D: ReflectRetryToolPlugin
     E: None of the above
-  correct_answer: E
+  correct_answer: A
   explanation: The correct class name is `ReflectAndRetryToolPlugin`.
   benchmark_type: multiple_choice
 - id: configure_adk_features_mc:how_does_contextfilterplugin_generally_operate

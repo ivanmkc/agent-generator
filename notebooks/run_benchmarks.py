@@ -325,11 +325,11 @@ async def main():
 
     logger.finalize_run()
 
-    # Run Log Analysis
-    try:
-        await analyze_run_logs(run_output_dir, model_name="gemini-3-pro-preview")
-    except Exception as e:
-        logger.log_message(f"Log analysis failed: {e}")
+    # # Run Log Analysis
+    # try:
+    #     await analyze_run_logs(run_output_dir, model_name="gemini-3-pro-preview")
+    # except Exception as e:
+    #     logger.log_message(f"Log analysis failed: {e}")
 
 
 if __name__ == "__main__":

@@ -3,6 +3,7 @@ from pathlib import Path
 import sys
 
 def analyze():
+    # TODO: Remove hardcoding
     run_dir = Path("benchmark_runs/2026-01-16_20-43-28")
     results_file = run_dir / "results.json"
     
@@ -20,6 +21,7 @@ def analyze():
     print(f"Loaded {len(data)} results.")
     
     # Filter for ADK_HYBRID_V47 failures
+    # TODO: Remove all hardcoding
     failures = [d for d in data if d.get("result") == 0 and "ADK_HYBRID_V47" in d.get("generator_name", "")]
     
     print(f"Found {len(failures)} failures for ADK_HYBRID_V47.")
