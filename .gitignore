@@ -34,3 +34,5 @@ node_modules
 
 repos/*.jsonl
 retrieval_dataset.yaml
+.gemini/
+*.jsonl
