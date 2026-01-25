@@ -14,14 +14,10 @@
 # Active Legacy Tasks
 
 ## Benchmark Case Reviews & Fixes
-- [ ] **Fix Ambiguous Runner Question:** `api_understanding:which_class_is_used_to_run_multiple_agents_concurr` is ambiguous as `Runner` can run multiple agents via `run_async`.
-    - *Action:* Reword to be explicit about "parallel execution class" vs "runner".
 - [ ] **Predict Runtime Behavior Review:** `predict_runtime_behaviour` cases with `code_snippet_ref` need manual review for validity.
 - [ ] **Duplicate Name Check:** Verify `predict_runtime_behavior_mc:duplicate_agent_name` matches `validate_sub_agents_unique_names` behavior (warning vs error).
 - [ ] **Event Extra Fields:** Verify `predict_runtime_behavior_mc:event_extra_fields_error`.
 - [ ] **Tool Injection Ambiguity:** Improve `predict_runtime_behavior_mc:tool_session_id_injection`.
-- [ ] **Observer Plugin Ambiguity:** `api_understanding:which_specific_plugin_class_is_designed_to_observe` might be satisfied by `BigQueryAgentAnalyticsPlugin`. Reword to be specific.
-- [ ] **Custom Tool Implementation:** `configure_adk_features_mc:you_are_implementing_a_custom_tool_which_method_mu` is likely wrongly answered. Check code, write test, fix.
 - [ ] **Custom Agent Sub-agents:** Check if `fix_errors:08_custom_agent` needs `sub_agents` passed to `CustomConditionalAgent`.
 
 ## Codebase Maintenance
@@ -34,6 +30,9 @@
 - [x] **Implement Robust LLM-Based JSON Extraction:** Created `JsonSanitizer` with multi-stage fallback (Direct -> Regex -> LLM Repair) and integrated it into `BenchmarkRunner`.
 
 ## Fixes
+- [x] **Fix Ambiguous Runner Question:** Reworded `api_understanding:which_class_is_used_to_run_multiple_agents_concurr` to specify "sub-agents" and point to `ParallelAgent`.
+- [x] **Observer Plugin Ambiguity:** Reworded `api_understanding:which_specific_plugin_class_is_designed_to_observe` to specify "standard logger".
+- [x] **Custom Tool Implementation:** Fixed `configure_adk_features_mc:you_are_implementing_a_custom_tool_which_method_mu` to allow `run_async` as the correct answer.
 - [x] **Fix BM25 Search:** Updated tokenization to split FQNs by dots/underscores.
 - [x] **Search Fallback:** Implemented cascading fallback from BM25 to Keyword search in `HybridSearchProvider`.
 - [x] **Search Determinism:** Added stable sorting to search providers.
