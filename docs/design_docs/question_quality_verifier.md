@@ -32,8 +32,8 @@ The solution uses a specialized **Verifier Agent**—a high-capability LLM agent
 +-----------+-----------+       +----------+----------+
             |                              |
             | 1. Provide Question          | 1. Research (search/inspect)
-            | 2. Provide Options           | 2. Formulate Hypothesis
-            |                              | 3. **PROVE via CODE**
+            | 2. Provide Options           | 2. Decompose Claims
+            |                              | 3. **PROVE via CODE** (All Claims)
             | <---- Agent's Verdict -------+
             |
             v
@@ -51,9 +51,9 @@ The agent is configured as a "Codebase Researcher & Tester" with the following t
 **System Instruction:**
 > "You are a Senior QA Engineer auditing a certification exam for the Google ADK. Your goal is to verify if a question is fair, accurate, and unambiguous. You MUST NOT rely on your internal knowledge. You MUST **prove** every claim (positive or negative) by writing and executing a Python test script against the installed library."
 
-## 3. Workflow Logic
+## 3. Workflow Logic: Claim Decomposition & Verification
 
-The verification process follows a strict "Blind Solve -> Empirical Proof -> Critique" loop.
+The verification process follows a strict "Decompose -> Verify -> Verdict" loop. No confidence scalars are used; verification is binary (Proven/Disproven).
 
 ```text
 [ Start Verification Loop ]
@@ -63,21 +63,26 @@ The verification process follows a strict "Blind Solve -> Empirical Proof -> Cri
      *Do not reveal Ground Truth to Agent yet.*
           |
           v
-  2. AGENT RESEARCH & HYPOTHESIS
-     - Agent searches codebase to understand the concepts.
-     - Agent forms a hypothesis: "I think A is correct and B, C, D are wrong."
+  2. CLAIM DECOMPOSITION
+     - The Agent breaks down the Question and EACH Option into atomic claims.
+     - Example (Option A): "EventsCompactionConfig accepts 'interval' arg." -> Claim: True
+     - Example (Option B): "EventsCompactionConfig accepts 'freq' arg." -> Claim: False
           |
           v
   3. **EMPIRICAL VERIFICATION (The "Proof" Phase)**
-     - Agent writes `verify_option_A.py` to prove A works. -> PASS
-     - Agent writes `verify_option_B.py` to prove B fails/behaves differently. -> PASS (Confirmation of falsity)
-     - ... repeats for all options.
+     - **Constraint:** EVERY Claim must have a corresponding Python script.
+     - Script A: `try: EventsCompactionConfig(interval=5); print('PASS') except: print('FAIL')`
+     - Script B: `try: EventsCompactionConfig(freq=5); print('UNEXPECTED PASS') except ValidationError: print('EXPECTED FAIL')`
           |
           v
-  4. COMPARISON & VERDICT
-     - Orchestrator compares Agent's Proven Answer vs. Ground Truth.
-     - If Agent proved multiple options valid -> Flag as Ambiguous.
-     - If Agent proved Ground Truth fails -> Flag as Incorrect.
+  4. VERDICT SYNTHESIS
+     - **Valid Question:**
+       - Correct Option: Script PASSED (Proving it works).
+       - Distractor Options: Scripts FAILED (Proving they are invalid).
+     - **Ambiguous Question:**
+       - Multiple Options PASSED.
+     - **Incorrect Question:**
+       - Correct Option FAILED (or behavior didn't match).
           |
           v
   5. REPORT GENERATION
@@ -120,26 +125,25 @@ Task: Audit this Multiple Choice Question.
 Question: {question}
 Options: {options}
 
-STEP 1: Research the codebase. Find the relevant classes and methods.
+STEP 1: Research. Find relevant classes/methods.
 
-STEP 2: Generate PROOF.
-For EACH option (A, B, C, D...), write a small self-contained Python script to test it.
-- If the option claims something works, the script should succeed.
-- If the option claims something fails (or is the "wrong" answer), the script should verify that it fails (e.g. catch the Exception).
+STEP 2: Decompose & Prove.
+For EACH option (A, B, C, D...):
+1. State the implicit claim (e.g., "This code runs without error", "This arg exists").
+2. Write a self-contained Python script to TEST that claim.
+3. Execute the script.
+4. Record the result.
 
 STEP 3: Evaluate.
-Based *only* on your test results:
-- Which options are technically valid?
-- Which options are strictly invalid?
-
-STEP 4: Verdict.
-- Identify the ONE strictly correct answer.
-- Is the question Ambiguous? (More than one valid option?)
-- Is the Ground Truth correct?
+- Did the "Correct" option script succeed?
+- Did the "Distractor" option scripts fail (as expected)?
+- If a Distractor succeeded, the question is AMBIGUOUS.
 
 Output JSON: {
-  "selected_answer": "A",
-  "proof_summary": "Option A script passed. Option B script raised TypeError as expected...",
+  "option_proofs": {
+    "A": {"claim": "...", "status": "Proven Valid"},
+    "B": {"claim": "...", "status": "Proven Invalid (Error: ...)"}
+  },
   "quality_rating": "Valid" | "Ambiguous" | "Incorrect",
   "critique": "..."
 }
