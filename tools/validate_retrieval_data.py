@@ -5,25 +5,30 @@ import asyncio
 import os
 import sys
 import random
+import json
 from typing import List, Dict, Any, Literal, Optional
 from pathlib import Path
 from pydantic import BaseModel, Field, ConfigDict
 from google import genai
+from google.genai import types
 from tqdm.asyncio import tqdm
 
 # Add project root to path for imports
 sys.path.append(str(Path(__file__).parent.parent))
+# Add tools dir to path
+sys.path.append(str(Path(__file__).parent))
 
 from benchmarks.data_models import (
     ApiUnderstandingBenchmarkCase, FixErrorBenchmarkCase, 
     ApiUnderstandingAnswerOutput, FixErrorAnswerOutput, 
     BenchmarkType, AnswerTemplate, StringMatchAnswer, GeneratedAnswer,
-    BenchmarkResultType, CodeSnippetRef
+    BenchmarkResultType
 )
 from benchmarks.benchmark_runner import ApiUnderstandingRunner, PytestBenchmarkRunner
 from benchmarks.config import MOST_POWERFUL_MODEL
 from benchmarks.parsing.json_sanitizer import JsonSanitizer
 from benchmarks.api_key_manager import API_KEY_MANAGER
+from retrieval_benchmark_lib import EmbeddingRetriever, RankedTarget
 
 # Reuse models or redefine
 class RetrievalContext(BaseModel):
@@ -34,7 +39,7 @@ class RetrievalContext(BaseModel):
     empirical_relevance: str = "UNKNOWN" # YES, NO
     metadata: Dict[str, Any] = Field(default_factory=dict)
 
-class RetrievalPair(BaseModel):
+class RetrievalCase(BaseModel):
     id: str
     query: str
     positive_ctxs: List[RetrievalContext]
@@ -45,27 +50,38 @@ class RetrievalPair(BaseModel):
     is_sufficient_set: bool = False
 
 class RetrievalDataset(BaseModel):
-    pairs: List[RetrievalPair]
+    cases: List[RetrievalCase]
 
 class DataValidator:
-    def __init__(self, input_path: str, output_path: str, api_key: str):
+    def __init__(self, input_path: str, output_path: str, api_key: str, targets_path: str):
         self.input_path = input_path
         self.output_path = output_path
         self.client = genai.Client(api_key=api_key)
         self.sanitizer = JsonSanitizer(api_key_manager=API_KEY_MANAGER)
+        self.retriever = EmbeddingRetriever(api_key=api_key)
+        self.targets_path = targets_path
         
     async def validate_dataset(self):
+        # Index targets first
+        print("Loading and indexing ranked targets...")
+        with open(self.targets_path, 'r') as f:
+            data = yaml.safe_load(f)
+            raw_targets = data if isinstance(data, list) else data.get('targets', [])
+            targets = [RankedTarget(id=t['id'], name=t['name'], docstring=t.get('docstring', '')) for t in raw_targets if t.get('id')]
+        
+        await self.retriever.index(targets)
+
         with open(self.input_path, 'r') as f:
             dataset = RetrievalDataset.model_validate(yaml.safe_load(f))
         
-        print(f"Validating {len(dataset.pairs)} pairs...")
+        print(f"Validating {len(dataset.cases)} cases...")
         
         # Limit for dev
-        # dataset.pairs = dataset.pairs[:5] # Use small subset for Monte Carlo test
+        # dataset.cases = dataset.cases[:2]
         
         tasks = []
-        for pair in dataset.pairs:
-            tasks.append(self.validate_pair(pair))
+        for case in dataset.cases:
+            tasks.append(self.validate_case(case))
         
         # Run in chunks
         chunk_size = 2 # Small chunk size for heavy MC tasks
@@ -74,21 +90,37 @@ class DataValidator:
             chunk = tasks[i:i+chunk_size]
             results.extend(await asyncio.gather(*chunk))
             
-        dataset.pairs = results
+        dataset.cases = results
         
         # Save
         print(f"Saving verified dataset to {self.output_path}...")
         with open(self.output_path, 'w') as f:
             yaml.dump(dataset.model_dump(by_alias=True), f, sort_keys=False, allow_unicode=True)
 
-    async def validate_pair(self, pair: RetrievalPair) -> RetrievalPair:
+    async def validate_case(self, case: RetrievalCase) -> RetrievalCase:
         """
-        Validates the pair by establishing statistical conditional dependence of success on each context.
+        Validates the case by establishing statistical conditional dependence of success on each context.
         """
-        # 1. Pool Candidates
-        candidates = pair.positive_ctxs + pair.negative_ctxs
+        # 0. Retrieve Plausible Candidates (Hard Negatives / Missed Positives)
+        retrieved_targets = await self.retriever.search(case.query, top_k=10)
+        retrieved_ctxs = [
+            RetrievalContext(
+                fqn=t.id,
+                text=t.docstring,
+                type="retrieved"
+            )
+            for t in retrieved_targets
+        ]
+        
+        # 1. Pool Candidates (Merge lists, avoiding duplicates)
+        existing_fqns = {c.fqn for c in case.positive_ctxs + case.negative_ctxs}
+        for ctx in retrieved_ctxs:
+            if ctx.fqn not in existing_fqns:
+                case.negative_ctxs.append(ctx) # Add as potential candidate (initially negative)
+        
+        candidates = case.positive_ctxs + case.negative_ctxs
         if not candidates:
-            return pair
+            return case
 
         # Map by FQN
         c_map = {c.fqn: c for c in candidates}
@@ -102,7 +134,7 @@ class DataValidator:
         
         N_TRIALS = 3  # Keep small for dev
         
-        print(f"  - Running {N_TRIALS} Monte Carlo trials for pair {pair.id}...")
+        print(f"  - Running {N_TRIALS} Monte Carlo trials for case {case.id}...")
         
         for i in range(N_TRIALS):
             # 2. Monte Carlo Subsampling (Bernoulli p=0.5)
@@ -114,19 +146,20 @@ class DataValidator:
             
             subset_ctxs = [c_map[f] for f in subset_fqns]
             
-            # 3. Generate & Validate
+            # 3. Generate & Validate (Simple LLM Call with Context Injection)
             combined_text = "\n\n".join([f"Document {i}: {c.text}" for i, c in enumerate(subset_ctxs)])
             
             is_success = False
-            generated_answer = await self._generate_answer(pair, combined_text)
+            generated_answer = await self._generate_answer(case, combined_text)
+            
             if generated_answer:
                 try:
-                    if pair.source == "api_understanding":
-                        is_success = await self._validate_api_understanding(pair, generated_answer)
-                    elif pair.source == "fix_errors":
-                        is_success = await self._validate_fix_errors(pair, generated_answer)
+                    if case.source == "api_understanding":
+                        is_success = await self._validate_api_understanding(case, generated_answer)
+                    elif case.source == "fix_errors":
+                        is_success = await self._validate_fix_errors(case, generated_answer)
                 except Exception as e:
-                    print(f"Validation exception for {pair.id}: {e}")
+                    print(f"Validation exception for {case.id}: {e}")
                     is_success = False
             
             # 4. Record Stats
@@ -160,34 +193,38 @@ class DataValidator:
                 ctx.empirical_relevance = "NO"
                 verified_neg.append(ctx)
         
-        pair.positive_ctxs = verified_pos
-        pair.negative_ctxs = verified_neg
+        case.positive_ctxs = verified_pos
+        case.negative_ctxs = verified_neg
         
-        # Check final set sufficiency (using all positives)
+        # Check final set sufficiency
         if verified_pos:
             combined_text = "\n\n".join([f"Document {i}: {c.text}" for i, c in enumerate(verified_pos)])
-            final_ans = await self._generate_answer(pair, combined_text)
-            pair.is_sufficient_set = False
+            final_ans = await self._generate_answer(case, combined_text)
+            case.is_sufficient_set = False
             if final_ans:
                 try:
-                    if pair.source == "api_understanding":
-                        pair.is_sufficient_set = await self._validate_api_understanding(pair, final_ans)
-                    elif pair.source == "fix_errors":
-                        pair.is_sufficient_set = await self._validate_fix_errors(pair, final_ans)
+                    if case.source == "api_understanding":
+                        case.is_sufficient_set = await self._validate_api_understanding(case, final_ans)
+                    elif case.source == "fix_errors":
+                        case.is_sufficient_set = await self._validate_fix_errors(case, final_ans)
                 except Exception:
                     pass
         else:
-            pair.is_sufficient_set = False
+            case.is_sufficient_set = False
             
-        return pair
+        return case
 
-    async def _generate_answer(self, pair: RetrievalPair, context: str) -> Optional[GeneratedAnswer]:
-        if pair.source == "api_understanding":
+    async def _generate_answer(self, case: RetrievalCase, context: str) -> Optional[GeneratedAnswer]:
+        """
+        Generates an answer using the provided context directly in the prompt.
+        """
+        prompt = ""
+        if case.source == "api_understanding":
             prompt = f"""You are an expert developer.
 Context:
 {context[:20000]}
 
-Question: {pair.query}
+Question: {case.query}
 
 Instructions:
 Answer the question using the provided context. 
@@ -199,12 +236,12 @@ You MUST output JSON adhering to this schema:
     "fully_qualified_class_name": "Full.Class.Name"
 }}
 """
-        elif pair.source == "fix_errors":
+        elif case.source == "fix_errors":
             prompt = f"""You are an expert developer.
 Context:
 {context[:20000]}
 
-Task: {pair.query}
+Task: {case.query}
 
 Instructions:
 Fix the error/implement the requirement using the provided context.
@@ -229,16 +266,15 @@ You MUST output JSON adhering to this schema:
             # print(f"Generation failed: {e}")
             return None
 
-    async def _validate_api_understanding(self, pair: RetrievalPair, answer: GeneratedAnswer) -> bool:
-        gt = pair.ground_truth
-        # Construct case
+    async def _validate_api_understanding(self, case: RetrievalCase, answer: GeneratedAnswer) -> bool:
+        gt = case.ground_truth
         answers_data = gt.get("answers", [])
         if not answers_data: return False
         
-        case = ApiUnderstandingBenchmarkCase(
-            id=pair.id,
-            question=pair.query,
-            category=pair.metadata.get("category", "unknown"),
+        bcase = ApiUnderstandingBenchmarkCase(
+            id=case.id,
+            question=case.query,
+            category=case.metadata.get("category", "unknown"),
             rationale="N/A",
             template=AnswerTemplate(gt.get("template", "identifier")),
             answers=[StringMatchAnswer(**a) for a in answers_data],
@@ -248,23 +284,22 @@ You MUST output JSON adhering to this schema:
         runner = ApiUnderstandingRunner()
         
         try:
-            # Use Sanitizer for robust extraction
             answer.output = await self.sanitizer.sanitize(
                 answer.raw_output, ApiUnderstandingAnswerOutput
             )
-            result, logs, _, _ = await runner.run_benchmark(case, answer)
+            result, logs, _, _ = await runner.run_benchmark(bcase, answer)
             return result == BenchmarkResultType.PASS
         except Exception as e:
-            print(f"Validation error: {e}")
+            # print(f"Validation error: {e}")
             return False
 
-    async def _validate_fix_errors(self, pair: RetrievalPair, answer: GeneratedAnswer) -> bool:
-        gt = pair.ground_truth
+    async def _validate_fix_errors(self, case: RetrievalCase, answer: GeneratedAnswer) -> bool:
+        gt = case.ground_truth
         
         def to_path(p): return Path(p) if p else None
 
-        case = FixErrorBenchmarkCase(
-            id=pair.id,
+        bcase = FixErrorBenchmarkCase(
+            id=case.id,
             name=gt.get("name", "unknown"),
             description=gt.get("description", "unknown"),
             test_file=to_path(gt.get("test_file")),
@@ -277,14 +312,13 @@ You MUST output JSON adhering to this schema:
         runner = PytestBenchmarkRunner()
         
         try:
-            # Use Sanitizer for robust extraction
             answer.output = await self.sanitizer.sanitize(
                 answer.raw_output, FixErrorAnswerOutput
             )
-            result, logs, _, _ = await runner.run_benchmark(case, answer)
+            result, logs, _, _ = await runner.run_benchmark(bcase, answer)
             return result == BenchmarkResultType.PASS
         except Exception as e:
-            print(f"FixError Validation error: {e}")
+            # print(f"FixError Validation error: {e}")
             return False
 
 if __name__ == "__main__":
@@ -296,6 +330,7 @@ if __name__ == "__main__":
     validator = DataValidator(
         "retrieval_dataset.yaml",
         "retrieval_dataset_verified.yaml",
-        api_key
+        api_key,
+        "benchmarks/benchmark_generator/data/ranked_targets.yaml"
     )
     asyncio.run(validator.validate_dataset())

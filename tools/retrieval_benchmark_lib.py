@@ -93,13 +93,21 @@ class EmbeddingRetriever(AbstractRetriever):
         corpus_texts = [doc.corpus_text for doc in documents]
         # Cache check?
         cache_path = Path(".gemini/cache/vectors.npy")
-        if cache_path.exists() and len(np.load(cache_path)) == len(documents):
-            self.embeddings = np.load(cache_path)
-        else:
-            print("Generating embeddings... this may take a moment.")
-            self.embeddings = await self._get_embeddings_batched(corpus_texts)
-            cache_path.parent.mkdir(parents=True, exist_ok=True)
-            np.save(cache_path, self.embeddings)
+        print(f"Indexing {len(documents)} documents. Cache path: {cache_path}")
+        
+        if cache_path.exists():
+            cached = np.load(cache_path)
+            print(f"Cache exists with shape: {cached.shape}")
+            if len(cached) == len(documents):
+                self.embeddings = cached
+                print("Loaded embeddings from cache.")
+                return
+
+        print("Generating embeddings... this may take a moment.")
+        self.embeddings = await self._get_embeddings_batched(corpus_texts)
+        cache_path.parent.mkdir(parents=True, exist_ok=True)
+        np.save(cache_path, self.embeddings)
+        print(f"Saved embeddings to cache. Shape: {self.embeddings.shape}")
 
     async def search(self, query: str, top_k: int = 5) -> List[RankedTarget]:
         query_resp = await self.client.aio.models.embed_content(

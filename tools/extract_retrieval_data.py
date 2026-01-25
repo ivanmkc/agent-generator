@@ -16,7 +16,7 @@ class RetrievalContext(BaseModel):
     text: str = Field(..., description="The docstring or content of the context.")
     context_type: Literal["gold", "gold_inferred", "negative"] = Field(..., alias="type")
 
-class RetrievalPair(BaseModel):
+class RetrievalCase(BaseModel):
     id: str = Field(..., description="Unique identifier for the retrieval case.")
     query: str = Field(..., description="The natural language query or question.")
     positive_ctxs: List[RetrievalContext] = Field(default_factory=list)
@@ -26,7 +26,7 @@ class RetrievalPair(BaseModel):
     ground_truth: Dict[str, Any] = Field(default_factory=dict, description="Data required for empirical validation.")
 
 class RetrievalDataset(BaseModel):
-    pairs: List[RetrievalPair] = Field(default_factory=list)
+    cases: List[RetrievalCase] = Field(default_factory=list)
 
 class RetrievalDataExtractor:
     def __init__(self, ranked_targets_path: str, benchmarks_root: str):
@@ -115,7 +115,7 @@ class RetrievalDataExtractor:
             
             if positive_ctxs:
                 negatives = self._sample_negatives(valid_gold_fqns)
-                self.dataset.pairs.append(RetrievalPair(
+                self.dataset.cases.append(RetrievalCase(
                     id=qid,
                     query=query,
                     positive_ctxs=positive_ctxs,
@@ -172,7 +172,7 @@ class RetrievalDataExtractor:
             
             if positive_ctxs:
                 negatives = self._sample_negatives(valid_gold_fqns)
-                self.dataset.pairs.append(RetrievalPair(
+                self.dataset.cases.append(RetrievalCase(
                     id=qid,
                     query=query,
                     positive_ctxs=positive_ctxs,
@@ -212,7 +212,7 @@ class RetrievalDataExtractor:
         return list(fqns)
 
     def save_dataset(self, output_path: str):
-        logger.info(f"Saving {len(self.dataset.pairs)} pairs to {output_path}...")
+        logger.info(f"Saving {len(self.dataset.cases)} pairs to {output_path}...")
         data = self.dataset.model_dump(by_alias=True)
         with open(output_path, 'w') as f:
             yaml.dump(data, f, sort_keys=False, allow_unicode=True)
