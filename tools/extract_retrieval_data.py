@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import List, Dict, Any, Optional, Literal
 from pydantic import BaseModel, Field, ConfigDict
 import sys
+import re
 
 # Add project root to path for imports
 sys.path.append(str(Path(__file__).parent.parent))
@@ -23,8 +24,8 @@ class RetrievalDataExtractor:
     def __init__(self, ranked_targets_path: str, benchmarks_root: str):
         self.ranked_targets_path = Path(ranked_targets_path)
         self.benchmarks_root = Path(benchmarks_root)
-        self.targets_index: Dict[str, Dict[str, Any]] = {} # FQN -> Target Raw Data
-        self.name_to_fqn: Dict[str, List[str]] = {} # Class Name -> List[FQN]
+        self.targets_index: Dict[str, Dict[str, Any]] = {} 
+        self.name_to_fqn: Dict[str, List[str]] = {} 
         self.all_fqns: List[str] = []
         self.dataset = RetrievalDataset(cases=[])
 
@@ -52,158 +53,74 @@ class RetrievalDataExtractor:
                     self.name_to_fqn[name].append(fqn)
         logger.info(f"Loaded {len(self.targets_index)} targets.")
 
-    def _sample_negatives(self, exclude_fqns: List[str], count: int = 5) -> List[RetrievalContext]:
-        """Samples random negative contexts."""
-        import random
-        negatives = []
-        attempts = 0
-        while len(negatives) < count and attempts < 100:
-            attempts += 1
-            candidate_fqn = random.choice(self.all_fqns)
-            if candidate_fqn not in exclude_fqns:
-                target = self.targets_index[candidate_fqn]
-                negatives.append(RetrievalContext(
-                    fqn=candidate_fqn,
-                    text=target.get('docstring', 'No docstring available.'),
-                    type="negative"
-                ))
-        return negatives
-
-    def extract_api_understanding(self):
-        """Extracts queries from api_understanding benchmarks."""
-        bm_path = self.benchmarks_root / "benchmark_definitions/api_understanding/benchmark.yaml"
-        if not bm_path.exists():
-            logger.warning(f"Benchmark file not found: {bm_path}")
+    def extract_multiple_choice(self, file_path: Path):
+        """Extracts queries from multiple choice benchmarks."""
+        if not file_path.exists():
+            logger.warning(f"Benchmark file not found: {file_path}")
             return
 
-        logger.info(f"Processing {bm_path}...")
-        with open(bm_path, 'r') as f:
+        logger.info(f"Processing MC: {file_path}...")
+        with open(file_path, 'r') as f:
             data = yaml.safe_load(f)
         
         benchmarks = data.get('benchmarks', [])
         for b in benchmarks:
+            if b.get('benchmark_type') != 'multiple_choice':
+                continue
+                
             qid = b.get('id')
             query = b.get('question')
-            answers = b.get('answers', [])
             
-            gold_fqns = []
-            for ans in answers:
-                fqns = ans.get('fully_qualified_class_name', [])
-                if isinstance(fqns, str): fqns = [fqns]
-                gold_fqns.extend(fqns)
+            # Heuristic Gold Mining from explanation and options
+            text_to_search = (b.get('explanation', '') or '') + " " + " ".join(b.get('options', {}).values())
+            gold_fqns = self._mine_fqns_from_text(text_to_search)
             
             positive_ctxs = []
-            valid_gold_fqns = []
             for fqn in gold_fqns:
                 target = self.targets_index.get(fqn)
                 if target:
                     positive_ctxs.append(RetrievalContext(
                         fqn=fqn,
                         text=target.get('docstring', 'No docstring available.'),
-                        type="gold"
+                        type="gold_mined"
                     ))
-                    valid_gold_fqns.append(fqn)
             
-            if positive_ctxs:
-                negatives = self._sample_negatives(valid_gold_fqns)
-                self.dataset.cases.append(RetrievalCase(
-                    id=qid,
-                    query=query,
-                    positive_ctxs=positive_ctxs,
-                    negative_ctxs=negatives,
-                    source="api_understanding",
-                    metadata={"category": b.get("category")},
-                    ground_truth={"answers": b.get("answers"), "template": b.get("template")}
-                ))
-
-    def extract_fix_errors(self):
-        """Extracts queries from fix_error benchmarks."""
-        bm_path = self.benchmarks_root / "benchmark_definitions/fix_errors/benchmark.yaml"
-        if not bm_path.exists():
-            logger.warning(f"Benchmark file not found: {bm_path}")
-            return
-
-        logger.info(f"Processing {bm_path}...")
-        with open(bm_path, 'r') as f:
-            data = yaml.safe_load(f)
-        
-        benchmarks = data.get('benchmarks', [])
-        for b in benchmarks:
-            qid = b.get('id')
-            query = b.get('description') or b.get('name')
-            fixed_file_rel = b.get('fixed_file')
+            # For MC, we still want to evaluate retrieval even if we don't find gold context statically.
+            # But the validator will need context to answer. 
+            # We'll rely on the dynamic retriever in the validator to find the "real" gold.
             
-            if not fixed_file_rel: continue
-                
-            fixed_path = self.benchmarks_root.parent / fixed_file_rel
-            if not fixed_path.exists(): continue
-            
-            gold_fqns = self._extract_adk_imports(fixed_path)
-            positive_ctxs = []
-            valid_gold_fqns = []
-            for import_str in gold_fqns:
-                # 1. Try exact match
-                target = self.targets_index.get(import_str)
-                
-                # 2. Try by Class Name (e.g., LlmAgent)
-                if not target:
-                    short_name = import_str.split('.')[-1]
-                    candidates = self.name_to_fqn.get(short_name)
-                    if candidates:
-                        target = self.targets_index.get(candidates[0])
-                        import_str = candidates[0] # Update valid FQN
+            self.dataset.cases.append(RetrievalCase(
+                id=qid,
+                query=query,
+                positive_ctxs=positive_ctxs,
+                source="multiple_choice",
+                metadata={"options": b.get("options")},
+                ground_truth={
+                    "correct_answer": b.get("correct_answer"),
+                    "options": b.get("options"),
+                    "explanation": b.get("explanation"),
+                    "benchmark_type": "multiple_choice"
+                }
+            ))
 
-                if target:
-                    positive_ctxs.append(RetrievalContext(
-                        fqn=import_str,
-                        text=target.get('docstring', 'No docstring available.'),
-                        type="gold_inferred"
-                    ))
-                    valid_gold_fqns.append(import_str)
-            
-            if positive_ctxs:
-                negatives = self._sample_negatives(valid_gold_fqns)
-                self.dataset.cases.append(RetrievalCase(
-                    id=qid,
-                    query=query,
-                    positive_ctxs=positive_ctxs,
-                    negative_ctxs=negatives,
-                    source="fix_errors",
-                    metadata={"test_file": b.get("test_file")},
-                    ground_truth={
-                        "test_file": b.get("test_file"),
-                        "unfixed_file": b.get("unfixed_file"),
-                        "fixed_file": b.get("fixed_file"),
-                        "requirements": b.get("requirements"),
-                        "error_output": b.get("error_output"),
-                        "name": b.get("name"),
-                        "description": b.get("description")
-                    }
-                ))
-
-    def _extract_adk_imports(self, file_path: Path) -> List[str]:
-        """Parses a python file and returns a list of google.adk FQNs imported."""
-        import ast
+    def _mine_fqns_from_text(self, text: str) -> List[str]:
+        """Attempts to find ADK class names or FQNs in text."""
         fqns = set()
-        try:
-            with open(file_path, 'r') as f:
-                tree = ast.parse(f.read())
+        # Look for things that look like FQNs
+        matches = re.findall(r'google\.adk\.[a-zA-Z0-9_\.]+', text)
+        for m in matches:
+            fqns.add(m.rstrip('.'))
             
-            for node in ast.walk(tree):
-                if isinstance(node, ast.Import):
-                    for alias in node.names:
-                        if alias.name.startswith("google.adk") or alias.name.startswith("google.genai"):
-                            fqns.add(alias.name)
-                elif isinstance(node, ast.ImportFrom):
-                    if node.module and (node.module.startswith("google.adk") or node.module.startswith("google.genai")):
-                        for alias in node.names:
-                            fqns.add(f"{node.module}.{alias.name}")
-        except Exception as e:
-            logger.error(f"Failed to parse {file_path}: {e}")
+        # Look for things in backticks that might be class names
+        matches = re.findall(r'`([A-Z][a-zA-Z0-9]+)`', text)
+        for name in matches:
+            if name in self.name_to_fqn:
+                fqns.add(self.name_to_fqn[name][0])
+                
         return list(fqns)
 
     def save_dataset(self, output_path: str):
-        logger.info(f"Saving {len(self.dataset.cases)} pairs to {output_path}...")
+        logger.info(f"Saving {len(self.dataset.cases)} cases to {output_path}...")
         data = self.dataset.model_dump(by_alias=True)
         with open(output_path, 'w') as f:
             yaml.dump(data, f, sort_keys=False, allow_unicode=True)
@@ -214,6 +131,15 @@ if __name__ == "__main__":
         benchmarks_root="benchmarks"
     )
     extractor.load_ranked_targets()
-    extractor.extract_api_understanding()
-    extractor.extract_fix_errors()
+    
+    # Restrict to MC files
+    mc_files = [
+        "benchmarks/benchmark_definitions/configure_adk_features_mc/benchmark.yaml",
+        "benchmarks/benchmark_definitions/diagnose_setup_errors_mc/benchmark.yaml",
+        "benchmarks/benchmark_definitions/predict_runtime_behavior_mc/benchmark.yaml"
+    ]
+    
+    for f in mc_files:
+        extractor.extract_multiple_choice(Path(f))
+        
     extractor.save_dataset("retrieval_dataset.yaml")

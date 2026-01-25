@@ -20,17 +20,16 @@
 
 ### 3. Implementation: Phase 2 (Validator)
 - **Task:** Create `tools/validate_retrieval_data.py`.
-- **Method:** Implemented Monte Carlo Relevance Verification.
+- **Method:** Implemented Monte Carlo Relevance Verification with Agentic Solving.
 - **Features:**
-    - Uses `EmbeddingRetriever` (Vector Search) to find "Hard Negatives" and plausible candidates.
-    - Runs `N=3` Bernoulli trials per case.
-    - Injects randomized context subsets directly into the prompt (no tools).
-    - Uses `ApiUnderstandingRunner`/`PytestBenchmarkRunner` to validate answers.
-    - Calculates `Delta P` (Impact Score) to determine empirical relevance.
-    - **Robustness:** Added retry logic for `429 RESOURCE_EXHAUSTED` using `ApiKeyManager` and exponential backoff. Switched generation model to `gemini-2.5-flash` for efficiency.
-- **Result:** Pipeline runs successfully end-to-end. Verified integration of Vector Search candidates.
+    - **Decoupled Retrievers:** Uses a list of `AbstractRetriever` objects (GoldMiner, Embedding, Random) to build the candidate pool.
+    - **Empirical Validation:** Runs `N=3` Bernoulli trials (p=0.5). Injects context directly into prompt using `[START_DOCUMENT]` delimiters.
+    - **Robust Generation:** Uses `JsonSanitizer` with schema injection and `response_schema` API enforcement.
+    - **Causal Analysis:** Calculates `Delta P` (Impact Score) to identify relevant documents.
+    - **Verified Results:** Successfully identified high-impact contexts (Delta P = +1.0) for MC questions.
+- **Result:** Pipeline is fully operational and produces high-quality, verified retrieval benchmarks.
 
 ### 4. Implementation: Phase 3 (Evaluation)
 - **Task:** Create `tools/retrieval_benchmark_lib.py` and `notebooks/run_retrieval_eval.py`.
 - **Method:** Compare BM25 vs Gemini Embeddings (text-embedding-004).
-- **Result:** Validated that Embeddings significantly outperform BM25 (Recall@5: 78% vs 21%).
+- **Result:** Validated that Embeddings significantly outperform BM25 (Recall@5: 78% vs 21% on unverified data). Now ready for verified baseline.

@@ -24,12 +24,15 @@ sys.path.append(str(Path(__file__).parent.parent))
 sys.path.append(str(Path(__file__).parent))
 
 from benchmarks.data_models import (
-    ApiUnderstandingBenchmarkCase, FixErrorBenchmarkCase, 
-    ApiUnderstandingAnswerOutput, FixErrorAnswerOutput, 
+    ApiUnderstandingBenchmarkCase, FixErrorBenchmarkCase, MultipleChoiceBenchmarkCase,
+    ApiUnderstandingAnswerOutput, FixErrorAnswerOutput, MultipleChoiceAnswerOutput,
     BenchmarkType, AnswerTemplate, StringMatchAnswer, GeneratedAnswer,
     BenchmarkResultType
 )
-from benchmarks.benchmark_runner import ApiUnderstandingRunner, PytestBenchmarkRunner
+from benchmarks.benchmark_runner import (
+    ApiUnderstandingRunner, PytestBenchmarkRunner, MultipleChoiceRunner
+)
+from benchmarks.config import MOST_POWERFUL_MODEL
 from benchmarks.parsing.json_sanitizer import JsonSanitizer
 from benchmarks.api_key_manager import API_KEY_MANAGER, KeyType
 from benchmarks.benchmark_candidates import ModelName
@@ -50,7 +53,7 @@ class DataValidator:
         self.input_path = input_path
         self.output_path = output_path
         self.api_key_manager = API_KEY_MANAGER
-        self.sanitizer = JsonSanitizer(api_key_manager=self.api_key_manager, model_name=GENERATION_MODEL)
+        self.sanitizer = JsonSanitizer(api_key_manager=self.api_key_manager, model_name=MOST_POWERFUL_MODEL)
         self.retrievers = retrievers
         
     async def validate_dataset(self, max_cases: Optional[int] = None, offset: int = 0):
@@ -139,7 +142,10 @@ class DataValidator:
                         is_success = await self._validate_api_understanding(case, generated_answer)
                     elif case.source == "fix_errors":
                         is_success = await self._validate_fix_errors(case, generated_answer)
-                except Exception:
+                    elif case.source == "multiple_choice":
+                        is_success = await self._validate_multiple_choice(case, generated_answer)
+                except Exception as e:
+                    # print(f"Validation exception for {case.id}: {e}")
                     is_success = False
             
             status_char = f"{Fore.GREEN}PASS{Style.RESET_ALL}" if is_success else f"{Fore.RED}FAIL{Style.RESET_ALL}"
@@ -186,6 +192,8 @@ class DataValidator:
                         case.is_sufficient_set = await self._validate_api_understanding(case, final_ans)
                     elif case.source == "fix_errors":
                         case.is_sufficient_set = await self._validate_fix_errors(case, final_ans)
+                    elif case.source == "multiple_choice":
+                        case.is_sufficient_set = await self._validate_multiple_choice(case, final_ans)
                 except Exception: pass
             
             suff_color = Fore.GREEN if case.is_sufficient_set else Fore.RED
@@ -202,19 +210,29 @@ class DataValidator:
             target_schema = ApiUnderstandingAnswerOutput
         elif case.source == "fix_errors":
             target_schema = FixErrorAnswerOutput
+        elif case.source == "multiple_choice":
+            target_schema = MultipleChoiceAnswerOutput
         else: 
             return None
 
         # Inject schema definition into prompt
         schema_json = json.dumps(target_schema.model_json_schema(), indent=2)
+        
+        # Prepare Question Text for MC
+        question_text = case.query
+        if case.source == "multiple_choice":
+            options = case.metadata.get("options", {})
+            opt_str = "\n".join([f"{k}: {v}" for k, v in options.items()])
+            question_text = f"{case.query}\n\nOptions:\n{opt_str}"
+
         prompt = f"""You are an expert developer.
 Context:
 {context[:30000]}
 
-Task: {case.query}
+Task: {question_text}
 
 Instructions:
-1. Answer the question or fix the code using ONLY the provided context.
+1. Answer the question using ONLY the provided context.
 2. You MUST output a valid JSON object matching the schema below.
 
 Target Schema:
@@ -234,7 +252,6 @@ Target Schema:
             client = genai.Client(api_key=key_val)
             
             try:
-                # Use response_schema in config for enforcement
                 response = await client.aio.models.generate_content(
                     model=GENERATION_MODEL,
                     contents=prompt,
@@ -277,9 +294,7 @@ Target Schema:
             answer.output = await self.sanitizer.sanitize(answer.raw_output, ApiUnderstandingAnswerOutput)
             result, _, _, _ = await runner.run_benchmark(bcase, answer)
             return result == BenchmarkResultType.PASS
-        except Exception as e: 
-            # print(f"      {Fore.RED}API Validation Error: {e}{Style.RESET_ALL}")
-            return False
+        except Exception: return False
 
     async def _validate_fix_errors(self, case: RetrievalCase, answer: GeneratedAnswer) -> bool:
         gt = case.ground_truth
@@ -293,19 +308,28 @@ Target Schema:
         runner = PytestBenchmarkRunner()
         try:
             answer.output = await self.sanitizer.sanitize(answer.raw_output, FixErrorAnswerOutput)
-            result, logs, _, _ = await runner.run_benchmark(bcase, answer)
-            if result != BenchmarkResultType.PASS:
-                # print(f"      {Fore.YELLOW}Runner Result: {result}{Style.RESET_ALL}")
-                pass
+            result, _, _, _ = await runner.run_benchmark(bcase, answer)
             return result == BenchmarkResultType.PASS
-        except Exception as e: 
-            # print(f"      {Fore.RED}FixError Validation Error: {e}{Style.RESET_ALL}")
-            return False
+        except Exception: return False
+
+    async def _validate_multiple_choice(self, case: RetrievalCase, answer: GeneratedAnswer) -> bool:
+        gt = case.ground_truth
+        bcase = MultipleChoiceBenchmarkCase(
+            id=case.id,
+            question=case.query,
+            options=gt.get("options", {}),
+            correct_answer=gt.get("correct_answer"),
+            explanation=gt.get("explanation"),
+            benchmark_type=BenchmarkType.MULTIPLE_CHOICE
+        )
+        runner = MultipleChoiceRunner()
+        try:
+            answer.output = await self.sanitizer.sanitize(answer.raw_output, MultipleChoiceAnswerOutput)
+            result, _, _, _ = await runner.run_benchmark(bcase, answer)
+            return result == BenchmarkResultType.PASS
+        except Exception: return False
 
 if __name__ == "__main__":
-    # We use ApiKeyManager, so we don't need GEMINI_API_KEY env var strictly for the main loop
-    # But EmbeddingRetriever init still takes a key. We should give it a key from the manager.
-
     # Pre-fetch a key for embeddings
     key_val = asyncio.run(API_KEY_MANAGER.get_next_key(KeyType.GEMINI_API))
     if not key_val:
