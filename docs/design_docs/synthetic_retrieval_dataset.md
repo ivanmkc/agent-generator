@@ -132,3 +132,55 @@ We will classify retrieval failures into buckets:
 1.  **Vocabulary Mismatch:** User used synonyms not present in docstring (e.g., "concurrent" vs "parallel"). -> *Fix: Vector Search.*
 2.  **Specificity Gap:** Query was too vague ("How to run agent") for a specific target (`ParallelAgent`). -> *Fix: Query Expansion.*
 3.  **Distractor Overlap:** A hard negative (`SequentialAgent`) scored higher due to shared keywords. -> *Fix: Reranking / Contrastive Training.*
+
+## 6. Agent Architecture: The Retrieval Validator
+
+To operationalize the "Validation & Filtering" step, we define a specialized ADK agent, the `RetrievalValidatorAgent`.
+
+### 6.1 Architecture Diagram
+
+```text
++-----------------------+
+|  Script Orchestrator  |
+|  (Iterates benchmarks)|
++-----------------------+
+           |
+           v
++-----------------------------------------------------+
+|  SequentialAgent: "RetrievalValidatorAgent"         |
+|                                                     |
+|  1. [FunctionTool] "context_resolver"               |
+|     - Input: Target FQNs                            |
+|     - Action: Fetches docstrings from index         |
+|                                                     |
+|  2. [LlmAgent] "sufficiency_check"                  |
+|     - Input: Query + Gold Docstring                 |
+|     - Prompt: "Can you answer X using only Y?"      |
+|     - Output: Boolean (Is Sufficient?)              |
+|                                                     |
+|  3. [LlmAgent] "necessity_check" (Conditional)      |
+|     - Input: Query + Random/Negative Docstrings     |
+|     - Prompt: "Can you answer X using only Z?"      |
+|     - Output: Boolean (Is Necessary?)               |
+|                                                     |
+|  4. [FunctionTool] "dataset_writer"                 |
+|     - Action: If Valid, append to JSONL.            |
++-----------------------------------------------------+
+```
+
+### 6.2 Component Details
+
+#### A. Sufficiency Agent (`sufficiency_check`)
+*   **Model:** `gemini-2.5-flash` (Fast, low cost).
+*   **System Instruction:**
+    > "You are a strict data validator. You will be given a user question and a single code documentation snippet. Your task is to determine if the snippet provides *enough* information to answer the question definitively. Return JSON: `{'is_sufficient': bool, 'reason': str}`."
+
+#### B. Necessity Agent (`necessity_check`)
+*   **Model:** `gemini-2.5-flash`.
+*   **System Instruction:**
+    > "You are a strict data validator. You will be given a user question and a set of *irrelevant* code documentation snippets. Your task is to verify that these snippets DO NOT contain the answer. If you can answer the question using them, the question is likely too generic. Return JSON: `{'is_answerable_without_gold': bool, 'reason': str}`."
+
+#### C. Validation Logic
+The candidate pair is **ACCEPTED** only if:
+*   `is_sufficient` == `True`
+*   `is_answerable_without_gold` == `False`
