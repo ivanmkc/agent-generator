@@ -32,8 +32,8 @@ The solution uses a specialized **Verifier Agent**—a high-capability LLM agent
 +-----------+-----------+       +----------+----------+
             |                              |
             | 1. Provide Question          | 1. Research (search/inspect)
-            | 2. Provide Options           | 2. Decompose Claims
-            |                              | 3. **PROVE via PYTEST**
+            | 2. Provide Options           | 2. Decompose Claims (Analyst)
+            |                              | 3. **PROVE via PYTEST** (Engineer)
             | <---- Agent's Verdict -------+
             |
             v
@@ -43,18 +43,25 @@ The solution uses a specialized **Verifier Agent**—a high-capability LLM agent
 +-----------------------+
 ```
 
-### 2.2 The Verifier Agent
-The agent is configured as a "Codebase Researcher & Tester" with the following tools:
-- **Research:** `search_ranked_targets`, `inspect_fqn`, `read_file`.
-- **Execution:** `write_file`, `run_shell_command` (for running `pytest`).
-- **Model:** Must use `MOST_POWERFUL_MODEL` (e.g., `gemini-3-pro-preview`) to ensure reasoning depth.
+### 2.2 The Verifier Agent Pair
+The verification task is split between two specialized sub-agents:
 
-**System Instruction:**
-> "You are a Senior QA Engineer auditing a certification exam for the Google ADK. Your goal is to verify if a question is fair, accurate, and unambiguous. You MUST NOT rely on your internal knowledge. You MUST **prove** every claim (positive or negative) by writing and executing `pytest` scripts against the installed library."
+1.  **Claim Analyst (LlmAgent):**
+    *   **Goal:** Research the codebase and decompose the question into atomic, testable claims.
+    *   **Tools:** `search_ranked_targets`, `inspect_fqn`.
+    *   **Output:** A list of `VerificationTask` objects (one per option) to `session.state`.
+
+2.  **Proof Engineer (LoopAgent):**
+    *   **Goal:** Rigorously prove each claim by writing and running code.
+    *   **Tools:** `write_file`, `run_shell_command` (pytest), `read_file`.
+    *   **Input:** Reads `VerificationTask` list from `session.state`.
+
+**System Instruction (Shared):**
+> "You are a Senior QA Engineer auditing a certification exam. You must NOT rely on internal knowledge. You must PROVE every claim (positive or negative) by writing and executing `pytest` scripts against the installed library."
 
 ## 3. Workflow Logic: Claim Decomposition & Verification
 
-The verification process follows a strict "Decompose -> Verify -> Verdict" loop. Verification is binary (Proven/Disproven) and asserted via automated tests.
+The verification process follows a strict "Decompose -> Verify -> Verdict" loop.
 
 ```text
 [ Start Verification Loop ]
@@ -64,28 +71,28 @@ The verification process follows a strict "Decompose -> Verify -> Verdict" loop.
      *Do not reveal Ground Truth to Agent yet.*
           |
           v
-  2. CLAIM DECOMPOSITION
-     - The Agent breaks down the Question and EACH Option into atomic claims.
-     - Example (Option A - True): "EventsCompactionConfig accepts 'interval' arg."
-     - Example (Option B - False): "EventsCompactionConfig accepts 'freq' arg."
+  2. CLAIM DECOMPOSITION (Agent 1: Analyst)
+     - Research the relevant classes/methods.
+     - Break down EACH Option into a specific hypothesis.
+     - Save to State: `claims = [{"option": "A", "type": "positive", "claim": "..."}, ...]`
           |
           v
-  3. **EMPIRICAL VERIFICATION (The "Proof" Phase)**
-     - **Constraint:** EVERY Claim must be proven via a `pytest` file.
-     - `test_option_A.py`: `def test_A(): conf = EventsCompactionConfig(interval=5); assert conf.interval == 5`
-       -> MUST PASS (Proves Option A is valid).
-     - `test_option_B.py`: `def test_B(): with pytest.raises(ValidationError): EventsCompactionConfig(freq=5)`
-       -> MUST PASS (Proves Option B is invalid, confirming it is a distractor).
+  3. **EMPIRICAL VERIFICATION (Agent 2: Engineer)**
+     - **Constraint:** Loop through `claims`. For each:
+       a. Write a `pytest` file (e.g., `test_option_A.py`).
+       b. Execute it.
+       c. Record result: `Proven Valid` or `Proven Invalid`.
+     - *Distractor Logic:* A distractor is "Proven" if the test passes by asserting the expected failure (e.g., `with pytest.raises`).
           |
           v
   4. VERDICT SYNTHESIS
      - **Valid Question:**
-       - Correct Option Test: PASS.
-       - Distractor Option Tests: PASS (Asserting failure/invalidity).
+       - Correct Option: Script PASSED.
+       - Distractor Options: Scripts PASSED (Confirming invalidity).
      - **Ambiguous Question:**
-       - Multiple options pass "Validity" tests (e.g., test_B didn't raise exception).
+       - Multiple options correspond to "working" code (i.e., distractors failed to fail).
      - **Incorrect Question:**
-       - The "Correct" option test fails.
+       - The "Correct" option fails its test.
           |
           v
   5. REPORT GENERATION
@@ -122,87 +129,59 @@ If Option B says *"Use `summarization_freq` to configure..."* (a non-existent fi
 *   **Verification:** Run `pytest test_option_B.py`. Must PASS (proving the exception occurred).
     *   *Crucial:* If this test FAILS (i.e., the code ran without error), then Option B is actually VALID, and the question is ambiguous!
 
-### 4.3 Proving Runtime Behavior
-If the question asks *"What happens if you run X?"*:
-*   **Action:** Write `test_behavior.py`.
-*   **Code Pattern:**
-    ```python
-    def test_runtime_behavior():
-        result = run_x()
-        assert result == "expected_output", f"Got {result}"
-    ```
-
 ## 5. Implementation Plan
 
 ### Phase 1: The `verify_benchmarks.py` Tool
 - **Script:** A CLI tool to iterate over `benchmarks/benchmark_definitions/*.yaml`.
-- **Runner:** Instantiates `AdkAnswerGenerator` with the `VerifierAgent` config, overriding `model_name` to `gemini-3-pro-preview`.
-- **Output:** Generates `quality_report.json` and a human-readable `quality_audit.md`.
+- **Runner:** Instantiates `AdkAnswerGenerator` with the `VerifierAgent` config.
+- **Output:** Generates `quality_report.json`.
 
-### Phase 2: The Verifier Agent Prompt
-We need a specialized prompt that forces the model to cite `pytest` evidence.
+### Phase 2: Agent Configuration
+Use `MOST_POWERFUL_MODEL` (`gemini-3-pro-preview`).
 
-**Draft Prompt:**
+**Analyst Prompt:**
 ```text
-Task: Audit this Multiple Choice Question.
-
+Task: Analyze this Multiple Choice Question.
 Question: {question}
 Options: {options}
 
-STEP 1: Research. Find relevant classes/methods.
-
-STEP 2: Decompose & Prove via Pytest.
-For EACH option (A, B, C, D...):
-1. State the implicit claim.
-2. Write a `test_option_{letter}.py` file using `pytest`.
-   - If the option is correct, assert success.
-   - If the option is wrong (distractor), assert FAILURE (e.g. `with pytest.raises(...)`).
-   - DO NOT write a script that crashes. The script itself must PASS to prove your hypothesis.
-3. Execute `pytest test_option_{letter}.py`.
-4. Record the result.
-
-STEP 3: Evaluate.
-- Did the "Correct" option test PASS?
-- Did the "Distractor" option tests PASS (confirming they are invalid)?
-- If a Distractor test FAILED (meaning the code actually worked when it shouldn't have), the question is AMBIGUOUS.
-
-Output JSON: {
-  "option_proofs": {
-    "A": {"claim": "...", "status": "Proven Valid (Pytest Passed)"},
-    "B": {"claim": "...", "status": "Proven Invalid (Pytest Passed on Exception)"}
-  },
-  "quality_rating": "Valid" | "Ambiguous" | "Incorrect",
-  "critique": "..."
-}
+1. Research codebase using `search_ranked_targets` / `inspect_fqn`.
+2. For each option, determine the implied claim (e.g., "This code runs", "This raises ValueError").
+3. Save a list of `VerificationTask` objects to `session.state.claims`.
+   Format: {"option": "A", "hypothesis": "Should run successfully", "code_snippet_hint": "..."}
 ```
 
-### Phase 3: Integration
-- Add a CI/CD step (weekly) to run the verifier on the `main` branch to catch drift (e.g., when ADK version bumps).
+**Engineer Prompt:**
+```text
+Task: Execute Verification Plan.
+Context: You have a list of claims in `session.state.claims`.
+
+1. Iterate through each claim.
+2. Write a `pytest` file (`test_option_{letter}.py`).
+   - If hypothesis is "Success", assert True.
+   - If hypothesis is "Failure" (Distractor), assert Exception (using pytest.raises).
+3. Run `pytest`.
+4. Record the result in `session.state.results`.
+```
 
 ## 6. Environment Isolation & Dependencies
 
-Executing dynamic verification scripts carries risks of state pollution and dependency conflicts.
+Executing dynamic verification scripts carries risks of state pollution.
 
 ### 6.1 Sandbox Isolation
-- **Per-Task VirtualEnv:** Each verification run (or batch of runs) should operate in a clean environment.
-- **Temp Directory:** The `verifier_agent` must write its `test_*.py` files to a unique temporary directory (e.g., `/tmp/adk_verify_<uuid>`).
-- **Cleanup:** `teardown_agent` or `CodeBasedTeardownAgent` must forcefully remove these directories after the verdict is rendered.
+- **Per-Task VirtualEnv:** Each verification run operates in a clean environment.
+- **Temp Directory:** The `verifier_agent` writes `test_*.py` files to `/tmp/adk_verify_<uuid>`.
+- **Cleanup:** `CodeBasedTeardownAgent` removes these directories.
 
 ### 6.2 Handling Imports
-- **PYTHONPATH:** The runner script (`verify_benchmarks.py`) must ensure `PYTHONPATH` includes the local `adk-python` source or the installed `site-packages` where `google.adk` lives.
-- **AdkTools:** The agent's `read_file` and `run_shell_command` tools will be scoped to the workspace root.
-- **Mocking:** If the test requires external services (e.g., Gemini API), the agent should be instructed to use `unittest.mock` to simulate responses, ensuring tests are deterministic and offline-capable where possible.
+- **PYTHONPATH:** The runner script ensures `PYTHONPATH` includes the local `adk-python` source.
+- **Mocking:** Tests must use `unittest.mock` for external services (e.g., Gemini API) to ensure determinism.
 
 ## 7. ADK Implementation Logic
 
-The workflow translates to a standard ADK `SequentialAgent` pipeline.
+The workflow uses a `SequentialAgent` pipeline with specialized roles.
 
 ```text
-                  +--------------------------------+
-                  |   AdkAnswerGenerator (Runner)  |
-                  +--------------------------------+
-                                 |
-                                 v
 +-----------------------------------------------------------------------+
 |  SequentialAgent: "verifier_workflow"                                 |
 |                                                                       |
@@ -210,13 +189,23 @@ The workflow translates to a standard ADK `SequentialAgent` pipeline.
 |     - Create tmp dir.                                                 |
 |     - Check ADK install.                                              |
 |                                                                       |
-|  2. [LlmAgent] "verifier_logic"                                       |
-|     - Tools: `search_ranked_targets`, `inspect_fqn`, `write_file`,    |
-|              `run_shell_command` (pytest).                            |
-|     - Loop: Research -> Write Test -> Run Test -> Analyze.            |
-|     - Max Iterations: 10 (Allow robust testing of all options).       |
+|  2. [LlmAgent] "claim_analyst"                                        |
+|     - Tools: `search_ranked_targets`, `inspect_fqn`, `save_claims`.   |
+|     - Input: Question + Options.                                      |
+|     - Output: Saves `claims` list to session state.                   |
 |                                                                       |
-|  3. [CodeBasedTeardownAgent]                                          |
+|  3. [LoopAgent] "proof_engineer_loop"                                 |
+|     - Sub-Agent: [LlmAgent] "proof_engineer"                          |
+|       - Tools: `write_file`, `run_shell_command` (pytest),            |
+|                `read_file`, `save_proof_result`.                      |
+|       - Logic: Picks next pending claim, writes test, runs it.         |
+|     - Loop Condition: Until all claims processed.                     |
+|                                                                       |
+|  4. [LlmAgent] "verdict_synthesizer"                                  |
+|     - Logic: Reviews all proof results vs. Ground Truth.              |
+|     - Output: Final Quality JSON.                                     |
+|                                                                       |
+|  5. [CodeBasedTeardownAgent]                                          |
 |     - Delete tmp dir.                                                 |
 +-----------------------------------------------------------------------+
 ```
