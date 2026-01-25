@@ -32,4 +32,4 @@ tmp/
 node_modules
 *.log
 
-repos/
+repos/*.jsonl
