@@ -98,11 +98,38 @@ The verification process follows a strict "Decompose -> Verify -> Verdict" loop.
   5. REPORT GENERATION
 ```
 
-## 4. Proof Strategies (Detailed)
+## 4. Remediation Workflow (The Fix Loop)
+
+If the Verifier flags a question as **Ambiguous** or **Incorrect**, the system enters a remediation cycle.
+
+```text
+[ Verdict: Incorrect / Ambiguous ]
+          |
+          v
+  1. FIXER AGENT (Remediation Engineer)
+     - Input: Original Question, Verifier's Critique, Proof Results (stdout/stderr).
+     - Task: Propose a correction to the YAML/JSON definition.
+       - *Drift:* Update the Ground Truth to match current API.
+       - *Ambiguity:* Reword the question or harden distractors to be strictly false.
+     - Action: `update_benchmark_case(new_definition)`.
+          |
+          v
+  2. RE-VERIFICATION
+     - Clear `session.state.results`.
+     - Rerun the "Claim Decomposition" & "Empirical Verification" steps on the NEW definition.
+          |
+          v
+  3. CHECK VERDICT
+     - If Valid -> **COMMIT** fix.
+     - If Still Failed -> Increment Retry Count.
+     - Max Retries (e.g., 3) -> Flag for Human Review.
+```
+
+## 5. Proof Strategies (Detailed)
 
 The agent must rigorously prove claims using `pytest` assertions.
 
-### 4.1 Proving "True" Statements (Positive Assertion)
+### 5.1 Proving "True" Statements (Positive Assertion)
 If Option A says *"Use `compaction_interval` to configure summarization frequency"*:
 *   **Action:** Write `test_option_A.py`.
 *   **Code Pattern:**
@@ -113,7 +140,7 @@ If Option A says *"Use `compaction_interval` to configure summarization frequenc
     ```
 *   **Verification:** Run `pytest test_option_A.py`. Must PASS.
 
-### 4.2 Proving "False" Statements (Negative Assertion)
+### 5.2 Proving "False" Statements (Negative Assertion)
 If Option B says *"Use `summarization_freq` to configure..."* (a non-existent field), this is a "False" claim that acts as a distractor.
 *   **Action:** Write `test_option_B.py` to prove it IS invalid.
 *   **Code Pattern:**
@@ -129,7 +156,7 @@ If Option B says *"Use `summarization_freq` to configure..."* (a non-existent fi
 *   **Verification:** Run `pytest test_option_B.py`. Must PASS (proving the exception occurred).
     *   *Crucial:* If this test FAILS (i.e., the code ran without error), then Option B is actually VALID, and the question is ambiguous!
 
-## 5. Implementation Plan
+## 6. Implementation Plan
 
 ### Phase 1: The `verify_benchmarks.py` Tool
 - **Script:** A CLI tool to iterate over `benchmarks/benchmark_definitions/*.yaml`.
@@ -164,48 +191,55 @@ Context: You have a list of claims in `session.state.claims`.
 4. Record the result in `session.state.results`.
 ```
 
-## 6. Environment Isolation & Dependencies
+### Phase 3: Integration
+- Add a CI/CD step (weekly) to run the verifier on the `main` branch to catch drift (e.g., when ADK version bumps).
+
+## 7. Environment Isolation & Dependencies
 
 Executing dynamic verification scripts carries risks of state pollution.
 
-### 6.1 Sandbox Isolation
+### 7.1 Sandbox Isolation
 - **Per-Task VirtualEnv:** Each verification run operates in a clean environment.
 - **Temp Directory:** The `verifier_agent` writes `test_*.py` files to `/tmp/adk_verify_<uuid>`.
 - **Cleanup:** `CodeBasedTeardownAgent` removes these directories.
 
-### 6.2 Handling Imports
+### 7.2 Handling Imports
 - **PYTHONPATH:** The runner script ensures `PYTHONPATH` includes the local `adk-python` source.
 - **Mocking:** Tests must use `unittest.mock` for external services (e.g., Gemini API) to ensure determinism.
 
-## 7. ADK Implementation Logic
+## 8. ADK Implementation Logic
 
-The workflow uses a `SequentialAgent` pipeline with specialized roles.
+The workflow uses nested `LoopAgent`s to handle both verification and remediation.
 
 ```text
 +-----------------------------------------------------------------------+
-|  SequentialAgent: "verifier_workflow"                                 |
+|  LoopAgent: "remediation_loop" (Outer Loop)                           |
+|  - Max Iterations: 3 (Verdict=Valid breaks loop)                      |
 |                                                                       |
-|  1. [SetupAgent]                                                      |
-|     - Create tmp dir.                                                 |
-|     - Check ADK install.                                              |
+|  1. SequentialAgent: "verification_pipeline"                          |
+|     a. [SetupAgent]                                                   |
+|        - Create tmp dir.                                              |
 |                                                                       |
-|  2. [LlmAgent] "claim_analyst"                                        |
-|     - Tools: `search_ranked_targets`, `inspect_fqn`, `save_claims`.   |
-|     - Input: Question + Options.                                      |
-|     - Output: Saves `claims` list to session state.                   |
+|     b. [LlmAgent] "claim_analyst"                                     |
+|        - Input: Current Question Definition.                          |
+|        - Output: Claims List.                                         |
 |                                                                       |
-|  3. [LoopAgent] "proof_engineer_loop"                                 |
-|     - Sub-Agent: [LlmAgent] "proof_engineer"                          |
-|       - Tools: `write_file`, `run_shell_command` (pytest),            |
-|                `read_file`, `save_proof_result`.                      |
-|       - Logic: Picks next pending claim, writes test, runs it.         |
-|     - Loop Condition: Until all claims processed.                     |
+|     c. [LoopAgent] "proof_engineer_loop"                              |
+|        - Sub-Agent: [LlmAgent] "proof_engineer"                       |
+|          - Logic: Write Test -> Run Pytest -> Record Result.          |
 |                                                                       |
-|  4. [LlmAgent] "verdict_synthesizer"                                  |
-|     - Logic: Reviews all proof results vs. Ground Truth.              |
-|     - Output: Final Quality JSON.                                     |
+|     d. [LlmAgent] "verdict_synthesizer"                               |
+|        - Input: Proof Results vs Ground Truth.                        |
+|        - Logic: Determine if Valid, Ambiguous, or Incorrect.          |
+|        - Output: `verdict` object.                                    |
 |                                                                       |
-|  5. [CodeBasedTeardownAgent]                                          |
-|     - Delete tmp dir.                                                 |
+|  2. [ConditionalAgent] "fix_handler"                                  |
+|     - Condition: If verdict != Valid.                                 |
+|     - Agent: [LlmAgent] "remediation_engineer"                        |
+|       - Input: Critique + Proof Logs.                                 |
+|       - Action: `update_benchmark_case(...)`.                         |
+|                                                                       |
+|  3. [CodeBasedTeardownAgent]                                          |
+|     - Delete tmp dir (cleanup after each pass).                       |
 +-----------------------------------------------------------------------+
 ```
