@@ -10,6 +10,7 @@ The `fix_error` benchmark suite consists of coding tasks where an agent must fix
 - **Impossible Tasks:** The provided `test_file` is buggy or requires internal knowledge not present in the instructions.
 - **Ambiguous Instructions:** The prompt asks for "X" but the test verifies "Y".
 - **Environment Drift:** The "fixed" solution no longer works due to library updates (ADK API changes).
+- **Solution Leakage:** The "unfixed" code contains the answer in comments or structure, making the task trivial.
 
 ## 2. System Architecture
 
@@ -33,6 +34,7 @@ The architecture mirrors the [Question Quality Verifier](./question_quality_veri
             | 1. Analyze Requirements      | 1. Read Test Code
             | 2. Prove Failure (Baseline)  | 2. Generate Fix
             | 3. Prove Solvability         | 3. **PROVE via PYTEST**
+            | 4. Check for Leakage         | 4. Compare Unfixed vs Fixed
             | <---- Agent's Verdict -------+
             |
             v
@@ -42,9 +44,9 @@ The architecture mirrors the [Question Quality Verifier](./question_quality_veri
 +-----------------------+
 ```
 
-## 3. Workflow Logic: Three-Stage Verification
+## 3. Workflow Logic: Four-Stage Verification
 
-The verifier must prove three specific claims to validate a `fix_error` case.
+The verifier must prove four specific claims to validate a `fix_error` case.
 
 ```text
 [ Start Verification Loop ]
@@ -53,6 +55,7 @@ The verifier must prove three specific claims to validate a `fix_error` case.
   1. LOAD CASE
      - `unfixed.py` (The Bug)
      - `test_agent.py` (The Validator)
+     - `fixed.py` (The Solution)
      - `description` (The Prompt)
           |
           v
@@ -62,7 +65,14 @@ The verifier must prove three specific claims to validate a `fix_error` case.
      - *If Pass:* Flag as **INVALID (Trivial)**.
           |
           v
-  3. CLAIM 2: "The Solution is Derivable" (Solvability Check)
+  3. CLAIM 2: "The Solution is Secret" (Anti-Leakage Check)
+     - **Agent Action:** Compare `unfixed.py` and `fixed.py`.
+     - **Logic:** Check for commented-out solutions or overly specific diagnostics.
+     - **Requirement:** No trivial leaks.
+     - *If Fail:* Flag as **LEAKAGE**.
+          |
+          v
+  4. CLAIM 3: "The Solution is Derivable" (Solvability Check)
      - **Agent Action:** 
          a. Read `description` and `test_agent.py`.
          b. Research ADK docs/codebase (if needed).
@@ -72,17 +82,16 @@ The verifier must prove three specific claims to validate a `fix_error` case.
      - *If Fail:* Flag as **IMPOSSIBLE/AMBIGUOUS**.
           |
           v
-  4. CLAIM 3: "Ground Truth is Valid" (Drift Check - Optional)
-     - If a `fixed.py` exists in the repo:
+  5. CLAIM 4: "Ground Truth is Valid" (Drift Check - Optional)
      - **Action:** Run `pytest test_agent.py` against `fixed.py`.
      - **Requirement:** MUST PASS.
      - *If Fail:* Flag as **BROKEN/OUTDATED**.
           |
           v
-  5. VERDICT SYNTHESIS
-     - **Valid:** Baseline Fails AND Candidate Passes.
+  6. VERDICT SYNTHESIS
+     - **Valid:** Baseline Fails AND No Leakage AND Candidate Passes.
      - **Broken:** Baseline Passes OR Ground Truth Fails.
-     - **Ambiguous:** Agent cannot solve it (Candidate Fails), implying instructions != tests.
+     - **Ambiguous:** Agent cannot solve it (Candidate Fails).
 ```
 
 ## 4. Proof Strategies (Detailed)
@@ -95,12 +104,18 @@ The verifier must prove three specific claims to validate a `fix_error` case.
     pytest test_agent.py
     ```
 *   **Assertion:** `Exit Code != 0`.
-    *   *Critique:* If exit code is 0, the benchmark isn't testing anything.
 
-### 4.2 Proving Solvability (Positive Proof)
+### 4.2 Proving Anti-Leakage
+*   **Goal:** Ensure the problem isn't trivialized by leaking the answer.
+*   **Agent Logic:** "You are a stricter exam proctor. Review `unfixed.py`. Does it contain:
+    1.  The exact solution commented out?
+    2.  Comments explicitly stating the fix (e.g., 'Change X to Y') rather than the error?
+    3.  Structure that makes the fix a trivial fill-in-the-blank (unless intended)?"
+
+### 4.3 Proving Solvability (Positive Proof)
 *   **Goal:** Ensure an intelligent agent can solve it using *only* the instructions and public API.
 *   **Execution:**
-    1.  **Analyst Agent:** Reads `test_agent.py` to understand the assertions (e.g., "Expects output X"). Reads `description`.
+    1.  **Analyst Agent:** Reads `test_agent.py` to understand the assertions.
     2.  **Coder Agent:** Writes `candidate.py`.
     3.  **Runner:** 
         ```bash
@@ -113,29 +128,32 @@ The verifier must prove three specific claims to validate a `fix_error` case.
 
 ### Phase 1: The Verifier Agents
 
-We use a similar split to the MC Verifier:
+We use a split architecture:
 
 1.  **Test Analyst (LlmAgent):**
     *   **Input:** `test_agent.py` content, `description`.
-    *   **Task:** "Explain what this test requires. What must the agent do to pass? Identify required imports and class signatures."
+    *   **Task:** "Explain what this test requires. What must the agent do to pass?"
     *   **Output:** Implementation Plan.
 
-2.  **Solution Engineer (LlmAgent):**
+2.  **Proctor Agent (LlmAgent - Anti-Leakage):**
+    *   **Input:** `unfixed.py`, `fixed.py`.
+    *   **Task:** Detect solution leakage.
+    *   **Output:** `LeakageReport`.
+
+3.  **Solution Engineer (LlmAgent):**
     *   **Input:** Implementation Plan.
     *   **Task:** Write the Python code for `agent.py`.
     *   **Output:** Code block.
 
-3.  **Execution Harness (Tool):**
+4.  **Execution Harness (Tool):**
     *   **Task:** Setup temp dir, write files, run pytest, capture stdout.
 
 ### Phase 2: Remediation Loop (Fixer)
 
 If the **Solvability Check** fails (Agent can't fix it):
 1.  **Diagnose:** Compare `test_failure_output` vs `description`.
-2.  **Fix Strategy:**
-    *   If test expects "A" but prompt asks for "B" -> **Update Prompt**.
-    *   If test uses deprecated API -> **Update Test**.
-3.  **Action:** Generate patched `benchmark.yaml` or `test_agent.py`.
+2.  **Fix Strategy:** Update Prompt or Test.
+3.  **Action:** Generate patched files.
 4.  **Loop:** Re-run verification.
 
 ## 6. ADK Implementation Logic
@@ -146,22 +164,25 @@ If the **Solvability Check** fails (Agent can't fix it):
 |                                                                       |
 |  1. [SetupAgent]                                                      |
 |     - Create isolated tmp env.                                        |
-|     - Install dependencies.                                           |
 |                                                                       |
 |  2. [ToolAgent] "baseline_check"                                      |
 |     - Action: Run pytest on `unfixed.py`.                             |
 |     - Logic: If PASS, throw "BenchmarkInvalidError".                  |
 |                                                                       |
-|  3. [LlmAgent] "analyst"                                              |
+|  3. [LlmAgent] "proctor" (Leakage Check)                              |
+|     - Input: unfixed.py vs fixed.py.                                  |
+|     - Output: Pass/Fail.                                              |
+|                                                                       |
+|  4. [LlmAgent] "analyst"                                              |
 |     - Input: Test code + Instructions.                                |
 |     - Output: "Requirements List".                                    |
 |                                                                       |
-|  4. [LoopAgent] "solver_loop" (Max 3 attempts)                        |
+|  5. [LoopAgent] "solver_loop" (Max 3 attempts)                        |
 |     - [LlmAgent] "coder": Writes `agent.py`.                          |
 |     - [ToolAgent] "tester": Runs pytest.                              |
 |     - [LlmAgent] "debugger": Reads error, adjusts code (if needed).   |
 |                                                                       |
-|  5. [LlmAgent] "verdict"                                              |
+|  6. [LlmAgent] "verdict"                                              |
 |     - If solver succeeded: VERDICT = VALID.                           |
 |     - If solver failed: VERDICT = IMPOSSIBLE/AMBIGUOUS.               |
 +-----------------------------------------------------------------------+
