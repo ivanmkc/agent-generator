@@ -5,13 +5,17 @@ import asyncio
 import os
 import sys
 import random
-import json
+import time
 from typing import List, Dict, Any, Literal, Optional
 from pathlib import Path
 from pydantic import BaseModel, Field, ConfigDict
 from google import genai
 from google.genai import types
 from tqdm.asyncio import tqdm
+from colorama import init, Fore, Style
+
+# Initialize colorama
+init()
 
 # Add project root to path for imports
 sys.path.append(str(Path(__file__).parent.parent))
@@ -25,132 +29,108 @@ from benchmarks.data_models import (
     BenchmarkResultType
 )
 from benchmarks.benchmark_runner import ApiUnderstandingRunner, PytestBenchmarkRunner
-from benchmarks.config import MOST_POWERFUL_MODEL
 from benchmarks.parsing.json_sanitizer import JsonSanitizer
-from benchmarks.api_key_manager import API_KEY_MANAGER
-from retrieval_benchmark_lib import EmbeddingRetriever, RankedTarget
+from benchmarks.api_key_manager import API_KEY_MANAGER, KeyType
+from benchmarks.benchmark_candidates import ModelName
+from retrieval_benchmark_lib import (
+    EmbeddingRetriever, RankedTarget, RetrievalDataset, RetrievalCase, 
+    RetrievalContext, AbstractRetriever, GoldMinerRetriever, RandomRetriever
+)
 
-# Reuse models or redefine
-class RetrievalContext(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
-    fqn: str
-    text: str
-    context_type: str = Field(..., alias="type")
-    empirical_relevance: str = "UNKNOWN" # YES, NO
-    metadata: Dict[str, Any] = Field(default_factory=dict)
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(message)s')
+logger = logging.getLogger(__name__)
 
-class RetrievalCase(BaseModel):
-    id: str
-    query: str
-    positive_ctxs: List[RetrievalContext]
-    negative_ctxs: List[RetrievalContext]
-    source: str
-    metadata: Dict[str, Any]
-    ground_truth: Dict[str, Any] = Field(default_factory=dict)
-    is_sufficient_set: bool = False
-
-class RetrievalDataset(BaseModel):
-    cases: List[RetrievalCase]
+# Switch to Flash for speed/quota
+GENERATION_MODEL = ModelName.GEMINI_2_5_FLASH
 
 class DataValidator:
-    def __init__(self, input_path: str, output_path: str, api_key: str, targets_path: str):
+    def __init__(self, input_path: str, output_path: str, retrievers: List[AbstractRetriever]):
         self.input_path = input_path
         self.output_path = output_path
-        self.client = genai.Client(api_key=api_key)
-        self.sanitizer = JsonSanitizer(api_key_manager=API_KEY_MANAGER)
-        self.retriever = EmbeddingRetriever(api_key=api_key)
-        self.targets_path = targets_path
+        self.api_key_manager = API_KEY_MANAGER
+        self.sanitizer = JsonSanitizer(api_key_manager=self.api_key_manager, model_name=GENERATION_MODEL)
+        self.retrievers = retrievers
         
-    async def validate_dataset(self):
-        # Index targets first
-        print("Loading and indexing ranked targets...")
-        with open(self.targets_path, 'r') as f:
-            data = yaml.safe_load(f)
-            raw_targets = data if isinstance(data, list) else data.get('targets', [])
-            targets = [RankedTarget(id=t['id'], name=t['name'], docstring=t.get('docstring', '')) for t in raw_targets if t.get('id')]
-        
-        await self.retriever.index(targets)
-
+    async def validate_dataset(self, limit: Optional[int] = None):
         with open(self.input_path, 'r') as f:
             dataset = RetrievalDataset.model_validate(yaml.safe_load(f))
         
-        print(f"Validating {len(dataset.cases)} cases...")
+        cases_to_process = dataset.cases[:limit] if limit else dataset.cases
+        print(f"{Fore.CYAN}Validating {len(cases_to_process)} cases using {GENERATION_MODEL}...{Style.RESET_ALL}")
         
-        # Limit for dev
-        # dataset.cases = dataset.cases[:2]
-        
-        tasks = []
-        for case in dataset.cases:
-            tasks.append(self.validate_case(case))
-        
-        # Run in chunks
-        chunk_size = 2 # Small chunk size for heavy MC tasks
         results = []
-        for i in tqdm(range(0, len(tasks), chunk_size)):
-            chunk = tasks[i:i+chunk_size]
-            results.extend(await asyncio.gather(*chunk))
+        for case in cases_to_process:
+            result = await self.validate_case(case)
+            results.append(result)
             
         dataset.cases = results
         
         # Save
-        print(f"Saving verified dataset to {self.output_path}...")
+        print(f"\n{Fore.GREEN}Saving verified dataset to {self.output_path}...{Style.RESET_ALL}")
         with open(self.output_path, 'w') as f:
             yaml.dump(dataset.model_dump(by_alias=True), f, sort_keys=False, allow_unicode=True)
 
+    async def _generate_candidate_pool(self, case: RetrievalCase) -> List[RetrievalContext]:
+        """
+        Generates candidate pool using configured retrievers.
+        """
+        pool = {} 
+        print(f"  {Fore.YELLOW}Generating candidate pool for {case.id}...{Style.RESET_ALL}")
+        
+        for retriever in self.retrievers:
+            k = 5
+            if isinstance(retriever, GoldMinerRetriever): k = 100
+            elif isinstance(retriever, EmbeddingRetriever): k = 15
+            elif isinstance(retriever, RandomRetriever): k = 5
+                
+            results = await retriever.search(case.query, top_k=k, case=case)
+            source_name = type(retriever).__name__
+            print(f"    - {source_name}: found {len(results)} candidates")
+            
+            for t in results:
+                if t.id not in pool:
+                    pool[t.id] = RetrievalContext(
+                        fqn=t.id, 
+                        text=t.docstring, 
+                        type="retrieved"
+                    )
+        
+        print(f"    {Fore.BLUE}Total deduplicated candidates: {len(pool)}{Style.RESET_ALL}")
+        return list(pool.values())
+
     async def validate_case(self, case: RetrievalCase) -> RetrievalCase:
-        """
-        Validates the case by establishing statistical conditional dependence of success on each context.
-        """
-        # 0. Retrieve Plausible Candidates (Hard Negatives / Missed Positives)
-        retrieved_targets = await self.retriever.search(case.query, top_k=10)
-        retrieved_ctxs = [
-            RetrievalContext(
-                fqn=t.id,
-                text=t.docstring,
-                type="retrieved"
-            )
-            for t in retrieved_targets
-        ]
+        print(f"\n{Fore.MAGENTA}>>> Processing Case: {case.id}{Style.RESET_ALL}")
         
-        # 1. Pool Candidates (Merge lists, avoiding duplicates)
-        existing_fqns = {c.fqn for c in case.positive_ctxs + case.negative_ctxs}
-        for ctx in retrieved_ctxs:
-            if ctx.fqn not in existing_fqns:
-                case.negative_ctxs.append(ctx) # Add as potential candidate (initially negative)
+        # 1. Generate Candidate Pool
+        candidates = await self._generate_candidate_pool(case)
+        case.candidates = candidates 
         
-        candidates = case.positive_ctxs + case.negative_ctxs
         if not candidates:
+            print(f"    {Fore.RED}No candidates found. Skipping.{Style.RESET_ALL}")
             return case
 
-        # Map by FQN
         c_map = {c.fqn: c for c in candidates}
         fqns = list(c_map.keys())
         
-        # Stats
         trials_in = {f: 0 for f in fqns}
         success_in = {f: 0 for f in fqns}
         trials_out = {f: 0 for f in fqns}
         success_out = {f: 0 for f in fqns}
         
-        N_TRIALS = 3  # Keep small for dev
+        N_TRIALS = 3 
         
-        print(f"  - Running {N_TRIALS} Monte Carlo trials for case {case.id}...")
+        print(f"  {Fore.YELLOW}Running {N_TRIALS} Monte Carlo trials...{Style.RESET_ALL}")
         
         for i in range(N_TRIALS):
-            # 2. Monte Carlo Subsampling (Bernoulli p=0.5)
-            subset_fqns = []
-            while not subset_fqns:
-                subset_fqns = [f for f in fqns if random.random() > 0.5]
-                if not subset_fqns and fqns:
-                    subset_fqns = [random.choice(fqns)]
+            subset_fqns = [f for f in fqns if random.random() > 0.5]
+            if not subset_fqns: subset_fqns = [random.choice(fqns)]
             
             subset_ctxs = [c_map[f] for f in subset_fqns]
-            
-            # 3. Generate & Validate (Simple LLM Call with Context Injection)
-            combined_text = "\n\n".join([f"Document {i}: {c.text}" for i, c in enumerate(subset_ctxs)])
+            combined_text = "\n\n".join([f"[START_DOCUMENT: {f}]\n{c_map[f].text}\n[END_DOCUMENT]" for f in subset_fqns])
             
             is_success = False
-            generated_answer = await self._generate_answer(case, combined_text)
+            generated_answer = await self._generate_answer_with_retry(case, combined_text)
             
             if generated_answer:
                 try:
@@ -158,11 +138,12 @@ class DataValidator:
                         is_success = await self._validate_api_understanding(case, generated_answer)
                     elif case.source == "fix_errors":
                         is_success = await self._validate_fix_errors(case, generated_answer)
-                except Exception as e:
-                    print(f"Validation exception for {case.id}: {e}")
+                except Exception:
                     is_success = False
             
-            # 4. Record Stats
+            status_char = f"{Fore.GREEN}PASS{Style.RESET_ALL}" if is_success else f"{Fore.RED}FAIL{Style.RESET_ALL}"
+            print(f"    Trial {i+1}/{N_TRIALS}: {status_char} (Context size: {len(subset_fqns)})")
+            
             for f in fqns:
                 if f in subset_fqns:
                     trials_in[f] += 1
@@ -171,24 +152,22 @@ class DataValidator:
                     trials_out[f] += 1
                     if is_success: success_out[f] += 1
         
-        # 5. Compute Conditional Dependence
+        print(f"  {Fore.YELLOW}Calculating impact scores...{Style.RESET_ALL}")
         verified_pos = []
         verified_neg = []
         
         for f in fqns:
             p_in = success_in[f] / trials_in[f] if trials_in[f] > 0 else 0.0
             p_out = success_out[f] / trials_out[f] if trials_out[f] > 0 else 0.0
-            
             delta_p = p_in - p_out
             
             ctx = c_map[f]
-            ctx.metadata["delta_p"] = round(delta_p, 2)
-            ctx.metadata["p_in"] = round(p_in, 2)
-            ctx.metadata["p_out"] = round(p_out, 2)
+            ctx.metadata.update({"delta_p": round(delta_p, 2), "p_in": round(p_in, 2), "p_out": round(p_out, 2)})
             
-            if delta_p > 0.05: # Threshold
+            if delta_p > 0.05:
                 ctx.empirical_relevance = "YES"
                 verified_pos.append(ctx)
+                print(f"    {Fore.GREEN}[+] {f:<60} Delta P: {delta_p:+.2f}{Style.RESET_ALL}")
             else:
                 ctx.empirical_relevance = "NO"
                 verified_neg.append(ctx)
@@ -196,10 +175,9 @@ class DataValidator:
         case.positive_ctxs = verified_pos
         case.negative_ctxs = verified_neg
         
-        # Check final set sufficiency
         if verified_pos:
-            combined_text = "\n\n".join([f"Document {i}: {c.text}" for i, c in enumerate(verified_pos)])
-            final_ans = await self._generate_answer(case, combined_text)
+            combined_text = "\n\n".join([f"[START_DOCUMENT: {c.fqn}]\n{c.text}\n[END_DOCUMENT]" for c in verified_pos])
+            final_ans = await self._generate_answer_with_retry(case, combined_text)
             case.is_sufficient_set = False
             if final_ans:
                 try:
@@ -207,130 +185,118 @@ class DataValidator:
                         case.is_sufficient_set = await self._validate_api_understanding(case, final_ans)
                     elif case.source == "fix_errors":
                         case.is_sufficient_set = await self._validate_fix_errors(case, final_ans)
-                except Exception:
-                    pass
-        else:
-            case.is_sufficient_set = False
+                except Exception: pass
+            
+            suff_color = Fore.GREEN if case.is_sufficient_set else Fore.RED
+            print(f"  {Fore.YELLOW}Final Set Sufficiency: {suff_color}{case.is_sufficient_set}{Style.RESET_ALL}")
             
         return case
 
-    async def _generate_answer(self, case: RetrievalCase, context: str) -> Optional[GeneratedAnswer]:
+    async def _generate_answer_with_retry(self, case: RetrievalCase, context: str) -> Optional[GeneratedAnswer]:
         """
-        Generates an answer using the provided context directly in the prompt.
+        Generates answer with retry logic for quota limits.
         """
         prompt = ""
         if case.source == "api_understanding":
-            prompt = f"""You are an expert developer.
-Context:
-{context[:20000]}
-
-Question: {case.query}
-
-Instructions:
-Answer the question using the provided context. 
-You MUST output JSON adhering to this schema:
-{{
-    "benchmark_type": "api_understanding",
-    "rationale": "Explanation...",
-    "code": "Code snippet...",
-    "fully_qualified_class_name": "Full.Class.Name"
-}}
-"""
+            prompt = f"Context:\n{context}\n\nQuestion: {case.query}\n\nOutput JSON matching ApiUnderstandingAnswerOutput schema."
         elif case.source == "fix_errors":
-            prompt = f"""You are an expert developer.
-Context:
-{context[:20000]}
+            prompt = f"Context:\n{context}\n\nTask: {case.query}\n\nOutput JSON matching FixErrorAnswerOutput schema."
+        else: return None
 
-Task: {case.query}
-
-Instructions:
-Fix the error/implement the requirement using the provided context.
-You MUST output JSON adhering to this schema:
-{{
-    "benchmark_type": "fix_error",
-    "rationale": "Explanation...",
-    "code": "Full corrected python file content..."
-}}
-"""
-        else:
-            return None
-
-        try:
-            response = await self.client.aio.models.generate_content(
-                model=MOST_POWERFUL_MODEL,
-                contents=prompt,
-                config={"response_mime_type": "application/json"}
-            )
-            return GeneratedAnswer(raw_output=response.text)
-        except Exception as e:
-            # print(f"Generation failed: {e}")
-            return None
+        max_retries = 3
+        backoff = 5
+        
+        for attempt in range(max_retries):
+            # Get a fresh key for each attempt
+            key_val, key_id = await self.api_key_manager.get_next_key_with_id(KeyType.GEMINI_API)
+            if not key_val:
+                print(f"    {Fore.RED}No API keys available.{Style.RESET_ALL}")
+                return None
+                
+            client = genai.Client(api_key=key_val)
+            
+            try:
+                response = await client.aio.models.generate_content(
+                    model=GENERATION_MODEL,
+                    contents=prompt,
+                    config={"response_mime_type": "application/json"}
+                )
+                
+                # Report success
+                await self.api_key_manager.report_result(KeyType.GEMINI_API, key_id, True)
+                return GeneratedAnswer(raw_output=response.text)
+                
+            except Exception as e:
+                error_msg = str(e)
+                # Report failure
+                await self.api_key_manager.report_result(KeyType.GEMINI_API, key_id, False, error_message=error_msg)
+                
+                if "429" in error_msg or "ResourceExhausted" in error_msg:
+                    wait_time = backoff * (2 ** attempt)
+                    print(f"    {Fore.YELLOW}Quota exceeded (429). Retrying in {wait_time}s...{Style.RESET_ALL}")
+                    await asyncio.sleep(wait_time)
+                else:
+                    print(f"    {Fore.RED}Generation failed: {e}{Style.RESET_ALL}")
+                    return None
+                    
+        return None
 
     async def _validate_api_understanding(self, case: RetrievalCase, answer: GeneratedAnswer) -> bool:
         gt = case.ground_truth
-        answers_data = gt.get("answers", [])
-        if not answers_data: return False
-        
+        if not gt.get("answers"): return False
         bcase = ApiUnderstandingBenchmarkCase(
-            id=case.id,
-            question=case.query,
-            category=case.metadata.get("category", "unknown"),
-            rationale="N/A",
-            template=AnswerTemplate(gt.get("template", "identifier")),
-            answers=[StringMatchAnswer(**a) for a in answers_data],
-            file=Path("unknown"),
-            benchmark_type=BenchmarkType.API_UNDERSTANDING
+            id=case.id, question=case.query, category=case.metadata.get("category", "unknown"),
+            rationale="N/A", template=AnswerTemplate(gt.get("template", "identifier")),
+            answers=[StringMatchAnswer(**a) for a in gt.get("answers", [])],
+            file=Path("unknown"), benchmark_type=BenchmarkType.API_UNDERSTANDING
         )
         runner = ApiUnderstandingRunner()
-        
         try:
-            answer.output = await self.sanitizer.sanitize(
-                answer.raw_output, ApiUnderstandingAnswerOutput
-            )
-            result, logs, _, _ = await runner.run_benchmark(bcase, answer)
+            answer.output = await self.sanitizer.sanitize(answer.raw_output, ApiUnderstandingAnswerOutput)
+            result, _, _, _ = await runner.run_benchmark(bcase, answer)
             return result == BenchmarkResultType.PASS
-        except Exception as e:
-            # print(f"Validation error: {e}")
-            return False
+        except Exception: return False
 
     async def _validate_fix_errors(self, case: RetrievalCase, answer: GeneratedAnswer) -> bool:
         gt = case.ground_truth
-        
         def to_path(p): return Path(p) if p else None
-
         bcase = FixErrorBenchmarkCase(
-            id=case.id,
-            name=gt.get("name", "unknown"),
-            description=gt.get("description", "unknown"),
-            test_file=to_path(gt.get("test_file")),
-            unfixed_file=to_path(gt.get("unfixed_file")),
-            fixed_file=to_path(gt.get("fixed_file")),
-            requirements=gt.get("requirements"),
-            error_output=gt.get("error_output"),
-            benchmark_type=BenchmarkType.FIX_ERROR
+            id=case.id, name=gt.get("name", "unknown"), description=gt.get("description", "unknown"),
+            test_file=to_path(gt.get("test_file")), unfixed_file=to_path(gt.get("unfixed_file")),
+            fixed_file=to_path(gt.get("fixed_file")), requirements=gt.get("requirements"),
+            error_output=gt.get("error_output"), benchmark_type=BenchmarkType.FIX_ERROR
         )
         runner = PytestBenchmarkRunner()
-        
         try:
-            answer.output = await self.sanitizer.sanitize(
-                answer.raw_output, FixErrorAnswerOutput
-            )
-            result, logs, _, _ = await runner.run_benchmark(bcase, answer)
+            answer.output = await self.sanitizer.sanitize(answer.raw_output, FixErrorAnswerOutput)
+            result, _, _, _ = await runner.run_benchmark(bcase, answer)
             return result == BenchmarkResultType.PASS
-        except Exception as e:
-            # print(f"FixError Validation error: {e}")
-            return False
+        except Exception: return False
 
 if __name__ == "__main__":
-    api_key = os.environ.get("GEMINI_API_KEY")
-    if not api_key:
-        print("GEMINI_API_KEY not set")
+    # We use ApiKeyManager, so we don't need GEMINI_API_KEY env var strictly for the main loop
+    # But EmbeddingRetriever init still takes a key. We should give it a key from the manager.
+
+    # Pre-fetch a key for embeddings
+    key_val = asyncio.run(API_KEY_MANAGER.get_next_key(KeyType.GEMINI_API))
+    if not key_val:
+        print("No API key available for Embedding Retriever initialization.")
         exit(1)
         
+    targets_path = "benchmarks/benchmark_generator/data/ranked_targets.yaml"
+    
+    print(f"{Fore.CYAN}Initializing Retrievers...{Style.RESET_ALL}")
+    with open(targets_path, 'r') as f:
+        raw_targets = yaml.safe_load(f)
+        if not isinstance(raw_targets, list): raw_targets = raw_targets.get('targets', [])
+        targets = [RankedTarget(id=t['id'], name=t['name'], docstring=t.get('docstring', '')) for t in raw_targets if t.get('id')]
+    
+    gold_miner = GoldMinerRetriever(); asyncio.run(gold_miner.index(targets))
+    random_retriever = RandomRetriever(); asyncio.run(random_retriever.index(targets))
+    embedding_retriever = EmbeddingRetriever(api_key=key_val); asyncio.run(embedding_retriever.index(targets))
+    
     validator = DataValidator(
-        "retrieval_dataset.yaml",
-        "retrieval_dataset_verified.yaml",
-        api_key,
-        "benchmarks/benchmark_generator/data/ranked_targets.yaml"
+        "retrieval_dataset.yaml", "retrieval_dataset_verified.yaml",
+        retrievers=[gold_miner, embedding_retriever, random_retriever]
     )
     asyncio.run(validator.validate_dataset())

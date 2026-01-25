@@ -27,6 +27,7 @@
     - Injects randomized context subsets directly into the prompt (no tools).
     - Uses `ApiUnderstandingRunner`/`PytestBenchmarkRunner` to validate answers.
     - Calculates `Delta P` (Impact Score) to determine empirical relevance.
+    - **Robustness:** Added retry logic for `429 RESOURCE_EXHAUSTED` using `ApiKeyManager` and exponential backoff. Switched generation model to `gemini-2.5-flash` for efficiency.
 - **Result:** Pipeline runs successfully end-to-end. Verified integration of Vector Search candidates.
 
 ### 4. Implementation: Phase 3 (Evaluation)
