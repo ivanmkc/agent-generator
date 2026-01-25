@@ -113,10 +113,11 @@ class EmbeddingRetriever(AbstractRetriever):
         if self.embeddings is None:
             raise ValueError("Retriever index not loaded.")
             
+        # Use CODE_RETRIEVAL_QUERY for code/ADK symbol search
         query_resp = await self.client.aio.models.embed_content(
             model="text-embedding-004",
             contents=query,
-            config={"task_type": "RETRIEVAL_QUERY"},
+            config={"task_type": "CODE_RETRIEVAL_QUERY"},
         )
         query_vec = np.array(query_resp.embeddings[0].values)
         scores = np.dot(self.embeddings, query_vec)
