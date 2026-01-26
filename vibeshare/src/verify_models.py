@@ -7,8 +7,8 @@ before running the full benchmark suite.
 """
 
 import asyncio
-from config import MODELS
-from core import get_key_type_for_model
+from .config import MODELS
+from .core import get_key_type_for_model
 from benchmarks.api_key_manager import API_KEY_MANAGER
 
 
@@ -23,7 +23,7 @@ async def verify_model(model):
     key_type = get_key_type_for_model(model.model_name)
     key = None
     if key_type:
-        key, _ = API_KEY_MANAGER.get_next_key_with_id(key_type)
+        key, _ = await API_KEY_MANAGER.get_next_key_with_id(key_type)
         if not key:
             return False, f"No API key found for type {key_type}"
 

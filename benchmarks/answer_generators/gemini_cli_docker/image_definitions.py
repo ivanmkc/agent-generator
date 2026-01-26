@@ -44,6 +44,36 @@ IMAGE_DEFINITIONS: Dict[str, ImageDefinition] = {
         dependencies=[f"{IMAGE_PREFIX}:base"],
         build_args={"BASE_IMAGE": f"{IMAGE_PREFIX}:base"},
     ),
+    f"{IMAGE_PREFIX}:adk-docs-ext-starter": ImageDefinition(
+        source_dir="adk-docs-ext",
+        dockerfile="adk-docs-ext/Dockerfile",
+        description="ADK Docs Ext (agent-starter-pack branch)",
+        dependencies=[f"{IMAGE_PREFIX}:base"],
+        build_args={
+            "BASE_IMAGE": f"{IMAGE_PREFIX}:base",
+            "EXTENSION_URL": "https://github.com/pierpaolo28/adk-docs-ext/tree/agent-starter-pack",
+        },
+    ),
+    f"{IMAGE_PREFIX}:adk-docs-ext-llms": ImageDefinition(
+        source_dir="adk-docs-ext",
+        dockerfile="adk-docs-ext/Dockerfile",
+        description="ADK Docs Ext (llms.txt branch)",
+        dependencies=[f"{IMAGE_PREFIX}:base"],
+        build_args={
+            "BASE_IMAGE": f"{IMAGE_PREFIX}:base",
+            "EXTENSION_URL": "https://github.com/pierpaolo28/adk-docs-ext/tree/llms.txt",
+        },
+    ),
+    f"{IMAGE_PREFIX}:adk-docs-ext-llms-full": ImageDefinition(
+        source_dir="adk-docs-ext",
+        dockerfile="adk-docs-ext/Dockerfile",
+        description="ADK Docs Ext (llms-full.txt branch)",
+        dependencies=[f"{IMAGE_PREFIX}:base"],
+        build_args={
+            "BASE_IMAGE": f"{IMAGE_PREFIX}:base",
+            "EXTENSION_URL": "https://github.com/pierpaolo28/adk-docs-ext/tree/llms-full.txt",
+        },
+    ),
     f"{IMAGE_PREFIX}:mcp_adk_agent_runner_basic": ImageDefinition(
         source_dir="mcp_adk_agent_runner_basic",
         dockerfile="mcp_adk_agent_runner_basic/Dockerfile",
