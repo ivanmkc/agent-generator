@@ -209,7 +209,7 @@ class DataValidator:
                 # Double check after acquiring semaphore
                 if stop_signal: return
 
-                subset_fqns = [f for f in fqns if random.random() > 0.5]
+                subset_fqns = [f for f in fqns if random.random() < self.config.sampling_probability]
                 combined_text = "\n\n".join([f"[START_DOCUMENT: {f}]\n{c_map[f].text}\n[END_DOCUMENT]" for f in subset_fqns])
                 
                 generated_answer, prompt_used = await self._generate_answer_with_retry(case, combined_text)

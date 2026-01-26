@@ -25,6 +25,7 @@ class ValidatorConfig(BaseModel):
     vector_search_k: int = Field(15, description="Number of vector search candidates.")
     random_noise_n: int = Field(20, description="Number of random noise candidates.")
     concurrency: int = Field(5, description="Number of concurrent trials to run.")
+    sampling_probability: float = Field(0.25, description="Probability of including a specific candidate in a trial context.")
     log_file: str = Field("logs/validation_events.yaml", description="Path to the structured event log.")
 
 # --- Data Models ---
