@@ -94,7 +94,7 @@ class TestRetrievalIntegration(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         self.config = ValidatorConfig(
             adaptive_min_n=5, 
-            adaptive_max_n=150, 
+            adaptive_max_n=100, 
             se_threshold=0.2
         )
         self.validator = DataValidator("in.yaml", "out.yaml", [], config=self.config)
@@ -196,8 +196,9 @@ class TestRetrievalIntegration(unittest.IsolatedAsyncioTestCase):
         # Safety Check: Should run at least 10 trials (as per our safety proof)
         self.assertGreater(len(trace), 10, "Should run at least 10 trials for safety")
         
-        # Convergence Check: Should stop before max (150) if clean
-        self.assertLess(len(trace), 150, "Should converge before max trials")
+        # Convergence Check: Should stop before max (30) if clean
+        # Note: Simulation with dynamic sampling can take longer as probability decreases.
+        self.assertLess(len(trace), 100, "Should converge before max trials")
 
     async def test_resume_functionality(self):
         """
