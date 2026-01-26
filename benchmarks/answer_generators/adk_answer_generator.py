@@ -108,6 +108,7 @@ class TraceCollectorPlugin(BasePlugin):
         prompt_parts = []
         if llm_request.config and llm_request.config.system_instruction:
             si = llm_request.config.system_instruction
+            # TODO: Avoid hasattr and use proper interfaces if possible
             if hasattr(si, "parts"):
                 si_text = "".join([p.text for p in si.parts if p.text])
             else:
@@ -269,6 +270,7 @@ class AdkAnswerGenerator(LlmAnswerGenerator):
         agent = self.agent
 
         model_str = "Unknown"
+        # TODO: Avoid hasattr and use proper interfaces if possible
         if hasattr(agent, "model"):
             m = agent.model
             if isinstance(m, str):
@@ -278,6 +280,7 @@ class AdkAnswerGenerator(LlmAnswerGenerator):
 
         desc = f"**Model:** {model_str}\n\n"
 
+        # TODO: Avoid hasattr and use proper interfaces if possible
         if hasattr(agent, "sub_agents") and agent.sub_agents:
             steps = []
             for sa in agent.sub_agents:
@@ -285,9 +288,11 @@ class AdkAnswerGenerator(LlmAnswerGenerator):
                 steps.append(f"`{name}`")
             desc += f"**Multi-Agent Workflow:** {' → '.join(steps)}\n\n"
         else:
+            # TODO: Avoid hasattr and use proper interfaces if possible
             agent_name = getattr(agent, "name", type(agent).__name__)
             desc += f"**Agent:** `{agent_name}` (Single Agent)\n\n"
 
+        # TODO: Avoid hasattr and use proper interfaces if possible
         if hasattr(agent, "instruction") and agent.instruction:
             instr = agent.instruction
             if isinstance(instr, str):
@@ -308,7 +313,9 @@ class AdkAnswerGenerator(LlmAnswerGenerator):
             await self.teardown_hook()
 
     async def generate_answer(
-        self, benchmark_case: BaseBenchmarkCase, run_id: str
+        self,
+        benchmark_case: BaseBenchmarkCase,
+        run_id: str,
     ) -> GeneratedAnswer:
         """Generates an answer using the ADK Agent."""
 
@@ -413,6 +420,7 @@ class AdkAnswerGenerator(LlmAnswerGenerator):
     ) -> tuple[str, list[TraceLogEvent], UsageMetadata, str]:
         """Helper to run the agent using a fresh Runner and TraceCollectorPlugin."""
 
+        # TODO: Avoid hasattr and use proper interfaces if possible
         if getattr(self.agent, "__module__", "").startswith("google.adk.agents"):
             app_name = "agents"
         else:

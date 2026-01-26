@@ -58,6 +58,12 @@ CANDIDATE_GENERATORS = [
     # ),
     GeminiCliPodmanAnswerGenerator(
         image_definitions=IMAGE_DEFINITIONS,
+        image_name="gemini-cli:base",
+        model_name=ModelName.GEMINI_2_5_FLASH,
+        api_key_manager=api_key_manager,
+    ),
+    GeminiCliPodmanAnswerGenerator(
+        image_definitions=IMAGE_DEFINITIONS,
         image_name="gemini-cli:adk-docs-ext",
         model_name=ModelName.GEMINI_2_5_FLASH,
         api_key_manager=api_key_manager,
