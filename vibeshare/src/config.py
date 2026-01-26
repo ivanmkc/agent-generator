@@ -5,8 +5,9 @@ This module defines the models to be evaluated, concurrency limits, and other
 global settings for the VibeShare analysis.
 """
 
-from models.litellm_model import LiteLLMModel
-from models.podman_model import PodmanModel
+from .models.litellm_model import LiteLLMModel
+from .models.podman_model import PodmanModel
+from benchmarks.answer_generators.gemini_cli_docker.image_definitions import IMAGE_DEFINITIONS
 
 MAX_CONCURRENCY = 4
 
@@ -20,13 +21,12 @@ MODELS = [
     LiteLLMModel(model_name="gemini/gemini-3-flash-preview"),
     LiteLLMModel(model_name="gemini/gemini-3-pro-preview"),
     # --- Gemini CLI (Podman) ---
-    PodmanModel(
-        model_name="gemini-cli-podman/base", image_name="localhost/gemini-cli:base"
-    ),
-    PodmanModel(
-        model_name="gemini-cli-podman/adk-python",
-        image_name="localhost/gemini-cli:adk-python",
-    ),
+    PodmanModel(model_name="gemini-cli-podman/base", image_name="gemini-cli:base", image_definitions=IMAGE_DEFINITIONS),
+    PodmanModel(model_name="gemini-cli-podman/adk-python", image_name="gemini-cli:adk-python", image_definitions=IMAGE_DEFINITIONS),
+    PodmanModel(model_name="gemini-cli/adk-docs-ext-starter", image_name="gemini-cli:adk-docs-ext-starter", image_definitions=IMAGE_DEFINITIONS),
+    PodmanModel(model_name="gemini-cli/adk-docs-ext-llms", image_name="gemini-cli:adk-docs-ext-llms", image_definitions=IMAGE_DEFINITIONS),
+    PodmanModel(model_name="gemini-cli/adk-docs-ext-llms-full", image_name="gemini-cli:adk-docs-ext-llms-full", image_definitions=IMAGE_DEFINITIONS),
+
     # TODO: Add Gemma
     # --- Anthropic Claude (Updated Jan 2026) ---
     # "claude-3-5-sonnet-20241022" was retired in late 2025.

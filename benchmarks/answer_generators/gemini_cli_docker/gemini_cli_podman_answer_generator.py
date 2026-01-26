@@ -68,9 +68,10 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
         self._base_url = None
         self._setup_lock = asyncio.Lock()
         self._setup_completed = False
-        self._image_checked = False
         self.container = PodmanContainer(
-            image_name=self.image_name, container_name=self.container_name
+            image_name=self.image_name, 
+            container_name=self.container_name,
+            image_definitions=self._image_definitions
         )
 
     @classmethod
@@ -145,10 +146,9 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
                 return
 
             print(f"[Podman Setup] Starting setup for {self.name}")
-            await self._ensure_image_ready(force=force_deploy)
 
-            # Start via PodmanContainer
-            await self.container.start()
+            # Start via PodmanContainer (which now handles building)
+            await self.container.start(force_build=force_deploy)
             self._base_url = self.container.base_url
 
             self._setup_completed = True
@@ -159,112 +159,6 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
     async def teardown(self) -> None:
         if self.container:
             self.container.stop()
-
-    async def _ensure_image_ready(self, force: bool = False):
-        print(f"[Podman Ensure Image] Checking image readiness for {self.image_name}")
-        if self._image_checked and not force:
-            return
-
-        if self.image_name in self._image_definitions:
-            await self._build_image_chain(self.image_name, force=force)
-            self._image_checked = True
-            return
-
-        raise RuntimeError(
-            f"Image '{self.image_name}' is not a known managed image and no "
-            "dockerfile_dir was provided for a custom build."
-        )
-
-    async def _get_image_label(self, image_name: str, label_key: str) -> str | None:
-        try:
-            inspect_cmd = [
-                "podman",
-                "inspect",
-                "--format",
-                f"{{{{.Config.Labels.{label_key}}}}}",
-                image_name,
-            ]
-            proc = await asyncio.create_subprocess_exec(
-                *inspect_cmd,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-            )
-            stdout, _ = await proc.communicate()
-            if proc.returncode == 0:
-                val = stdout.decode().strip()
-                return val if val != "<no value>" else None
-        except Exception:
-            pass
-        return None
-
-    async def _execute_podman_build(
-        self,
-        image_name: str,
-        dockerfile_path: Path,
-        context_path: Path,
-        build_args: Optional[dict[str, str]] = None,
-        labels: Optional[dict[str, str]] = None,
-    ):
-        print(f"Building Podman image: {image_name}...")
-        build_cmd = ["podman", "build", "-t", image_name, "-f", str(dockerfile_path)]
-        if build_args:
-            for k, v in build_args.items():
-                build_cmd.extend(["--build-arg", f"{k}={v}"])
-        if labels:
-            for k, v in labels.items():
-                build_cmd.extend(["--label", f"{k}={v}"])
-        build_cmd.append(str(context_path))
-
-        proc = await asyncio.create_subprocess_exec(
-            *build_cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
-        )
-        stdout, stderr = await proc.communicate()
-        if proc.returncode != 0:
-            raise RuntimeError(f"Build failed for {image_name}: {stderr.decode()}")
-        print(f"Successfully built {image_name}")
-
-    async def _build_image_chain(self, image_key: str, force: bool = False) -> bool:
-        definition = self._image_definitions[image_key]
-        dependency_rebuilt = False
-        for dep_key in definition.dependencies:
-            if await self._build_image_chain(dep_key, force=force):
-                dependency_rebuilt = True
-
-        full_image_name = image_key
-        base_path = Path(__file__).parent
-        source_path = base_path / definition.source_dir
-        dockerfile_path = base_path / definition.dockerfile
-
-        current_hash = calculate_source_hash(source_path)
-        should_build = force or dependency_rebuilt
-
-        if not should_build:
-            exists_cmd = ["podman", "image", "exists", full_image_name]
-            proc = await asyncio.create_subprocess_exec(
-                *exists_cmd,
-                stdout=asyncio.subprocess.DEVNULL,
-                stderr=asyncio.subprocess.PIPE,
-            )
-            await proc.communicate()
-            if proc.returncode != 0:
-                should_build = True
-            else:
-                existing_hash = await self._get_image_label(
-                    full_image_name, "source_hash"
-                )
-                if existing_hash != current_hash:
-                    should_build = True
-
-        if should_build:
-            await self._execute_podman_build(
-                image_name=full_image_name,
-                dockerfile_path=dockerfile_path,
-                context_path=source_path,
-                build_args=definition.build_args,
-                labels={"source_hash": current_hash},
-            )
-            return True
-        return False
 
     async def run_cli_command(
         self,

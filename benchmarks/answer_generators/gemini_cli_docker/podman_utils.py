@@ -6,28 +6,35 @@ import os
 import socket
 import subprocess
 import uuid
+from pathlib import Path
 from typing import Optional, Dict, Any, List
 import aiohttp
 
+from benchmarks.answer_generators.hash_utils import calculate_source_hash
 
 class PodmanContainer:
     """
     Manages the lifecycle of a Gemini CLI Podman container.
     """
 
-    def __init__(self, image_name: str, container_name: str = None):
+    def __init__(self, image_name: str, container_name: str = None, image_definitions: Optional[Dict[str, Any]] = None):
         self.image_name = image_name
         self.container_name = container_name or f"gemini-cli-podman-container-{uuid.uuid4().hex}"
+        self.image_definitions = image_definitions
         self.base_url: Optional[str] = None
         self._port: Optional[int] = None
         self._setup_lock = asyncio.Lock()
         self._is_running = False
+        self._image_checked = False
 
-    async def start(self):
+    async def start(self, force_build: bool = False):
         """Starts the container if not already running."""
         async with self._setup_lock:
             if self._is_running:
                 return
+
+            if self.image_definitions:
+                await self._ensure_image_ready(force=force_build)
 
             # Find a free port
             with socket.socket() as s:
@@ -91,6 +98,95 @@ class PodmanContainer:
             # Wait for health check
             await self._wait_for_health()
             self._is_running = True
+
+    async def _ensure_image_ready(self, force: bool = False):
+        if self._image_checked and not force:
+            return
+
+        if self.image_name in self.image_definitions:
+            await self._build_image_chain(self.image_name, force=force)
+            self._image_checked = True
+            return
+
+        # If it's not a managed image, we assume it's a pre-built image (like localhost/...)
+        # We check if it exists, but don't try to build it.
+        exists_cmd = ["podman", "image", "exists", self.image_name]
+        proc = await asyncio.create_subprocess_exec(*exists_cmd, stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.PIPE)
+        await proc.communicate()
+        if proc.returncode != 0:
+             raise RuntimeError(f"Image '{self.image_name}' is not found in Podman and is not a known managed image.")
+        self._image_checked = True
+
+    async def _build_image_chain(self, image_key: str, force: bool = False) -> bool:
+        definition = self.image_definitions[image_key]
+        dependency_rebuilt = False
+        for dep_key in definition.dependencies:
+            if await self._build_image_chain(dep_key, force=force):
+                dependency_rebuilt = True
+
+        full_image_name = image_key
+        # We assume the utility is in the same directory structure relative to the generators
+        base_path = Path(__file__).parent
+        source_path = base_path / definition.source_dir
+        dockerfile_path = base_path / definition.dockerfile
+
+        current_hash = calculate_source_hash(source_path)
+        should_build = force or dependency_rebuilt
+
+        if not should_build:
+            exists_cmd = ["podman", "image", "exists", full_image_name]
+            proc = await asyncio.create_subprocess_exec(*exists_cmd, stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.PIPE)
+            await proc.communicate()
+            if proc.returncode != 0:
+                should_build = True
+            else:
+                existing_hash = await self._get_image_label(full_image_name, "source_hash")
+                if existing_hash != current_hash:
+                    should_build = True
+
+        if should_build:
+            await self._execute_podman_build(
+                image_name=full_image_name,
+                dockerfile_path=dockerfile_path,
+                context_path=source_path,
+                build_args=definition.build_args,
+                labels={"source_hash": current_hash},
+            )
+            return True
+        return False
+
+    async def _get_image_label(self, image_name: str, label_key: str) -> str | None:
+        try:
+            inspect_cmd = ["podman", "inspect", "--format", f"{{{{.Config.Labels.{label_key}}}}}", image_name]
+            proc = await asyncio.create_subprocess_exec(
+                *inspect_cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
+            )
+            stdout, _ = await proc.communicate()
+            if proc.returncode == 0:
+                val = stdout.decode().strip()
+                return val if val != "<no value>" else None
+        except Exception:
+            pass
+        return None
+
+    async def _execute_podman_build(self, image_name: str, dockerfile_path: Path, context_path: Path, build_args: Optional[Dict[str, str]] = None, labels: Optional[Dict[str, str]] = None):
+        print(f"Building Podman image: {image_name}...")
+        build_cmd = ["podman", "build", "-t", image_name, "-f", str(dockerfile_path)]
+        if build_args:
+            for k, v in build_args.items():
+                build_cmd.extend(["--build-arg", f"{k}={v}"])
+        if labels:
+            for k, v in labels.items():
+                build_cmd.extend(["--label", f"{k}={v}"])
+        build_cmd.append(str(context_path))
+
+        proc = await asyncio.create_subprocess_exec(
+            *build_cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
+        )
+        stdout, stderr = await proc.communicate()
+        if proc.returncode != 0:
+             raise RuntimeError(f"Build failed for {image_name}: {stderr.decode()}")
+        print(f"Successfully built {image_name}")
 
     async def _wait_for_health(self):
         """Waits for the container server to be ready."""

@@ -17,17 +17,18 @@ class PodmanModel(Model):
     Model implementation that delegates to a Gemini CLI running in a Podman container.
     """
 
-    def __init__(self, model_name: str, image_name: str, **kwargs: Any):
+    def __init__(self, model_name: str, image_name: str, image_definitions: Optional[Dict[str, Any]] = None, **kwargs: Any):
         """
         Initialize the PodmanModel.
 
         Args:
             model_name (str): The name of the model (e.g., 'gemini/base').
             image_name (str): The Podman image to run (e.g., 'localhost/gemini-cli:base').
+            image_definitions (dict): Optional image definitions for auto-building.
             **kwargs: Additional arguments.
         """
         self.model_name = model_name
-        self.container = PodmanContainer(image_name=image_name)
+        self.container = PodmanContainer(image_name=image_name, image_definitions=image_definitions)
 
     async def predict(self, prompt: str, **kwargs) -> str:
         """
