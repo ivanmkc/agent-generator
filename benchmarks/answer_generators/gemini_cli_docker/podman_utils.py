@@ -17,7 +17,7 @@ class PodmanContainer:
 
     def __init__(self, image_name: str, container_name: str = None):
         self.image_name = image_name
-        self.container_name = container_name or f"vibeshare-{uuid.uuid4().hex[:8]}"
+        self.container_name = container_name or f"gemini-cli-podman-container-{uuid.uuid4().hex}"
         self.base_url: Optional[str] = None
         self._port: Optional[int] = None
         self._setup_lock = asyncio.Lock()
