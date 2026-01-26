@@ -20,14 +20,22 @@ The validator supports two execution modes to balance precision and cost:
 1.  **Constant Trial Method (Default):**
     *   Runs a fixed number of trials ($N$) for every case.
     *   Ensures uniform statistical power across the entire dataset.
-    *   Recommended for small, high-stakes evaluations.
 
-2.  **Adaptive Convergence Method (Optional):**
-    *   Intelligently determines the number of trials based on statistical stability.
+2.  **Adaptive Convergence Method (Local):**
+    *   Intelligently determines the number of trials per case.
     *   **Stopping Rule:** Trials terminate early if the **Standard Error (SE)** of the impact scores falls below a target threshold (e.g., 0.05).
-    *   **Benefit:** Saves significant API quota on "easy" queries where relevance is obvious after a few trials, while investing more heavily in "noisy" or difficult queries.
+    *   **Benefit:** Saves quota on "easy" queries.
 
-### 2.2 Statistical Principles
+### 2.2 Dataset-Level Convergence (Global)
+Beyond per-case stability, we must ensure the *dataset size* is sufficient to evaluate the retrieval system generally.
+
+*   **Metric:** Stability of the aggregate **Recall@K** or **Mean Impact Score** of the corpus.
+*   **Procedure:**
+    1.  Shuffle the validated cases.
+    2.  Calculate cumulative running average of the metric.
+    3.  **Convergence:** If the running average stabilizes (change < $\epsilon$) over the last $M$ cases, the dataset is sufficiently large to represent the domain.
+
+### 2.3 Statistical Principles
 *   **Causal Inference:** The method functions as a Randomized Controlled Trial (RCT).
 *   **Power Analysis:** Standard Error calculation ($\sqrt{p(1-p)/n}$) provides a measure of estimate confidence.
 *   **Blind Solving:** The model has no metadata regarding which documents are "seeded" vs. "sampled," ensuring an unbiased measure of document utility.
