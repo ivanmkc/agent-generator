@@ -55,8 +55,8 @@ class AnswerGenerator(abc.ABC):
         """
         raise NotImplementedError
 
-    async def get_mcp_tools(self) -> list[str]:
-        """Returns a list of available MCP tools."""
+    async def get_mcp_servers(self) -> list[str]:
+        """Returns a list of available MCP servers."""
         return []
 
     async def setup(self) -> None:

@@ -53,8 +53,8 @@ async def verify_context7():
 
         # Test 2: Get MCP Tools
         print(f"{Fore.CYAN}Fetching MCP tools...{Style.RESET_ALL}")
-        tools = await generator.get_mcp_tools()
-        print(f"Tools found: {tools}")
+    servers = await generator.get_mcp_servers()
+    print(f"Found MCP servers: {servers}")
 
         if "context7" in tools:
             print(f"{Fore.GREEN}Context7 tool found!{Style.RESET_ALL}")
