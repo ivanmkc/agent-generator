@@ -18,12 +18,13 @@
 - **Update:** Switched output format from JSONL to YAML.
 - **Result:** Successfully extracted 65 verified retrieval pairs.
 
-### 6. Finalization (Robustness & Debugging)
-- **Task:** Finalized `validate_data.py`.
-- **Features:**
-    - **Schema Injection:** Injects Pydantic schema JSON into prompts to guarantee structural compliance.
-    - **API Enforcement:** Uses `response_schema` in `generate_content` config.
-    - **Retry Logic:** Implemented exponential backoff for `429` errors.
-    - **Validation:** Verified end-to-end on both API Understanding and Fix Error cases.
-    - **Logging:** Added detailed logs for validation failures (Runner logs, Exceptions).
-- **Result:** System is stable and ready for production use.
+### 7. Rigorous Verification & Testing
+- **Task:** Verify statistical assumptions and fix edge cases.
+- **Improvements:**
+    - **Adjusted Standard Error:** Implemented $1/N$ uncertainty for $p=0/1$ cases to prevent premature stopping on small N.
+    - **Minimum Trials:** Increased `min_n` to 5 (Config default).
+    - **Convergence Logic:** Restored `_check_convergence` method for testability.
+    - **Bias Fix:** Removed logic that forced candidates into empty subsets, ensuring unbiased independent sampling.
+    - **Tests:** Created unit tests for safety logic and integration tests for adaptive convergence.
+- **Result:** System passes rigorous safety checks. Convergence requires substantial evidence.
+

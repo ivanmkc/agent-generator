@@ -147,7 +147,7 @@ class DataValidator:
 
         for i in range(max_n):
             subset_fqns = [f for f in fqns if random.random() > 0.5]
-            if not subset_fqns: subset_fqns = [random.choice(fqns)]
+            # No bias logic here. If subset is empty, it's empty.
             
             subset_ctxs = [c_map[f] for f in subset_fqns]
             combined_text = "\n\n".join([f"[START_DOCUMENT: {f}]\n{c_map[f].text}\n[END_DOCUMENT]" for f in subset_fqns])
@@ -183,7 +183,8 @@ class DataValidator:
                 if trials_in[f] > 0 and trials_out[f] > 0:
                     p_in = success_in[f] / trials_in[f]
                     p_out = success_out[f] / trials_out[f]
-                    # Adjusted SE: If variance is 0, use 1/n as a proxy for uncertainty
+                    
+                    # Adjusted SE logic for trace
                     se_in = math.sqrt(p_in * (1 - p_in) / trials_in[f]) if (0 < p_in < 1) else (1.0 / trials_in[f])
                     se_out = math.sqrt(p_out * (1 - p_out) / trials_out[f]) if (0 < p_out < 1) else (1.0 / trials_out[f])
                     se_diff = math.sqrt(se_in**2 + se_out**2)
@@ -196,7 +197,7 @@ class DataValidator:
 
             # Adaptive Stopping Check
             if mode == "adaptive" and i >= min_n - 1:
-                if max_se_diff < self.config.se_threshold:
+                if self._check_convergence(fqns, trials_in, success_in, trials_out, success_out, self.config.se_threshold):
                     print(f"    {Fore.GREEN}Statistical convergence reached at trial {i+1}. Stopping early.{Style.RESET_ALL}")
                     break
         
@@ -252,7 +253,29 @@ class DataValidator:
             
         return case
 
-    # Removed _check_convergence as it's now inline for trace logging
+    def _check_convergence(self, fqns, trials_in, success_in, trials_out, success_out, threshold):
+        """
+        Check if the Standard Error for the Delta P of top candidates has converged.
+        Uses an Adjusted SE to avoid 0-variance trap at p=0/1 with small n.
+        """
+        max_se = 0.0
+        for f in fqns:
+            if trials_in[f] == 0 or trials_out[f] == 0:
+                return False # Need at least one sample in each bucket
+            
+            p_in = success_in[f] / trials_in[f]
+            p_out = success_out[f] / trials_out[f]
+            
+            # Adjusted SE: If variance is 0, use 1/n as a proxy for uncertainty
+            se_in = math.sqrt(p_in * (1 - p_in) / trials_in[f]) if (0 < p_in < 1) else (1.0 / trials_in[f])
+            se_out = math.sqrt(p_out * (1 - p_out) / trials_out[f]) if (0 < p_out < 1) else (1.0 / trials_out[f])
+            
+            # Combined Standard Error for the difference
+            se_diff = math.sqrt(se_in**2 + se_out**2)
+            max_se = max(max_se, se_diff)
+            
+        # If the largest uncertainty in our impact scores is below threshold, we've converged.
+        return max_se < threshold
 
     async def _generate_answer_with_retry(self, case: RetrievalCase, context: str) -> Optional[GeneratedAnswer]:
         """
