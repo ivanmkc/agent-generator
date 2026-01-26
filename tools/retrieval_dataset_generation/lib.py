@@ -21,6 +21,7 @@ class ValidatorConfig(BaseModel):
     adaptive_min_n: int = Field(5, description="Minimum trials for adaptive mode.")
     adaptive_max_n: int = Field(40, description="Maximum trials for adaptive mode.")
     se_threshold: float = Field(0.1, description="Standard Error threshold for convergence.")
+    log_file: str = Field("validation_events.yaml", description="Path to structured event log file.")
 
 # --- Data Models ---
 

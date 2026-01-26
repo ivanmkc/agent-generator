@@ -8,6 +8,8 @@ import random
 import time
 import json
 import math
+import argparse
+from datetime import datetime
 from typing import List, Dict, Any, Literal, Optional
 from pathlib import Path
 from pydantic import BaseModel, Field, ConfigDict
@@ -55,6 +57,25 @@ class DataValidator:
         self.retrievers = retrievers
         self.config = config or ValidatorConfig()
         
+        # Setup structured logging
+        self.log_file = Path(self.config.log_file)
+        self.log_file.parent.mkdir(parents=True, exist_ok=True)
+        # Clear log file on start
+        if self.log_file.exists():
+            with open(self.log_file, 'w') as f:
+                pass
+
+    def _log_event(self, event_type: str, data: Dict[str, Any]):
+        """Writes a structured event to the YAML log."""
+        event = {
+            "timestamp": time.time(),
+            "event": event_type,
+            **data
+        }
+        with open(self.log_file, 'a') as f:
+            # Use explicit_start=True to create a multi-document YAML stream
+            yaml.dump(event, f, explicit_start=True, sort_keys=False)
+
     async def validate_dataset(
         self,
         max_cases: Optional[int] = None,
@@ -67,6 +88,8 @@ class DataValidator:
         cases_to_process = dataset.cases[offset:offset+max_cases] if max_cases else dataset.cases[offset:]
         print(f"{Fore.CYAN}Validating {len(cases_to_process)} cases using {GENERATION_MODEL} (Mode: {mode})...{Style.RESET_ALL}")
         
+        self._log_event("validation_start", {"mode": mode, "case_count": len(cases_to_process)})
+
         results = []
         for case in cases_to_process:
             result = await self.validate_case(case, mode=mode)
@@ -78,6 +101,8 @@ class DataValidator:
         print(f"\n{Fore.GREEN}Saving verified dataset to {self.output_path}...{Style.RESET_ALL}")
         with open(self.output_path, 'w') as f:
             yaml.dump(dataset.model_dump(by_alias=True), f, sort_keys=False, allow_unicode=True)
+        
+        self._log_event("validation_complete", {"output_path": str(self.output_path)})
 
     async def _generate_candidate_pool(self, case: RetrievalCase) -> List[RetrievalContext]:
         """
@@ -112,6 +137,7 @@ class DataValidator:
                     )
         
         print(f"    {Fore.BLUE}Total deduplicated candidates: {len(pool)}{Style.RESET_ALL}")
+        self._log_event("pool_generated", {"case_id": case.id, "pool_size": len(pool)})
         return list(pool.values())
 
     async def validate_case(
@@ -166,6 +192,15 @@ class DataValidator:
                 except Exception:
                     is_correct = False
             
+            # Log Trial Event
+            self._log_event("trial_complete", {
+                "case_id": case.id,
+                "trial_index": i,
+                "subset_size": len(subset_fqns),
+                "subset_fqns": subset_fqns,
+                "is_correct": is_correct
+            })
+
             status_char = f"{Fore.GREEN}PASS{Style.RESET_ALL}" if is_correct else f"{Fore.RED}FAIL{Style.RESET_ALL}"
             print(f"    Trial {i+1}/{max_n}: {status_char} (Context size: {len(subset_fqns)})")
             
@@ -194,11 +229,18 @@ class DataValidator:
             
             # Log trace
             case.metadata['convergence_trace'].append(max_se_diff)
+            self._log_event("convergence_check", {
+                "case_id": case.id,
+                "trial_index": i,
+                "max_se_diff": max_se_diff,
+                "threshold": self.config.se_threshold
+            })
 
             # Adaptive Stopping Check
             if mode == "adaptive" and i >= min_n - 1:
                 if self._check_convergence(fqns, trials_in, success_in, trials_out, success_out, self.config.se_threshold):
                     print(f"    {Fore.GREEN}Statistical convergence reached at trial {i+1}. Stopping early.{Style.RESET_ALL}")
+                    self._log_event("convergence_reached", {"case_id": case.id, "trial_index": i})
                     break
         
         print(f"  {Fore.YELLOW}Calculating impact scores...{Style.RESET_ALL}")
@@ -232,6 +274,7 @@ class DataValidator:
             # Pooling Assumption Check
             if ctx.context_type == "random_noise" and delta_p > 0.1:
                 print(f"    {Fore.RED}[WARNING] Pooling Assumption Violation! Random document '{f}' found relevant.{Style.RESET_ALL}")
+                self._log_event("pooling_violation", {"case_id": case.id, "fqn": f, "delta_p": delta_p})
         
         # Check final set sufficiency (using the entire candidate pool)
         if candidates:
@@ -417,6 +460,15 @@ Target Schema:
             return False
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Retrieval Data Validator")
+    parser.add_argument("--input", default="retrieval_dataset.yaml", help="Input dataset path")
+    parser.add_argument("--output", default="retrieval_dataset_verified.yaml", help="Output dataset path")
+    parser.add_argument("--log-dir", default="logs", help="Directory for logs")
+    parser.add_argument("--mode", default="adaptive", choices=["fixed", "adaptive"], help="Sampling mode")
+    parser.add_argument("--max-cases", type=int, default=None, help="Limit number of cases")
+    
+    args = parser.parse_args()
+    
     # Pre-fetch a key for embeddings
     key_val = asyncio.run(API_KEY_MANAGER.get_next_key(KeyType.GEMINI_API))
     if not key_val:
@@ -435,13 +487,17 @@ if __name__ == "__main__":
     random_retriever = RandomRetriever(); asyncio.run(random_retriever.index(targets))
     embedding_retriever = EmbeddingRetriever(api_key=key_val); asyncio.run(embedding_retriever.index(targets))
     
-    # Custom config for rigorous validation
-    config = ValidatorConfig()
+    # Generate timestamped log path
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    log_file = Path(args.log_dir) / f"validation_run_{timestamp}.jsonl"
+    
+    # Config
+    config = ValidatorConfig(log_file=str(log_file))
     
     validator = DataValidator(
-        "retrieval_dataset.yaml", "retrieval_dataset_verified.yaml",
+        args.input, args.output,
         retrievers=[gold_miner, embedding_retriever, random_retriever],
         config=config
     )
-    # Run adaptive convergence run for full dataset
-    asyncio.run(validator.validate_dataset(mode="adaptive"))
+    # Run
+    asyncio.run(validator.validate_dataset(max_cases=args.max_cases, mode=args.mode))
