@@ -214,6 +214,7 @@ class DataValidator:
             
             # Convergence Check & Trace Logging
             max_se_diff = 0.0
+            se_map = {}
             for f in fqns:
                 if trials_in[f] > 0 and trials_out[f] > 0:
                     p_in = success_in[f] / trials_in[f]
@@ -224,8 +225,10 @@ class DataValidator:
                     se_out = math.sqrt(p_out * (1 - p_out) / trials_out[f]) if (0 < p_out < 1) else (1.0 / trials_out[f])
                     se_diff = math.sqrt(se_in**2 + se_out**2)
                     max_se_diff = max(max_se_diff, se_diff)
+                    se_map[f] = round(se_diff, 4)
                 else:
                     max_se_diff = 1.0 # High uncertainty if no samples in a bucket
+                    se_map[f] = 1.0
             
             # Log trace
             case.metadata['convergence_trace'].append(max_se_diff)
@@ -233,6 +236,7 @@ class DataValidator:
                 "case_id": case.id,
                 "trial_index": i,
                 "max_se_diff": max_se_diff,
+                "se_map": se_map,
                 "threshold": self.config.se_threshold
             })
 
