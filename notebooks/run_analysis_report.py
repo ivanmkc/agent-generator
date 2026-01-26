@@ -26,7 +26,16 @@ def analyze_report():
 
     # Flatten Candidates into a DataFrame
     records = []
+    convergence_traces = []
+
     for case in cases:
+        # Convergence History
+        if 'convergence_trace' in case.get('metadata', {}):
+            convergence_traces.append({
+                'case_id': case['id'],
+                'trace': case['metadata']['convergence_trace']
+            })
+
         candidates = case.get('candidates', [])
         for ctx in candidates:
             meta = ctx.get('metadata', {})
@@ -35,7 +44,6 @@ def analyze_report():
                 'query': case['query'],
                 'fqn': ctx['fqn'],
                 'source_type': ctx['type'],
-                'empirical_relevance': ctx.get('empirical_relevance', 'UNKNOWN'),
                 'delta_p': meta.get('delta_p', 0.0),
                 'p_in': meta.get('p_in', 0.0),
                 'p_out': meta.get('p_out', 0.0),
@@ -50,7 +58,7 @@ def analyze_report():
     df = pd.DataFrame(records)
     print(f"Total Candidates Analyzed: {len(df)}")
     
-    # 1. Relevance Distribution (Using Delta P bins instead of binary)
+    # 1. Relevance Distribution
     print("\n--- Impact Score (Delta P) Stats ---")
     print(df['delta_p'].describe())
 
@@ -62,23 +70,24 @@ def analyze_report():
     plt.savefig("notebooks/report/impact_score_dist.png")
     print("Saved notebooks/report/impact_score_dist.png")
 
-    # 2. Convergence Analysis
+    # 2. Convergence Analysis (Traces)
     print("\n--- Convergence Analysis ---")
-    if not df[df['n_in'] > 0].empty:
-        plt.figure()
-        sns.scatterplot(data=df[df['n_in'] > 0], x='n_in', y='se_in', alpha=0.6)
-        plt.title('Convergence: Standard Error vs Number of Samples')
-        plt.xlabel('Number of Trials (Included)')
-        plt.ylabel('Standard Error of p_in')
+    if convergence_traces:
+        plt.figure(figsize=(12, 6))
+        for trace in convergence_traces:
+            y = trace['trace']
+            x = range(1, len(y) + 1)
+            plt.plot(x, y, alpha=0.5, label=trace['case_id'][:30] + '...') # Truncate label
         
-        # Theoretical curve
-        x = np.linspace(1, df['n_in'].max(), 100)
-        y = 0.5 / np.sqrt(x)
-        plt.plot(x, y, 'r--', label='Theoretical 1/sqrt(n)')
-        plt.legend()
+        plt.title('Convergence of Impact Uncertainty over Trials')
+        plt.xlabel('Trial Number')
+        plt.ylabel('Max Standard Error (Uncertainty)')
+        plt.axhline(0.1, color='red', linestyle='--', label='Convergence Threshold (0.1)')
         plt.tight_layout()
         plt.savefig("notebooks/report/convergence_plot.png")
         print("Saved notebooks/report/convergence_plot.png")
+    else:
+        print("No convergence traces found in metadata.")
 
     # 3. High Impact Contexts
     print("\n--- Top 10 High Impact Contexts ---")

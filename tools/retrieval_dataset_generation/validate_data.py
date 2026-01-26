@@ -36,7 +36,7 @@ from benchmarks.benchmark_candidates import ModelName
 from tools.retrieval_dataset_generation.lib import (
     EmbeddingRetriever, RankedTarget, RetrievalDataset, RetrievalCase, 
     RetrievalContext, AbstractRetriever, GoldMinerRetriever, RandomRetriever,
-    RetrievalResultMetadata
+    RetrievalResultMetadata, ValidatorConfig
 )
 
 # Configure logging
@@ -47,21 +47,19 @@ logger = logging.getLogger(__name__)
 GENERATION_MODEL = ModelName.GEMINI_2_5_FLASH
 
 class DataValidator:
-    def __init__(self, input_path: str, output_path: str, retrievers: List[AbstractRetriever]):
+    def __init__(self, input_path: str, output_path: str, retrievers: List[AbstractRetriever], config: Optional[ValidatorConfig] = None):
         self.input_path = input_path
         self.output_path = output_path
         self.api_key_manager = API_KEY_MANAGER
         self.sanitizer = JsonSanitizer(api_key_manager=self.api_key_manager, model_name=MOST_POWERFUL_MODEL)
         self.retrievers = retrievers
+        self.config = config or ValidatorConfig()
         
     async def validate_dataset(
-        self, 
-        max_cases: Optional[int] = None, 
+        self,
+        max_cases: Optional[int] = None,
         offset: int = 0,
-        mode: Literal["fixed", "adaptive"] = "fixed",
-        max_n: int = 10,
-        min_n: int = 3,
-        se_threshold: float = 0.1
+        mode: Literal["fixed", "adaptive"] = "fixed"
     ):
         with open(self.input_path, 'r') as f:
             dataset = RetrievalDataset.model_validate(yaml.safe_load(f))
@@ -71,7 +69,7 @@ class DataValidator:
         
         results = []
         for case in cases_to_process:
-            result = await self.validate_case(case, mode=mode, max_n=max_n, min_n=min_n, se_threshold=se_threshold)
+            result = await self.validate_case(case, mode=mode)
             results.append(result)
             
         dataset.cases = results
@@ -92,13 +90,13 @@ class DataValidator:
             k = 5
             source_type = "unknown"
             if isinstance(retriever, GoldMinerRetriever): 
-                k = 100
+                k = self.config.gold_miner_k
                 source_type = "gold_mined"
             elif isinstance(retriever, EmbeddingRetriever): 
-                k = 15
+                k = self.config.vector_search_k
                 source_type = "retrieved"
             elif isinstance(retriever, RandomRetriever): 
-                k = 5
+                k = self.config.random_noise_n
                 source_type = "random_noise"
                 
             results = await retriever.search(case.query, top_k=k, case=case)
@@ -119,10 +117,7 @@ class DataValidator:
     async def validate_case(
         self, 
         case: RetrievalCase,
-        mode: str = "fixed",
-        max_n: int = 10,
-        min_n: int = 3,
-        se_threshold: float = 0.1
+        mode: str = "fixed"
     ) -> RetrievalCase:
         print(f"\n{Fore.MAGENTA}>>> Processing Case: {case.id}{Style.RESET_ALL}")
         
@@ -142,8 +137,14 @@ class DataValidator:
         trials_out = {f: 0 for f in fqns}
         success_out = {f: 0 for f in fqns}
         
+        # Determine trial counts based on mode
+        max_n = self.config.adaptive_max_n if mode == "adaptive" else self.config.monte_carlo_trials
+        min_n = self.config.adaptive_min_n if mode == "adaptive" else max_n
+        
         print(f"  {Fore.YELLOW}Running trials (Max: {max_n}, Mode: {mode})...{Style.RESET_ALL}")
         
+        case.metadata['convergence_trace'] = [] # Store convergence history
+
         for i in range(max_n):
             subset_fqns = [f for f in fqns if random.random() > 0.5]
             if not subset_fqns: subset_fqns = [random.choice(fqns)]
@@ -151,34 +152,50 @@ class DataValidator:
             subset_ctxs = [c_map[f] for f in subset_fqns]
             combined_text = "\n\n".join([f"[START_DOCUMENT: {f}]\n{c_map[f].text}\n[END_DOCUMENT]" for f in subset_fqns])
             
-            is_success = False
+            is_correct = False
             generated_answer = await self._generate_answer_with_retry(case, combined_text)
             
             if generated_answer:
                 try:
                     if case.source == "api_understanding":
-                        is_success = await self._validate_api_understanding(case, generated_answer)
+                        is_correct = await self._validate_api_understanding(case, generated_answer)
                     elif case.source == "fix_errors":
-                        is_success = await self._validate_fix_errors(case, generated_answer)
+                        is_correct = await self._validate_fix_errors(case, generated_answer)
                     elif case.source == "multiple_choice":
-                        is_success = await self._validate_multiple_choice(case, generated_answer)
+                        is_correct = await self._validate_multiple_choice(case, generated_answer)
                 except Exception:
-                    is_success = False
+                    is_correct = False
             
-            status_char = f"{Fore.GREEN}PASS{Style.RESET_ALL}" if is_success else f"{Fore.RED}FAIL{Style.RESET_ALL}"
+            status_char = f"{Fore.GREEN}PASS{Style.RESET_ALL}" if is_correct else f"{Fore.RED}FAIL{Style.RESET_ALL}"
             print(f"    Trial {i+1}/{max_n}: {status_char} (Context size: {len(subset_fqns)})")
             
             for f in fqns:
                 if f in subset_fqns:
                     trials_in[f] += 1
-                    if is_success: success_in[f] += 1
+                    if is_correct: success_in[f] += 1
                 else:
                     trials_out[f] += 1
-                    if is_success: success_out[f] += 1
+                    if is_correct: success_out[f] += 1
             
+            # Convergence Check & Trace Logging
+            max_se_diff = 0.0
+            for f in fqns:
+                if trials_in[f] > 0 and trials_out[f] > 0:
+                    p_in = success_in[f] / trials_in[f]
+                    p_out = success_out[f] / trials_out[f]
+                    se_in = math.sqrt(p_in * (1 - p_in) / trials_in[f])
+                    se_out = math.sqrt(p_out * (1 - p_out) / trials_out[f])
+                    se_diff = math.sqrt(se_in**2 + se_out**2)
+                    max_se_diff = max(max_se_diff, se_diff)
+                else:
+                    max_se_diff = 1.0 # High uncertainty if no samples in a bucket
+            
+            # Log trace
+            case.metadata['convergence_trace'].append(max_se_diff)
+
             # Adaptive Stopping Check
             if mode == "adaptive" and i >= min_n - 1:
-                if self._check_convergence(fqns, trials_in, success_in, trials_out, success_out, se_threshold):
+                if max_se_diff < self.config.se_threshold:
                     print(f"    {Fore.GREEN}Statistical convergence reached at trial {i+1}. Stopping early.{Style.RESET_ALL}")
                     break
         
@@ -209,11 +226,14 @@ class DataValidator:
             
             color = Fore.GREEN if delta_p > 0.05 else (Fore.RED if delta_p < -0.05 else Fore.WHITE)
             print(f"    {color}[{delta_p:+.2f}] {f:<60} (SE: {se_in:.2f}){Style.RESET_ALL}")
+
+            # Pooling Assumption Check
+            if ctx.context_type == "random_noise" and delta_p > 0.1:
+                print(f"    {Fore.RED}[WARNING] Pooling Assumption Violation! Random document '{f}' found relevant.{Style.RESET_ALL}")
         
-        # Check final set sufficiency
-        verified_pos = [c for c in candidates if c.metadata.delta_p > 0.05]
-        if verified_pos:
-            combined_text = "\n\n".join([f"[START_DOCUMENT: {c.fqn}]\n{c.text}\n[END_DOCUMENT]" for c in verified_pos])
+        # Check final set sufficiency (using the entire candidate pool)
+        if candidates:
+            combined_text = "\n\n".join([f"[START_DOCUMENT: {c.fqn}]\n{c.text}\n[END_DOCUMENT]" for c in candidates])
             final_ans = await self._generate_answer_with_retry(case, combined_text)
             case.is_sufficient_set = False
             if final_ans:
@@ -227,31 +247,11 @@ class DataValidator:
                 except Exception: pass
             
             suff_color = Fore.GREEN if case.is_sufficient_set else Fore.RED
-            print(f"  {Fore.YELLOW}Final Set Sufficiency: {suff_color}{case.is_sufficient_set}{Style.RESET_ALL}")
+            print(f"  {Fore.YELLOW}Total Pool Sufficiency: {suff_color}{case.is_sufficient_set}{Style.RESET_ALL}")
             
         return case
 
-    def _check_convergence(self, fqns, trials_in, success_in, trials_out, success_out, threshold):
-        """
-        Check if the Standard Error for the Delta P of top candidates has converged.
-        """
-        max_se = 0.0
-        for f in fqns:
-            if trials_in[f] == 0 or trials_out[f] == 0:
-                return False # Need at least one sample in each bucket
-            
-            p_in = success_in[f] / trials_in[f]
-            p_out = success_out[f] / trials_out[f]
-            
-            se_in = math.sqrt(p_in * (1 - p_in) / trials_in[f])
-            se_out = math.sqrt(p_out * (1 - p_out) / trials_out[f])
-            
-            # Combined Standard Error for the difference
-            se_diff = math.sqrt(se_in**2 + se_out**2)
-            max_se = max(max_se, se_diff)
-            
-        # If the largest uncertainty in our impact scores is below threshold, we've converged.
-        return max_se < threshold
+    # Removed _check_convergence as it's now inline for trace logging
 
     async def _generate_answer_with_retry(self, case: RetrievalCase, context: str) -> Optional[GeneratedAnswer]:
         """
@@ -349,7 +349,7 @@ Target Schema:
             result, _, _, _ = await runner.run_benchmark(bcase, answer)
             return result == BenchmarkResultType.PASS
         except Exception as e: 
-            print(f"      {Fore.RED}API Validation Error: {e}{Style.RESET_ALL}")
+            # print(f"      {Fore.RED}API Validation Error: {e}{Style.RESET_ALL}")
             return False
 
     async def _validate_fix_errors(self, case: RetrievalCase, answer: GeneratedAnswer) -> bool:
@@ -370,7 +370,7 @@ Target Schema:
                 pass
             return result == BenchmarkResultType.PASS
         except Exception as e: 
-            print(f"      {Fore.RED}FixError Validation Error: {e}{Style.RESET_ALL}")
+            # print(f"      {Fore.RED}FixError Validation Error: {e}{Style.RESET_ALL}")
             return False
 
     async def _validate_multiple_choice(self, case: RetrievalCase, answer: GeneratedAnswer) -> bool:
@@ -389,7 +389,7 @@ Target Schema:
             result, _, _, _ = await runner.run_benchmark(bcase, answer)
             return result == BenchmarkResultType.PASS
         except Exception as e: 
-            print(f"      {Fore.RED}MC Validation Error: {e}{Style.RESET_ALL}")
+            # print(f"      {Fore.RED}MC Validation Error: {e}{Style.RESET_ALL}")
             return False
 
 if __name__ == "__main__":
@@ -411,9 +411,13 @@ if __name__ == "__main__":
     random_retriever = RandomRetriever(); asyncio.run(random_retriever.index(targets))
     embedding_retriever = EmbeddingRetriever(api_key=key_val); asyncio.run(embedding_retriever.index(targets))
     
+    # Custom config for rigorous validation
+    config = ValidatorConfig()
+    
     validator = DataValidator(
         "retrieval_dataset.yaml", "retrieval_dataset_verified.yaml",
-        retrievers=[gold_miner, embedding_retriever, random_retriever]
+        retrievers=[gold_miner, embedding_retriever, random_retriever],
+        config=config
     )
-    # Run on full dataset
-    asyncio.run(validator.validate_dataset())
+    # Run adaptive convergence run for full dataset
+    asyncio.run(validator.validate_dataset(mode="adaptive"))

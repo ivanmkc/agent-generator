@@ -22,14 +22,26 @@ The validator supports two execution modes to balance precision and cost:
 We monitor the stability of aggregate metrics (e.g., Mean Recall@5) as we add more *cases* to the dataset to ensure the corpus is sufficiently covered.
 
 ### 2.3 The Scalability Trade-off: Stochastic Candidate Pooling
-Verifying relevance for *every* document against *every* query is computationally intractable ($O(\text{Queries} \times \text{Corpus})$).
 
-**The Middle Ground:** We validate a **High-Potential Subspace** ($O(\text{Queries} \times K)$) constructed from three sources:
-1.  **Vector Search ($K_{retrieved} \approx 15$):** Uses a strong embedding model to capture the vast majority of potentially relevant documents. This acts as a "High Recall" filter.
-2.  **Gold Mining ($K_{gold} \approx 1-5$):** Uses benchmark metadata to inject "High Precision" candidates that search might miss.
-3.  **Random Control ($K_{random} \approx 5$):** A statistical control group.
-    *   *Hypothesis:* If $Impact(Random) \approx 0$, we can statistically assume the un-sampled tail of the corpus is also irrelevant.
-    *   *Check:* If random docs frequently show high impact, our candidate generation (Vector Search) is failing, and we must increase $K_{random}$.
+Validating relevance $R(q, d)$ for all $d \in D$ is intractable ($O(|Q| \times |D|)$). We approximate the global truth by validating a **High-Potential Subspace** $C(q)$.
+
+#### Mathematical Formulation
+Let $Rel(q)$ be the set of truly relevant documents for query $q$. We approximate $Rel(q)$ by evaluating only $d \in C(q)$, defined as:
+
+$$ C(q) = C_{gold}(q) \cup C_{vector}(q, K_{vec}) \cup C_{random}(K_{rand}) $$
+
+Where:
+*   $C_{gold}(q)$: Documents identified by benchmark metadata (High Precision).
+*   $C_{vector}(q, K_{vec})$: Top $K_{vec}$ results from a strong embedding model (High Recall).
+*   $C_{random}(K_{rand})$: Randomly sampled documents (Statistical Control).
+
+#### The Pooling Assumption
+We assume that the probability of finding a relevant document outside our pool is negligible:
+$$ P(d \in Rel(q) | d \notin C(q)) < \epsilon $$
+
+**Validation of Assumption:** We monitor the impact of the **Random Control Group**.
+*   If $\forall d \in C_{random}, \text{Impact}(d) \approx 0$, then the assumption holds (the "background" is noise).
+*   If $\exists d \in C_{random}, \text{Impact}(d) \gg 0$, our retrieval mechanisms are insufficient (High "Background Radiation"), and we must increase $K_{vec}$ or improve the retrieval model.
 
 ### 2.4 Statistical Principles
 *   **Causal Inference:** The method functions as a Randomized Controlled Trial (RCT).

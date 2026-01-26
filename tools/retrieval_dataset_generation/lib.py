@@ -11,6 +11,17 @@ import os
 import asyncio
 from tqdm.asyncio import tqdm
 
+# --- Configuration ---
+class ValidatorConfig(BaseModel):
+    """Configuration for the Retrieval Data Validator."""
+    monte_carlo_trials: int = Field(3, description="Number of trials for fixed sampling.")
+    gold_miner_k: int = Field(100, description="Max candidates to mine from Ground Truth.")
+    vector_search_k: int = Field(15, description="Number of candidates to retrieve via Vector Search.")
+    random_noise_n: int = Field(20, description="Number of random noise documents to add.")
+    adaptive_min_n: int = Field(3, description="Minimum trials for adaptive mode.")
+    adaptive_max_n: int = Field(40, description="Maximum trials for adaptive mode.")
+    se_threshold: float = Field(0.1, description="Standard Error threshold for convergence.")
+
 # --- Data Models ---
 
 class RetrievalResultMetadata(BaseModel):
@@ -43,6 +54,7 @@ class RetrievalContext(BaseModel):
     fqn: str
     text: str
     context_type: str = Field(..., alias="type")
+    empirical_relevance: str = "UNKNOWN"
     metadata: RetrievalResultMetadata = Field(default_factory=RetrievalResultMetadata)
 
 class RetrievalCase(BaseModel):
@@ -138,6 +150,9 @@ class EmbeddingRetriever(AbstractRetriever):
         if self.embeddings is None:
             raise ValueError("Retriever index not loaded.")
             
+        # Use CODE_RETRIEVAL_QUERY for code/ADK symbol search
+        # Note: Previous run failed with 400 because text-embedding-004 might not support CODE_RETRIEVAL_QUERY yet
+        # or the client lib mapping is specific. Reverting to RETRIEVAL_QUERY for safety as per turn 112 fix.
         query_resp = await self.client.aio.models.embed_content(
             model="text-embedding-004",
             contents=query,
