@@ -33,12 +33,42 @@ To maintain data integrity, we distinguish between two failure modes:
 
 ## 4. Implementation Logic
 
-The `DataValidator` runs the zero-context baseline, then proceeds with the Monte Carlo loop, retrying any generation failures.
+The `DataValidator` follows this execution flow:
+
+```text
+Input: (Query, Ground Truth)
+       │
+       ▼
+[ 1. Zero-Context Baseline ] ──▶ (Skip if Solvable)
+       │
+       ▼
+[ 2. Candidate Retrieval ] ──▶ { Gold, Vector, Random }
+       │
+       ▼
+┌── [ 3. Monte Carlo Loop ] ◀──────────────┐
+│      │                                   │
+│  Sample Subset C_i (Dynamic Prob)        │
+│      │                                   │
+│  LLM Generation (Context: C_i)           │
+│      │                                   │
+│  Validation (Pass/Fail)                  │
+│      │                                   │
+│  Update Stats & Check Convergence ───────┘
+│
+└──▶ Output: Verified Dataset (Impact Scores)
+```
 
 ## 5. Metrics & Evaluation Framework
 
 ### 5.1 Impact Score ($\Delta P$)
 The primary scalar output for each document-query pair, representing the empirical lift in success probability.
+
+**Interpretation Scale:**
+```text
+[-1.0] ◀─── TOXIC ───▶ [-0.05] ─── NOISE ─── [+0.05] ─── HELPFUL ─── [+0.2] ─── CRITICAL ───▶ [+1.0]
+  │                       │                     │                       │
+  └─ Causes Regression    └─ No Effect          └─ Improves Success     └─ Essential for Solution
+```
 
 ### 5.2 Zero-Context Success Rate
 Indicates task difficulty and model's prior knowledge. A dataset with a low average zero-context success rate is ideal for retrieval evaluation.
@@ -49,6 +79,20 @@ To optimize information gain and improve convergence rates, we propose an **Adap
 
 ### 6.1 Concept
 Early in the Monte Carlo process, we use a higher sampling probability ($p_{start} \approx 0.25$) to explore the candidate pool and identify potential signals. As trials progress, we gradually lower the sampling probability ($p \to 0.05$), effectively "isolating" documents in smaller contexts.
+
+**Visualization:**
+```text
+Phase 1: Exploration (High Noise)
+Context: [ Doc A ] [ Doc B ] [ Doc C ] ...
+Result:  pass/fail signal is mixed.
+
+      │ (Doc A Converges)
+      ▼
+
+Phase 2: Isolation (Refining Doc A)
+Context: [ Doc A ] (Low Prob) ... [ Doc B ] [ Doc C ] (High Prob)
+Result:  Doc A appears less often, reducing interference for B & C.
+```
 
 ### 6.2 Mathematical Proof of Information Gain
 Let $S$ be the success event, and $d_i$ be a document. We want to estimate $\Delta P_i = P(S | d_i \in C) - P(S | d_i \notin C)$.
