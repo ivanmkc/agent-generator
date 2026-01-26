@@ -90,9 +90,16 @@ class DataValidator:
         
         for retriever in self.retrievers:
             k = 5
-            if isinstance(retriever, GoldMinerRetriever): k = 100
-            elif isinstance(retriever, EmbeddingRetriever): k = 15
-            elif isinstance(retriever, RandomRetriever): k = 5
+            source_type = "unknown"
+            if isinstance(retriever, GoldMinerRetriever): 
+                k = 100
+                source_type = "gold_mined"
+            elif isinstance(retriever, EmbeddingRetriever): 
+                k = 15
+                source_type = "retrieved"
+            elif isinstance(retriever, RandomRetriever): 
+                k = 5
+                source_type = "random_noise"
                 
             results = await retriever.search(case.query, top_k=k, case=case)
             source_name = type(retriever).__name__
@@ -103,7 +110,7 @@ class DataValidator:
                     pool[t.id] = RetrievalContext(
                         fqn=t.id, 
                         text=t.docstring, 
-                        type="retrieved"
+                        type=source_type
                     )
         
         print(f"    {Fore.BLUE}Total deduplicated candidates: {len(pool)}{Style.RESET_ALL}")
@@ -176,6 +183,8 @@ class DataValidator:
                     break
         
         print(f"  {Fore.YELLOW}Calculating impact scores...{Style.RESET_ALL}")
+        verified_pos = []
+        verified_neg = []
         
         for f in fqns:
             n_in = trials_in[f]
@@ -202,8 +211,12 @@ class DataValidator:
             
             color = Fore.GREEN if delta_p > 0.05 else (Fore.RED if delta_p < -0.05 else Fore.WHITE)
             print(f"    {color}[{delta_p:+.2f}] {f:<60} (SE: {se_in:.2f}){Style.RESET_ALL}")
+
+            # Pooling Assumption Check
+            if ctx.context_type == "random_noise" and delta_p > 0.1:
+                print(f"    {Fore.RED}[WARNING] Pooling Assumption Violation! Random document '{f}' found relevant.{Style.RESET_ALL}")
         
-        # Check final set sufficiency (using the entire candidate pool)
+        # Check final set sufficiency
         if candidates:
             combined_text = "\n\n".join([f"[START_DOCUMENT: {c.fqn}]\n{c.text}\n[END_DOCUMENT]" for c in candidates])
             final_ans = await self._generate_answer_with_retry(case, combined_text)
@@ -341,7 +354,7 @@ Target Schema:
             result, _, _, _ = await runner.run_benchmark(bcase, answer)
             return result == BenchmarkResultType.PASS
         except Exception as e: 
-            print(f"      {Fore.RED}API Validation Error: {e}{Style.RESET_ALL}")
+            # print(f"      {Fore.RED}API Validation Error: {e}{Style.RESET_ALL}")
             return False
 
     async def _validate_fix_errors(self, case: RetrievalCase, answer: GeneratedAnswer) -> bool:
@@ -357,9 +370,12 @@ Target Schema:
         try:
             answer.output = await self.sanitizer.sanitize(answer.raw_output, FixErrorAnswerOutput)
             result, logs, _, _ = await runner.run_benchmark(bcase, answer)
+            if result != BenchmarkResultType.PASS:
+                # print(f"      {Fore.YELLOW}Runner Result: {result}{Style.RESET_ALL}")
+                pass
             return result == BenchmarkResultType.PASS
         except Exception as e: 
-            print(f"      {Fore.RED}FixError Validation Error: {e}{Style.RESET_ALL}")
+            # print(f"      {Fore.RED}FixError Validation Error: {e}{Style.RESET_ALL}")
             return False
 
     async def _validate_multiple_choice(self, case: RetrievalCase, answer: GeneratedAnswer) -> bool:
@@ -378,7 +394,7 @@ Target Schema:
             result, _, _, _ = await runner.run_benchmark(bcase, answer)
             return result == BenchmarkResultType.PASS
         except Exception as e: 
-            print(f"      {Fore.RED}MC Validation Error: {e}{Style.RESET_ALL}")
+            # print(f"      {Fore.RED}MC Validation Error: {e}{Style.RESET_ALL}")
             return False
 
 if __name__ == "__main__":
