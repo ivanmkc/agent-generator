@@ -10,7 +10,7 @@ import json
 import math
 import argparse
 from datetime import datetime
-from typing import List, Dict, Any, Literal, Optional, Union
+from typing import List, Dict, Any, Literal, Optional, Union, Tuple
 from pathlib import Path
 from pydantic import BaseModel, Field, ConfigDict
 from google import genai
@@ -106,7 +106,7 @@ class DataValidator:
         Generates candidate pool using configured retrievers.
         """
         pool = {} 
-        print(f"  {Fore.YELLOW}Generating candidate pool for {case.id}...{Style.RESET_ALL}")
+        print(f"  {Style.DIM}➤ Generating candidate pool...{Style.RESET_ALL}")
         
         for retriever in self.retrievers:
             k = 5
@@ -123,7 +123,7 @@ class DataValidator:
                 
             results = await retriever.search(case.query, top_k=k, case=case)
             source_name = type(retriever).__name__
-            print(f"    - {source_name}: found {len(results)} candidates")
+            print(f"    {Style.DIM}• {source_name}: found {len(results)} candidates{Style.RESET_ALL}")
             
             for t in results:
                 if t.id not in pool:
@@ -144,7 +144,40 @@ class DataValidator:
     ) -> RetrievalCase:
         print(f"\n{Fore.MAGENTA}▶ Processing Case: {case.id}{Style.RESET_ALL}")
         
-        # 1. Generate Candidate Pool
+        # 1. Zero-Context Baseline
+        print(f"  {Fore.CYAN}➤ Running Zero-Context Baseline...{Style.RESET_ALL}")
+        baseline_successes = 0
+        N_BASELINE = 3
+        for i in range(N_BASELINE):
+            generated_answer, prompt_used = await self._generate_answer_with_retry(case, "") # Empty context
+            if generated_answer is None:
+                # Generation failure is inconclusive, don't count it against the model
+                print(f"    {Style.DIM}• Trial {i+1}: GENERATION_FAILURE{Style.RESET_ALL}")
+                continue
+
+            is_correct = False
+            val_error = None
+            try:
+                if case.source == "api_understanding":
+                    is_correct, val_error = await self._validate_api_understanding(case, generated_answer)
+                elif case.source == "fix_errors":
+                    is_correct, val_error = await self._validate_fix_errors(case, generated_answer)
+                elif case.source == "multiple_choice":
+                    is_correct, val_error = await self._validate_multiple_choice(case, generated_answer)
+            except Exception as e:
+                is_correct = False
+                val_error = str(e)
+            
+            if is_correct:
+                baseline_successes += 1
+            
+            status_char = f"{Fore.GREEN}PASS{Style.RESET_ALL}" if is_correct else f"{Fore.RED}FAIL{Style.RESET_ALL}"
+            print(f"    • Trial {i+1}: {status_char}")
+
+        case.metadata['zero_context_success_rate'] = baseline_successes / N_BASELINE
+        print(f"    {Fore.BLUE}Baseline Success Rate: {case.metadata['zero_context_success_rate']:.2f}{Style.RESET_ALL}")
+
+        # 2. Generate Candidate Pool
         candidates = await self._generate_candidate_pool(case)
         case.candidates = candidates 
         
@@ -164,38 +197,42 @@ class DataValidator:
         max_n = self.config.adaptive_max_n if mode == "adaptive" else self.config.monte_carlo_trials
         min_n = self.config.adaptive_min_n if mode == "adaptive" else max_n
         
-        print(f"  {Fore.CYAN}➤ Running trials (Max: {max_n}, Mode: {mode})...{Style.RESET_ALL}")
+        print(f"  {Fore.CYAN}➤ Running Monte Carlo Trials (Max: {max_n}, Mode: {mode})...{Style.RESET_ALL}")
         
         case.metadata['convergence_trace'] = [] # Store convergence history
 
-        for i in range(max_n):
+        i = 0
+        while i < max_n:
             subset_fqns = [f for f in fqns if random.random() > 0.5]
-            # No bias logic here. If subset is empty, it's empty.
             
             subset_ctxs = [c_map[f] for f in subset_fqns]
             combined_text = "\n\n".join([f"[START_DOCUMENT: {f}]\n{c_map[f].text}\n[END_DOCUMENT]" for f in subset_fqns])
             
+            generated_answer, prompt_used = await self._generate_answer_with_retry(case, combined_text)
+            
+            if generated_answer is None:
+                print(f"    {Style.DIM}• Trial {i+1:<2}: GENERATION_FAILURE (retrying...){Style.RESET_ALL}")
+                continue # Do not increment i, retry the trial
+
             is_correct = False
-            generated_answer = await self._generate_answer_with_retry(case, combined_text)
-            
-            if generated_answer:
-                try:
-                    if case.source == "api_understanding":
-                        is_correct = await self._validate_api_understanding(case, generated_answer)
-                    elif case.source == "fix_errors":
-                        is_correct = await self._validate_fix_errors(case, generated_answer)
-                    elif case.source == "multiple_choice":
-                        is_correct = await self._validate_multiple_choice(case, generated_answer)
-                except Exception:
-                    is_correct = False
-            
-            # Log Trial Event
+            val_error = None
+            try:
+                if case.source == "api_understanding":
+                    is_correct, val_error = await self._validate_api_understanding(case, generated_answer)
+                elif case.source == "fix_errors":
+                    is_correct, val_error = await self._validate_fix_errors(case, generated_answer)
+                elif case.source == "multiple_choice":
+                    is_correct, val_error = await self._validate_multiple_choice(case, generated_answer)
+            except Exception as e:
+                is_correct = False
+                val_error = str(e)
+
             self._log_event(TrialCompleteEvent(
-                case_id=case.id,
-                trial_index=i,
-                subset_size=len(subset_fqns),
-                subset_fqns=subset_fqns,
-                is_correct=is_correct
+                case_id=case.id, trial_index=i, subset_size=len(subset_fqns),
+                subset_fqns=subset_fqns, is_correct=is_correct,
+                prompt_preview=prompt_used[:500] + "..." if len(prompt_used) > 500 else prompt_used,
+                generated_output=generated_answer.raw_output,
+                validation_error=val_error
             ))
 
             status_char = f"{Fore.GREEN}PASS{Style.RESET_ALL}" if is_correct else f"{Fore.RED}FAIL{Style.RESET_ALL}"
@@ -208,7 +245,7 @@ class DataValidator:
                 else:
                     trials_out[f] += 1
                     if is_correct: success_out[f] += 1
-            
+
             # Convergence Check & Trace Logging
             max_se_diff = 0.0
             se_map = {}
@@ -241,35 +278,25 @@ class DataValidator:
             if mode == "adaptive" and i >= min_n - 1:
                 if self._check_convergence(fqns, trials_in, success_in, trials_out, success_out, self.config.se_threshold):
                     print(f"      {Fore.GREEN}✔ Convergence reached (Trial {i+1}). Stopping.{Style.RESET_ALL}")
-                    # self._log_event("convergence_reached", {"case_id": case.id, "trial_index": i})
                     break
+            i += 1 # Only increment if trial was conclusive
         
         print(f"  {Fore.CYAN}➤ Impact Scores:{Style.RESET_ALL}")
         
         for f in fqns:
-            n_in = trials_in[f]
-            n_out = trials_out[f]
-            
+            n_in, n_out = trials_in[f], trials_out[f]
             p_in = success_in[f] / n_in if n_in > 0 else 0.0
             p_out = success_out[f] / n_out if n_out > 0 else 0.0
-            
             delta_p = p_in - p_out
-            
             se_in = math.sqrt(p_in * (1 - p_in) / n_in) if n_in > 0 else 0.0
-            se_out = math.sqrt(p_out * (1 - p_out) / n_out) if n_out > 0 else 0.0
             
             ctx = c_map[f]
             ctx.metadata = RetrievalResultMetadata(
-                delta_p=round(delta_p, 2),
-                p_in=round(p_in, 2),
-                p_out=round(p_out, 2),
-                n_in=n_in,
-                n_out=n_out,
-                se_in=round(se_in, 3),
-                se_out=round(se_out, 3)
+                delta_p=round(delta_p, 2), p_in=round(p_in, 2), p_out=round(p_out, 2),
+                n_in=n_in, n_out=n_out, se_in=round(se_in, 3)
             )
             
-            color = Fore.GREEN if delta_p > 0.05 else (Fore.RED if delta_p < -0.05 else Fore.WHITE)
+            color = Fore.GREEN if delta_p > 0.1 else (Fore.RED if delta_p < -0.1 else Fore.WHITE)
             print(f"    [{delta_p:+.2f}] {color}{f:<60}{Style.RESET_ALL} (SE: {se_in:.2f})")
 
             # Pooling Assumption Check
@@ -280,16 +307,16 @@ class DataValidator:
         # Check final set sufficiency (using the entire candidate pool)
         if candidates:
             combined_text = "\n\n".join([f"[START_DOCUMENT: {c.fqn}]\n{c.text}\n[END_DOCUMENT]" for c in candidates])
-            final_ans = await self._generate_answer_with_retry(case, combined_text)
+            final_ans, _ = await self._generate_answer_with_retry(case, combined_text)
             case.is_sufficient_set = False
             if final_ans:
                 try:
                     if case.source == "api_understanding":
-                        case.is_sufficient_set = await self._validate_api_understanding(case, final_ans)
+                        case.is_sufficient_set, _ = await self._validate_api_understanding(case, final_ans)
                     elif case.source == "fix_errors":
-                        case.is_sufficient_set = await self._validate_fix_errors(case, final_ans)
+                        case.is_sufficient_set, _ = await self._validate_fix_errors(case, final_ans)
                     elif case.source == "multiple_choice":
-                        case.is_sufficient_set = await self._validate_multiple_choice(case, final_ans)
+                        case.is_sufficient_set, _ = await self._validate_multiple_choice(case, final_ans)
                 except Exception: pass
             
             suff_color = Fore.GREEN if case.is_sufficient_set else Fore.RED
@@ -321,9 +348,10 @@ class DataValidator:
         # If the largest uncertainty in our impact scores is below threshold, we've converged.
         return max_se < threshold
 
-    async def _generate_answer_with_retry(self, case: RetrievalCase, context: str) -> Optional[GeneratedAnswer]:
+    async def _generate_answer_with_retry(self, case: RetrievalCase, context: str) -> Tuple[Optional[GeneratedAnswer], str]:
         """
         Generates answer with retry logic for quota limits.
+        Returns (Answer, PromptString)
         """
         target_schema = None
         if case.source == "api_understanding":
@@ -333,7 +361,7 @@ class DataValidator:
         elif case.source == "multiple_choice":
             target_schema = MultipleChoiceAnswerOutput
         else: 
-            return None
+            return None, ""
 
         # Inject schema definition into prompt
         schema_json = json.dumps(target_schema.model_json_schema(), indent=2)
@@ -368,7 +396,7 @@ Target Schema:
             key_val, key_id = await self.api_key_manager.get_next_key_with_id(KeyType.GEMINI_API)
             if not key_val:
                 print(f"    {Fore.RED}No API keys available.{Style.RESET_ALL}")
-                return None
+                return None, prompt
                 
             client = genai.Client(api_key=key_val)
             
@@ -385,7 +413,7 @@ Target Schema:
                 
                 # Report success
                 await self.api_key_manager.report_result(KeyType.GEMINI_API, key_id, True)
-                return GeneratedAnswer(raw_output=response.text)
+                return GeneratedAnswer(raw_output=response.text), prompt
                 
             except Exception as e:
                 error_msg = str(e)
@@ -398,13 +426,13 @@ Target Schema:
                     await asyncio.sleep(wait_time)
                 else:
                     # print(f"    {Fore.RED}Generation failed: {e}{Style.RESET_ALL}")
-                    return None
+                    return None, prompt
                     
-        return None
+        return None, prompt
 
-    async def _validate_api_understanding(self, case: RetrievalCase, answer: GeneratedAnswer) -> bool:
+    async def _validate_api_understanding(self, case: RetrievalCase, answer: GeneratedAnswer) -> Tuple[bool, Optional[str]]:
         gt = case.ground_truth
-        if not gt.get("answers"): return False
+        if not gt.get("answers"): return False, "No ground truth answers"
         bcase = ApiUnderstandingBenchmarkCase(
             id=case.id, question=case.query, category=case.metadata.get("category", "unknown"),
             rationale="N/A", template=AnswerTemplate(gt.get("template", "identifier")),
@@ -415,12 +443,11 @@ Target Schema:
         try:
             answer.output = await self.sanitizer.sanitize(answer.raw_output, ApiUnderstandingAnswerOutput)
             result, _, _, _ = await runner.run_benchmark(bcase, answer)
-            return result == BenchmarkResultType.PASS
+            return result == BenchmarkResultType.PASS, None
         except Exception as e: 
-            # print(f"      {Fore.RED}API Validation Error: {e}{Style.RESET_ALL}")
-            return False
+            return False, str(e)
 
-    async def _validate_fix_errors(self, case: RetrievalCase, answer: GeneratedAnswer) -> bool:
+    async def _validate_fix_errors(self, case: RetrievalCase, answer: GeneratedAnswer) -> Tuple[bool, Optional[str]]:
         gt = case.ground_truth
         def to_path(p): return Path(p) if p else None
         bcase = FixErrorBenchmarkCase(
@@ -433,15 +460,12 @@ Target Schema:
         try:
             answer.output = await self.sanitizer.sanitize(answer.raw_output, FixErrorAnswerOutput)
             result, logs, _, _ = await runner.run_benchmark(bcase, answer)
-            if result != BenchmarkResultType.PASS:
-                # print(f"      {Fore.YELLOW}Runner Result: {result}{Style.RESET_ALL}")
-                pass
-            return result == BenchmarkResultType.PASS
+            error_msg = None if result == BenchmarkResultType.PASS else f"Runner Result: {result}, Logs: {logs}"
+            return result == BenchmarkResultType.PASS, error_msg
         except Exception as e: 
-            # print(f"      {Fore.RED}FixError Validation Error: {e}{Style.RESET_ALL}")
-            return False
+            return False, str(e)
 
-    async def _validate_multiple_choice(self, case: RetrievalCase, answer: GeneratedAnswer) -> bool:
+    async def _validate_multiple_choice(self, case: RetrievalCase, answer: GeneratedAnswer) -> Tuple[bool, Optional[str]]:
         gt = case.ground_truth
         bcase = MultipleChoiceBenchmarkCase(
             id=case.id,
@@ -455,10 +479,10 @@ Target Schema:
         try:
             answer.output = await self.sanitizer.sanitize(answer.raw_output, MultipleChoiceAnswerOutput)
             result, _, _, _ = await runner.run_benchmark(bcase, answer)
-            return result == BenchmarkResultType.PASS
+            error_msg = None if result == BenchmarkResultType.PASS else f"Wrong Answer. Expected {gt.get('correct_answer')}, Got {answer.output.answer}"
+            return result == BenchmarkResultType.PASS, error_msg
         except Exception as e: 
-            # print(f"      {Fore.RED}MC Validation Error: {e}{Style.RESET_ALL}")
-            return False
+            return False, str(e)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Retrieval Data Validator")

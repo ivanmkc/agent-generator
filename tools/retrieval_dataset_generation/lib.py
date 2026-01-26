@@ -94,6 +94,9 @@ class TrialCompleteEvent(BaseLogEvent):
     subset_size: int
     subset_fqns: List[str]
     is_correct: bool
+    prompt_preview: Optional[str] = None
+    generated_output: Optional[str] = None
+    validation_error: Optional[str] = None
 
 class ConvergenceCheckEvent(BaseLogEvent):
     event: Literal["convergence_check"] = "convergence_check"
