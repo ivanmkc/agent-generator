@@ -7,6 +7,7 @@ import sys
 import random
 import time
 import json
+import math
 from typing import List, Dict, Any, Literal, Optional
 from pathlib import Path
 from pydantic import BaseModel, Field, ConfigDict
@@ -53,16 +54,24 @@ class DataValidator:
         self.sanitizer = JsonSanitizer(api_key_manager=self.api_key_manager, model_name=MOST_POWERFUL_MODEL)
         self.retrievers = retrievers
         
-    async def validate_dataset(self, max_cases: Optional[int] = None, offset: int = 0):
+    async def validate_dataset(
+        self, 
+        max_cases: Optional[int] = None, 
+        offset: int = 0,
+        mode: Literal["fixed", "adaptive"] = "fixed",
+        max_n: int = 10,
+        min_n: int = 3,
+        se_threshold: float = 0.1
+    ):
         with open(self.input_path, 'r') as f:
             dataset = RetrievalDataset.model_validate(yaml.safe_load(f))
         
         cases_to_process = dataset.cases[offset:offset+max_cases] if max_cases else dataset.cases[offset:]
-        print(f"{Fore.CYAN}Validating {len(cases_to_process)} cases using {GENERATION_MODEL}...{Style.RESET_ALL}")
+        print(f"{Fore.CYAN}Validating {len(cases_to_process)} cases using {GENERATION_MODEL} (Mode: {mode})...{Style.RESET_ALL}")
         
         results = []
         for case in cases_to_process:
-            result = await self.validate_case(case)
+            result = await self.validate_case(case, mode=mode, max_n=max_n, min_n=min_n, se_threshold=se_threshold)
             results.append(result)
             
         dataset.cases = results
@@ -100,7 +109,14 @@ class DataValidator:
         print(f"    {Fore.BLUE}Total deduplicated candidates: {len(pool)}{Style.RESET_ALL}")
         return list(pool.values())
 
-    async def validate_case(self, case: RetrievalCase) -> RetrievalCase:
+    async def validate_case(
+        self, 
+        case: RetrievalCase,
+        mode: str = "fixed",
+        max_n: int = 10,
+        min_n: int = 3,
+        se_threshold: float = 0.1
+    ) -> RetrievalCase:
         print(f"\n{Fore.MAGENTA}>>> Processing Case: {case.id}{Style.RESET_ALL}")
         
         # 1. Generate Candidate Pool
@@ -119,11 +135,9 @@ class DataValidator:
         trials_out = {f: 0 for f in fqns}
         success_out = {f: 0 for f in fqns}
         
-        N_TRIALS = 3 
+        print(f"  {Fore.YELLOW}Running trials (Max: {max_n}, Mode: {mode})...{Style.RESET_ALL}")
         
-        print(f"  {Fore.YELLOW}Running {N_TRIALS} Monte Carlo trials...{Style.RESET_ALL}")
-        
-        for i in range(N_TRIALS):
+        for i in range(max_n):
             subset_fqns = [f for f in fqns if random.random() > 0.5]
             if not subset_fqns: subset_fqns = [random.choice(fqns)]
             
@@ -145,7 +159,7 @@ class DataValidator:
                     is_success = False
             
             status_char = f"{Fore.GREEN}PASS{Style.RESET_ALL}" if is_success else f"{Fore.RED}FAIL{Style.RESET_ALL}"
-            print(f"    Trial {i+1}/{N_TRIALS}: {status_char} (Context size: {len(subset_fqns)})")
+            print(f"    Trial {i+1}/{max_n}: {status_char} (Context size: {len(subset_fqns)})")
             
             for f in fqns:
                 if f in subset_fqns:
@@ -154,6 +168,12 @@ class DataValidator:
                 else:
                     trials_out[f] += 1
                     if is_success: success_out[f] += 1
+            
+            # Adaptive Stopping Check
+            if mode == "adaptive" and i >= min_n - 1:
+                if self._check_convergence(fqns, trials_in, success_in, trials_out, success_out, se_threshold):
+                    print(f"    {Fore.GREEN}Statistical convergence reached at trial {i+1}. Stopping early.{Style.RESET_ALL}")
+                    break
         
         print(f"  {Fore.YELLOW}Calculating impact scores...{Style.RESET_ALL}")
         verified_pos = []
@@ -168,9 +188,8 @@ class DataValidator:
             
             delta_p = p_in - p_out
             
-            # Confidence Stats (Standard Error)
-            se_in = (p_in * (1 - p_in) / n_in) ** 0.5 if n_in > 0 else 0.0
-            se_out = (p_out * (1 - p_out) / n_out) ** 0.5 if n_out > 0 else 0.0
+            se_in = math.sqrt(p_in * (1 - p_in) / n_in) if n_in > 0 else 0.0
+            se_out = math.sqrt(p_out * (1 - p_out) / n_out) if n_out > 0 else 0.0
             
             ctx = c_map[f]
             ctx.metadata = RetrievalResultMetadata(
@@ -212,6 +231,28 @@ class DataValidator:
             print(f"  {Fore.YELLOW}Final Set Sufficiency: {suff_color}{case.is_sufficient_set}{Style.RESET_ALL}")
             
         return case
+
+    def _check_convergence(self, fqns, trials_in, success_in, trials_out, success_out, threshold):
+        """
+        Check if the Standard Error for the Delta P of top candidates has converged.
+        """
+        max_se = 0.0
+        for f in fqns:
+            if trials_in[f] == 0 or trials_out[f] == 0:
+                return False # Need at least one sample in each bucket
+            
+            p_in = success_in[f] / trials_in[f]
+            p_out = success_out[f] / trials_out[f]
+            
+            se_in = math.sqrt(p_in * (1 - p_in) / trials_in[f])
+            se_out = math.sqrt(p_out * (1 - p_out) / trials_out[f])
+            
+            # Combined Standard Error for the difference
+            se_diff = math.sqrt(se_in**2 + se_out**2)
+            max_se = max(max_se, se_diff)
+            
+        # If the largest uncertainty in our impact scores is below threshold, we've converged.
+        return max_se < threshold
 
     async def _generate_answer_with_retry(self, case: RetrievalCase, context: str) -> Optional[GeneratedAnswer]:
         """
@@ -325,9 +366,6 @@ Target Schema:
         try:
             answer.output = await self.sanitizer.sanitize(answer.raw_output, FixErrorAnswerOutput)
             result, logs, _, _ = await runner.run_benchmark(bcase, answer)
-            if result != BenchmarkResultType.PASS:
-                # print(f"      {Fore.YELLOW}Runner Result: {result}{Style.RESET_ALL}")
-                pass
             return result == BenchmarkResultType.PASS
         except Exception as e: 
             print(f"      {Fore.RED}FixError Validation Error: {e}{Style.RESET_ALL}")

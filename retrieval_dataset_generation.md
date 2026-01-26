@@ -26,5 +26,6 @@
     - Moved `retrieval_benchmark_lib.py` -> `lib.py`.
     - Updated imports and `sys.path`.
 - **Enhancement:** Added `confidence` stats (`n_in`, `se_in`, etc.) to metadata.
-- **Verification:** Ran successful test on 1 case with full pipeline.
+- **Adaptive Convergence:** Implemented an optional `adaptive` sampling mode that stops trials early once the standard error of impact scores stabilizes.
+- **Verification:** Ran successful adaptive test on 1 case, converging at Trial 6.
 - **Status:** Ready for full-scale generation.
