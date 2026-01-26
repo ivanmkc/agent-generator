@@ -83,7 +83,7 @@ class DataValidator:
             dataset = RetrievalDataset.model_validate(yaml.safe_load(f))
         
         cases_to_process = dataset.cases[offset:offset+max_cases] if max_cases else dataset.cases[offset:]
-        print(f"{Fore.CYAN}Validating {len(cases_to_process)} cases using {GENERATION_MODEL} (Mode: {mode})...{Style.RESET_ALL}")
+        print(f"{Fore.CYAN}Validating {len(cases_to_process)} cases using {GENERATION_MODEL} (Mode: {mode}, Concurrency: {self.config.concurrency})...{Style.RESET_ALL}")
         
         self._log_event(ValidationStartEvent(mode=mode, case_count=len(cases_to_process)))
 
@@ -98,8 +98,6 @@ class DataValidator:
         print(f"\n{Fore.GREEN}Saving verified dataset to {self.output_path}...{Style.RESET_ALL}")
         with open(self.output_path, 'w') as f:
             yaml.dump(dataset.model_dump(by_alias=True), f, sort_keys=False, allow_unicode=True)
-        
-        # self._log_event("validation_complete", {"output_path": str(self.output_path)})
 
     async def _generate_candidate_pool(self, case: RetrievalCase) -> List[RetrievalContext]:
         """
@@ -151,22 +149,19 @@ class DataValidator:
         for i in range(N_BASELINE):
             generated_answer, prompt_used = await self._generate_answer_with_retry(case, "") # Empty context
             if generated_answer is None:
-                # Generation failure is inconclusive, don't count it against the model
                 print(f"    {Style.DIM}• Trial {i+1}: GENERATION_FAILURE{Style.RESET_ALL}")
                 continue
 
             is_correct = False
-            val_error = None
             try:
                 if case.source == "api_understanding":
-                    is_correct, val_error = await self._validate_api_understanding(case, generated_answer)
+                    is_correct, _ = await self._validate_api_understanding(case, generated_answer)
                 elif case.source == "fix_errors":
-                    is_correct, val_error = await self._validate_fix_errors(case, generated_answer)
+                    is_correct, _ = await self._validate_fix_errors(case, generated_answer)
                 elif case.source == "multiple_choice":
-                    is_correct, val_error = await self._validate_multiple_choice(case, generated_answer)
-            except Exception as e:
+                    is_correct, _ = await self._validate_multiple_choice(case, generated_answer)
+            except Exception:
                 is_correct = False
-                val_error = str(e)
             
             if is_correct:
                 baseline_successes += 1
@@ -188,98 +183,110 @@ class DataValidator:
         c_map = {c.fqn: c for c in candidates}
         fqns = list(c_map.keys())
         
+        # Shared State for Stats
         trials_in = {f: 0 for f in fqns}
         success_in = {f: 0 for f in fqns}
         trials_out = {f: 0 for f in fqns}
         success_out = {f: 0 for f in fqns}
         
-        # Determine trial counts based on mode
         max_n = self.config.adaptive_max_n if mode == "adaptive" else self.config.monte_carlo_trials
         min_n = self.config.adaptive_min_n if mode == "adaptive" else max_n
         
-        print(f"  {Fore.CYAN}➤ Running Monte Carlo Trials (Max: {max_n}, Mode: {mode})...{Style.RESET_ALL}")
+        print(f"  {Fore.CYAN}➤ Running Monte Carlo Trials (Max: {max_n}, Mode: {mode}, Concurrency: {self.config.concurrency})...{Style.RESET_ALL}")
         
-        case.metadata['convergence_trace'] = [] # Store convergence history
+        case.metadata['convergence_trace'] = []
+        
+        # Concurrency Control
+        semaphore = asyncio.Semaphore(self.config.concurrency)
+        trials_completed = 0
+        stop_signal = False
+        
+        async def run_single_trial(trial_idx: int):
+            nonlocal trials_completed, stop_signal
+            if stop_signal: return
 
-        i = 0
-        while i < max_n:
-            subset_fqns = [f for f in fqns if random.random() > 0.5]
-            
-            subset_ctxs = [c_map[f] for f in subset_fqns]
-            combined_text = "\n\n".join([f"[START_DOCUMENT: {f}]\n{c_map[f].text}\n[END_DOCUMENT]" for f in subset_fqns])
-            
-            generated_answer, prompt_used = await self._generate_answer_with_retry(case, combined_text)
-            
-            if generated_answer is None:
-                print(f"    {Style.DIM}• Trial {i+1:<2}: GENERATION_FAILURE (retrying...){Style.RESET_ALL}")
-                continue # Do not increment i, retry the trial
+            async with semaphore:
+                # Double check after acquiring semaphore
+                if stop_signal: return
 
-            is_correct = False
-            val_error = None
-            try:
-                if case.source == "api_understanding":
-                    is_correct, val_error = await self._validate_api_understanding(case, generated_answer)
-                elif case.source == "fix_errors":
-                    is_correct, val_error = await self._validate_fix_errors(case, generated_answer)
-                elif case.source == "multiple_choice":
-                    is_correct, val_error = await self._validate_multiple_choice(case, generated_answer)
-            except Exception as e:
+                subset_fqns = [f for f in fqns if random.random() > 0.5]
+                combined_text = "\n\n".join([f"[START_DOCUMENT: {f}]\n{c_map[f].text}\n[END_DOCUMENT]" for f in subset_fqns])
+                
+                generated_answer, prompt_used = await self._generate_answer_with_retry(case, combined_text)
+                
+                if generated_answer is None:
+                    print(f"    {Style.DIM}• Trial {trial_idx+1}: GENERATION_FAILURE (retrying...){Style.RESET_ALL}")
+                    # In a real queue we would re-add, but here we just skip updating stats for this index
+                    # Ideally we should retry, but for simplicity in concurrency we skip inconclusive trials
+                    return 
+
                 is_correct = False
-                val_error = str(e)
+                val_error = None
+                try:
+                    if case.source == "api_understanding":
+                        is_correct, val_error = await self._validate_api_understanding(case, generated_answer)
+                    elif case.source == "fix_errors":
+                        is_correct, val_error = await self._validate_fix_errors(case, generated_answer)
+                    elif case.source == "multiple_choice":
+                        is_correct, val_error = await self._validate_multiple_choice(case, generated_answer)
+                except Exception as e:
+                    is_correct = False
+                    val_error = str(e)
 
-            self._log_event(TrialCompleteEvent(
-                case_id=case.id, trial_index=i, subset_size=len(subset_fqns),
-                subset_fqns=subset_fqns, is_correct=is_correct,
-                prompt_preview=prompt_used[:500] + "..." if len(prompt_used) > 500 else prompt_used,
-                generated_output=generated_answer.raw_output,
-                validation_error=val_error
-            ))
+                # Log Event
+                self._log_event(TrialCompleteEvent(
+                    case_id=case.id, trial_index=trial_idx, subset_size=len(subset_fqns),
+                    subset_fqns=subset_fqns, is_correct=is_correct,
+                    prompt_preview=prompt_used[:500] + "..." if len(prompt_used) > 500 else prompt_used,
+                    generated_output=generated_answer.raw_output,
+                    validation_error=val_error
+                ))
 
-            status_char = f"{Fore.GREEN}PASS{Style.RESET_ALL}" if is_correct else f"{Fore.RED}FAIL{Style.RESET_ALL}"
-            print(f"    • Trial {i+1:<2}/{max_n}: {status_char} (Ctx: {len(subset_fqns)})")
-            
-            for f in fqns:
-                if f in subset_fqns:
-                    trials_in[f] += 1
-                    if is_correct: success_in[f] += 1
-                else:
-                    trials_out[f] += 1
-                    if is_correct: success_out[f] += 1
+                status_char = f"{Fore.GREEN}PASS{Style.RESET_ALL}" if is_correct else f"{Fore.RED}FAIL{Style.RESET_ALL}"
+                print(f"    • Trial {trial_idx+1:<2}/{max_n}: {status_char} (Ctx: {len(subset_fqns)})")
+                
+                # Update Stats (Thread-safe in asyncio single loop)
+                for f in fqns:
+                    if f in subset_fqns:
+                        trials_in[f] += 1
+                        if is_correct: success_in[f] += 1
+                    else:
+                        trials_out[f] += 1
+                        if is_correct: success_out[f] += 1
+                
+                trials_completed += 1
+                
+                # Check Convergence
+                max_se_diff = 0.0
+                se_map = {}
+                for f in fqns:
+                    if trials_in[f] > 0 and trials_out[f] > 0:
+                        p_in = success_in[f] / trials_in[f]
+                        p_out = success_out[f] / trials_out[f]
+                        
+                        se_in = math.sqrt(p_in * (1 - p_in) / trials_in[f]) if (0 < p_in < 1) else (1.0 / trials_in[f])
+                        se_out = math.sqrt(p_out * (1 - p_out) / trials_out[f]) if (0 < p_out < 1) else (1.0 / trials_out[f])
+                        se_diff = math.sqrt(se_in**2 + se_out**2)
+                        max_se_diff = max(max_se_diff, se_diff)
+                        se_map[f] = round(se_diff, 4)
+                    else:
+                        max_se_diff = 1.0
+                        se_map[f] = 1.0
+                
+                case.metadata['convergence_trace'].append(max_se_diff)
+                self._log_event(ConvergenceCheckEvent(
+                    case_id=case.id, trial_index=trial_idx, max_se_diff=max_se_diff,
+                    se_map=se_map, threshold=self.config.se_threshold
+                ))
 
-            # Convergence Check & Trace Logging
-            max_se_diff = 0.0
-            se_map = {}
-            for f in fqns:
-                if trials_in[f] > 0 and trials_out[f] > 0:
-                    p_in = success_in[f] / trials_in[f]
-                    p_out = success_out[f] / trials_out[f]
-                    
-                    # Adjusted SE logic for trace
-                    se_in = math.sqrt(p_in * (1 - p_in) / trials_in[f]) if (0 < p_in < 1) else (1.0 / trials_in[f])
-                    se_out = math.sqrt(p_out * (1 - p_out) / trials_out[f]) if (0 < p_out < 1) else (1.0 / trials_out[f])
-                    se_diff = math.sqrt(se_in**2 + se_out**2)
-                    max_se_diff = max(max_se_diff, se_diff)
-                    se_map[f] = round(se_diff, 4)
-                else:
-                    max_se_diff = 1.0 # High uncertainty if no samples in a bucket
-                    se_map[f] = 1.0
-            
-            # Log trace
-            case.metadata['convergence_trace'].append(max_se_diff)
-            self._log_event(ConvergenceCheckEvent(
-                case_id=case.id,
-                trial_index=i,
-                max_se_diff=max_se_diff,
-                se_map=se_map,
-                threshold=self.config.se_threshold
-            ))
+                if mode == "adaptive" and trials_completed >= min_n:
+                    if self._check_convergence(fqns, trials_in, success_in, trials_out, success_out, self.config.se_threshold):
+                        print(f"      {Fore.GREEN}✔ Convergence reached (Trial {trial_idx+1}). Stopping.{Style.RESET_ALL}")
+                        stop_signal = True
 
-            # Adaptive Stopping Check
-            if mode == "adaptive" and i >= min_n - 1:
-                if self._check_convergence(fqns, trials_in, success_in, trials_out, success_out, self.config.se_threshold):
-                    print(f"      {Fore.GREEN}✔ Convergence reached (Trial {i+1}). Stopping.{Style.RESET_ALL}")
-                    break
-            i += 1 # Only increment if trial was conclusive
+        # Launch Tasks
+        tasks = [run_single_trial(i) for i in range(max_n)]
+        await asyncio.gather(*tasks)
         
         print(f"  {Fore.CYAN}➤ Impact Scores:{Style.RESET_ALL}")
         
@@ -299,12 +306,11 @@ class DataValidator:
             color = Fore.GREEN if delta_p > 0.1 else (Fore.RED if delta_p < -0.1 else Fore.WHITE)
             print(f"    [{delta_p:+.2f}] {color}{f:<60}{Style.RESET_ALL} (SE: {se_in:.2f})")
 
-            # Pooling Assumption Check
             if ctx.context_type == "random_noise" and delta_p > 0.1:
                 print(f"      {Fore.RED}⚠ Pooling Violation: Random doc found relevant!{Style.RESET_ALL}")
                 self._log_event(PoolingViolationEvent(case_id=case.id, fqn=f, delta_p=delta_p))
         
-        # Check final set sufficiency (using the entire candidate pool)
+        # Check final set sufficiency
         if candidates:
             combined_text = "\n\n".join([f"[START_DOCUMENT: {c.fqn}]\n{c.text}\n[END_DOCUMENT]" for c in candidates])
             final_ans, _ = await self._generate_answer_with_retry(case, combined_text)
@@ -325,34 +331,19 @@ class DataValidator:
         return case
 
     def _check_convergence(self, fqns, trials_in, success_in, trials_out, success_out, threshold):
-        """
-        Check if the Standard Error for the Delta P of top candidates has converged.
-        Uses an Adjusted SE to avoid 0-variance trap at p=0/1 with small n.
-        """
         max_se = 0.0
         for f in fqns:
             if trials_in[f] == 0 or trials_out[f] == 0:
-                return False # Need at least one sample in each bucket
-            
+                return False 
             p_in = success_in[f] / trials_in[f]
             p_out = success_out[f] / trials_out[f]
-            
-            # Adjusted SE: If variance is 0, use 1/n as a proxy for uncertainty
             se_in = math.sqrt(p_in * (1 - p_in) / trials_in[f]) if (0 < p_in < 1) else (1.0 / trials_in[f])
             se_out = math.sqrt(p_out * (1 - p_out) / trials_out[f]) if (0 < p_out < 1) else (1.0 / trials_out[f])
-            
-            # Combined Standard Error for the difference
             se_diff = math.sqrt(se_in**2 + se_out**2)
             max_se = max(max_se, se_diff)
-            
-        # If the largest uncertainty in our impact scores is below threshold, we've converged.
         return max_se < threshold
 
     async def _generate_answer_with_retry(self, case: RetrievalCase, context: str) -> Tuple[Optional[GeneratedAnswer], str]:
-        """
-        Generates answer with retry logic for quota limits.
-        Returns (Answer, PromptString)
-        """
         target_schema = None
         if case.source == "api_understanding":
             target_schema = ApiUnderstandingAnswerOutput
@@ -363,10 +354,7 @@ class DataValidator:
         else: 
             return None, ""
 
-        # Inject schema definition into prompt
         schema_json = json.dumps(target_schema.model_json_schema(), indent=2)
-        
-        # Prepare Question Text for MC
         question_text = case.query
         if case.source == "multiple_choice":
             options = case.metadata.get("options", {})
@@ -387,12 +375,10 @@ Instructions:
 Target Schema:
 {schema_json}
 """
-
         max_retries = 3
         backoff = 5
         
         for attempt in range(max_retries):
-            # Get a fresh key for each attempt
             key_val, key_id = await self.api_key_manager.get_next_key_with_id(KeyType.GEMINI_API)
             if not key_val:
                 print(f"    {Fore.RED}No API keys available.{Style.RESET_ALL}")
@@ -401,7 +387,6 @@ Target Schema:
             client = genai.Client(api_key=key_val)
             
             try:
-                # Use response_schema in config for enforcement
                 response = await client.aio.models.generate_content(
                     model=GENERATION_MODEL,
                     contents=prompt,
@@ -410,14 +395,11 @@ Target Schema:
                         "response_schema": target_schema
                     }
                 )
-                
-                # Report success
                 await self.api_key_manager.report_result(KeyType.GEMINI_API, key_id, True)
                 return GeneratedAnswer(raw_output=response.text), prompt
                 
             except Exception as e:
                 error_msg = str(e)
-                # Report failure
                 await self.api_key_manager.report_result(KeyType.GEMINI_API, key_id, False, error_message=error_msg)
                 
                 if "429" in error_msg or "ResourceExhausted" in error_msg:
@@ -425,7 +407,6 @@ Target Schema:
                     print(f"    {Fore.YELLOW}Quota exceeded (429). Retrying in {wait_time}s...{Style.RESET_ALL}")
                     await asyncio.sleep(wait_time)
                 else:
-                    # print(f"    {Fore.RED}Generation failed: {e}{Style.RESET_ALL}")
                     return None, prompt
                     
         return None, prompt

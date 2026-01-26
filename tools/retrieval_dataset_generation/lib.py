@@ -14,15 +14,18 @@ from tqdm.asyncio import tqdm
 
 # --- Configuration ---
 class ValidatorConfig(BaseModel):
-    """Configuration for the Retrieval Data Validator."""
-    monte_carlo_trials: int = Field(3, description="Number of trials for fixed sampling.")
-    gold_miner_k: int = Field(100, description="Max candidates to mine from Ground Truth.")
-    vector_search_k: int = Field(15, description="Number of candidates to retrieve via Vector Search.")
-    random_noise_n: int = Field(20, description="Number of random noise documents to add.")
-    adaptive_min_n: int = Field(5, description="Minimum trials for adaptive mode.")
-    adaptive_max_n: int = Field(40, description="Maximum trials for adaptive mode.")
-    se_threshold: float = Field(0.1, description="Standard Error threshold for convergence.")
-    log_file: str = Field("validation_events.yaml", description="Path to structured event log file.")
+    """
+    Configuration for the Monte Carlo validation process.
+    """
+    monte_carlo_trials: int = Field(40, description="Max trials per case (Fixed mode) or max trials limit (Adaptive mode).")
+    adaptive_min_n: int = Field(15, description="Minimum trials before checking convergence.")
+    adaptive_max_n: int = Field(60, description="Maximum trials allowed in adaptive mode.")
+    se_threshold: float = Field(0.1, description="Standard Error threshold for convergence stopping.")
+    gold_miner_k: int = Field(3, description="Number of 'gold' candidates to include.")
+    vector_search_k: int = Field(15, description="Number of vector search candidates.")
+    random_noise_n: int = Field(20, description="Number of random noise candidates.")
+    concurrency: int = Field(5, description="Number of concurrent trials to run.")
+    log_file: str = Field("logs/validation_events.yaml", description="Path to the structured event log.")
 
 # --- Data Models ---
 
