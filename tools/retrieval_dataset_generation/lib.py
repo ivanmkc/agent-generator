@@ -12,13 +12,39 @@ import asyncio
 from tqdm.asyncio import tqdm
 
 # --- Data Models ---
+
+class RetrievalResultMetadata(BaseModel):
+    """
+    Metadata capturing the empirical performance of a retrieval candidate.
+    """
+    delta_p: float = Field(
+        0.0, 
+        description="Impact Score: The change in success probability when this document is present vs absent. "
+                    "Range: [-1.0, 1.0]. Positive values indicate the document helps; negative values indicate it harms."
+    )
+    p_in: float = Field(
+        0.0,
+        description="Probability of Success given IN: Success rate of trials where this document was included in the context."
+    )
+    p_out: float = Field(
+        0.0,
+        description="Probability of Success given OUT: Success rate of trials where this document was excluded from the context."
+    )
+    n_in: int = Field(0, description="Number of trials where this document was included.")
+    n_out: int = Field(0, description="Number of trials where this document was excluded.")
+    se_in: float = Field(0.0, description="Standard Error of p_in.")
+    se_out: float = Field(0.0, description="Standard Error of p_out.")
+    
+    # Allow extra fields
+    model_config = ConfigDict(extra='allow')
+
 class RetrievalContext(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
     fqn: str
     text: str
     context_type: str = Field(..., alias="type")
     empirical_relevance: str = "UNKNOWN"
-    metadata: Dict[str, Any] = Field(default_factory=dict)
+    metadata: RetrievalResultMetadata = Field(default_factory=RetrievalResultMetadata)
 
 class RetrievalCase(BaseModel):
     id: str
@@ -148,15 +174,6 @@ class GoldMinerRetriever(AbstractRetriever):
             return []
         
         results = []
-        # Extract from positive_ctxs which were mined by extractor
-        # Or parse Ground Truth again if needed. 
-        # Since extractor already did the mining and put it in positive_ctxs, we just return those.
-        # But wait, validate_retrieval_data.py now wants to regenerate pools.
-        # So we should trust the extractor's work or re-implement mining logic here?
-        # The design says "Gold Miner (Heuristic / Metadata)".
-        # Extractor populated positive_ctxs.
-        
-        # If we use positive_ctxs from case:
         for ctx in case.positive_ctxs:
             if ctx.fqn in self.fqn_map:
                 results.append(self.fqn_map[ctx.fqn])

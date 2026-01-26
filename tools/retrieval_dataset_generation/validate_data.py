@@ -34,7 +34,8 @@ from benchmarks.api_key_manager import API_KEY_MANAGER, KeyType
 from benchmarks.benchmark_candidates import ModelName
 from tools.retrieval_dataset_generation.lib import (
     EmbeddingRetriever, RankedTarget, RetrievalDataset, RetrievalCase, 
-    RetrievalContext, AbstractRetriever, GoldMinerRetriever, RandomRetriever
+    RetrievalContext, AbstractRetriever, GoldMinerRetriever, RandomRetriever,
+    RetrievalResultMetadata
 )
 
 # Configure logging
@@ -172,20 +173,20 @@ class DataValidator:
             se_out = (p_out * (1 - p_out) / n_out) ** 0.5 if n_out > 0 else 0.0
             
             ctx = c_map[f]
-            ctx.metadata.update({
-                "delta_p": round(delta_p, 2),
-                "p_in": round(p_in, 2),
-                "p_out": round(p_out, 2),
-                "n_in": n_in,
-                "n_out": n_out,
-                "se_in": round(se_in, 3),
-                "se_out": round(se_out, 3)
-            })
+            ctx.metadata = RetrievalResultMetadata(
+                delta_p=round(delta_p, 2),
+                p_in=round(p_in, 2),
+                p_out=round(p_out, 2),
+                n_in=n_in,
+                n_out=n_out,
+                se_in=round(se_in, 3),
+                se_out=round(se_out, 3)
+            )
             
             if delta_p > 0.05:
                 ctx.empirical_relevance = "YES"
                 verified_pos.append(ctx)
-                print(f"    {Fore.GREEN}[+] {f:<60} Delta P: {delta_p:+.2f}{Style.RESET_ALL}")
+                print(f"    {Fore.GREEN}[+] {f:<60} Delta P: {delta_p:+.2f} (SE: {se_in:.2f}){Style.RESET_ALL}")
             else:
                 ctx.empirical_relevance = "NO"
                 verified_neg.append(ctx)
