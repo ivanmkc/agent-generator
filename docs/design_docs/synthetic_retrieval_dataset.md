@@ -16,7 +16,7 @@ We treat all potential documents as **candidates**. Their status is determined b
 ### 2.1 Sampling Strategies (Validation Convergence)
 The validator supports two execution modes to balance precision and cost:
 1.  **Constant Trial Method:** Runs fixed $N$ trials per case.
-2.  **Adaptive Convergence Method:** Stops early if the Standard Error of impact scores stabilizes.
+2.  **Adaptive Convergence Method:** Stops early if the statistical confidence of the impact score stabilizes.
 
 ### 2.2 Dataset-Level Convergence (Global)
 We monitor the stability of aggregate metrics (e.g., Mean Recall@5) as we add more *cases* to the dataset to ensure the corpus is sufficiently covered.
@@ -31,14 +31,18 @@ A naive Standard Error calculation ($SE = \sqrt{p(1-p)/n}$) is flawed for small 
 **Solution: Adjusted Confidence Metric**
 We use an **Adjusted Standard Error** that imposes a minimum uncertainty floor based on sample size:
 
-$$ SE_{adjusted} = \begin{cases} \sqrt{\frac{p(1-p)}{n}} & \text{if } 0 < p < 1 \ \frac{1}{n} & \text{if } p=0 \text{ or } p=1 \end{cases} $$
+$$ SE_{adjusted} = \begin{cases}
+\sqrt{\frac{p(1-p)}{n}} & \text{if } 0 < p < 1 \\
+\frac{1}{n} & \text{if } p=0 \text{ or } p=1
+\end{cases} $$
 
 **Safety Proof:**
 To satisfy a convergence threshold of $\epsilon = 0.1$:
-*   **Best Case (Uniform Results):** If a document works 100% of the time ($p=1$), we use $SE = 1/n$. To reach $1/n < 0.1$, we require **$n > 10$ trials**.
-*   **Worst Case (High Variance):** If a document works 50% of the time ($p=0.5$), $SE = \sqrt{0.25/n} = 0.5/\sqrt{n}$. To reach $0.5/\sqrt{n} < 0.1$, we require $\sqrt{n} > 5 \Rightarrow$ **$n > 25$ trials**.
+*   **Per-Pair Evidence:** Every (Question, Document) pair must satisfy $SE_{diff} < \epsilon$.
+*   **Best Case (Uniform Results):** If a document works 100% of the time ($p=1$), we require $1/n_{in} < 0.1 \Rightarrow n_{in} \ge 11$.
+*   **Total Trials:** Since documents are sampled at $p=0.5$ per trial, the expected number of trials required to reach $n_{in} \ge 11$ and $n_{out} \ge 11$ for **all** documents is approximately **$T \approx 25$ total trials per question.**
 
-This guarantees that the system **cannot** stop early on a "lucky streak" of 3-4 trials. It forces substantial evidence gathering before declaring convergence.
+This guarantees that the system **cannot** stop early on a "lucky streak" for any single document. It forces substantial evidence gathering for every pair in the pool before declaring convergence.
 
 ## 3. Implementation Logic
 
