@@ -1,6 +1,7 @@
 import yaml
 import numpy as np
 import random
+import time
 from abc import ABC, abstractmethod
 from typing import List, Dict, Any, Tuple, Literal, Optional
 from pathlib import Path
@@ -80,6 +81,43 @@ class RankedTarget(BaseModel):
     @property
     def corpus_text(self) -> str:
         return f"{self.name} {self.id} {self.docstring}"
+
+# --- Logging Models ---
+class BaseLogEvent(BaseModel):
+    timestamp: float = Field(default_factory=time.time)
+    event: str
+
+class TrialCompleteEvent(BaseLogEvent):
+    event: Literal["trial_complete"] = "trial_complete"
+    case_id: str
+    trial_index: int
+    subset_size: int
+    subset_fqns: List[str]
+    is_correct: bool
+
+class ConvergenceCheckEvent(BaseLogEvent):
+    event: Literal["convergence_check"] = "convergence_check"
+    case_id: str
+    trial_index: int
+    max_se_diff: float
+    se_map: Dict[str, float]
+    threshold: float
+
+class ValidationStartEvent(BaseLogEvent):
+    event: Literal["validation_start"] = "validation_start"
+    mode: str
+    case_count: int
+
+class PoolGeneratedEvent(BaseLogEvent):
+    event: Literal["pool_generated"] = "pool_generated"
+    case_id: str
+    pool_size: int
+
+class PoolingViolationEvent(BaseLogEvent):
+    event: Literal["pooling_violation"] = "pooling_violation"
+    case_id: str
+    fqn: str
+    delta_p: float
 
 # --- Retrievers ---
 class AbstractRetriever(ABC):

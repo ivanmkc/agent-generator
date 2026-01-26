@@ -10,7 +10,7 @@ import json
 import math
 import argparse
 from datetime import datetime
-from typing import List, Dict, Any, Literal, Optional
+from typing import List, Dict, Any, Literal, Optional, Union
 from pathlib import Path
 from pydantic import BaseModel, Field, ConfigDict
 from google import genai
@@ -38,7 +38,9 @@ from benchmarks.benchmark_candidates import ModelName
 from tools.retrieval_dataset_generation.lib import (
     EmbeddingRetriever, RankedTarget, RetrievalDataset, RetrievalCase, 
     RetrievalContext, AbstractRetriever, GoldMinerRetriever, RandomRetriever,
-    RetrievalResultMetadata, ValidatorConfig
+    RetrievalResultMetadata, ValidatorConfig,
+    BaseLogEvent, TrialCompleteEvent, ConvergenceCheckEvent, ValidationStartEvent, 
+    PoolGeneratedEvent, PoolingViolationEvent
 )
 
 # Configure logging
@@ -65,16 +67,11 @@ class DataValidator:
             with open(self.log_file, 'w') as f:
                 pass
 
-    def _log_event(self, event_type: str, data: Dict[str, Any]):
+    def _log_event(self, event: BaseLogEvent):
         """Writes a structured event to the YAML log."""
-        event = {
-            "timestamp": time.time(),
-            "event": event_type,
-            **data
-        }
         with open(self.log_file, 'a') as f:
             # Use explicit_start=True to create a multi-document YAML stream
-            yaml.dump(event, f, explicit_start=True, sort_keys=False)
+            yaml.dump(event.model_dump(), f, explicit_start=True, sort_keys=False)
 
     async def validate_dataset(
         self,
@@ -88,7 +85,7 @@ class DataValidator:
         cases_to_process = dataset.cases[offset:offset+max_cases] if max_cases else dataset.cases[offset:]
         print(f"{Fore.CYAN}Validating {len(cases_to_process)} cases using {GENERATION_MODEL} (Mode: {mode})...{Style.RESET_ALL}")
         
-        self._log_event("validation_start", {"mode": mode, "case_count": len(cases_to_process)})
+        self._log_event(ValidationStartEvent(mode=mode, case_count=len(cases_to_process)))
 
         results = []
         for case in cases_to_process:
@@ -102,7 +99,7 @@ class DataValidator:
         with open(self.output_path, 'w') as f:
             yaml.dump(dataset.model_dump(by_alias=True), f, sort_keys=False, allow_unicode=True)
         
-        self._log_event("validation_complete", {"output_path": str(self.output_path)})
+        # self._log_event("validation_complete", {"output_path": str(self.output_path)})
 
     async def _generate_candidate_pool(self, case: RetrievalCase) -> List[RetrievalContext]:
         """
@@ -137,7 +134,7 @@ class DataValidator:
                     )
         
         print(f"    {Fore.BLUE}Total deduplicated candidates: {len(pool)}{Style.RESET_ALL}")
-        self._log_event("pool_generated", {"case_id": case.id, "pool_size": len(pool)})
+        self._log_event(PoolGeneratedEvent(case_id=case.id, pool_size=len(pool)))
         return list(pool.values())
 
     async def validate_case(
@@ -145,14 +142,14 @@ class DataValidator:
         case: RetrievalCase,
         mode: str = "fixed"
     ) -> RetrievalCase:
-        print(f"\n{Fore.MAGENTA}>>> Processing Case: {case.id}{Style.RESET_ALL}")
+        print(f"\n{Fore.MAGENTA}▶ Processing Case: {case.id}{Style.RESET_ALL}")
         
         # 1. Generate Candidate Pool
         candidates = await self._generate_candidate_pool(case)
         case.candidates = candidates 
         
         if not candidates:
-            print(f"    {Fore.RED}No candidates found. Skipping.{Style.RESET_ALL}")
+            print(f"  {Fore.RED}⚠ No candidates found. Skipping.{Style.RESET_ALL}")
             return case
 
         c_map = {c.fqn: c for c in candidates}
@@ -167,7 +164,7 @@ class DataValidator:
         max_n = self.config.adaptive_max_n if mode == "adaptive" else self.config.monte_carlo_trials
         min_n = self.config.adaptive_min_n if mode == "adaptive" else max_n
         
-        print(f"  {Fore.YELLOW}Running trials (Max: {max_n}, Mode: {mode})...{Style.RESET_ALL}")
+        print(f"  {Fore.CYAN}➤ Running trials (Max: {max_n}, Mode: {mode})...{Style.RESET_ALL}")
         
         case.metadata['convergence_trace'] = [] # Store convergence history
 
@@ -193,16 +190,16 @@ class DataValidator:
                     is_correct = False
             
             # Log Trial Event
-            self._log_event("trial_complete", {
-                "case_id": case.id,
-                "trial_index": i,
-                "subset_size": len(subset_fqns),
-                "subset_fqns": subset_fqns,
-                "is_correct": is_correct
-            })
+            self._log_event(TrialCompleteEvent(
+                case_id=case.id,
+                trial_index=i,
+                subset_size=len(subset_fqns),
+                subset_fqns=subset_fqns,
+                is_correct=is_correct
+            ))
 
             status_char = f"{Fore.GREEN}PASS{Style.RESET_ALL}" if is_correct else f"{Fore.RED}FAIL{Style.RESET_ALL}"
-            print(f"    Trial {i+1}/{max_n}: {status_char} (Context size: {len(subset_fqns)})")
+            print(f"    • Trial {i+1:<2}/{max_n}: {status_char} (Ctx: {len(subset_fqns)})")
             
             for f in fqns:
                 if f in subset_fqns:
@@ -232,22 +229,22 @@ class DataValidator:
             
             # Log trace
             case.metadata['convergence_trace'].append(max_se_diff)
-            self._log_event("convergence_check", {
-                "case_id": case.id,
-                "trial_index": i,
-                "max_se_diff": max_se_diff,
-                "se_map": se_map,
-                "threshold": self.config.se_threshold
-            })
+            self._log_event(ConvergenceCheckEvent(
+                case_id=case.id,
+                trial_index=i,
+                max_se_diff=max_se_diff,
+                se_map=se_map,
+                threshold=self.config.se_threshold
+            ))
 
             # Adaptive Stopping Check
             if mode == "adaptive" and i >= min_n - 1:
                 if self._check_convergence(fqns, trials_in, success_in, trials_out, success_out, self.config.se_threshold):
-                    print(f"    {Fore.GREEN}Statistical convergence reached at trial {i+1}. Stopping early.{Style.RESET_ALL}")
-                    self._log_event("convergence_reached", {"case_id": case.id, "trial_index": i})
+                    print(f"      {Fore.GREEN}✔ Convergence reached (Trial {i+1}). Stopping.{Style.RESET_ALL}")
+                    # self._log_event("convergence_reached", {"case_id": case.id, "trial_index": i})
                     break
         
-        print(f"  {Fore.YELLOW}Calculating impact scores...{Style.RESET_ALL}")
+        print(f"  {Fore.CYAN}➤ Impact Scores:{Style.RESET_ALL}")
         
         for f in fqns:
             n_in = trials_in[f]
@@ -273,12 +270,12 @@ class DataValidator:
             )
             
             color = Fore.GREEN if delta_p > 0.05 else (Fore.RED if delta_p < -0.05 else Fore.WHITE)
-            print(f"    {color}[{delta_p:+.2f}] {f:<60} (SE: {se_in:.2f}){Style.RESET_ALL}")
+            print(f"    [{delta_p:+.2f}] {color}{f:<60}{Style.RESET_ALL} (SE: {se_in:.2f})")
 
             # Pooling Assumption Check
             if ctx.context_type == "random_noise" and delta_p > 0.1:
-                print(f"    {Fore.RED}[WARNING] Pooling Assumption Violation! Random document '{f}' found relevant.{Style.RESET_ALL}")
-                self._log_event("pooling_violation", {"case_id": case.id, "fqn": f, "delta_p": delta_p})
+                print(f"      {Fore.RED}⚠ Pooling Violation: Random doc found relevant!{Style.RESET_ALL}")
+                self._log_event(PoolingViolationEvent(case_id=case.id, fqn=f, delta_p=delta_p))
         
         # Check final set sufficiency (using the entire candidate pool)
         if candidates:
@@ -296,7 +293,7 @@ class DataValidator:
                 except Exception: pass
             
             suff_color = Fore.GREEN if case.is_sufficient_set else Fore.RED
-            print(f"  {Fore.YELLOW}Total Pool Sufficiency: {suff_color}{case.is_sufficient_set}{Style.RESET_ALL}")
+            print(f"  {Fore.CYAN}➤ Total Pool Sufficiency: {suff_color}{case.is_sufficient_set}{Style.RESET_ALL}")
             
         return case
 
@@ -493,7 +490,7 @@ if __name__ == "__main__":
     
     # Generate timestamped log path
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    log_file = Path(args.log_dir) / f"validation_run_{timestamp}.jsonl"
+    log_file = Path(args.log_dir) / f"validation_run_{timestamp}.yaml"
     
     # Config
     config = ValidatorConfig(log_file=str(log_file))
