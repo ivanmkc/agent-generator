@@ -183,8 +183,6 @@ class DataValidator:
                     break
         
         print(f"  {Fore.YELLOW}Calculating impact scores...{Style.RESET_ALL}")
-        verified_pos = []
-        verified_neg = []
         
         for f in fqns:
             n_in = trials_in[f]
@@ -211,14 +209,11 @@ class DataValidator:
             
             color = Fore.GREEN if delta_p > 0.05 else (Fore.RED if delta_p < -0.05 else Fore.WHITE)
             print(f"    {color}[{delta_p:+.2f}] {f:<60} (SE: {se_in:.2f}){Style.RESET_ALL}")
-
-            # Pooling Assumption Check
-            if ctx.context_type == "random_noise" and delta_p > 0.1:
-                print(f"    {Fore.RED}[WARNING] Pooling Assumption Violation! Random document '{f}' found relevant.{Style.RESET_ALL}")
         
         # Check final set sufficiency
-        if candidates:
-            combined_text = "\n\n".join([f"[START_DOCUMENT: {c.fqn}]\n{c.text}\n[END_DOCUMENT]" for c in candidates])
+        verified_pos = [c for c in candidates if c.metadata.delta_p > 0.05]
+        if verified_pos:
+            combined_text = "\n\n".join([f"[START_DOCUMENT: {c.fqn}]\n{c.text}\n[END_DOCUMENT]" for c in verified_pos])
             final_ans = await self._generate_answer_with_retry(case, combined_text)
             case.is_sufficient_set = False
             if final_ans:
@@ -232,7 +227,7 @@ class DataValidator:
                 except Exception: pass
             
             suff_color = Fore.GREEN if case.is_sufficient_set else Fore.RED
-            print(f"  {Fore.YELLOW}Total Pool Sufficiency: {suff_color}{case.is_sufficient_set}{Style.RESET_ALL}")
+            print(f"  {Fore.YELLOW}Final Set Sufficiency: {suff_color}{case.is_sufficient_set}{Style.RESET_ALL}")
             
         return case
 
@@ -354,7 +349,7 @@ Target Schema:
             result, _, _, _ = await runner.run_benchmark(bcase, answer)
             return result == BenchmarkResultType.PASS
         except Exception as e: 
-            # print(f"      {Fore.RED}API Validation Error: {e}{Style.RESET_ALL}")
+            print(f"      {Fore.RED}API Validation Error: {e}{Style.RESET_ALL}")
             return False
 
     async def _validate_fix_errors(self, case: RetrievalCase, answer: GeneratedAnswer) -> bool:
@@ -375,7 +370,7 @@ Target Schema:
                 pass
             return result == BenchmarkResultType.PASS
         except Exception as e: 
-            # print(f"      {Fore.RED}FixError Validation Error: {e}{Style.RESET_ALL}")
+            print(f"      {Fore.RED}FixError Validation Error: {e}{Style.RESET_ALL}")
             return False
 
     async def _validate_multiple_choice(self, case: RetrievalCase, answer: GeneratedAnswer) -> bool:
@@ -394,7 +389,7 @@ Target Schema:
             result, _, _, _ = await runner.run_benchmark(bcase, answer)
             return result == BenchmarkResultType.PASS
         except Exception as e: 
-            # print(f"      {Fore.RED}MC Validation Error: {e}{Style.RESET_ALL}")
+            print(f"      {Fore.RED}MC Validation Error: {e}{Style.RESET_ALL}")
             return False
 
 if __name__ == "__main__":

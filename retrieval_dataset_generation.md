@@ -18,14 +18,12 @@
 - **Update:** Switched output format from JSONL to YAML.
 - **Result:** Successfully extracted 65 verified retrieval pairs.
 
-### 5. Refactoring & Cleanup
-- **Task:** Organized tools into `tools/retrieval_dataset_generation/`.
-- **Refactoring:**
-    - Moved `extract_retrieval_data.py` -> `extract_data.py`.
-    - Moved `validate_retrieval_data.py` -> `validate_data.py`.
-    - Moved `retrieval_benchmark_lib.py` -> `lib.py`.
-    - Updated imports and `sys.path`.
-- **Enhancement:** Added `confidence` stats (`n_in`, `se_in`, etc.) to metadata.
-- **Adaptive Convergence:** Implemented an optional `adaptive` sampling mode that stops trials early once the standard error of impact scores stabilizes.
-- **Verification:** Ran successful adaptive test on 1 case, converging at Trial 6.
-- **Status:** Ready for full-scale generation.
+### 6. Finalization (Robustness & Debugging)
+- **Task:** Finalized `validate_data.py`.
+- **Features:**
+    - **Schema Injection:** Injects Pydantic schema JSON into prompts to guarantee structural compliance.
+    - **API Enforcement:** Uses `response_schema` in `generate_content` config.
+    - **Retry Logic:** Implemented exponential backoff for `429` errors.
+    - **Validation:** Verified end-to-end on both API Understanding and Fix Error cases.
+    - **Logging:** Added detailed logs for validation failures (Runner logs, Exceptions).
+- **Result:** System is stable and ready for production use.
