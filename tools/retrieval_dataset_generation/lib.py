@@ -43,7 +43,6 @@ class RetrievalContext(BaseModel):
     fqn: str
     text: str
     context_type: str = Field(..., alias="type")
-    empirical_relevance: str = "UNKNOWN"
     metadata: RetrievalResultMetadata = Field(default_factory=RetrievalResultMetadata)
 
 class RetrievalCase(BaseModel):

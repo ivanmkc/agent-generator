@@ -32,14 +32,17 @@ Shared data models and retriever implementations.
 
 ## Metrics Guide
 
-The validation process outputs statistical metrics in the metadata for each candidate document:
+The validation process outputs statistical metrics in the metadata for each candidate document. We avoid binary relevance labels in favor of raw probability shifts, which provides a more granular signal for training and evaluation.
 
 *   **`delta_p` (Impact Score):** The causal lift in success rate provided by this document.
-    *   `> 0.05`: **Relevant (YES)**. The document helps.
-    *   `~ 0.0`: **Irrelevant**. The document is noise.
-    *   `< -0.05`: **Toxic**. The document actively confuses the model (e.g., outdated API).
+    *   **High Positive (> 0.2)**: Highly relevant. The document is a "key" that unlocks the solution.
+    *   **Low Positive (0.05 - 0.2)**: Supplemental. The document helps but isn't strictly necessary or is redundant.
+    *   **Neutral (~ 0.0)**: Noise. The document has no measurable impact on performance.
+    *   **Negative (< -0.05)**: Toxic Distractor. The document confuses the model, causing it to fail tasks it would otherwise solve.
 *   **`p_in` / `p_out`:** Success probability when the document is present vs absent.
-*   **`se_in` / `se_out`:** Standard Error of the probability estimates (confidence).
+*   **`n_in` / `n_out`:** Number of Monte Carlo samples in each bucket.
+*   **`se_in` / `se_out`:** Standard Error of the probability estimates. Lower values indicate higher confidence in the impact score.
+
 
 ## Usage
 

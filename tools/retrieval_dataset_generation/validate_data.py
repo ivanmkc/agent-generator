@@ -176,8 +176,6 @@ class DataValidator:
                     break
         
         print(f"  {Fore.YELLOW}Calculating impact scores...{Style.RESET_ALL}")
-        verified_pos = []
-        verified_neg = []
         
         for f in fqns:
             n_in = trials_in[f]
@@ -202,19 +200,12 @@ class DataValidator:
                 se_out=round(se_out, 3)
             )
             
-            if delta_p > 0.05:
-                ctx.empirical_relevance = "YES"
-                verified_pos.append(ctx)
-                print(f"    {Fore.GREEN}[+] {f:<60} Delta P: {delta_p:+.2f} (SE: {se_in:.2f}){Style.RESET_ALL}")
-            else:
-                ctx.empirical_relevance = "NO"
-                verified_neg.append(ctx)
+            color = Fore.GREEN if delta_p > 0.05 else (Fore.RED if delta_p < -0.05 else Fore.WHITE)
+            print(f"    {color}[{delta_p:+.2f}] {f:<60} (SE: {se_in:.2f}){Style.RESET_ALL}")
         
-        case.positive_ctxs = verified_pos
-        case.negative_ctxs = verified_neg
-        
-        if verified_pos:
-            combined_text = "\n\n".join([f"[START_DOCUMENT: {c.fqn}]\n{c.text}\n[END_DOCUMENT]" for c in verified_pos])
+        # Check final set sufficiency (using the entire candidate pool)
+        if candidates:
+            combined_text = "\n\n".join([f"[START_DOCUMENT: {c.fqn}]\n{c.text}\n[END_DOCUMENT]" for c in candidates])
             final_ans = await self._generate_answer_with_retry(case, combined_text)
             case.is_sufficient_set = False
             if final_ans:
@@ -228,7 +219,7 @@ class DataValidator:
                 except Exception: pass
             
             suff_color = Fore.GREEN if case.is_sufficient_set else Fore.RED
-            print(f"  {Fore.YELLOW}Final Set Sufficiency: {suff_color}{case.is_sufficient_set}{Style.RESET_ALL}")
+            print(f"  {Fore.YELLOW}Total Pool Sufficiency: {suff_color}{case.is_sufficient_set}{Style.RESET_ALL}")
             
         return case
 
