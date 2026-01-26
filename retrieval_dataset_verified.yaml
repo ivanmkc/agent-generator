@@ -47,38 +47,40 @@ cases:
       E: None of the above
     convergence_trace:
     - 1.0
-    - 1.4142135623730951
-    - 1.118033988749895
+    - 1.0
+    - 1.0
     - 1.0540925533894598
     - 1.0307764064044151
     - 1.019803902718557
     - 1.0137937550497031
     - 1.0101525445522108
     - 1.0077822185373186
-    - 0.5134898976610932
-    - 0.510856082375323
-    - 0.5089204259999789
-    - 0.34657049948186747
-    - 0.3444187264364801
-    - 0.34274896331258514
-    - 0.28282721551750933
-    - 0.2813825063688228
-    - 0.2802115602870776
-    - 0.22653795365113644
-    - 0.22534695471649932
-    - 0.22435509268224052
-    - 0.22352051304765388
-    - 0.18731369344788013
-    - 0.18646737811878267
-    - 0.16099140116987992
-    - 0.16015039228221747
-    - 0.14139558469153976
-    - 0.1405712810868832
-    - 0.12625152948041907
-    - 0.11507176280916163
-    - 0.11419304971118938
-    - 0.10519560685921887
-    - 0.09787371307708274
+    - 1.0061539042374907
+    - 0.5121969142940493
+    - 0.5099019513592785
+    - 0.5081972676135885
+    - 0.5068968775248516
+    - 0.5058825553063809
+    - 0.5050762722761054
+    - 0.5044248650140518
+    - 0.339934634239519
+    - 0.25873624493766706
+    - 0.2576941016011038
+    - 0.2568271940672497
+    - 0.20847111937258062
+    - 0.20757268546966007
+    - 0.20680929162514214
+    - 0.17477946355413398
+    - 0.15224403557380892
+    - 0.1513544292886935
+    - 0.15058465048420855
+    - 0.13376312532288231
+    - 0.12088528739466521
+    - 0.11075907952012388
+    - 0.10262571074571167
+    - 0.10163945352271772
+    - 0.10077113663226848
+    - 0.09399363602226701
   ground_truth:
     correct_answer: A
     options:
@@ -97,13 +99,13 @@ cases:
     type: gold_mined
     empirical_relevance: UNKNOWN
     metadata:
-      delta_p: 0.05
+      delta_p: 0.0
       p_in: 1.0
-      p_out: 0.95
-      n_in: 13
-      n_out: 20
+      p_out: 1.0
+      n_in: 19
+      n_out: 16
       se_in: 0.0
-      se_out: 0.049
+      se_out: 0.0
   - fqn: google.adk.runners.Runner
     text: "The Runner class is used to run agents.\n\nIt manages the execution of\
       \ an agent within a session, handling message\nprocessing, event generation,\
@@ -119,37 +121,37 @@ cases:
     type: gold_mined
     empirical_relevance: UNKNOWN
     metadata:
-      delta_p: 0.07
+      delta_p: 0.0
       p_in: 1.0
-      p_out: 0.93
-      n_in: 19
-      n_out: 14
+      p_out: 1.0
+      n_in: 17
+      n_out: 18
       se_in: 0.0
-      se_out: 0.069
+      se_out: 0.0
   - fqn: google.adk.runners.Runner.execute
     text: ''
     type: retrieved
     empirical_relevance: UNKNOWN
     metadata:
-      delta_p: 0.05
+      delta_p: 0.0
       p_in: 1.0
-      p_out: 0.95
-      n_in: 14
+      p_out: 1.0
+      n_in: 16
       n_out: 19
       se_in: 0.0
-      se_out: 0.051
+      se_out: 0.0
   - fqn: google.adk.runners.Runner.close
     text: Closes the runner.
     type: retrieved
     empirical_relevance: UNKNOWN
     metadata:
-      delta_p: 0.07
+      delta_p: 0.0
       p_in: 1.0
-      p_out: 0.93
-      n_in: 18
-      n_out: 15
+      p_out: 1.0
+      n_in: 17
+      n_out: 18
       se_in: 0.0
-      se_out: 0.064
+      se_out: 0.0
   - fqn: google.adk.runners.InMemoryRunner
     text: "An in-memory Runner for testing and development.\n\nThis runner uses in-memory\
       \ implementations for artifact, session, and memory\nservices, providing a lightweight\
@@ -159,24 +161,24 @@ cases:
     type: retrieved
     empirical_relevance: UNKNOWN
     metadata:
-      delta_p: 0.08
+      delta_p: 0.0
       p_in: 1.0
-      p_out: 0.92
-      n_in: 20
-      n_out: 13
+      p_out: 1.0
+      n_in: 14
+      n_out: 21
       se_in: 0.0
-      se_out: 0.074
+      se_out: 0.0
   - fqn: google.adk.a2a.utils.agent_to_a2a.create_runner
     text: Create a runner for the agent.
     type: retrieved
     empirical_relevance: UNKNOWN
     metadata:
-      delta_p: -0.05
-      p_in: 0.95
+      delta_p: 0.0
+      p_in: 1.0
       p_out: 1.0
-      n_in: 19
-      n_out: 14
-      se_in: 0.051
+      n_in: 14
+      n_out: 21
+      se_in: 0.0
       se_out: 0.0
   - fqn: google.adk.runners.Runner.run
     text: "Runs the agent.\n\nNOTE:\n  This sync interface is only for local testing\
@@ -191,24 +193,24 @@ cases:
     type: retrieved
     empirical_relevance: UNKNOWN
     metadata:
-      delta_p: 0.05
+      delta_p: 0.0
       p_in: 1.0
-      p_out: 0.95
-      n_in: 12
-      n_out: 21
+      p_out: 1.0
+      n_in: 16
+      n_out: 19
       se_in: 0.0
-      se_out: 0.046
+      se_out: 0.0
   - fqn: google.adk.cli.adk_web_server.AdkWebServer.get_runner_async
     text: Returns the cached runner for the given app.
     type: retrieved
     empirical_relevance: UNKNOWN
     metadata:
-      delta_p: -0.06
-      p_in: 0.94
+      delta_p: 0.0
+      p_in: 1.0
       p_out: 1.0
-      n_in: 17
-      n_out: 16
-      se_in: 0.057
+      n_in: 18
+      n_out: 17
+      se_in: 0.0
       se_out: 0.0
   - fqn: google.adk.agents.run_config.RunConfig
     text: 'Configs for runtime behavior of agents.
@@ -221,25 +223,25 @@ cases:
     type: retrieved
     empirical_relevance: UNKNOWN
     metadata:
-      delta_p: -0.06
-      p_in: 0.94
+      delta_p: 0.0
+      p_in: 1.0
       p_out: 1.0
-      n_in: 18
-      n_out: 15
-      se_in: 0.054
+      n_in: 14
+      n_out: 21
+      se_in: 0.0
       se_out: 0.0
   - fqn: google.adk.code_executors.built_in_code_executor
     text: ''
     type: retrieved
     empirical_relevance: UNKNOWN
     metadata:
-      delta_p: 0.06
+      delta_p: 0.0
       p_in: 1.0
-      p_out: 0.94
+      p_out: 1.0
       n_in: 17
-      n_out: 16
+      n_out: 18
       se_in: 0.0
-      se_out: 0.061
+      se_out: 0.0
   - fqn: google.adk.runners.Runner.run_async
     text: "Main entry method to run the agent in this runner.\n\nIf event compaction\
       \ is enabled in the App configuration, it will be\nperformed after all agent\
@@ -256,36 +258,36 @@ cases:
     type: retrieved
     empirical_relevance: UNKNOWN
     metadata:
-      delta_p: 0.05
+      delta_p: 0.0
       p_in: 1.0
-      p_out: 0.95
-      n_in: 13
-      n_out: 20
+      p_out: 1.0
+      n_in: 16
+      n_out: 19
       se_in: 0.0
-      se_out: 0.049
+      se_out: 0.0
   - fqn: google.adk.code_executors.base_code_executor
     text: ''
     type: retrieved
     empirical_relevance: UNKNOWN
     metadata:
-      delta_p: -0.07
-      p_in: 0.93
+      delta_p: 0.0
+      p_in: 1.0
       p_out: 1.0
-      n_in: 14
-      n_out: 19
-      se_in: 0.069
+      n_in: 19
+      n_out: 16
+      se_in: 0.0
       se_out: 0.0
   - fqn: google.adk.plugins.logging_plugin.LoggingPlugin.on_event_callback
     text: Log events yielded from the runner.
     type: retrieved
     empirical_relevance: UNKNOWN
     metadata:
-      delta_p: -0.08
-      p_in: 0.92
+      delta_p: 0.0
+      p_in: 1.0
       p_out: 1.0
-      n_in: 12
-      n_out: 21
-      se_in: 0.08
+      n_in: 18
+      n_out: 17
+      se_in: 0.0
       se_out: 0.0
   - fqn: google.adk.a2a.converters.request_converter.AgentRunRequest
     text: 'Data model for arguments passed to the ADK runner.
@@ -295,205 +297,67 @@ cases:
     type: retrieved
     empirical_relevance: UNKNOWN
     metadata:
-      delta_p: -0.06
-      p_in: 0.94
+      delta_p: 0.0
+      p_in: 1.0
       p_out: 1.0
       n_in: 17
-      n_out: 16
-      se_in: 0.057
-      se_out: 0.0
-  - fqn: vertexai.preview.generative_models.GenerativeModel
-    text: '[Note: Inherited members from _PreviewGenerativeModel are omitted.]'
-    type: random_noise
-    empirical_relevance: UNKNOWN
-    metadata:
-      delta_p: 0.06
-      p_in: 1.0
-      p_out: 0.94
-      n_in: 15
       n_out: 18
       se_in: 0.0
-      se_out: 0.054
-  - fqn: google.genai.types.CreateAuthTokenParameters
-    text: 'Config for auth_tokens.create parameters.
-
-
-      [Note: Inherited members from _common.BaseModel are omitted.]'
-    type: random_noise
-    empirical_relevance: UNKNOWN
-    metadata:
-      delta_p: 0.05
-      p_in: 1.0
-      p_out: 0.95
-      n_in: 14
-      n_out: 19
-      se_in: 0.0
-      se_out: 0.051
-  - fqn: google.adk.tools.discovery_engine_search_tool.DiscoveryEngineSearchTool.discovery_engine_search
-    text: "Search through Vertex AI Search's discovery engine search API.\n\nArgs:\n\
-      \  query: The search query.\n\nReturns:\n  A dictionary containing the status\
-      \ of the request and the list of search\n  results, which contains the title,\
-      \ url and content."
-    type: random_noise
-    empirical_relevance: UNKNOWN
-    metadata:
-      delta_p: -0.08
-      p_in: 0.92
-      p_out: 1.0
-      n_in: 13
-      n_out: 20
-      se_in: 0.074
       se_out: 0.0
-  - fqn: google.genai.types.ImportFileOperation.from_api_response
-    text: Instantiates a ImportFileOperation from an API response.
+  - fqn: google.adk.tools.agent_tool.AgentTool
+    text: "A tool that wraps an agent.\n\nThis tool allows an agent to be called as\
+      \ a tool within a larger application.\nThe agent's input schema is used to define\
+      \ the tool's input parameters, and\nthe agent's output is returned as the tool's\
+      \ result.\n\nAttributes:\n  agent: The agent to wrap.\n  skip_summarization:\
+      \ Whether to skip summarization of the agent output.\n  include_plugins: Whether\
+      \ to propagate plugins from the parent runner context\n    to the agent's runner.\
+      \ When True (default), the agent will inherit all\n    plugins from its parent.\
+      \ Set to False to run the agent with an isolated\n    plugin environment.\n\n\
+      [Note: Inherited members from ABC are omitted.]"
     type: random_noise
     empirical_relevance: UNKNOWN
     metadata:
-      delta_p: 0.05
+      delta_p: 0.0
       p_in: 1.0
-      p_out: 0.95
-      n_in: 14
-      n_out: 19
-      se_in: 0.0
-      se_out: 0.051
-  - fqn: google.genai.types.RetrievalConfig
-    text: 'Retrieval config.
-
-
-      [Note: Inherited members from _common.BaseModel are omitted.]'
-    type: random_noise
-    empirical_relevance: UNKNOWN
-    metadata:
-      delta_p: -0.05
-      p_in: 0.95
-      p_out: 1.0
-      n_in: 20
-      n_out: 13
-      se_in: 0.049
-      se_out: 0.0
-  - fqn: google.adk.evaluation.llm_as_judge.LlmAsJudge.convert_auto_rater_response_to_score
-    text: Parses auto_rater_response and returns the corresponding score, or None
-      if the score cannot be determined.
-    type: random_noise
-    empirical_relevance: UNKNOWN
-    metadata:
-      delta_p: 0.05
-      p_in: 1.0
-      p_out: 0.95
-      n_in: 13
-      n_out: 20
-      se_in: 0.0
-      se_out: 0.049
-  - fqn: google.genai.caches.AsyncCaches.update
-    text: "Updates cached content configurations.\n\n.. code-block:: python\n\n  response\
-      \ = await client.aio.caches.update(\n      name= ... // The server-generated\
-      \ resource name.\n      config={\n          'ttl': '7600s',\n      },\n  )"
-    type: random_noise
-    empirical_relevance: UNKNOWN
-    metadata:
-      delta_p: -0.06
-      p_in: 0.94
-      p_out: 1.0
-      n_in: 17
-      n_out: 16
-      se_in: 0.057
-      se_out: 0.0
-  - fqn: google.adk.cli.conformance.cli_test.run_conformance_test
-    text: Run conformance tests.
-    type: random_noise
-    empirical_relevance: UNKNOWN
-    metadata:
-      delta_p: -0.05
-      p_in: 0.95
       p_out: 1.0
       n_in: 21
-      n_out: 12
-      se_in: 0.046
-      se_out: 0.0
-  - fqn: google.adk.code_executors.code_execution_utils.CodeExecutionUtils.convert_code_execution_parts
-    text: "Converts the code execution parts to text parts in a Content.\n\nArgs:\n\
-      \  content: The mutable content to convert the code execution parts to text\n\
-      \    parts.\n  code_block_delimiter: The delimiter to format the code block.\n\
-      \  execution_result_delimiters: The delimiter to format the code execution\n\
-      \    result."
-    type: random_noise
-    empirical_relevance: UNKNOWN
-    metadata:
-      delta_p: -0.07
-      p_in: 0.93
-      p_out: 1.0
-      n_in: 15
-      n_out: 18
-      se_in: 0.064
-      se_out: 0.0
-  - fqn: vertexai.rag.utils.resources.LayoutParserConfig
-    text: "Configuration for the Document AI Layout Parser Processor.\n\nAttributes:\n\
-      \    processor_name: The full resource name of a Document AI processor or\n\
-      \        processor version. The processor must have type\n        `LAYOUT_PARSER_PROCESSOR`.\n\
-      \        Format must be one of the following:\n        -  `projects/{project_id}/locations/{location}/processors/{processor_id}`\n\
-      \        -  `projects/{project_id}/locations/{location}/processors/{processor_id}/processorVersions/{processor_version_id}`\n\
-      \    max_parsing_requests_per_min: The maximum number of requests the job is\n\
-      \        allowed to make to the Document AI processor per minute. Consult\n\
-      \        https://cloud.google.com/document-ai/quotas and the Quota page for\n\
-      \        your project to set an appropriate value here. If unspecified, a\n\
-      \        default value of 120 QPM will be used."
-    type: random_noise
-    empirical_relevance: UNKNOWN
-    metadata:
-      delta_p: -0.05
-      p_in: 0.95
-      p_out: 1.0
-      n_in: 19
       n_out: 14
-      se_in: 0.051
-      se_out: 0.0
-  - fqn: google.genai.types.Segment
-    text: 'Segment of the content.
-
-
-      [Note: Inherited members from _common.BaseModel are omitted.]'
-    type: random_noise
-    empirical_relevance: UNKNOWN
-    metadata:
-      delta_p: 0.09
-      p_in: 1.0
-      p_out: 0.91
-      n_in: 22
-      n_out: 11
       se_in: 0.0
-      se_out: 0.087
-  - fqn: vertexai.preview.evaluation.utils.create_evaluation_service_client
-    text: "Creates a client for the evaluation service.\n\nArgs:\n  api_base_path_override:\
-      \ Optional. Override default api base path.\n\nReturns:\n  Instantiated Vertex\
-      \ AI EvaluationServiceClient with optional\n  overrides."
+      se_out: 0.0
+  - fqn: google.adk.cli.adk_web_server.EvalResult
+    text: 'This class has no field intentionally.
+
+
+      The goal here is to just give a new name to the class to align with the API
+
+      endpoint.
+
+
+      [Note: Inherited members from pydantic.BaseModel are omitted.]'
     type: random_noise
     empirical_relevance: UNKNOWN
     metadata:
-      delta_p: -0.07
-      p_in: 0.93
+      delta_p: 0.0
+      p_in: 1.0
       p_out: 1.0
-      n_in: 14
+      n_in: 16
       n_out: 19
-      se_in: 0.069
+      se_in: 0.0
       se_out: 0.0
-  - fqn: google.genai.types.BatchJob
-    text: 'Config for batches.create return value.
-
-
-      [Note: Inherited members from _common.BaseModel are omitted.]'
+  - fqn: google.adk.cli.adk_web_server.ApiServerSpanExporter.export
+    text: ''
     type: random_noise
     empirical_relevance: UNKNOWN
     metadata:
-      delta_p: -0.06
-      p_in: 0.94
+      delta_p: 0.0
+      p_in: 1.0
       p_out: 1.0
-      n_in: 17
-      n_out: 16
-      se_in: 0.057
+      n_in: 16
+      n_out: 19
+      se_in: 0.0
       se_out: 0.0
-  - fqn: google.genai.types.DatasetDistributionDistributionBucket
-    text: 'Dataset bucket used to create a histogram for the distribution given a
-      population of values.
+  - fqn: google.genai.types.EnterpriseWebSearch
+    text: 'Tool to search public web data, powered by Vertex AI Search and Sec4 compliance.
 
 
       This data type is not supported in Gemini API.
@@ -503,95 +367,251 @@ cases:
     type: random_noise
     empirical_relevance: UNKNOWN
     metadata:
-      delta_p: -0.05
-      p_in: 0.95
+      delta_p: 0.0
+      p_in: 1.0
       p_out: 1.0
-      n_in: 21
-      n_out: 12
-      se_in: 0.046
+      n_in: 13
+      n_out: 22
+      se_in: 0.0
       se_out: 0.0
-  - fqn: google.adk.evaluation.in_memory_eval_sets_manager.InMemoryEvalSetsManager.list_eval_sets
-    text: ''
+  - fqn: google.genai.types.LiveMusicClientSetup
+    text: 'Message to be sent by the system when connecting to the API.
+
+
+      [Note: Inherited members from _common.BaseModel are omitted.]'
     type: random_noise
     empirical_relevance: UNKNOWN
     metadata:
-      delta_p: -0.07
-      p_in: 0.93
+      delta_p: 0.0
+      p_in: 1.0
       p_out: 1.0
-      n_in: 14
-      n_out: 19
-      se_in: 0.069
+      n_in: 15
+      n_out: 20
+      se_in: 0.0
       se_out: 0.0
-  - fqn: google.adk.cli.plugins.recordings_plugin.RecordingsPlugin.before_tool_callback
-    text: Create pending tool recording for the invocation specified in session state.
-    type: random_noise
-    empirical_relevance: UNKNOWN
-    metadata:
-      delta_p: -0.06
-      p_in: 0.94
-      p_out: 1.0
-      n_in: 18
-      n_out: 15
-      se_in: 0.054
-      se_out: 0.0
-  - fqn: google.genai.types.DeleteModelConfigDict
-    text: 'Configuration for deleting a tuned model.
+  - fqn: google.genai.types.ListBatchJobsResponseDict
+    text: 'Config for batches.list return value.
 
 
       [Note: Inherited members from TypedDict are omitted.]'
     type: random_noise
     empirical_relevance: UNKNOWN
     metadata:
-      delta_p: 0.08
+      delta_p: 0.0
       p_in: 1.0
-      p_out: 0.92
-      n_in: 20
-      n_out: 13
-      se_in: 0.0
-      se_out: 0.074
-  - fqn: google.genai.types.HttpElementLocation
-    text: 'The location of the API key. This enum is not supported in Gemini API.
-
-
-      [Note: Inherited members from _common.CaseInSensitiveEnum are omitted.]'
-    type: random_noise
-    empirical_relevance: UNKNOWN
-    metadata:
-      delta_p: 0.07
-      p_in: 1.0
-      p_out: 0.93
-      n_in: 19
-      n_out: 14
-      se_in: 0.0
-      se_out: 0.069
-  - fqn: vertexai.rag.rag_inline_citations
-    text: Helper functions for processing and formatting citations from RAG generation
-      outputs.
-    type: random_noise
-    empirical_relevance: UNKNOWN
-    metadata:
-      delta_p: -0.06
-      p_in: 0.94
       p_out: 1.0
       n_in: 18
-      n_out: 15
-      se_in: 0.054
+      n_out: 17
+      se_in: 0.0
       se_out: 0.0
-  - fqn: google.adk.cli.built_in_agents.utils.path_normalizer.sanitize_generated_file_path
-    text: "Strip stray quotes/whitespace around each path segment.\n\nThe agent occasionally\
-      \ emits quoted paths such as `'tools/web.yaml'` which\nwould otherwise create\
-      \ directories literally named `'<name>`. This helper\nremoves leading/trailing\
-      \ whitespace and quote-like characters from the path\nand from each path component\
-      \ while preserving intentional interior\ncharacters.\n\nArgs:\n  file_path:\
-      \ Path string provided by the model or user.\n\nReturns:\n  Sanitized path string\
-      \ safe to feed into pathlib.Path."
+  - fqn: google.adk.tools.mcp_tool.mcp_session_manager.wrapper
+    text: ''
     type: random_noise
     empirical_relevance: UNKNOWN
     metadata:
-      delta_p: -0.07
-      p_in: 0.93
+      delta_p: 0.0
+      p_in: 1.0
+      p_out: 1.0
+      n_in: 13
+      n_out: 22
+      se_in: 0.0
+      se_out: 0.0
+  - fqn: google.genai.types.GeneratedVideo
+    text: 'A generated video.
+
+
+      [Note: Inherited members from _common.BaseModel are omitted.]'
+    type: random_noise
+    empirical_relevance: UNKNOWN
+    metadata:
+      delta_p: 0.0
+      p_in: 1.0
+      p_out: 1.0
+      n_in: 19
+      n_out: 16
+      se_in: 0.0
+      se_out: 0.0
+  - fqn: google.genai.types.TuningExampleDict
+    text: 'A single example for tuning.
+
+
+      This data type is not supported in Vertex AI.
+
+
+      [Note: Inherited members from TypedDict are omitted.]'
+    type: random_noise
+    empirical_relevance: UNKNOWN
+    metadata:
+      delta_p: 0.0
+      p_in: 1.0
+      p_out: 1.0
+      n_in: 15
+      n_out: 20
+      se_in: 0.0
+      se_out: 0.0
+  - fqn: google.genai.types.CancelTuningJobConfigDict
+    text: 'Optional parameters for tunings.cancel method.
+
+
+      [Note: Inherited members from TypedDict are omitted.]'
+    type: random_noise
+    empirical_relevance: UNKNOWN
+    metadata:
+      delta_p: 0.0
+      p_in: 1.0
+      p_out: 1.0
+      n_in: 18
+      n_out: 17
+      se_in: 0.0
+      se_out: 0.0
+  - fqn: google.adk.memory.vertex_ai_memory_bank_service.VertexAiMemoryBankService.search_memory
+    text: ''
+    type: random_noise
+    empirical_relevance: UNKNOWN
+    metadata:
+      delta_p: 0.0
+      p_in: 1.0
+      p_out: 1.0
+      n_in: 21
+      n_out: 14
+      se_in: 0.0
+      se_out: 0.0
+  - fqn: google.adk.tools.preload_memory_tool.PreloadMemoryTool.process_llm_request
+    text: ''
+    type: random_noise
+    empirical_relevance: UNKNOWN
+    metadata:
+      delta_p: 0.0
+      p_in: 1.0
+      p_out: 1.0
+      n_in: 17
+      n_out: 18
+      se_in: 0.0
+      se_out: 0.0
+  - fqn: vertexai.rag.utils.resources.SlackChannel
+    text: "SlackChannel.\n\nAttributes:\n    channel_id: The Slack channel ID.\n \
+      \   api_key: The SecretManager resource name for the Slack API token. Format:\n\
+      \        ``projects/{project}/secrets/{secret}/versions/{version}``\n      \
+      \  See: https://api.slack.com/tutorials/tracks/getting-a-token.\n    start_time:\
+      \ The starting timestamp for messages to import.\n    end_time: The ending timestamp\
+      \ for messages to import."
+    type: random_noise
+    empirical_relevance: UNKNOWN
+    metadata:
+      delta_p: 0.0
+      p_in: 1.0
+      p_out: 1.0
+      n_in: 12
+      n_out: 23
+      se_in: 0.0
+      se_out: 0.0
+  - fqn: google.adk.tools.computer_use.base_computer.BaseComputer.hover_at
+    text: "Hovers at a specific x, y coordinate on the webpage.\n\nMay be used to\
+      \ explore sub-menus that appear on hover.\nThe 'x' and 'y' values are absolute\
+      \ values, scaled to the height and width of the screen.\n\nArgs:\n  x: The x-coordinate\
+      \ to hover at.\n  y: The y-coordinate to hover at.\n\nReturns:\n  The current\
+      \ state after hovering."
+    type: random_noise
+    empirical_relevance: UNKNOWN
+    metadata:
+      delta_p: 0.0
+      p_in: 1.0
+      p_out: 1.0
+      n_in: 17
+      n_out: 18
+      se_in: 0.0
+      se_out: 0.0
+  - fqn: google.genai.types.FunctionResponsePart.from_uri
+    text: "Creates a FunctionResponsePart from a file uri.\n\nArgs:\n  file_uri (str):\
+      \ The uri of the file\n  mime_type (str): mime_type: The MIME type of the file.\
+      \ If not provided,\n    the MIME type will be automatically determined."
+    type: random_noise
+    empirical_relevance: UNKNOWN
+    metadata:
+      delta_p: 0.0
+      p_in: 1.0
+      p_out: 1.0
+      n_in: 19
+      n_out: 16
+      se_in: 0.0
+      se_out: 0.0
+  - fqn: google.genai.types.ControlReferenceImage
+    text: 'A control reference image.
+
+
+      The image of the control reference image is either a control image provided
+
+      by the user, or a regular image which the backend will use to generate a
+
+      control image of. In the case of the latter, the
+
+      enable_control_image_computation field in the config should be set to True.
+
+
+      A control image is an image that represents a sketch image of areas for the
+
+      model to fill in based on the prompt.
+
+
+      [Note: Inherited members from _common.BaseModel are omitted.]'
+    type: random_noise
+    empirical_relevance: UNKNOWN
+    metadata:
+      delta_p: 0.0
+      p_in: 1.0
       p_out: 1.0
       n_in: 14
-      n_out: 19
-      se_in: 0.069
+      n_out: 21
+      se_in: 0.0
+      se_out: 0.0
+  - fqn: google.genai.types.DeleteFileConfigDict
+    text: 'Used to override the default configuration.
+
+
+      [Note: Inherited members from TypedDict are omitted.]'
+    type: random_noise
+    empirical_relevance: UNKNOWN
+    metadata:
+      delta_p: 0.0
+      p_in: 1.0
+      p_out: 1.0
+      n_in: 13
+      n_out: 22
+      se_in: 0.0
+      se_out: 0.0
+  - fqn: google.adk.examples
+    text: ''
+    type: random_noise
+    empirical_relevance: UNKNOWN
+    metadata:
+      delta_p: 0.0
+      p_in: 1.0
+      p_out: 1.0
+      n_in: 17
+      n_out: 18
+      se_in: 0.0
+      se_out: 0.0
+  - fqn: google.adk.tools.application_integration_tool.clients.connections_client.ConnectionsClient.list_operation_request
+    text: ''
+    type: random_noise
+    empirical_relevance: UNKNOWN
+    metadata:
+      delta_p: 0.0
+      p_in: 1.0
+      p_out: 1.0
+      n_in: 18
+      n_out: 17
+      se_in: 0.0
+      se_out: 0.0
+  - fqn: google.adk.dependencies.rouge_scorer
+    text: ''
+    type: random_noise
+    empirical_relevance: UNKNOWN
+    metadata:
+      delta_p: 0.0
+      p_in: 1.0
+      p_out: 1.0
+      n_in: 22
+      n_out: 13
+      se_in: 0.0
       se_out: 0.0
