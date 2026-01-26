@@ -13,29 +13,25 @@ Evaluating and optimizing the retrieval component of an RAG system requires a gr
 
 We treat all potential documents as **candidates**. Their status is determined by whether their presence increases the probability of solving the task ($P(Success | Ctx) - P(Success | \neg Ctx)$).
 
-### 2.1 Sampling Strategies
-
+### 2.1 Sampling Strategies (Validation Convergence)
 The validator supports two execution modes to balance precision and cost:
-
-1.  **Constant Trial Method (Default):**
-    *   Runs a fixed number of trials ($N$) for every case.
-    *   Ensures uniform statistical power across the entire dataset.
-
-2.  **Adaptive Convergence Method (Local):**
-    *   Intelligently determines the number of trials per case.
-    *   **Stopping Rule:** Trials terminate early if the **Standard Error (SE)** of the impact scores falls below a target threshold (e.g., 0.05).
-    *   **Benefit:** Saves quota on "easy" queries.
+1.  **Constant Trial Method:** Runs fixed $N$ trials per case.
+2.  **Adaptive Convergence Method:** Stops early if the Standard Error of impact scores stabilizes.
 
 ### 2.2 Dataset-Level Convergence (Global)
-Beyond per-case stability, we must ensure the *dataset size* is sufficient to evaluate the retrieval system generally.
+We monitor the stability of aggregate metrics (e.g., Mean Recall@5) as we add more *cases* to the dataset to ensure the corpus is sufficiently covered.
 
-*   **Metric:** Stability of the aggregate **Recall@K** or **Mean Impact Score** of the corpus.
-*   **Procedure:**
-    1.  Shuffle the validated cases.
-    2.  Calculate cumulative running average of the metric.
-    3.  **Convergence:** If the running average stabilizes (change < $\epsilon$) over the last $M$ cases, the dataset is sufficiently large to represent the domain.
+### 2.3 The Scalability Trade-off: Stochastic Candidate Pooling
+Verifying relevance for *every* document against *every* query is computationally intractable ($O(\text{Queries} \times \text{Corpus})$).
 
-### 2.3 Statistical Principles
+**The Middle Ground:** We validate a **High-Potential Subspace** ($O(\text{Queries} \times K)$) constructed from three sources:
+1.  **Vector Search ($K_{retrieved} \approx 15$):** Uses a strong embedding model to capture the vast majority of potentially relevant documents. This acts as a "High Recall" filter.
+2.  **Gold Mining ($K_{gold} \approx 1-5$):** Uses benchmark metadata to inject "High Precision" candidates that search might miss.
+3.  **Random Control ($K_{random} \approx 5$):** A statistical control group.
+    *   *Hypothesis:* If $Impact(Random) \approx 0$, we can statistically assume the un-sampled tail of the corpus is also irrelevant.
+    *   *Check:* If random docs frequently show high impact, our candidate generation (Vector Search) is failing, and we must increase $K_{random}$.
+
+### 2.4 Statistical Principles
 *   **Causal Inference:** The method functions as a Randomized Controlled Trial (RCT).
 *   **Power Analysis:** Standard Error calculation ($\sqrt{p(1-p)/n}$) provides a measure of estimate confidence.
 *   **Blind Solving:** The model has no metadata regarding which documents are "seeded" vs. "sampled," ensuring an unbiased measure of document utility.
