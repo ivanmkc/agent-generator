@@ -16,37 +16,26 @@ We treat all potential documents as **candidates**. Their status is determined b
 ### 2.1 Sampling Strategies (Validation Convergence)
 The validator supports two execution modes to balance precision and cost:
 1.  **Constant Trial Method:** Runs fixed $N$ trials per case.
-2.  **Adaptive Convergence Method:** Stops early if the Standard Error of impact scores stabilizes.
+2.  **Adaptive Convergence Method:** Stops early if the statistical confidence of the impact score stabilizes.
 
 ### 2.2 Dataset-Level Convergence (Global)
 We monitor the stability of aggregate metrics (e.g., Mean Recall@5) as we add more *cases* to the dataset to ensure the corpus is sufficiently covered.
 
 ### 2.3 The Scalability Trade-off: Stochastic Candidate Pooling
+Verifying relevance $R(q, d)$ for all $d \in D$ is intractable ($O(|Q| \times |D|)$). We approximate the global truth by validating a **High-Potential Subspace** $C(q)$ derived from Gold Mining, Vector Search ($K_{vec}$), and Random Control ($K_{rand}$). 
 
-Validating relevance $R(q, d)$ for all $d \in D$ is intractable ($O(|Q| \times |D|)$). We approximate the global truth by validating a **High-Potential Subspace** $C(q)$.
+### 2.4 Statistical Principles: Confidence at Boundaries
 
-#### Mathematical Formulation
-Let $Rel(q)$ be the set of truly relevant documents for query $q$. We approximate $Rel(q)$ by evaluating only $d \in C(q)$, defined as:
+A naive Standard Error calculation ($SE = \sqrt{p(1-p)/n}$) is flawed for small sample sizes, particularly at the boundaries ($p=0$ or $p=1$), where it yields $SE=0$.
+*   *Example:* 2 failures ($p=0, n=2$) would falsely imply "Zero Uncertainty" that the document is irrelevant.
+*   *Reality:* With only 2 samples, our confidence is very low.
 
-$$ C(q) = C_{gold}(q) \cup C_{vector}(q, K_{vec}) \cup C_{random}(K_{rand}) $$
+**Solution: Adjusted Confidence Metric**
+To determine convergence, we use an **Adjusted Standard Error** that accounts for sample size even when variance is zero. We approximate the **Wilson Score Interval** width or use a heuristic upper bound:
 
-Where:
-*   $C_{gold}(q)$: Documents identified by benchmark metadata (High Precision).
-*   $C_{vector}(q, K_{vec})$: Top $K_{vec}$ results from a strong embedding model (High Recall).
-*   $C_{random}(K_{rand})$: Randomly sampled documents (Statistical Control).
+$$ SE_{adjusted} = \begin{cases} \sqrt{\frac{p(1-p)}{n}} & \text{if } 0 < p < 1 \\ \frac{1}{n} & \text{if } p=0 \text{ or } p=1 \end{cases} $$
 
-#### The Pooling Assumption
-We assume that the probability of finding a relevant document outside our pool is negligible:
-$$ P(d \in Rel(q) | d \notin C(q)) < \epsilon $$
-
-**Validation of Assumption:** We monitor the impact of the **Random Control Group**.
-*   If $\forall d \in C_{random}, \text{Impact}(d) \approx 0$, then the assumption holds (the "background" is noise).
-*   If $\exists d \in C_{random}, \text{Impact}(d) \gg 0$, our retrieval mechanisms are insufficient (High "Background Radiation"), and we must increase $K_{vec}$ or improve the retrieval model.
-
-### 2.4 Statistical Principles
-*   **Causal Inference:** The method functions as a Randomized Controlled Trial (RCT).
-*   **Power Analysis:** Standard Error calculation ($\sqrt{p(1-p)/n}$) provides a measure of estimate confidence.
-*   **Blind Solving:** The model has no metadata regarding which documents are "seeded" vs. "sampled," ensuring an unbiased measure of document utility.
+This ensures that "proving" a 0% or 100% success rate requires a sufficient number of trials ($N \approx 1/\epsilon$) to drive the uncertainty below the threshold.
 
 ## 3. Implementation Logic
 

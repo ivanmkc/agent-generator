@@ -183,8 +183,9 @@ class DataValidator:
                 if trials_in[f] > 0 and trials_out[f] > 0:
                     p_in = success_in[f] / trials_in[f]
                     p_out = success_out[f] / trials_out[f]
-                    se_in = math.sqrt(p_in * (1 - p_in) / trials_in[f])
-                    se_out = math.sqrt(p_out * (1 - p_out) / trials_out[f])
+                    # Adjusted SE: If variance is 0, use 1/n as a proxy for uncertainty
+                    se_in = math.sqrt(p_in * (1 - p_in) / trials_in[f]) if (0 < p_in < 1) else (1.0 / trials_in[f])
+                    se_out = math.sqrt(p_out * (1 - p_out) / trials_out[f]) if (0 < p_out < 1) else (1.0 / trials_out[f])
                     se_diff = math.sqrt(se_in**2 + se_out**2)
                     max_se_diff = max(max_se_diff, se_diff)
                 else:
