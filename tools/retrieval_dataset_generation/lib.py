@@ -20,7 +20,7 @@ class ValidatorConfig(BaseModel):
     monte_carlo_trials: int = Field(40, description="Max trials per case (Fixed mode) or max trials limit (Adaptive mode).")
     adaptive_min_n: int = Field(15, description="Minimum trials before checking convergence.")
     adaptive_max_n: int = Field(500, description="Maximum trials allowed in adaptive mode.")
-    se_threshold: float = Field(0.01, description="Standard Error threshold for convergence stopping.")
+    se_threshold: float = Field(0.1, description="Standard Error threshold for convergence stopping.")
     gold_miner_k: int = Field(3, description="Number of 'gold' candidates to include.")
     vector_search_k: int = Field(15, description="Number of vector search candidates.")
     random_noise_n: int = Field(20, description="Number of random noise candidates.")
@@ -151,6 +151,14 @@ class CaseSkippedEvent(BaseLogEvent):
     baseline_success_rate: float
     threshold: float
 
+class CandidateDowngradedEvent(BaseLogEvent):
+    """Logged when a candidate's sampling probability is reduced due to convergence."""
+    event: Literal["candidate_downgraded"] = "candidate_downgraded"
+    case_id: str
+    fqn: str
+    se_diff: float
+    new_prob: float
+
 class PoolingViolationEvent(BaseLogEvent):
     """
     Logged when a document from the random noise set shows significant 
@@ -191,7 +199,7 @@ class BM25Retriever(AbstractRetriever):
         top_n = np.argsort(scores)[::-1][:top_k]
         return [self.documents[i] for i in top_n]
 
-EMBEDDING_MODEL = "gemini-embedding-001"
+EMBEDDING_MODEL = "text-embedding-004"
 
 class EmbeddingRetriever(AbstractRetriever):
     """Semantic retriever using Vertex AI / Google GenAI embeddings."""

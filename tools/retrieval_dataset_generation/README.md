@@ -1,55 +1,42 @@
 # Retrieval Dataset Generation Tools
 
-This package provides a comprehensive pipeline for mining, validating, and analyzing retrieval datasets from the ADK benchmark suite.
+This directory contains tools for creating, validating, and analyzing synthetic retrieval datasets derived from benchmarks.
 
-## Components
+## Overview
 
-### 1. Extractor (`extract_data.py`)
-Mines "Gold" candidates from benchmark ground truth and generates an initial dataset.
-- **Input:** `ranked_targets.yaml`, `benchmarks/benchmark_definitions/**/*.yaml`
-- **Output:** `retrieval_dataset.yaml` (Unverified)
-- **Logic:**
-    - For `api_understanding`: Extracts `fully_qualified_class_name`.
-    - For `fix_errors`: Parses imports from `fixed.py`.
-    - For `multiple_choice`: Heuristic mining from explanation/options.
-
-### 2. Validator (`validate_data.py`)
-Empirically verifies the relevance of candidate documents using Monte Carlo sampling and Causal Inference.
-- **Input:** `retrieval_dataset.yaml`
-- **Output:** `retrieval_dataset_verified.yaml`
-- **Methodology:**
-    - **Candidate Pooling:** Combines Gold candidates, Vector Search (Hard Negatives), and Random noise.
-    - **Monte Carlo:** Runs `N=3` Bernoulli trials (p=0.5) per case, injecting randomized context subsets.
-    - **Execution:** Uses `gemini-2.5-flash` to solve the task using *only* the injected context.
-    - **Verification:** Uses `BenchmarkRunner` (Pytest/Regex) to objectively validate success.
-    - **Impact Scoring:** Calculates `Delta P` (Success|In - Success|Out) to determine empirical relevance.
-
-### 3. Library (`lib.py`)
-Shared data models and retriever implementations.
-- `RetrievalCase`: The core data structure.
-- `RetrievalResultMetadata`: Statistical metrics (`delta_p`, `p_in`, `se_in`).
-- `AbstractRetriever`: Interface for `GoldMiner`, `EmbeddingRetriever` (Vector Search), `RandomRetriever`.
-
-## Metrics Guide
-
-The validation process outputs statistical metrics in the metadata for each candidate document. We avoid binary relevance labels in favor of raw probability shifts, which provides a more granular signal for training and evaluation.
-
-*   **`delta_p` (Impact Score):** The causal lift in success rate provided by this document.
-    *   **High Positive (> 0.2)**: Highly relevant. The document is a "key" that unlocks the solution.
-    *   **Low Positive (0.05 - 0.2)**: Supplemental. The document helps but isn't strictly necessary or is redundant.
-    *   **Neutral (~ 0.0)**: Noise. The document has no measurable impact on performance.
-    *   **Negative (< -0.05)**: Toxic Distractor. The document confuses the model, causing it to fail tasks it would otherwise solve.
-*   **`p_in` / `p_out`:** Success probability when the document is present vs absent.
-*   **`n_in` / `n_out`:** Number of Monte Carlo samples in each bucket.
-*   **`se_in` / `se_out`:** Standard Error of the probability estimates. Lower values indicate higher confidence in the impact score.
-
+1.  **`extract_data.py`**: Mines existing benchmarks (API Understanding, Fix Errors, Multiple Choice) to create a raw `retrieval_dataset.yaml`.
+2.  **`validate_data.py`**: Runs a Monte Carlo causal inference pipeline to empirically verify which documents are useful for solving each case.
+3.  **`generate_report.py`**: Analyzes the validation logs and produces a human-readable Markdown report (`retrieval_analysis_report.md`).
 
 ## Usage
 
+### 1. Extract Raw Data
 ```bash
-# 1. Extract raw dataset from benchmarks
-env/bin/python tools/retrieval_dataset_generation/extract_data.py
-
-# 2. Validate and Score (This takes time and quota)
-env/bin/python tools/retrieval_dataset_generation/validate_data.py
+python tools/retrieval_dataset_generation/extract_data.py
 ```
+This generates `retrieval_dataset.yaml`.
+
+### 2. Validate Data
+```bash
+python tools/retrieval_dataset_generation/validate_data.py --input retrieval_dataset.yaml --mode adaptive
+```
+
+**Options:**
+- `--max-cases N`: Limit the run to the first N cases (useful for testing).
+- `--mode [fixed|adaptive]`: 
+    - `fixed`: Runs a fixed number of trials per case.
+    - `adaptive`: Stops early if statistical convergence is reached (Recommended).
+- `--resume`: Automatically resume from an existing output file if found (e.g. from a crashed run).
+- `--overwrite`: Force a fresh start, overwriting any existing output.
+
+**Interactive Resume:**
+If you do not specify `--resume` or `--overwrite` and an existing run is detected, the tool will ask you whether to resume or start over.
+
+### 3. Generate Report
+```bash
+python tools/retrieval_dataset_generation/generate_report.py --input retrieval_dataset_verified.yaml
+```
+
+## Methodology
+
+See `docs/design_docs/synthetic_retrieval_dataset.md` for a deep dive into the statistical methods used (Monte Carlo, Delta P, Adaptive Convergence).

@@ -40,7 +40,7 @@ from tools.retrieval_dataset_generation.lib import (
     RetrievalContext, AbstractRetriever, GoldMinerRetriever, RandomRetriever,
     RetrievalResultMetadata, ValidatorConfig,
     BaseLogEvent, TrialCompleteEvent, ConvergenceCheckEvent, ValidationStartEvent, 
-    PoolGeneratedEvent, PoolingViolationEvent
+    PoolGeneratedEvent, PoolingViolationEvent, CaseSkippedEvent, CandidateDowngradedEvent
 )
 
 # Configure logging
@@ -560,13 +560,55 @@ if __name__ == "__main__":
     parser.add_argument("--input", default="retrieval_dataset.yaml", help="Input dataset path")
     parser.add_argument("--mode", default="adaptive", choices=["fixed", "adaptive"], help="Sampling mode")
     parser.add_argument("--max-cases", type=int, default=None, help="Limit number of cases")
+    parser.add_argument("--resume", action="store_true", help="Resume from existing output file if present.")
+    parser.add_argument("--overwrite", action="store_true", help="Overwrite existing output file if present.")
     
     args = parser.parse_args()
     
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    run_dir = Path(f"retrieval_evals/run_{timestamp}")
-    run_dir.mkdir(parents=True, exist_ok=True)
-    print(f"{Fore.CYAN}Starting Validation Run in: {run_dir}{Style.RESET_ALL}")
+    # Fixed run directory for resume capability testing, or timestamped for new runs?
+    # To support "retry from crash", we need a stable path or user provided path.
+    # For this implementation, we assume we are running in a specific experiment context or we check the default output.
+    # But the output path is inside a timestamped dir. 
+    # Let's verify if 'retrieval_dataset_verified.yaml' exists in current dir or specific dir.
+    # Actually, the previous code generated a NEW timestamped dir every time. This makes resume hard unless we pass the dir.
+    # Let's check if the user provided an output path, otherwise generate one.
+    
+    # IMPROVEMENT: To support resume, we should look for the latest run or a specific output.
+    # For now, let's keep the timestamp behavior but check if the user *intended* to resume a specific run.
+    # But the requirement is "detect if a crashed repo state exists".
+    # We'll check for 'retrieval_dataset_verified.yaml' in the *current* directory as a convention for "active work",
+    # or allow the user to specify the output directory.
+    
+    # Let's stick to the timestamp dir for new runs, but if we want to resume, we probably need to point to it.
+    # However, the user asked to "detect if a crashed repo state exists".
+    # We can look for the most recent run directory.
+    
+    latest_run = None
+    runs = sorted(Path("retrieval_evals").glob("run_*"))
+    if runs:
+        latest_run = runs[-1]
+    
+    if latest_run and (latest_run / "retrieval_dataset_verified.yaml").exists():
+        if not args.resume and not args.overwrite:
+            print(f"{Fore.YELLOW}Found existing run at {latest_run}.{Style.RESET_ALL}")
+            response = input("Do you want to RESUME this run? [y/N/new]: ").lower()
+            if response == 'y':
+                args.resume = True
+                run_dir = latest_run
+            elif response == 'new':
+                args.overwrite = True
+            else:
+                # Default to new run
+                pass
+
+    if args.resume and latest_run:
+        run_dir = latest_run
+        print(f"{Fore.GREEN}Resuming run from: {run_dir}{Style.RESET_ALL}")
+    else:
+        run_dir = Path(f"retrieval_evals/run_{timestamp}")
+        run_dir.mkdir(parents=True, exist_ok=True)
+        print(f"{Fore.CYAN}Starting NEW Validation Run in: {run_dir}{Style.RESET_ALL}")
     
     output_path = run_dir / "retrieval_dataset_verified.yaml"
     log_file = run_dir / "validation_events.yaml"
