@@ -18,7 +18,7 @@ class ValidatorConfig(BaseModel):
     gold_miner_k: int = Field(100, description="Max candidates to mine from Ground Truth.")
     vector_search_k: int = Field(15, description="Number of candidates to retrieve via Vector Search.")
     random_noise_n: int = Field(20, description="Number of random noise documents to add.")
-    adaptive_min_n: int = Field(3, description="Minimum trials for adaptive mode.")
+    adaptive_min_n: int = Field(5, description="Minimum trials for adaptive mode.")
     adaptive_max_n: int = Field(40, description="Maximum trials for adaptive mode.")
     se_threshold: float = Field(0.1, description="Standard Error threshold for convergence.")
 
