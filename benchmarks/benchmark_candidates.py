@@ -64,6 +64,24 @@ CANDIDATE_GENERATORS = [
     ),
     GeminiCliPodmanAnswerGenerator(
         image_definitions=IMAGE_DEFINITIONS,
+        image_name="gemini-cli:adk-docs-ext-starter",
+        model_name=ModelName.GEMINI_2_5_FLASH,
+        api_key_manager=api_key_manager,
+    ),
+    GeminiCliPodmanAnswerGenerator(
+        image_definitions=IMAGE_DEFINITIONS,
+        image_name="gemini-cli:adk-docs-ext-llms",
+        model_name=ModelName.GEMINI_2_5_FLASH,
+        api_key_manager=api_key_manager,
+    ),
+    GeminiCliPodmanAnswerGenerator(
+        image_definitions=IMAGE_DEFINITIONS,
+        image_name="gemini-cli:adk-docs-ext-llms-full",
+        model_name=ModelName.GEMINI_2_5_FLASH,
+        api_key_manager=api_key_manager,
+    ),
+    GeminiCliPodmanAnswerGenerator(
+        image_definitions=IMAGE_DEFINITIONS,
         image_name="gemini-cli:mcp_adk_agent_runner_ranked_knowledge",
         model_name=ModelName.GEMINI_2_5_FLASH,
         api_key_manager=api_key_manager,
