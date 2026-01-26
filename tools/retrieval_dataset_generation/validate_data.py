@@ -47,12 +47,19 @@ from tools.retrieval_dataset_generation.lib import (
 logging.basicConfig(level=logging.INFO, format='%(message)s')
 logger = logging.getLogger(__name__)
 
+# Suppress AFC noise from google-genai
+logging.getLogger("google_genai.models").setLevel(logging.WARNING)
+
 # Switch to Pro for higher reasoning capability as requested
 GENERATION_MODEL = ModelName.GEMINI_2_5_PRO
 
 class DataValidator:
     """
     Main engine for validating retrieval datasets using Monte Carlo causal inference.
+    
+    The validator determines the empirical relevance of documents for a given query
+    by measuring the "lift" in success probability (Delta P) when a document is 
+    present in the context vs when it is absent.
     """
     def __init__(self, input_path: str, output_path: str, retrievers: List[AbstractRetriever], config: Optional[ValidatorConfig] = None):
         self.input_path = input_path
@@ -71,7 +78,7 @@ class DataValidator:
                 pass
 
     def _log_event(self, event: BaseLogEvent):
-        """Writes a structured event to the YAML log."""
+        """Writes a structured event to the YAML log for later forensic analysis."""
         with open(self.log_file, 'a') as f:
             yaml.dump(event.model_dump(), f, explicit_start=True, sort_keys=False)
 
@@ -81,26 +88,58 @@ class DataValidator:
         offset: int = 0,
         mode: Literal["fixed", "adaptive"] = "fixed"
     ):
+        """
+        Processes a batch of cases from the input dataset.
+        Supports resuming from intermediate results stored in output_path.
+        """
         with open(self.input_path, 'r') as f:
             dataset = RetrievalDataset.model_validate(yaml.safe_load(f))
         
+        # Resume Logic: Load existing output if it exists
+        existing_results = {}
+        if os.path.exists(self.output_path):
+            try:
+                with open(self.output_path, 'r') as f:
+                    existing_data = yaml.safe_load(f)
+                    if existing_data:
+                        existing_dataset = RetrievalDataset.model_validate(existing_data)
+                        existing_results = {c.id: c for c in existing_dataset.cases}
+                        print(f"{Fore.YELLOW}Resuming: Found {len(existing_results)} existing verified cases in {self.output_path}{Style.RESET_ALL}")
+            except Exception as e:
+                print(f"{Fore.RED}Error loading existing output for resume: {e}. Starting fresh.{Style.RESET_ALL}")
+
         cases_to_process = dataset.cases[offset:offset+max_cases] if max_cases else dataset.cases[offset:]
         print(f"{Fore.CYAN}Validating {len(cases_to_process)} cases using {GENERATION_MODEL} (Mode: {mode}, Concurrency: {self.config.concurrency})...{Style.RESET_ALL}")
         
         self._log_event(ValidationStartEvent(mode=mode, case_count=len(cases_to_process)))
 
-        results = []
+        results = list(existing_results.values())
+        completed_ids = set(existing_results.keys())
+
         for case in cases_to_process:
+            if case.id in completed_ids:
+                print(f"  {Style.DIM}➤ Skipping already completed case: {case.id}{Style.RESET_ALL}")
+                continue
+
             result = await self.validate_case(case, mode=mode)
             results.append(result)
+            completed_ids.add(case.id)
+
+            # Save intermediate results after each case
+            dataset.cases = results
+            with open(self.output_path, 'w') as f:
+                yaml.dump(dataset.model_dump(by_alias=True), f, sort_keys=False, allow_unicode=True)
+            print(f"  {Style.DIM}➤ Intermediate results saved to {self.output_path}{Style.RESET_ALL}")
             
         dataset.cases = results
         
-        print(f"\n{Fore.GREEN}Saving verified dataset to {self.output_path}...{Style.RESET_ALL}")
-        with open(self.output_path, 'w') as f:
-            yaml.dump(dataset.model_dump(by_alias=True), f, sort_keys=False, allow_unicode=True)
+        print(f"\n{Fore.GREEN}Finished. Final verified dataset saved to {self.output_path}...{Style.RESET_ALL}")
 
     async def _generate_candidate_pool(self, case: RetrievalCase) -> List[RetrievalContext]:
+        """
+        Aggregates potential documents from all retrievers (Gold, Vector, Random).
+        This forms the unified pool for Monte Carlo sampling.
+        """
         pool = {} 
         print(f"  {Style.DIM}➤ Generating candidate pool...{Style.RESET_ALL}")
         
@@ -141,12 +180,27 @@ class DataValidator:
         case: RetrievalCase,
         mode: str = "fixed"
     ) -> RetrievalCase:
+        """
+        Orchestrates the validation of a single case:
+        1. Runs zero-context baseline to check for memorization.
+        2. Generates a randomized candidate pool.
+        3. Runs Monte Carlo trials using randomized subsets of the pool.
+        4. Calculates Delta P (impact score) for each document.
+        5. Performs a final sufficiency check with the full pool.
+        """
         print(f"\n{Fore.MAGENTA}▶ Processing Case: {case.id}{Style.RESET_ALL}")
         
         # 1. Zero-Context Baseline
         print(f"  {Fore.CYAN}➤ Running Zero-Context Baseline...{Style.RESET_ALL}")
+        
+        # Calculate random guessing threshold
+        guessing_threshold = 0.0
+        if case.source == "multiple_choice":
+            num_options = len(case.ground_truth.get("options", {}))
+            if num_options > 0:
+                guessing_threshold = 1.0 / num_options
+        
         baseline_successes = 0
-        # TODO: Move into constant and also log/save the SE
         N_BASELINE = 10
         for i in range(N_BASELINE):
             generated_answer, prompt_used = await self._generate_answer_with_retry(case, "")
@@ -171,8 +225,20 @@ class DataValidator:
             status_char = f"{Fore.GREEN}PASS{Style.RESET_ALL}" if is_correct else f"{Fore.RED}FAIL{Style.RESET_ALL}"
             print(f"    • Trial {i+1}: {status_char}")
 
-        case.metadata['zero_context_success_rate'] = baseline_successes / N_BASELINE
-        print(f"    {Fore.BLUE}Baseline Success Rate: {case.metadata['zero_context_success_rate']:.2f}{Style.RESET_ALL}")
+        baseline_rate = baseline_successes / N_BASELINE
+        case.metadata['zero_context_success_rate'] = baseline_rate
+        print(f"    {Fore.BLUE}Baseline Success Rate: {baseline_rate:.2f} (Threshold: {guessing_threshold:.2f}){Style.RESET_ALL}")
+
+        if baseline_rate > guessing_threshold:
+            print(f"  {Fore.YELLOW}⚠ Skipping Case: Solvable without context (Rate {baseline_rate:.2f} > Threshold {guessing_threshold:.2f}){Style.RESET_ALL}")
+            self._log_event(CaseSkippedEvent(
+                case_id=case.id, 
+                reason="Solvable without context", 
+                baseline_success_rate=baseline_rate,
+                threshold=guessing_threshold
+            ))
+            case.metadata['skipped'] = True
+            return case
 
         # 2. Generate Candidate Pool
         candidates = await self._generate_candidate_pool(case)
@@ -201,14 +267,34 @@ class DataValidator:
         stop_signal = False
         
         async def run_single_trial(trial_idx: int):
+            """
+            Runs a single trial with a random subset of documents.
+            Updates stats and checks for early termination (convergence).
+            """
             nonlocal trials_completed, stop_signal
             if stop_signal: return
 
             async with semaphore:
                 if stop_signal: return
 
-                subset_fqns = [f for f in fqns if random.random() < self.config.sampling_probability]
-                combined_text = "\n\n".join([f"[START_DOCUMENT: {f}]\n{c_map[f].text}\n[END_DOCUMENT]" for f in subset_fqns])
+                # Dynamic Sampling: Reduce probability for converged docs
+                active_subset_fqns = []
+                for f in fqns:
+                    prob = self.config.sampling_probability
+                    # Check if this specific doc has already converged
+                    if trials_in[f] > 0 and trials_out[f] > 0:
+                        p_in = success_in[f] / trials_in[f]
+                        p_out = success_out[f] / trials_out[f]
+                        se_in = math.sqrt(p_in * (1 - p_in) / trials_in[f]) if (0 < p_in < 1) else (1.0 / trials_in[f])
+                        se_out = math.sqrt(p_out * (1 - p_out) / trials_out[f]) if (0 < p_out < 1) else (1.0 / trials_out[f])
+                        se_diff = math.sqrt(se_in**2 + se_out**2)
+                        if se_diff < self.config.se_threshold:
+                            prob /= 5.0 # Lower pick rate for converged docs
+                    
+                    if random.random() < prob:
+                        active_subset_fqns.append(f)
+
+                combined_text = "\n\n".join([f"[START_DOCUMENT: {f}]\n{c_map[f].text}\n[END_DOCUMENT]" for f in active_subset_fqns])
                 
                 generated_answer, prompt_used = await self._generate_answer_with_retry(case, combined_text)
                 
@@ -230,18 +316,18 @@ class DataValidator:
                     val_error = str(e)
 
                 self._log_event(TrialCompleteEvent(
-                    case_id=case.id, trial_index=trial_idx, subset_size=len(subset_fqns),
-                    subset_fqns=subset_fqns, is_correct=is_correct,
+                    case_id=case.id, trial_index=trial_idx, subset_size=len(active_subset_fqns),
+                    subset_fqns=active_subset_fqns, is_correct=is_correct,
                     prompt_preview=prompt_used[:500] + "..." if len(prompt_used) > 500 else prompt_used,
                     generated_output=generated_answer.raw_output,
                     validation_error=val_error
                 ))
 
                 status_char = f"{Fore.GREEN}PASS{Style.RESET_ALL}" if is_correct else f"{Fore.RED}FAIL{Style.RESET_ALL}"
-                print(f"    • Trial {trial_idx+1:<2}/{max_n}: {status_char} (Ctx: {len(subset_fqns)})")
+                print(f"    • Trial {trial_idx+1:<2}/{max_n}: {status_char} (Ctx: {len(active_subset_fqns)})")
                 
                 for f in fqns:
-                    if f in subset_fqns:
+                    if f in active_subset_fqns:
                         trials_in[f] += 1
                         if is_correct: success_in[f] += 1
                     else:
@@ -252,6 +338,7 @@ class DataValidator:
                 
                 max_se_diff = 0.0
                 se_map = {}
+                converged_count = 0
                 for f in fqns:
                     if trials_in[f] > 0 and trials_out[f] > 0:
                         p_in = success_in[f] / trials_in[f]
@@ -261,6 +348,8 @@ class DataValidator:
                         se_diff = math.sqrt(se_in**2 + se_out**2)
                         max_se_diff = max(max_se_diff, se_diff)
                         se_map[f] = round(se_diff, 4)
+                        if se_diff < self.config.se_threshold:
+                            converged_count += 1
                     else:
                         max_se_diff = 1.0
                         se_map[f] = 1.0
@@ -271,6 +360,9 @@ class DataValidator:
                     se_map=se_map, threshold=self.config.se_threshold
                 ))
 
+                if trials_completed % 10 == 0:
+                    print(f"      {Style.DIM}[Progress] Converged: {converged_count}/{len(fqns)} | Max SE: {max_se_diff:.4f}{Style.RESET_ALL}")
+
                 if mode == "adaptive" and trials_completed >= min_n:
                     if self._check_convergence(fqns, trials_in, success_in, trials_out, success_out, self.config.se_threshold):
                         print(f"      {Fore.GREEN}✔ Convergence reached (Trial {trial_idx+1}). Stopping.{Style.RESET_ALL}")
@@ -279,9 +371,11 @@ class DataValidator:
         tasks = [run_single_trial(i) for i in range(max_n)]
         await asyncio.gather(*tasks)
         
-        print(f"  {Fore.CYAN}➤ Impact Scores:{Style.RESET_ALL}")
+        print(f"  {Fore.CYAN}➤ Impact Scores (Sorted by impact):{Style.RESET_ALL}")
         
-        for f in fqns:
+        sorted_fqns = sorted(fqns, key=lambda x: (success_in[x]/trials_in[x] - success_out[x]/trials_out[x]) if (trials_in[x]>0 and trials_out[x]>0) else 0, reverse=True)
+
+        for f in sorted_fqns:
             n_in, n_out = trials_in[f], trials_out[f]
             p_in = success_in[f] / n_in if n_in > 0 else 0.0
             p_out = success_out[f] / n_out if n_out > 0 else 0.0
@@ -321,6 +415,10 @@ class DataValidator:
         return case
 
     def _check_convergence(self, fqns, trials_in, success_in, trials_out, success_out, threshold):
+        """
+        Returns True if the Standard Error of Delta P for ALL documents is below the threshold.
+        Uses an adjusted SE of 1/N for p=0 or p=1 to prevent premature stopping.
+        """
         max_se = 0.0
         for f in fqns:
             if trials_in[f] == 0 or trials_out[f] == 0: return False 
@@ -333,6 +431,10 @@ class DataValidator:
         return max_se < threshold
 
     async def _generate_answer_with_retry(self, case: RetrievalCase, context: str) -> Tuple[Optional[GeneratedAnswer], str]:
+        """
+        Calls the LLM to generate an answer for the given case and context.
+        Enforces structured output JSON matching the benchmark type.
+        """
         target_schema = None
         if case.source == "api_understanding":
             target_schema = ApiUnderstandingAnswerOutput
@@ -359,8 +461,9 @@ Context:
 Task: {question_text}
 
 Instructions:
-1. Answer the question using ONLY the provided context.
-2. You MUST output a valid JSON object matching the schema below.
+1. Answer the question using ONLY the provided context. Do NOT use any preconceived knowledge.
+2. If the context is insufficient to answer confidently, populate the `refusal_reason` field with an explanation and provide dummy values for other required fields.
+3. You MUST output a valid JSON object matching the schema below.
 
 Target Schema:
 {schema_json}
@@ -390,6 +493,7 @@ Target Schema:
             return None, prompt
 
     async def _validate_api_understanding(self, case: RetrievalCase, answer: GeneratedAnswer) -> Tuple[bool, Optional[str]]:
+        """Validates an API understanding answer using StringMatchRunner."""
         gt = case.ground_truth
         if not gt.get("answers"): return False, "No ground truth answers"
         bcase = ApiUnderstandingBenchmarkCase(
@@ -401,12 +505,15 @@ Target Schema:
         runner = ApiUnderstandingRunner()
         try:
             answer.output = await self.sanitizer.sanitize(answer.raw_output, ApiUnderstandingAnswerOutput)
+            if getattr(answer.output, 'refusal_reason', None):
+                return False, f"Model Refusal: {answer.output.refusal_reason}"
             result, _, _, _ = await runner.run_benchmark(bcase, answer)
             return result == BenchmarkResultType.PASS, None
         except Exception as e: 
             return False, str(e)
 
     async def _validate_fix_errors(self, case: RetrievalCase, answer: GeneratedAnswer) -> Tuple[bool, Optional[str]]:
+        """Validates a fix_error answer by running pytest against the generated code."""
         gt = case.ground_truth
         def to_path(p): return Path(p) if p else None
         bcase = FixErrorBenchmarkCase(
@@ -418,6 +525,8 @@ Target Schema:
         runner = PytestBenchmarkRunner()
         try:
             answer.output = await self.sanitizer.sanitize(answer.raw_output, FixErrorAnswerOutput)
+            if getattr(answer.output, 'refusal_reason', None):
+                return False, f"Model Refusal: {answer.output.refusal_reason}"
             result, logs, _, _ = await runner.run_benchmark(bcase, answer)
             error_msg = None if result == BenchmarkResultType.PASS else f"Runner Result: {result}, Logs: {logs}"
             return result == BenchmarkResultType.PASS, error_msg
@@ -425,6 +534,7 @@ Target Schema:
             return False, str(e)
 
     async def _validate_multiple_choice(self, case: RetrievalCase, answer: GeneratedAnswer) -> Tuple[bool, Optional[str]]:
+        """Validates a multiple choice answer."""
         gt = case.ground_truth
         bcase = MultipleChoiceBenchmarkCase(
             id=case.id,
@@ -437,6 +547,8 @@ Target Schema:
         runner = MultipleChoiceRunner()
         try:
             answer.output = await self.sanitizer.sanitize(answer.raw_output, MultipleChoiceAnswerOutput)
+            if getattr(answer.output, 'refusal_reason', None):
+                return False, f"Model Refusal: {answer.output.refusal_reason}"
             result, _, _, _ = await runner.run_benchmark(bcase, answer)
             error_msg = None if result == BenchmarkResultType.PASS else f"Wrong Answer. Expected {gt.get('correct_answer')}, Got {answer.output.answer}"
             return result == BenchmarkResultType.PASS, error_msg

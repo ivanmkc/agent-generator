@@ -19,7 +19,7 @@ class ValidatorConfig(BaseModel):
     """
     monte_carlo_trials: int = Field(40, description="Max trials per case (Fixed mode) or max trials limit (Adaptive mode).")
     adaptive_min_n: int = Field(15, description="Minimum trials before checking convergence.")
-    adaptive_max_n: int = Field(150, description="Maximum trials allowed in adaptive mode.")
+    adaptive_max_n: int = Field(500, description="Maximum trials allowed in adaptive mode.")
     se_threshold: float = Field(0.01, description="Standard Error threshold for convergence stopping.")
     gold_miner_k: int = Field(3, description="Number of 'gold' candidates to include.")
     vector_search_k: int = Field(15, description="Number of vector search candidates.")
@@ -64,6 +64,21 @@ class RetrievalContext(BaseModel):
     metadata: RetrievalResultMetadata = Field(default_factory=RetrievalResultMetadata)
 
 class RetrievalCase(BaseModel):
+    """
+    Represents a single benchmark case for retrieval evaluation.
+    
+    Attributes:
+        id: Unique identifier for the case.
+        query: The natural language query or task.
+        positive_ctxs: Documents known to be relevant (ground truth).
+        negative_ctxs: Documents known to be irrelevant.
+        source: The original benchmark suite (e.g., 'api_understanding').
+        metadata: Flexible storage for benchmark-specific data.
+        ground_truth: The target answer or code for validation.
+        is_sufficient_set: If True, the entire candidate pool together is 
+            proven to be enough to solve the task.
+        candidates: The pool of all candidates being validated for this case.
+    """
     id: str
     query: str
     positive_ctxs: List[RetrievalContext] = Field(default_factory=list)
@@ -75,23 +90,28 @@ class RetrievalCase(BaseModel):
     candidates: List[RetrievalContext] = Field(default_factory=list) # Unified pool
 
 class RetrievalDataset(BaseModel):
+    """A collection of verified retrieval cases."""
     cases: List[RetrievalCase]
 
 class RankedTarget(BaseModel):
+    """A simplified representation of a code symbol for retrieval."""
     id: str # FQN
     name: str
     docstring: str = ""
     
     @property
     def corpus_text(self) -> str:
+        """Text used for indexing by BM25 and Embeddings."""
         return f"{self.name} {self.id} {self.docstring}"
 
 # --- Logging Models ---
 class BaseLogEvent(BaseModel):
+    """Base for structured YAML logging of validation trials."""
     timestamp: float = Field(default_factory=time.time)
     event: str
 
 class TrialCompleteEvent(BaseLogEvent):
+    """Logged when a single Monte Carlo trial finishes."""
     event: Literal["trial_complete"] = "trial_complete"
     case_id: str
     trial_index: int
@@ -103,6 +123,7 @@ class TrialCompleteEvent(BaseLogEvent):
     validation_error: Optional[str] = None
 
 class ConvergenceCheckEvent(BaseLogEvent):
+    """Logged when checking statistical convergence across all candidates."""
     event: Literal["convergence_check"] = "convergence_check"
     case_id: str
     trial_index: int
@@ -111,16 +132,30 @@ class ConvergenceCheckEvent(BaseLogEvent):
     threshold: float
 
 class ValidationStartEvent(BaseLogEvent):
+    """Logged when a new validation batch starts."""
     event: Literal["validation_start"] = "validation_start"
     mode: str
     case_count: int
 
 class PoolGeneratedEvent(BaseLogEvent):
+    """Logged after retrievers generate the initial candidate pool."""
     event: Literal["pool_generated"] = "pool_generated"
     case_id: str
     pool_size: int
 
+class CaseSkippedEvent(BaseLogEvent):
+    """Logged when a case is skipped due to zero-context baseline passing."""
+    event: Literal["case_skipped"] = "case_skipped"
+    case_id: str
+    reason: str
+    baseline_success_rate: float
+    threshold: float
+
 class PoolingViolationEvent(BaseLogEvent):
+    """
+    Logged when a document from the random noise set shows significant 
+    positive impact, suggesting the candidate pool might be incomplete.
+    """
     event: Literal["pooling_violation"] = "pooling_violation"
     case_id: str
     fqn: str
@@ -128,15 +163,19 @@ class PoolingViolationEvent(BaseLogEvent):
 
 # --- Retrievers ---
 class AbstractRetriever(ABC):
+    """Base interface for retrieving candidate documents for a query."""
     @abstractmethod
     async def index(self, documents: List[RankedTarget]):
+        """Indexes the target corpus."""
         pass
 
     @abstractmethod
     async def search(self, query: str, top_k: int = 5, case: Optional[RetrievalCase] = None) -> List[RankedTarget]:
+        """Returns top K matches for the query."""
         pass
 
 class BM25Retriever(AbstractRetriever):
+    """Standard keyword-based retriever using BM25Okapi."""
     def __init__(self):
         self.bm25 = None
         self.documents = []
@@ -155,6 +194,7 @@ class BM25Retriever(AbstractRetriever):
 EMBEDDING_MODEL = "gemini-embedding-001"
 
 class EmbeddingRetriever(AbstractRetriever):
+    """Semantic retriever using Vertex AI / Google GenAI embeddings."""
     def __init__(self, api_key: str):
         self.client = genai.Client(api_key=api_key)
         self.documents = []
@@ -212,6 +252,7 @@ class EmbeddingRetriever(AbstractRetriever):
         return [self.documents[i] for i in top_n]
 
 class RandomRetriever(AbstractRetriever):
+    """Retriever that samples documents randomly to serve as a statistical control group."""
     def __init__(self):
         self.documents = []
 
@@ -222,7 +263,7 @@ class RandomRetriever(AbstractRetriever):
         return random.sample(self.documents, min(top_k, len(self.documents)))
 
 class GoldMinerRetriever(AbstractRetriever):
-    """Retrieves candidates based on 'Gold' metadata in the case."""
+    """Retrieves candidates based on 'Gold' metadata already present in the benchmark case."""
     def __init__(self):
         self.documents = []
         self.fqn_map = {}
@@ -244,6 +285,7 @@ class GoldMinerRetriever(AbstractRetriever):
 
 # --- Evaluation ---
 class RetrievalEvaluator:
+    """Evaluates retriever performance against a verified retrieval dataset."""
     def __init__(self, dataset_path: str, targets_path: str):
         with open(dataset_path, 'r') as f:
             self.dataset = RetrievalDataset.model_validate(yaml.safe_load(f))
@@ -254,6 +296,11 @@ class RetrievalEvaluator:
             self.targets = [RankedTarget(id=t['id'], name=t['name'], docstring=t.get('docstring', '')) for t in raw_targets if t.get('id')]
 
     async def run_benchmark(self, retriever: AbstractRetriever, name: str) -> Dict[str, float]:
+        """
+        Runs Recall@K and MRR benchmarks for a specific retriever.
+        A retrieval is successful if a ground-truth relevant document (from 
+        positive_ctxs) appears in the top K results.
+        """
         await retriever.index(self.targets)
         
         recall_at_1 = 0

@@ -9,18 +9,20 @@
 - [ ] **Implementation:**
     - [x] In DataValidator._generate_candidate_pool: Randomize candidates
     - [x] In DataValidator: Remove the manual retry here since the ApiKeyManager already handles key rotation. See how benchmark_runner handles it.
-    - [ ] In DataValidator._generate_answer_with_retry: Modify the data model that is returned by AnswerGenerator's to allow a refusal_reason: str, which is used to refuse answering if it doesn't know or feels unconfident to answer, based on the given context. This would count as a validation failure but as least the model can refuse to guess, which keeps data clean from random guessing.
-    - [ ] Not a dealbreaker, but can you find out why the stdout includes "AFC is enabled with max remote calls: 10." and surpress it if possible?
-    - [ ] I want the in-progress logging to show convergence metrics (per-context) once in a while so I can see how long convergence will take. I imagine that once a particular context has converged, it can be removed from the candidate pool to make room for other context, or at least it's pick rate can be lowered? wdyt is way to do this without introducing more hyperparameters?
-    - [ ] Prompt the LLM to only answer based on info from context and not from it's own preconcieved knowledge.
-    - [ ] Report should show 'Impact Scores' as order of impact (descending)
-    - [ ] Increase max trials from 150 to 500
-    - [ ] Plan in the design doc, an adaptive (simulated annealing type) solution to gradually lower number of context to optimize information gain (by isolating context) over time. Prove or disprove this can work mathematically. Show whether it can improve convergence rates. Do not implement.
-    - [ ] Running Zero-Context Baseline: Needs to be run sufficiently long to establish confidence. Please log how many trials were used and confidence level. If baseline success rate mean is greater than would be expected from random guessing (calculate this % for MC. for non-MC the bar is that the mean must be 0.0), then skip this question.
-        - [ ] In the generated report, include a section to show the skipped questions
-        - [ ] In design doc, show mathematically whether these questions (that can pass with zero-context) can harm convergence times or prevent it altogether.
-    - [ ] Since it's possible to run out of quota on these long generations, please add a way to continue a specific run from an arbitrary stoppage. Add an integration test for this functionality.
-    - [ ] All internal functions under retrieval_dataset_generation need docstrings, methodology and explanation of how to interpret/use outputs if not immediately obvious, e.g. case.is_sufficient_set
+    - [x] In DataValidator._generate_answer_with_retry: Modify the data model that is returned by AnswerGenerator's to allow a refusal_reason: str, which is used to refuse answering if it doesn't know or feels unconfident to answer, based on the given context. This would count as a validation failure but as least the model can refuse to guess, which keeps data clean from random guessing.
+    - [x] Not a dealbreaker, but can you find out why the stdout includes "AFC is enabled with max remote calls: 10." and surpress it if possible?
+    - [x] I want the in-progress logging to show convergence metrics (per-context) once in a while so I can see how long convergence will take. I imagine that once a particular context has converged, it can be removed from the candidate pool to make room for other context, or at least it's pick rate can be lowered? wdyt is way to do this without introducing more hyperparameters?
+    - [x] Prompt the LLM to only answer based on info from context and not from it's own preconcieved knowledge.
+    - [x] Report should show 'Impact Scores' as order of impact (descending)
+    - [x] Increase max trials from 150 to 500
+    - [x] Plan in the design doc, an adaptive (simulated annealing type) solution to gradually lower number of context to optimize information gain (by isolating context) over time. Prove or disprove this can work mathematically. Show whether it can improve convergence rates. Do not implement.
+    - [x] Running Zero-Context Baseline: Needs to be run sufficiently long to establish confidence. Please log how many trials were used and confidence level. If baseline success rate mean is greater than would be expected from random guessing (calculate this % for MC. for non-MC the bar is that the mean must be 0.0), then skip this question.
+        - [x] In the generated report, include a section to show the skipped questions
+        - [x] In design doc, show mathematically whether these questions (that can pass with zero-context) can harm convergence times or prevent it altogether.
+    - [x] Since it's possible to run out of quota on these long generations, please add a way to continue a specific run from an arbitrary stoppage. Add an integration test for this functionality.
+    - [x] All internal functions under retrieval_dataset_generation need docstrings, methodology and explanation of how to interpret/use outputs if not immediately obvious, e.g. case.is_sufficient_set
+- [ ] **Verification:**
+    - [ ] Run the whole pipeline again on the latest dataset and ensure convergence works as expected.
 
 # On Hold (do not start)
 

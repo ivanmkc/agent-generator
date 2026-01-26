@@ -400,6 +400,15 @@ class BaseAnswerOutput(pydantic.BaseModel, abc.ABC):
         description="Explanation of the thinking process leading to the answer.",
     )
 
+    refusal_reason: Optional[str] = Field(
+        None,
+        description=(
+            "If the provided context is insufficient to answer the question"
+            " confidently, provide a reason here and leave other fields empty"
+            " or with placeholder values. This counts as a refusal to answer."
+        ),
+    )
+
 
 class FixErrorAnswerOutput(BaseAnswerOutput):
     """The expected output structure for a fix_error benchmark."""

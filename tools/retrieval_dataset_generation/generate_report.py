@@ -7,6 +7,7 @@ import numpy as np
 from pathlib import Path
 from tabulate import tabulate
 from typing import Optional
+from colorama import Fore, Style
 
 # Add project root to path
 sys.path.append(str(Path(__file__).parent.parent.parent))
@@ -71,6 +72,10 @@ def generate_report(input_path: str, output_path: str, log_path: Optional[str] =
         report_lines.append(f"### Case: `{case.id}`")
         report_lines.append(f"**Query:** {case.query}\n")
         
+        is_skipped = case.metadata.get('skipped', False)
+        if is_skipped:
+            report_lines.append(f"{Fore.YELLOW}**[SKIPPED]** Solvable without context.{Style.RESET_ALL}\n")
+
         zc = case.metadata.get('zero_context_success_rate', 'N/A')
         zc_str = f"{zc:.2%}" if isinstance(zc, float) else zc
         report_lines.append(f"- **Zero-Context Success:** {zc_str}")

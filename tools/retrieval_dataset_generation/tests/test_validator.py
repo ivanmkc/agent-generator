@@ -199,5 +199,52 @@ class TestRetrievalIntegration(unittest.IsolatedAsyncioTestCase):
         # Convergence Check: Should stop before max (150) if clean
         self.assertLess(len(trace), 150, "Should converge before max trials")
 
+    async def test_resume_functionality(self):
+        """
+        Verify that validate_dataset skips completed cases when an output file already exists.
+        """
+        import os
+        import yaml
+        from tools.retrieval_dataset_generation.lib import RetrievalDataset, RetrievalCase
+        
+        # Paths
+        input_path = "test_input.yaml"
+        output_path = "test_output.yaml"
+        
+        # 1. Setup Input with 2 cases
+        case1 = RetrievalCase(id="case1", query="q1", source="api_understanding", metadata={})
+        case2 = RetrievalCase(id="case2", query="q2", source="api_understanding", metadata={})
+        dataset = RetrievalDataset(cases=[case1, case2])
+        with open(input_path, 'w') as f:
+            yaml.dump(dataset.model_dump(by_alias=True), f)
+            
+        # 2. Setup Existing Output with case1 already completed
+        case1_completed = RetrievalCase(id="case1", query="q1", source="api_understanding", metadata={'verified': True})
+        existing_dataset = RetrievalDataset(cases=[case1_completed])
+        with open(output_path, 'w') as f:
+            yaml.dump(existing_dataset.model_dump(by_alias=True), f)
+            
+        # 3. Initialize Validator
+        validator = DataValidator(input_path, output_path, [], config=self.config)
+        
+        # 4. Mock validate_case to see it's only called for case2
+        validator.validate_case = MagicMock()
+        f = asyncio.Future()
+        f.set_result(case2)
+        validator.validate_case.return_value = f
+        
+        # 5. Run Validation
+        await validator.validate_dataset()
+        
+        # 6. Verify
+        # validate_case should only be called once (for case2)
+        self.assertEqual(validator.validate_case.call_count, 1)
+        args, _ = validator.validate_case.call_args
+        self.assertEqual(args[0].id, "case2")
+        
+        # Cleanup
+        if os.path.exists(input_path): os.remove(input_path)
+        if os.path.exists(output_path): os.remove(output_path)
+
 if __name__ == '__main__':
     unittest.main()

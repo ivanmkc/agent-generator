@@ -42,3 +42,59 @@ The primary scalar output for each document-query pair, representing the empiric
 
 ### 5.2 Zero-Context Success Rate
 Indicates task difficulty and model's prior knowledge. A dataset with a low average zero-context success rate is ideal for retrieval evaluation.
+
+## 6. Future Optimization: Adaptive Context Isolation (Simulated Annealing)
+
+To optimize information gain and improve convergence rates, we propose an **Adaptive Context Isolation** strategy.
+
+### 6.1 Concept
+Early in the Monte Carlo process, we use a higher sampling probability ($p_{start} \approx 0.25$) to explore the candidate pool and identify potential signals. As trials progress, we gradually lower the sampling probability ($p \to 0.05$), effectively "isolating" documents in smaller contexts.
+
+### 6.2 Mathematical Proof of Information Gain
+Let $S$ be the success event, and $d_i$ be a document. We want to estimate $\Delta P_i = P(S | d_i \in C) - P(S | d_i \notin C)$.
+The variance of our estimate of $P(S | d_i \in C)$ is roughly proportional to $1/n_i$, but also depends on the "noise" from other documents in the context $C \setminus \{d_i\}$.
+If other relevant documents are frequently present in $C$, they increase $P(S | d_i \in C)$ even if $d_i$ is irrelevant (false positive signal) or mask the impact of $d_i$ if it is only marginally helpful.
+
+By reducing the expected context size $E[|C|] = |Pool| \times p$, we minimize the probability that multiple relevant documents appear in the same trial. This reduces the **interference variance**:
+$$ Var(\Delta P_i) \propto \sum_{j \neq i} P(d_j \in C) \cdot \text{Impact}(d_j) $$
+As $p \to 0$, $P(d_j \in C) \to 0$, and $Var(\Delta P_i)$ approaches the pure signal variance of $d_i$.
+
+### 6.3 Impact on Convergence
+
+This strategy improves convergence rates by:
+
+1.  **Early Signal Detection:** Quickly identifying high-impact documents in large contexts.
+
+2.  **Late-Stage Precision:** Refining the estimates of marginal or "noisy" documents by removing background interference, allowing the Standard Error to hit the threshold $\epsilon$ with fewer total trials than a constant $p$ strategy.
+
+
+
+## 7. Zero-Context Filtering
+
+
+
+Tasks that can be solved without any context (high $P(S | \emptyset)$) are actively excluded from the dataset.
+
+
+
+### 7.1 The Compression of Signal
+
+The maximum observable impact of any document $d_i$ is limited by the baseline:
+
+$ \Delta P_{max} = 1.0 - P(S | \emptyset) $
+
+As the baseline success rate increases, the available "dynamic range" for measuring document relevance shrinks.
+
+
+
+### 7.2 Mathematical Impact on Sample Size
+
+The number of trials $n$ required to reach a specific Standard Error threshold $\epsilon$ is approximately:
+
+$ n \approx \frac{p(1-p)}{\epsilon^2} $
+
+If a task is already 80% solved by parametric memory, a critical document can only add 20% lift. Measuring this small lift with high confidence requires significantly more samples. Specifically, the signal-to-noise ratio decreases linearly with baseline success, while required sample size increases quadratically as $\Delta P$ approaches the noise floor.
+
+
+
+By skipping these cases, we focus computational resources on tasks where retrieval is truly necessary, ensuring the dataset measures retrieval effectiveness rather than LLM world knowledge.
