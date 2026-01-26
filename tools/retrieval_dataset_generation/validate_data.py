@@ -365,42 +365,29 @@ Instructions:
 Target Schema:
 {schema_json}
 """
-        max_retries = 3
-        backoff = 5
-        
-        for attempt in range(max_retries):
-            key_val, key_id = await self.api_key_manager.get_next_key_with_id(KeyType.GEMINI_API)
-            if not key_val:
-                print(f"    {Fore.RED}No API keys available.{Style.RESET_ALL}")
-                return None, prompt
-                
-            client = genai.Client(api_key=key_val)
+        key_val, key_id = await self.api_key_manager.get_next_key_with_id(KeyType.GEMINI_API)
+        if not key_val:
+            print(f"    {Fore.RED}No API keys available.{Style.RESET_ALL}")
+            return None, prompt
             
-            try:
-                response = await client.aio.models.generate_content(
-                    model=GENERATION_MODEL,
-                    contents=prompt,
-                    config={
-                        "response_mime_type": "application/json",
-                        "response_schema": target_schema
-                    }
-                )
-                await self.api_key_manager.report_result(KeyType.GEMINI_API, key_id, True)
-                return GeneratedAnswer(raw_output=response.text), prompt
-                
-            except Exception as e:
-                error_msg = str(e)
-                await self.api_key_manager.report_result(KeyType.GEMINI_API, key_id, False, error_message=error_msg)
-                
-                # TODO: Remove the manual retry here since the ApiKeyManager already handles key rotation. See how benchmark_runner handles it.
-                if "429" in error_msg or "ResourceExhausted" in error_msg:
-                    wait_time = backoff * (2 ** attempt)
-                    print(f"    {Fore.YELLOW}Quota exceeded (429). Retrying in {wait_time}s...{Style.RESET_ALL}")
-                    await asyncio.sleep(wait_time)
-                else:
-                    return None, prompt
-                    
-        return None, prompt
+        client = genai.Client(api_key=key_val)
+        
+        try:
+            response = await client.aio.models.generate_content(
+                model=GENERATION_MODEL,
+                contents=prompt,
+                config={
+                    "response_mime_type": "application/json",
+                    "response_schema": target_schema
+                }
+            )
+            await self.api_key_manager.report_result(KeyType.GEMINI_API, key_id, True)
+            return GeneratedAnswer(raw_output=response.text), prompt
+            
+        except Exception as e:
+            error_msg = str(e)
+            await self.api_key_manager.report_result(KeyType.GEMINI_API, key_id, False, error_message=error_msg)
+            return None, prompt
 
     async def _validate_api_understanding(self, case: RetrievalCase, answer: GeneratedAnswer) -> Tuple[bool, Optional[str]]:
         gt = case.ground_truth

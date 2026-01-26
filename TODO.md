@@ -7,8 +7,8 @@
 
 ## 2. Synthetic Retrieval Dataset (`docs/design_docs/synthetic_retrieval_dataset.md`)
 - [ ] **Implementation:**
-    - [ ] In DataValidator._generate_candidate_pool: Randomize candidates
-    - [ ] In DataValidator: Remove the manual retry here since the ApiKeyManager already handles key rotation. See how benchmark_runner handles it.
+    - [x] In DataValidator._generate_candidate_pool: Randomize candidates
+    - [x] In DataValidator: Remove the manual retry here since the ApiKeyManager already handles key rotation. See how benchmark_runner handles it.
     - [ ] In DataValidator._generate_answer_with_retry: Modify the data model that is returned by AnswerGenerator's to allow a refusal_reason: str, which is used to refuse answering if it doesn't know or feels unconfident to answer, based on the given context. This would count as a validation failure but as least the model can refuse to guess, which keeps data clean from random guessing.
     - [ ] Not a dealbreaker, but can you find out why the stdout includes "AFC is enabled with max remote calls: 10." and surpress it if possible?
     - [ ] I want the in-progress logging to show convergence metrics (per-context) once in a while so I can see how long convergence will take. I imagine that once a particular context has converged, it can be removed from the candidate pool to make room for other context, or at least it's pick rate can be lowered? wdyt is way to do this without introducing more hyperparameters?
