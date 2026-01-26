@@ -3,6 +3,7 @@ import yaml
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+import numpy as np
 from pathlib import Path
 import sys
 
@@ -26,18 +27,14 @@ def analyze_report():
     # Flatten Candidates into a DataFrame
     records = []
     for case in cases:
-        # Access lists safely
-        pos = case.get('positive_ctxs', []) or []
-        neg = case.get('negative_ctxs', []) or []
-        
-        candidates = pos + neg
+        candidates = case.get('candidates', [])
         for ctx in candidates:
             meta = ctx.get('metadata', {})
             records.append({
                 'case_id': case['id'],
                 'query': case['query'],
                 'fqn': ctx['fqn'],
-                'source_type': ctx['type'], # gold, retrieved, negative
+                'source_type': ctx['type'],
                 'empirical_relevance': ctx.get('empirical_relevance', 'UNKNOWN'),
                 'delta_p': meta.get('delta_p', 0.0),
                 'p_in': meta.get('p_in', 0.0),
@@ -53,37 +50,43 @@ def analyze_report():
     df = pd.DataFrame(records)
     print(f"Total Candidates Analyzed: {len(df)}")
     
-    # 1. Relevance Distribution
-    print("\n--- Relevance Distribution by Source ---")
-    relevance_counts = df.groupby(['source_type', 'empirical_relevance']).size().unstack(fill_value=0)
-    print(relevance_counts)
-    
-    plt.figure()
-    relevance_counts.plot(kind='bar', stacked=True, colormap='viridis')
-    plt.title('Empirical Relevance by Source Type')
-    plt.ylabel('Count')
-    plt.xticks(rotation=45)
-    plt.tight_layout()
-    plt.savefig("notebooks/report/relevance_distribution.png")
-    print("Saved notebooks/report/relevance_distribution.png")
+    # 1. Relevance Distribution (Using Delta P bins instead of binary)
+    print("\n--- Impact Score (Delta P) Stats ---")
+    print(df['delta_p'].describe())
 
-    # 2. Impact Score Distribution
-    print("\n--- Impact Score (Delta P) Distribution ---")
     plt.figure()
-    sns.histplot(data=df, x='delta_p', hue='empirical_relevance', bins=20, multiple="stack")
-    plt.title('Distribution of Impact Scores (Delta P)')
-    plt.xlabel('Delta P (P_in - P_out)')
+    sns.histplot(data=df, x='delta_p', hue='source_type', multiple="stack", bins=20)
+    plt.title('Impact Score Distribution by Source')
+    plt.xlabel('Delta P')
     plt.tight_layout()
     plt.savefig("notebooks/report/impact_score_dist.png")
     print("Saved notebooks/report/impact_score_dist.png")
 
+    # 2. Convergence Analysis
+    print("\n--- Convergence Analysis ---")
+    if not df[df['n_in'] > 0].empty:
+        plt.figure()
+        sns.scatterplot(data=df[df['n_in'] > 0], x='n_in', y='se_in', alpha=0.6)
+        plt.title('Convergence: Standard Error vs Number of Samples')
+        plt.xlabel('Number of Trials (Included)')
+        plt.ylabel('Standard Error of p_in')
+        
+        # Theoretical curve
+        x = np.linspace(1, df['n_in'].max(), 100)
+        y = 0.5 / np.sqrt(x)
+        plt.plot(x, y, 'r--', label='Theoretical 1/sqrt(n)')
+        plt.legend()
+        plt.tight_layout()
+        plt.savefig("notebooks/report/convergence_plot.png")
+        print("Saved notebooks/report/convergence_plot.png")
+
     # 3. High Impact Contexts
     print("\n--- Top 10 High Impact Contexts ---")
-    top_impact = df[df['empirical_relevance'] == 'YES'].sort_values('delta_p', ascending=False).head(10)
+    top_impact = df.sort_values('delta_p', ascending=False).head(10)
     if not top_impact.empty:
-        print(top_impact[['fqn', 'delta_p', 'source_type', 'n_in']].to_markdown(index=False))
+        print(top_impact[['fqn', 'delta_p', 'se_in', 'source_type']])
     else:
-        print("No YES relevance contexts found.")
+        print("No high impact contexts found.")
 
 if __name__ == "__main__":
     analyze_report()
