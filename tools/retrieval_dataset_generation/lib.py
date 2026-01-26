@@ -19,13 +19,13 @@ class ValidatorConfig(BaseModel):
     """
     monte_carlo_trials: int = Field(40, description="Max trials per case (Fixed mode) or max trials limit (Adaptive mode).")
     adaptive_min_n: int = Field(15, description="Minimum trials before checking convergence.")
-    adaptive_max_n: int = Field(60, description="Maximum trials allowed in adaptive mode.")
-    se_threshold: float = Field(0.1, description="Standard Error threshold for convergence stopping.")
+    adaptive_max_n: int = Field(150, description="Maximum trials allowed in adaptive mode.")
+    se_threshold: float = Field(0.01, description="Standard Error threshold for convergence stopping.")
     gold_miner_k: int = Field(3, description="Number of 'gold' candidates to include.")
     vector_search_k: int = Field(15, description="Number of vector search candidates.")
     random_noise_n: int = Field(20, description="Number of random noise candidates.")
     concurrency: int = Field(5, description="Number of concurrent trials to run.")
-    sampling_probability: float = Field(0.25, description="Probability of including a specific candidate in a trial context.")
+    sampling_probability: float = Field(0.1, description="Probability of including a specific candidate in a trial context.")
     log_file: str = Field("logs/validation_events.yaml", description="Path to the structured event log.")
 
 # --- Data Models ---
@@ -152,6 +152,8 @@ class BM25Retriever(AbstractRetriever):
         top_n = np.argsort(scores)[::-1][:top_k]
         return [self.documents[i] for i in top_n]
 
+EMBEDDING_MODEL = "gemini-embedding-001"
+
 class EmbeddingRetriever(AbstractRetriever):
     def __init__(self, api_key: str):
         self.client = genai.Client(api_key=api_key)
@@ -164,7 +166,7 @@ class EmbeddingRetriever(AbstractRetriever):
             batch = texts[i : i + batch_size]
             tasks = [
                 self.client.aio.models.embed_content(
-                    model="text-embedding-004",
+                    model=EMBEDDING_MODEL,
                     contents=text,
                     config={"task_type": "RETRIEVAL_DOCUMENT"},
                 )
@@ -200,7 +202,7 @@ class EmbeddingRetriever(AbstractRetriever):
         # Note: Previous run failed with 400 because text-embedding-004 might not support CODE_RETRIEVAL_QUERY yet
         # or the client lib mapping is specific. Reverting to RETRIEVAL_QUERY for safety as per turn 112 fix.
         query_resp = await self.client.aio.models.embed_content(
-            model="text-embedding-004",
+            model=EMBEDDING_MODEL,
             contents=query,
             config={"task_type": "RETRIEVAL_QUERY"},
         )

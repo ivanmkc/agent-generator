@@ -112,6 +112,7 @@ class RankedTarget(pydantic.BaseModel):
     group: str # "Seed", "Dependency", "Orphan"
     usage_score: int
     docstring: Optional[str] = None
+    signature: Optional[str] = None
     constructor_signature: Optional[str] = None
     
     methods: Optional[List[MemberInfo]] = None

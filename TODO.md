@@ -1,6 +1,28 @@
 # Todo List
+## 1. Missing signatures in ranked_targets.yaml for method.
+- [x] Added `signature` field to `RankedTarget` model.
+- [x] Updated `TargetRanker` to populate signature from `signature_full`.
+- [x] Updated `test_ranked_targets.py` to assert signature presence for methods.
+- [x] Regenerated `ranked_targets.yaml` with signatures.
 
-# Prioritized Features (From Design Docs)
+## 2. Synthetic Retrieval Dataset (`docs/design_docs/synthetic_retrieval_dataset.md`)
+- [ ] **Implementation:**
+    - [ ] In DataValidator._generate_candidate_pool: Randomize candidates
+    - [ ] In DataValidator: Remove the manual retry here since the ApiKeyManager already handles key rotation. See how benchmark_runner handles it.
+    - [ ] In DataValidator._generate_answer_with_retry: Modify the data model that is returned by AnswerGenerator's to allow a refusal_reason: str, which is used to refuse answering if it doesn't know or feels unconfident to answer, based on the given context. This would count as a validation failure but as least the model can refuse to guess, which keeps data clean from random guessing.
+    - [ ] Not a dealbreaker, but can you find out why the stdout includes "AFC is enabled with max remote calls: 10." and surpress it if possible?
+    - [ ] I want the in-progress logging to show convergence metrics (per-context) once in a while so I can see how long convergence will take. I imagine that once a particular context has converged, it can be removed from the candidate pool to make room for other context, or at least it's pick rate can be lowered? wdyt is way to do this without introducing more hyperparameters?
+    - [ ] Prompt the LLM to only answer based on info from context and not from it's own preconcieved knowledge.
+    - [ ] Report should show 'Impact Scores' as order of impact (descending)
+    - [ ] Increase max trials from 150 to 500
+    - [ ] Plan in the design doc, an adaptive (simulated annealing type) solution to gradually lower number of context to optimize information gain (by isolating context) over time. Prove or disprove this can work mathematically. Show whether it can improve convergence rates. Do not implement.
+    - [ ] Running Zero-Context Baseline: Needs to be run sufficiently long to establish confidence. Please log how many trials were used and confidence level. If baseline success rate mean is greater than would be expected from random guessing (calculate this % for MC. for non-MC the bar is that the mean must be 0.0), then skip this question.
+        - [ ] In the generated report, include a section to show the skipped questions
+        - [ ] In design doc, show mathematically whether these questions (that can pass with zero-context) can harm convergence times or prevent it altogether.
+    - [ ] Since it's possible to run out of quota on these long generations, please add a way to continue a specific run from an arbitrary stoppage. Add an integration test for this functionality.
+    - [ ] All internal functions under retrieval_dataset_generation need docstrings, methodology and explanation of how to interpret/use outputs if not immediately obvious, e.g. case.is_sufficient_set
+
+# On Hold (do not start)
 
 ## 1. Generate a notebook that analyzes the percentage cumulative usage of ranked_targets.yaml. I want to know how many items to return on first page which will capture (>99% of usage).
 
@@ -18,13 +40,7 @@
     - [ ] Integrate into `search_ranked_targets` (Hybrid BM25 + Vector).
 - [ ] **Verification:**
     - [ ] Add `benchmark_definitions/search_relevance` to test semantic queries.
-
-## 4. Synthetic Retrieval Dataset (`docs/design_docs/synthetic_retrieval_dataset.md`)
-- [ ] **Implementation:**
-    - [ ] Create `tools/generate_retrieval_data.py`.
-    - [ ] Generate `retrieval_dataset.jsonl` (Reverse RAG from `ranked_targets`).
-    - [ ] Use dataset to benchmark BM25 vs Vector search (Recall@K).
-
+    
 # Active Legacy Tasks
 
 ## Benchmark Case Reviews & Fixes

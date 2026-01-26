@@ -10,7 +10,11 @@ __pycache__/
 
 # Jupyter Notebook stuff
 .ipynb_checkpoints/
-# benchmark_runs/
+benchmark_runs/
+
+# Local databases and artifacts
+*.db
+repos/
 
 # Temporary files for Docker builds
 benchmarks/answer_generators/gemini_cli_docker/source_archive_*.tar.gz

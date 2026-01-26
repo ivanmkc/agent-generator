@@ -2,65 +2,43 @@
 
 **Status:** Draft
 **Author:** Gemini CLI Agent
-**Date:** 2026-01-24
+**Date:** 2026-01-25
 
 ## 1. Problem Statement
-Evaluating and optimizing the retrieval component of an RAG system requires a ground-truth dataset where the relevance of a document to a query is **empirically proven** via statistical causal inference.
+Evaluating retrieval systems requires a ground-truth dataset where document relevance is proven via causal inference.
 
-**Goal:** Automate the extraction of a high-quality retrieval dataset by mining benchmarks and using a **Monte Carlo Verification** process to establish the causal impact of specific documents on task success.
+**Goal:** Automate the extraction of a high-quality retrieval dataset by mining benchmarks and using a **Monte Carlo Verification** process.
 
-## 2. Methodology: Monte Carlo Relevance Verification
+## 2. Methodology: Causal Relevance Verification
 
-We treat all potential documents as **candidates**. Their status is determined by whether their presence increases the probability of solving the task ($P(Success | Ctx) - P(Success | \neg Ctx)$).
+We determine document relevance by measuring its causal impact on task success: $P(\text{Success} | \text{Context Present}) - P(\text{Success} | \text{Context Absent})$.
 
-### 2.1 Sampling Strategies (Validation Convergence)
-The validator supports two execution modes to balance precision and cost:
-1.  **Constant Trial Method:** Runs fixed $N$ trials per case.
-2.  **Adaptive Convergence Method:** Stops early if the statistical confidence of the impact score stabilizes.
+### 2.1 Baseline: Zero-Context Success Rate
+Before evaluating individual documents, we establish a baseline by running **N** trials with **no context at all**.
+- **Metric:** $P(\text{Success} | \emptyset)$
+- **Interpretation:** This measures the model's ability to solve the task from its **parametric memory alone**.
+- **Utility:** A high zero-context success rate indicates the query is "easy" or "memorized," making it a poor candidate for evaluating retrieval effectiveness.
 
-### 2.2 Dataset-Level Convergence (Global)
-We monitor the stability of aggregate metrics (e.g., Mean Recall@5) as we add more *cases* to the dataset to ensure the corpus is sufficiently covered.
+### 2.2 Sampling Strategies & Statistical Safety
+The validator uses an **Adaptive Convergence** method, which stops trials when the **Adjusted Standard Error** ($SE \approx 1/N$) of the impact scores stabilizes below a threshold. This prevents premature stopping on lucky streaks.
 
 ### 2.3 The Scalability Trade-off: Stochastic Candidate Pooling
-Verifying relevance $R(q, d)$ for all $d \in D$ is intractable ($O(|Q| \times |D|)$). We approximate the global truth by validating a **High-Potential Subspace** $C(q)$ derived from Gold Mining, Vector Search ($K_{vec}$), and Random Control ($K_{rand}$). 
+Verifying every document against every query is intractable. We validate a **High-Potential Subspace** ($C(q) = C_{gold} \cup C_{vector} \cup C_{random}$) and verify its completeness by checking if random documents have a non-zero impact score.
 
-### 2.4 Statistical Principles: Confidence at Boundaries & Safety Analysis
+## 3. Failure Handling: Generation vs. Validation
 
-A naive Standard Error calculation ($SE = \sqrt{p(1-p)/n}$) is flawed for small sample sizes, particularly at the boundaries ($p=0$ or $p=1$), where it yields $SE=0$. This creates a **"Premature Stopping Risk"**: 2 consecutive successes ($n=2, p=1$) would calculate $SE=0$ and trigger a stop, despite having virtually no statistical significance.
+To maintain data integrity, we distinguish between two failure modes:
+1.  **Generation Failure:** The LLM fails to output a parsable, schema-compliant object. This is a transient error. The trial is **discarded** and a new one is attempted.
+2.  **Validation Failure:** The LLM outputs a valid object with an incorrect answer. This is a valid data point and is recorded as a `FAIL` for statistical calculation.
 
-**Solution: Adjusted Confidence Metric**
-We use an **Adjusted Standard Error** that imposes a minimum uncertainty floor based on sample size:
+## 4. Implementation Logic
 
-$$ SE_{adjusted} = \begin{cases}
-\sqrt{\frac{p(1-p)}{n}} & \text{if } 0 < p < 1 \\
-\frac{1}{n} & \text{if } p=0 \text{ or } p=1
-\end{cases} $$
+The `DataValidator` runs the zero-context baseline, then proceeds with the Monte Carlo loop, retrying any generation failures.
 
-**Safety Proof:**
-To satisfy a convergence threshold of $\epsilon = 0.1$:
-*   **Per-Pair Evidence:** Every (Question, Document) pair must satisfy $SE_{diff} < \epsilon$.
-*   **Best Case (Uniform Results):** If a document works 100% of the time ($p=1$), we require $1/n_{in} < 0.1 \Rightarrow n_{in} \ge 11$.
-*   **Total Trials:** Since documents are sampled at $p=0.5$ per trial, the expected number of trials required to reach $n_{in} \ge 11$ and $n_{out} \ge 11$ for **all** documents is approximately **$T \approx 25$ total trials per question.**
+## 5. Metrics & Evaluation Framework
 
-This guarantees that the system **cannot** stop early on a "lucky streak" for any single document. It forces substantial evidence gathering for every pair in the pool before declaring convergence.
-
-## 3. Implementation Logic
-
-The `DataValidator` encapsulates the sampling logic, supporting both modes via parameterization:
-
-```python
-validator.validate_case(case, mode="fixed", n_trials=10)
-# OR
-validator.validate_case(case, mode="adaptive", se_threshold=0.05, max_trials=30)
-```
-
-## 4. Metrics & Evaluation Framework
-
-### 4.1 Recall at K (Recall@K)
-The proportion of queries where at least one document with a high **Positive Impact Score** appears in the top `K`.
-
-### 4.2 Set Recall (Kernel Completeness)
-For complex tasks requiring multiple documents, this measures the fraction of the "Winning Coalition" (documents that together yield Success=1) found in the results.
-
-### 4.3 Impact Score (Delta P)
+### 5.1 Impact Score ($\Delta P$)
 The primary scalar output for each document-query pair, representing the empirical lift in success probability.
+
+### 5.2 Zero-Context Success Rate
+Indicates task difficulty and model's prior knowledge. A dataset with a low average zero-context success rate is ideal for retrieval evaluation.

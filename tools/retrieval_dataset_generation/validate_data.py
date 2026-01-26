@@ -47,10 +47,13 @@ from tools.retrieval_dataset_generation.lib import (
 logging.basicConfig(level=logging.INFO, format='%(message)s')
 logger = logging.getLogger(__name__)
 
-# Switch to Flash for speed/quota
-GENERATION_MODEL = ModelName.GEMINI_2_5_FLASH
+# Switch to Pro for higher reasoning capability as requested
+GENERATION_MODEL = ModelName.GEMINI_2_5_PRO
 
 class DataValidator:
+    """
+    Main engine for validating retrieval datasets using Monte Carlo causal inference.
+    """
     def __init__(self, input_path: str, output_path: str, retrievers: List[AbstractRetriever], config: Optional[ValidatorConfig] = None):
         self.input_path = input_path
         self.output_path = output_path
@@ -70,7 +73,6 @@ class DataValidator:
     def _log_event(self, event: BaseLogEvent):
         """Writes a structured event to the YAML log."""
         with open(self.log_file, 'a') as f:
-            # Use explicit_start=True to create a multi-document YAML stream
             yaml.dump(event.model_dump(), f, explicit_start=True, sort_keys=False)
 
     async def validate_dataset(
@@ -94,21 +96,18 @@ class DataValidator:
             
         dataset.cases = results
         
-        # Save
         print(f"\n{Fore.GREEN}Saving verified dataset to {self.output_path}...{Style.RESET_ALL}")
         with open(self.output_path, 'w') as f:
             yaml.dump(dataset.model_dump(by_alias=True), f, sort_keys=False, allow_unicode=True)
 
     async def _generate_candidate_pool(self, case: RetrievalCase) -> List[RetrievalContext]:
-        """
-        Generates candidate pool using configured retrievers.
-        """
         pool = {} 
         print(f"  {Style.DIM}➤ Generating candidate pool...{Style.RESET_ALL}")
         
         for retriever in self.retrievers:
             k = 5
             source_type = "unknown"
+            # TODO: Do not use isinstance, instead modify AbstractRetriever to have a 'configured_k' and 'source_type' property
             if isinstance(retriever, GoldMinerRetriever): 
                 k = self.config.gold_miner_k
                 source_type = "gold_mined"
@@ -133,6 +132,8 @@ class DataValidator:
         
         print(f"    {Fore.BLUE}Total deduplicated candidates: {len(pool)}{Style.RESET_ALL}")
         self._log_event(PoolGeneratedEvent(case_id=case.id, pool_size=len(pool)))
+
+        # TODO: Randomize candidates
         return list(pool.values())
 
     async def validate_case(
@@ -145,9 +146,10 @@ class DataValidator:
         # 1. Zero-Context Baseline
         print(f"  {Fore.CYAN}➤ Running Zero-Context Baseline...{Style.RESET_ALL}")
         baseline_successes = 0
-        N_BASELINE = 3
+        # TODO: Move into constant and also log/save the SE
+        N_BASELINE = 10
         for i in range(N_BASELINE):
-            generated_answer, prompt_used = await self._generate_answer_with_retry(case, "") # Empty context
+            generated_answer, prompt_used = await self._generate_answer_with_retry(case, "")
             if generated_answer is None:
                 print(f"    {Style.DIM}• Trial {i+1}: GENERATION_FAILURE{Style.RESET_ALL}")
                 continue
@@ -157,9 +159,9 @@ class DataValidator:
                 if case.source == "api_understanding":
                     is_correct, _ = await self._validate_api_understanding(case, generated_answer)
                 elif case.source == "fix_errors":
-                    is_correct, _ = await self._validate_fix_errors(case, generated_answer)
+                    is_correct, val_error = await self._validate_fix_errors(case, generated_answer)
                 elif case.source == "multiple_choice":
-                    is_correct, _ = await self._validate_multiple_choice(case, generated_answer)
+                    is_correct, val_error = await self._validate_multiple_choice(case, generated_answer)
             except Exception:
                 is_correct = False
             
@@ -183,7 +185,6 @@ class DataValidator:
         c_map = {c.fqn: c for c in candidates}
         fqns = list(c_map.keys())
         
-        # Shared State for Stats
         trials_in = {f: 0 for f in fqns}
         success_in = {f: 0 for f in fqns}
         trials_out = {f: 0 for f in fqns}
@@ -195,8 +196,6 @@ class DataValidator:
         print(f"  {Fore.CYAN}➤ Running Monte Carlo Trials (Max: {max_n}, Mode: {mode}, Concurrency: {self.config.concurrency})...{Style.RESET_ALL}")
         
         case.metadata['convergence_trace'] = []
-        
-        # Concurrency Control
         semaphore = asyncio.Semaphore(self.config.concurrency)
         trials_completed = 0
         stop_signal = False
@@ -206,7 +205,6 @@ class DataValidator:
             if stop_signal: return
 
             async with semaphore:
-                # Double check after acquiring semaphore
                 if stop_signal: return
 
                 subset_fqns = [f for f in fqns if random.random() < self.config.sampling_probability]
@@ -215,9 +213,7 @@ class DataValidator:
                 generated_answer, prompt_used = await self._generate_answer_with_retry(case, combined_text)
                 
                 if generated_answer is None:
-                    print(f"    {Style.DIM}• Trial {trial_idx+1}: GENERATION_FAILURE (retrying...){Style.RESET_ALL}")
-                    # In a real queue we would re-add, but here we just skip updating stats for this index
-                    # Ideally we should retry, but for simplicity in concurrency we skip inconclusive trials
+                    print(f"    {Style.DIM}• Trial {trial_idx+1}: GENERATION_FAILURE (skipping...){Style.RESET_ALL}")
                     return 
 
                 is_correct = False
@@ -233,7 +229,6 @@ class DataValidator:
                     is_correct = False
                     val_error = str(e)
 
-                # Log Event
                 self._log_event(TrialCompleteEvent(
                     case_id=case.id, trial_index=trial_idx, subset_size=len(subset_fqns),
                     subset_fqns=subset_fqns, is_correct=is_correct,
@@ -245,7 +240,6 @@ class DataValidator:
                 status_char = f"{Fore.GREEN}PASS{Style.RESET_ALL}" if is_correct else f"{Fore.RED}FAIL{Style.RESET_ALL}"
                 print(f"    • Trial {trial_idx+1:<2}/{max_n}: {status_char} (Ctx: {len(subset_fqns)})")
                 
-                # Update Stats (Thread-safe in asyncio single loop)
                 for f in fqns:
                     if f in subset_fqns:
                         trials_in[f] += 1
@@ -256,14 +250,12 @@ class DataValidator:
                 
                 trials_completed += 1
                 
-                # Check Convergence
                 max_se_diff = 0.0
                 se_map = {}
                 for f in fqns:
                     if trials_in[f] > 0 and trials_out[f] > 0:
                         p_in = success_in[f] / trials_in[f]
                         p_out = success_out[f] / trials_out[f]
-                        
                         se_in = math.sqrt(p_in * (1 - p_in) / trials_in[f]) if (0 < p_in < 1) else (1.0 / trials_in[f])
                         se_out = math.sqrt(p_out * (1 - p_out) / trials_out[f]) if (0 < p_out < 1) else (1.0 / trials_out[f])
                         se_diff = math.sqrt(se_in**2 + se_out**2)
@@ -284,7 +276,6 @@ class DataValidator:
                         print(f"      {Fore.GREEN}✔ Convergence reached (Trial {trial_idx+1}). Stopping.{Style.RESET_ALL}")
                         stop_signal = True
 
-        # Launch Tasks
         tasks = [run_single_trial(i) for i in range(max_n)]
         await asyncio.gather(*tasks)
         
@@ -310,7 +301,6 @@ class DataValidator:
                 print(f"      {Fore.RED}⚠ Pooling Violation: Random doc found relevant!{Style.RESET_ALL}")
                 self._log_event(PoolingViolationEvent(case_id=case.id, fqn=f, delta_p=delta_p))
         
-        # Check final set sufficiency
         if candidates:
             combined_text = "\n\n".join([f"[START_DOCUMENT: {c.fqn}]\n{c.text}\n[END_DOCUMENT]" for c in candidates])
             final_ans, _ = await self._generate_answer_with_retry(case, combined_text)
@@ -333,8 +323,7 @@ class DataValidator:
     def _check_convergence(self, fqns, trials_in, success_in, trials_out, success_out, threshold):
         max_se = 0.0
         for f in fqns:
-            if trials_in[f] == 0 or trials_out[f] == 0:
-                return False 
+            if trials_in[f] == 0 or trials_out[f] == 0: return False 
             p_in = success_in[f] / trials_in[f]
             p_out = success_out[f] / trials_out[f]
             se_in = math.sqrt(p_in * (1 - p_in) / trials_in[f]) if (0 < p_in < 1) else (1.0 / trials_in[f])
@@ -362,9 +351,10 @@ class DataValidator:
                 opt_str = "\n".join([f"{k}: {v}" for k, v in options.items()])
                 question_text = f"{case.query}\n\nOptions:\n{opt_str}"
 
+        # TODO: Throw a warning if prompt length exceeds model limits but do not truncate.
         prompt = f"""You are an expert developer.
 Context:
-{context[:30000]}
+{context}
 
 Task: {question_text}
 
@@ -402,6 +392,7 @@ Target Schema:
                 error_msg = str(e)
                 await self.api_key_manager.report_result(KeyType.GEMINI_API, key_id, False, error_message=error_msg)
                 
+                # TODO: Remove the manual retry here since the ApiKeyManager already handles key rotation. See how benchmark_runner handles it.
                 if "429" in error_msg or "ResourceExhausted" in error_msg:
                     wait_time = backoff * (2 ** attempt)
                     print(f"    {Fore.YELLOW}Quota exceeded (429). Retrying in {wait_time}s...{Style.RESET_ALL}")
@@ -468,17 +459,22 @@ Target Schema:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Retrieval Data Validator")
     parser.add_argument("--input", default="retrieval_dataset.yaml", help="Input dataset path")
-    parser.add_argument("--output", default="retrieval_dataset_verified.yaml", help="Output dataset path")
-    parser.add_argument("--log-dir", default="logs", help="Directory for logs")
     parser.add_argument("--mode", default="adaptive", choices=["fixed", "adaptive"], help="Sampling mode")
     parser.add_argument("--max-cases", type=int, default=None, help="Limit number of cases")
     
     args = parser.parse_args()
     
-    # Pre-fetch a key for embeddings
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    run_dir = Path(f"retrieval_evals/run_{timestamp}")
+    run_dir.mkdir(parents=True, exist_ok=True)
+    print(f"{Fore.CYAN}Starting Validation Run in: {run_dir}{Style.RESET_ALL}")
+    
+    output_path = run_dir / "retrieval_dataset_verified.yaml"
+    log_file = run_dir / "validation_events.yaml"
+    
     key_val = asyncio.run(API_KEY_MANAGER.get_next_key(KeyType.GEMINI_API))
     if not key_val:
-        print("No API key available for Embedding Retriever initialization.")
+        print("No API key available.")
         exit(1)
         
     targets_path = "benchmarks/benchmark_generator/data/ranked_targets.yaml"
@@ -493,17 +489,19 @@ if __name__ == "__main__":
     random_retriever = RandomRetriever(); asyncio.run(random_retriever.index(targets))
     embedding_retriever = EmbeddingRetriever(api_key=key_val); asyncio.run(embedding_retriever.index(targets))
     
-    # Generate timestamped log path
-    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    log_file = Path(args.log_dir) / f"validation_run_{timestamp}.yaml"
-    
-    # Config
     config = ValidatorConfig(log_file=str(log_file))
     
     validator = DataValidator(
-        args.input, args.output,
+        args.input, str(output_path),
         retrievers=[gold_miner, embedding_retriever, random_retriever],
         config=config
     )
-    # Run
     asyncio.run(validator.validate_dataset(max_cases=args.max_cases, mode=args.mode))
+    
+    print(f"\n{Fore.GREEN}Generating Analysis Report...{Style.RESET_ALL}")
+    try:
+        from tools.retrieval_dataset_generation.generate_report import generate_report
+        report_path = run_dir / "retrieval_analysis_report.md"
+        generate_report(str(output_path), str(report_path), str(log_file))
+    except Exception as e:
+        print(f"{Fore.RED}Failed to generate report: {e}{Style.RESET_ALL}")

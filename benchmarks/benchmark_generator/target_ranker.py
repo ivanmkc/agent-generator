@@ -20,6 +20,7 @@ Orchestrates the scanning, ranking, and formatting of benchmark targets.
 import json
 import yaml
 import os
+import sys
 import re
 import asyncio
 import inspect
@@ -542,6 +543,11 @@ class TargetRanker:
             raw_type = t.get("type")
             type_name = raw_type.name if hasattr(raw_type, "name") else str(raw_type).split(".")[-1]
             
+            # Resolve signature
+            sig = t.get("signature_full")
+            if not sig and tid in structure_map:
+                sig = structure_map[tid].get("signature")
+
             target_model = RankedTarget(
                 rank=rank,
                 id=tid,
@@ -550,7 +556,8 @@ class TargetRanker:
                 type=type_name,
                 group=target_groups.get(tid, "Unknown"),
                 usage_score=t.get("usage_score", 0),
-                docstring=self.clean_text(t.get("docstring"))
+                docstring=self.clean_text(t.get("docstring")),
+                signature=sig
             )
             
             if tid in structure_map:
@@ -641,7 +648,7 @@ class TargetRanker:
         try:
             # 1. Structural Integrity
             result = subprocess.run(
-                ["python3", "-m", "pytest", "benchmarks/tests/test_ranked_targets.py"],
+                [sys.executable, "-m", "pytest", "benchmarks/tests/test_ranked_targets.py"],
                 capture_output=True,
                 text=True,
                 check=False
@@ -649,7 +656,7 @@ class TargetRanker:
             
             # 2. Tool Logic Verification (Integration Test)
             result_tools = subprocess.run(
-                ["python3", "-m", "pytest", "tools/adk-knowledge-ext/tests/test_integration.py"],
+                [sys.executable, "-m", "pytest", "tools/adk-knowledge-ext/tests/test_integration.py"],
                 capture_output=True,
                 text=True,
                 check=False

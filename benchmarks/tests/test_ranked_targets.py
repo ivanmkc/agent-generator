@@ -36,6 +36,11 @@ def test_ranked_targets_integrity():
             errors.append(f"No file_path for {fqn}")
             continue
 
+        # Check for signature on methods
+        if entry.get("type") in ["METHOD", "Method"]:
+            if not entry.get("signature"):
+                errors.append(f"Missing signature for method: {fqn}")
+
         full_path = REPO_ROOT / rel_path
         if not full_path.exists():
             # Fallback: Check if it's relative to workspace root (for external deps like env/lib/...)
