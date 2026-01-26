@@ -5,135 +5,50 @@
 **Date:** 2026-01-24
 
 ## 1. Problem Statement
-Evaluating and optimizing the retrieval component of an RAG system requires a ground-truth dataset where the relevance of a document to a query is **empirically proven** via statistical causal inference, rather than assumed from metadata or subjective LLM judgment.
+Evaluating and optimizing the retrieval component of an RAG system requires a ground-truth dataset where the relevance of a document to a query is **empirically proven** via statistical causal inference.
 
-**Goal:** Automate the extraction of a high-quality retrieval dataset by mining benchmarks and using a **Monte Carlo Verification** process to establish the conditional dependence of task success on specific documents.
+**Goal:** Automate the extraction of a high-quality retrieval dataset by mining benchmarks and using a **Monte Carlo Verification** process to establish the causal impact of specific documents on task success.
 
 ## 2. Methodology: Monte Carlo Relevance Verification
 
-We treat all potential documents (whether seeded from benchmark metadata or randomly sampled) as **candidates**. Their status as "Relevant" or "Irrelevant" is determined solely by whether their presence causally increases the probability of solving the task.
+We treat all potential documents as **candidates**. Their status is determined by whether their presence increases the probability of solving the task ($P(Success | Ctx) - P(Success | \neg Ctx)$).
 
-### 2.1 The Pipeline
+### 2.1 Sampling Strategies
 
-```text
-+-------------------------+       +-------------------------+
-|   Benchmark Registry    | ----> |   Candidate Pooler      |
-| (YAML/JSON Definitions) |       | (Mixes Seeded + Random) |
-+-------------------------+       +------------+------------+
-                                            |
-                                            v
-                                   +-----------------+
-                                   |  Monte Carlo    |
-                                   |  Sampler (Loop) |
-                                   +-----------------+
-                                            |
-                                            v
-                                   +-----------------+
-                                   |  Blind Solver   |
-                                   |  (Attempts Task)|
-                                   +-----------------+
-                                            |
-                                            v
-    [ Result Log: (Context_Subset, Success/Fail) ] --> [ Statistical Analyzer ]
-                                                              |
-                                                              v
-                                                [ Verified Tuple: (Q, Relevant_Set) ]
+The validator supports two execution modes to balance precision and cost:
+
+1.  **Constant Trial Method (Default):**
+    *   Runs a fixed number of trials ($N$) for every case.
+    *   Ensures uniform statistical power across the entire dataset.
+    *   Recommended for small, high-stakes evaluations.
+
+2.  **Adaptive Convergence Method (Optional):**
+    *   Intelligently determines the number of trials based on statistical stability.
+    *   **Stopping Rule:** Trials terminate early if the **Standard Error (SE)** of the impact scores falls below a target threshold (e.g., 0.05).
+    *   **Benefit:** Saves significant API quota on "easy" queries where relevance is obvious after a few trials, while investing more heavily in "noisy" or difficult queries.
+
+### 2.2 Statistical Principles
+*   **Causal Inference:** The method functions as a Randomized Controlled Trial (RCT).
+*   **Power Analysis:** Standard Error calculation ($\sqrt{p(1-p)/n}$) provides a measure of estimate confidence.
+*   **Blind Solving:** The model has no metadata regarding which documents are "seeded" vs. "sampled," ensuring an unbiased measure of document utility.
+
+## 3. Implementation Logic
+
+The `DataValidator` encapsulates the sampling logic, supporting both modes via parameterization:
+
+```python
+validator.validate_case(case, mode="fixed", n_trials=10)
+# OR
+validator.validate_case(case, mode="adaptive", se_threshold=0.05, max_trials=30)
 ```
 
-### 2.2 The Algorithm
+## 4. Metrics & Evaluation Framework
 
-For each Question `Q`:
+### 4.1 Recall at K (Recall@K)
+The proportion of queries where at least one document with a high **Positive Impact Score** appears in the top `K`.
 
-1.  **Candidate Pooling:**
-    *   Let `C_seed` be the targets identified in the benchmark metadata (e.g., imports).
-    *   Let `C_random` be a set of randomly sampled targets.
-    *   `Pool = C_seed ∪ C_random`. All items are treated identically.
+### 4.2 Set Recall (Kernel Completeness)
+For complex tasks requiring multiple documents, this measures the fraction of the "Winning Coalition" (documents that together yield Success=1) found in the results.
 
-2.  **Monte Carlo Trials:**
-    *   Run `N` trials (e.g., N=10).
-    *   In each trial `i`:
-        *   Randomly select a subset `S_i` from `Pool` (e.g., Bernoulli trial with p=0.5 for each item).
-        *   Prompt the **Blind Solver** (Gemini 3 Pro) to answer `Q` using *only* context `S_i`.
-        *   Validate the answer against the Ground Truth (using `ApiUnderstandingRunner` or `PytestRunner`).
-        *   Record `Result_i = 1` (Pass) or `0` (Fail).
-
-3.  **Statistical Analysis (Conditional Dependence):**
-    *   For each document `d` in `Pool`:
-        *   `Success_In`: Mean success rate of trials where `d ∈ S_i`.
-        *   `Success_Out`: Mean success rate of trials where `d ∉ S_i`.
-        *   `Delta_P = Success_In - Success_Out`.
-    *   **Verdict:**
-        *   If `Delta_P > Threshold` (e.g., 0.1), `d` is **Relevant**.
-        *   Otherwise, `d` is **Irrelevant** (Distractor).
-
-### 2.3 Benefit
-This approach eliminates "Hallucinated Relevance" (where an LLM *says* a doc is useful but doesn't actually need it) and "Missing Necessity" (where a doc is useful but not strictly required if the model has internal knowledge). It only keeps documents that **actually help**.
-
-## 3. Dataset Schema
-
-The output `retrieval_dataset.yaml`:
-
-```yaml
-pairs:
-  - id: "fix_errors:01"
-    query: "How do I create a minimal LlmAgent?"
-    candidates:
-      - fqn: "google.adk.agents.llm_agent.LlmAgent"
-        text: "..."
-        empirical_relevance: "YES"
-        delta_p: 0.85  # Presence increased success by 85%
-      - fqn: "google.adk.plugins.RetryPlugin"
-        text: "..."
-        empirical_relevance: "NO"
-        delta_p: 0.02  # Statistical noise
-    metadata:
-      trials: 10
-      base_success_rate: 0.1
-```
-
-## 4. Implementation Plan
-
-### Phase 1: The Extractor (`tools/extract_retrieval_data.py`)
-- Extracts `GroundTruth` data (test files, answer templates) required for the validator to run actual checks.
-- Generates the initial candidate pool.
-
-### Phase 2: The Validator (`tools/validate_retrieval_data.py`)
-- Implements the Monte Carlo loop.
-- Uses `benchmarks.benchmark_runner` to perform the actual validation logic (reusing existing infra).
-- Calculates `Delta_P` and annotates the dataset.
-
-### Phase 3: Evaluation
-- Standard Recall/Precision metrics are calculated against the set of documents marked `empirical_relevance: "YES"`.
-
-## 5. Metrics & Evaluation Framework
-
-To rigorously assess the retrieval quality, we will calculate the following metrics for each search algorithm.
-
-### 5.1 Recall at K (Recall@K)
-**Definition:** The proportion of queries where the *relevant* document appears in the top `K` results.
-*   **Formula:** `1` if Gold Context in Top-K else `0`. (Averaged over all queries).
-*   **Why it matters:** For an LLM Agent, if the correct tool/class isn't in the context window (Top-K), the agent *cannot* solve the task. This is the **primary metric**.
-*   **Targets:**
-    *   **Recall@1:** Perfect retrieval. (Ideal target: > 60%)
-    *   **Recall@5:** "Good enough" for an LLM to filter. (Ideal target: > 90%)
-
-### 5.2 Precision at K (Precision@K)
-**Definition:** The proportion of retrieved documents in the top `K` that are relevant.
-*   **Formula:** `(Number of Relevant Docs in Top-K) / K`.
-*   **Why it matters:** Low precision means the context window is filled with "noise" (distractors). This wastes tokens, increases cost, and can confuse the LLM (hallucination risk).
-*   **Trade-off:** We often sacrifice some Precision to maximize Recall, relying on the LLM to filter noise.
-
-### 5.3 Mean Reciprocal Rank (MRR)
-**Definition:** The average of the reciprocal ranks of the *first* relevant document.
-*   **Formula:** `1 / Rank_of_First_Correct_Result`. (e.g., if correct result is at #1, score 1.0; at #2, score 0.5).
-*   **Why it matters:** MRR rewards algorithms that put the right answer at the *very top*. This is crucial for Latency (agent stops searching earlier) and Trust.
-
-### 5.4 Normalized Discounted Cumulative Gain (NDCG@K)
-**Definition:** A measure of ranking quality that accounts for the *position* of all relevant documents, giving higher weight to those near the top.
-*   **Why it matters:** Unlike Recall (binary), NDCG handles cases with *multiple* valid answers (e.g., `LlmAgent` and `BaseAgent` might both be relevant). It penalizes the system if the "best" answer is lower down the list.
-
-### 5.5 Failure Analysis Categories
-We will classify retrieval failures into buckets:
-1.  **Vocabulary Mismatch:** User used synonyms not present in docstring (e.g., "concurrent" vs "parallel"). -> *Fix: Vector Search.*
-2.  **Specificity Gap:** Query was too vague ("How to run agent") for a specific target (`ParallelAgent`). -> *Fix: Query Expansion.*
-3.  **Distractor Overlap:** A hard negative (`SequentialAgent`) scored higher due to shared keywords. -> *Fix: Reranking / Contrastive Training.*
+### 4.3 Impact Score (Delta P)
+The primary scalar output for each document-query pair, representing the empirical lift in success probability.
