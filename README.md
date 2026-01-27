@@ -6,29 +6,31 @@ This repository contains tools and benchmarks for generating and evaluating AI a
 
 ```text
 .
+├── ai/                         # AI Inputs & Outputs
+│   ├── instructions/           # Instructions, Prompts, Knowledge Base
+│   │   ├── experiments/        # Historical experiment instructions
+│   │   ├── knowledge/          # ADK Knowledge Index & Stats
+│   │   ├── prompts/            # System Prompts for Analysis
+│   │   └── datasets/           # Synthetic Datasets
+│   └── reports/                # Generated Reports, Logs, & Doc Caches
+│
 ├── benchmarks/                 # Execution Framework & Definitions
 │   ├── answer_generators/      # Candidate agents (ADK, Gemini, etc.)
 │   ├── benchmark_definitions/  # YAML test cases (API understanding, Fix Error)
 │   ├── runner/                 # Execution environments (Pytest, Docker)
-│   ├── tests/                  # Integration tests for the framework
-│   ├── benchmark_orchestrator.py
-│   └── benchmark_runner.py
+│   └── tests/                  # Integration tests for the framework
+│
+├── scripts/                    # Helper Scripts
+│   └── benchmark_run.sh        # Main entry point for running benchmarks
 │
 ├── tools/                      # Utilities & Generators
-│   ├── benchmark_generator/    # Agentic Benchmark Generator (Agentic)
-│   │   ├── agents.py           # Multi-agent orchestration
-│   │   ├── tools.py            # Sandbox & Truth Lab tools
-│   │   └── run_generator.py    # Entry point
-│   │
-│   ├── target_ranker/          # Static Analysis & Prioritization
-│   │   ├── ranker.py           # Ranking logic (BFS, Usage)
-│   │   ├── scanner.py          # AST Scanner & Type Resolver
-│   │   └── models.py           # Data schemas (RankedTarget)
-│   │
 │   ├── analysis/               # Forensic Analysis Engine
-│   ├── cli/                    # CLI tools (audit_failures, generate_report)
-│   ├── retrieval_dataset_generation/
-│   └── benchmark_verification/ # API Verification Tools
+│   ├── benchmark_generator/    # Agentic Benchmark Generator
+│   ├── benchmark_verification/ # API Verification Tools
+│   ├── debugging/              # Debugging Scripts
+│   ├── knowledge/              # Knowledge Indexing Tools
+│   ├── target_ranker/          # Static Analysis & Prioritization
+│   └── viewer/                 # Visualization Tools
 │
 ├── repos/
 │   └── adk-python/             # The target codebase (Vendored)
@@ -38,15 +40,21 @@ This repository contains tools and benchmarks for generating and evaluating AI a
 
 ### Key Directories
 
+- **ai/**: Centralized directory for all AI-related context.
+    - **instructions/**: Input data (prompts, knowledge, experiment specs).
+    - **reports/**: Output artifacts (analysis reports, generated documentation).
 - **benchmarks/**: The core execution engine. It loads YAML definitions and runs `AnswerGenerator` implementations against them.
+- **scripts/**: Convenience scripts for common tasks.
 - **tools/benchmark_generator/**: An autonomous system that scans the `repos/` and generates new benchmark YAMLs.
-- **tools/target_ranker/**: A deterministic tool that maps the codebase structure and ranks APIs by importance/usage.
 - **tools/analysis/**: A hybrid (LLM + Stats) engine for analyzing why agents fail.
 
 ## Usage
 
 ### Running Benchmarks
-(Instructions for running benchmarks would go here, e.g., `python benchmarks/run.py ...`)
+Use the provided script to run benchmarks:
+```bash
+./scripts/benchmark_run.sh notebooks/run_benchmarks.py --suite-filter "debug"
+```
 
 ### Verifying Benchmarks
 To verify that the API references in the benchmark YAML files are valid:
