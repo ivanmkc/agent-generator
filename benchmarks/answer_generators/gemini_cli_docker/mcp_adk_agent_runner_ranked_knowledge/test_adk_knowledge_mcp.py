@@ -23,9 +23,12 @@ sys.modules["adk_agent_tool"] = mock_adk_agent_tool
 # Import the module to be tested
 # We need to add the directory to sys.path because it's not a package
 current_dir = Path(__file__).parent
-sys.path.append(str(current_dir))
+project_root = current_dir.parents[3]
+ext_src = project_root / "tools" / "adk-knowledge-ext" / "src"
+sys.path.append(str(ext_src))
 
-import adk_knowledge_mcp
+from adk_knowledge_ext import server as adk_knowledge_mcp
+from adk_knowledge_ext import index
 
 
 class TestAdkKnowledgeMcp(unittest.TestCase):
@@ -56,14 +59,15 @@ class TestAdkKnowledgeMcp(unittest.TestCase):
             yaml.dump(self.sample_data, f)
 
         # Patch the module's path and clear cache
-        self.original_path = adk_knowledge_mcp.RANKED_INDEX_PATH
-        adk_knowledge_mcp.RANKED_INDEX_PATH = self.yaml_path
-        adk_knowledge_mcp._INDEX_CACHE = []
-        adk_knowledge_mcp._FQN_MAP = {}
+        self.original_path = adk_knowledge_mcp.ADK_INDEX_PATH
+        adk_knowledge_mcp.ADK_INDEX_PATH = self.yaml_path
+        # Clear index cache
+        index.get_index()._loaded = False
+        index.get_index()._items = []
 
     def tearDown(self):
         shutil.rmtree(self.test_dir)
-        adk_knowledge_mcp.RANKED_INDEX_PATH = self.original_path
+        adk_knowledge_mcp.ADK_INDEX_PATH = self.original_path
 
     def test_list_adk_modules(self):
         # Test listing
@@ -80,15 +84,22 @@ class TestAdkKnowledgeMcp(unittest.TestCase):
         self.assertIn("google.adk.runners.InMemoryRunner", output)
         self.assertIn("An in-memory Runner", output)
 
+    def test_search_adk_knowledge_multiple_queries(self):
+        # Pass a list of queries
+        output = adk_knowledge_mcp.search_adk_knowledge(["InMemoryRunner", "AgentTool"])
+        
+        # Expect results for BOTH
+        self.assertIn("google.adk.runners.InMemoryRunner", output)
+        self.assertIn("google.adk.tools.agent_tool.AgentTool", output)
+        self.assertIn("Search Results for 2 queries", output)
+
     def test_search_adk_knowledge_by_docstring(self):
         output = adk_knowledge_mcp.search_adk_knowledge("testing")
         self.assertIn("google.adk.runners.InMemoryRunner", output)
 
-    def test_inspect_adk_symbol_missing_file_path(self):
+    def test_read_adk_source_code_missing_file_path(self):
         # Since our mock data doesn't have file_path, this should return a specific error
-        output = adk_knowledge_mcp.inspect_adk_symbol(
-            "google.adk.runners.InMemoryRunner"
-        )
+        output = adk_knowledge_mcp.read_adk_source_code("google.adk.runners.InMemoryRunner")
         self.assertIn("No file path recorded", output)
 
 

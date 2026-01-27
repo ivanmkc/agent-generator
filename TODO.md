@@ -1,5 +1,15 @@
 # Todo List
-## 1. Missing signatures in ranked_targets.yaml for method.
+## 1. search_adk_knowledge
+- [x] Tries to query for multiple items using an OR. search_adk_knowledge needs to take a list[str] for queries. Improve docs/comments/desc for this Tool so callers know how to use this tool correctly. Add examples.
+
+Current usage (which doesn't work):
+```
+{
+"query":"orchestrate agents OR multi-agent"
+}
+```
+
+## 2. Missing signatures in ranked_targets.yaml for method.
 - [x] Added `signature` field to `RankedTarget` model.
 - [x] Updated `TargetRanker` to populate signature from `signature_full`.
 - [x] Updated `test_ranked_targets.py` to assert signature presence for methods.

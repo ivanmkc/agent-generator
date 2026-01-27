@@ -71,7 +71,8 @@ class KnowledgeIndex:
     def search(self, query: str, limit: int = 10) -> List[Tuple[float, Dict[str, Any]]]:
         if not self._provider:
             return []
-        return self._provider.search(query, limit)
+        # Fix: limit is page_size, page is always 1 for this API
+        return self._provider.search(query, page=1, page_size=limit)
 
     def list_items(self, page: int, page_size: int) -> List[Dict[str, Any]]:
         start = (page - 1) * page_size

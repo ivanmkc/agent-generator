@@ -4,6 +4,7 @@ import os
 import logging
 import yaml
 from pathlib import Path
+from typing import Union, List
 from mcp.server.fastmcp import FastMCP
 from .index import get_index
 from .reader import SourceReader
@@ -56,22 +57,46 @@ def list_adk_modules(page: int = 1, page_size: int = 20) -> str:
 
 
 @mcp.tool()
-def search_adk_knowledge(query: str, limit: int = 10) -> str:
+def search_adk_knowledge(queries: Union[str, List[str]], limit: int = 10) -> str:
     """
     Searches the ADK knowledge base for relevant classes, functions, or concepts.
-
+    Accepts multiple queries to retrieve diverse information in a single call.
+    
     Args:
-        query: Keywords or natural language query (e.g., 'how to add tools to agent').
-        limit: Max results to return.
+        queries: A single query string or a list of query strings.
+                 Examples:
+                 - "how to add tools"
+                 - ["LlmAgent configuration", "tool creation"]
+        limit: Max total results to return (default: 10).
     """
     _ensure_index()
-    top_matches = get_index().search(query, limit)
-
-    if not top_matches:
-        return f"No matches found for '{query}'."
-
-    lines = [f"--- Search Results for '{query}' ---"]
-    for score, item in top_matches:
+    
+    if isinstance(queries, str):
+        queries = [queries]
+        
+    all_matches_map = {} # fqn -> (score, item)    
+    for query in queries:
+        # Search for each query
+        matches = get_index().search(query, limit)
+        for score, item in matches:
+            fqn = item.get("id") or item.get("fqn") or item.get("name") or "unknown"
+            
+            # Deduplicate: Keep the match with the highest score
+            if fqn not in all_matches_map or score > all_matches_map[fqn][0]:
+                all_matches_map[fqn] = (score, item)
+    
+    if not all_matches_map:
+        q_str = ", ".join([f"'{q}'" for q in queries])
+        return f"No matches found for queries: {q_str}."
+        
+    # Sort aggregated results by score descending
+    sorted_matches = sorted(all_matches_map.values(), key=lambda x: x[0], reverse=True)
+    
+    # Apply global limit
+    final_results = sorted_matches[:limit]
+    
+    lines = [f"--- Search Results for {len(queries)} queries ---"]
+    for score, item in final_results:
         rank = item.get("rank", "?")
         fqn = item.get("id") or item.get("fqn") or item.get("name") or "unknown"
         type_ = item.get("type")
