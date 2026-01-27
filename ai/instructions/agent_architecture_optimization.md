@@ -26,12 +26,12 @@ Think of your agent as a system with four adjustable components.
 
 ### Step 0: Iterative Benchmark Strategy
 
-**MANDATORY: Always use `benchmark_run.sh`.**
+**MANDATORY: Always use `tools/cli/run_benchmarks.sh`.**
 To ensure consistent environment variables and path configuration, you MUST use the shell script as the entry point for all tests. Do not run python scripts directly.
 
 ```bash
 # Correct Usage
-./benchmark_run.sh run_experiment.py
+./tools/cli/run_benchmarks.sh run_experiment.py
 
 # Incorrect Usage
 python run_experiment.py
@@ -40,17 +40,17 @@ python run_experiment.py
 1.  **Start Small (Debug Suite):**
     Use the `debug` suite to catch basic errors quickly.
     ```bash
-    ./benchmark_run.sh notebooks/run_benchmarks.py --suite-filter "debug" --generator-filter "MY_AGENT"
+    ./tools/cli/run_benchmarks.sh notebooks/run_benchmarks.py --suite-filter "debug" --generator-filter "MY_AGENT"
     ```
 2.  **Scale Up (Fix Errors):**
     Once the debug suite passes, run the comprehensive `fix_errors` suite.
     ```bash
-    ./benchmark_run.sh notebooks/run_benchmarks.py --suite-filter "fix_errors" --generator-filter "MY_AGENT"
+    ./tools/cli/run_benchmarks.sh notebooks/run_benchmarks.py --suite-filter "fix_errors" --generator-filter "MY_AGENT"
     ```
 3.  **Full Evaluation (All Suites):**
     Finally, run all suites to check for regression on other tasks.
     ```bash
-    ./benchmark_run.sh notebooks/run_benchmarks.py --generator-filter "MY_AGENT"
+    ./tools/cli/run_benchmarks.sh notebooks/run_benchmarks.py --generator-filter "MY_AGENT"
     ```
 
 ### Step 0.5: Flagging Bad Benchmarks
@@ -106,7 +106,7 @@ To minimize latency and token consumption, **DO NOT** run historical baselines o
 
 ```bash
 # Target ONLY the latest variant (e.g., V14)
-bash notebooks/run_benchmarks.sh --suite-filter "debug" --generator-filter "ADK_STATISTICAL_V14"
+bash tools/cli/run_benchmarks.sh --suite-filter "debug" --generator-filter "ADK_STATISTICAL_V14"
 ```
 
 **Technical Tip:** The `--generator-filter` uses substring matching. Ensure your name is specific enough to avoid accidental matches (e.g., using `V1` might match `V10`, `V11`, etc., whereas `V14` is precise).

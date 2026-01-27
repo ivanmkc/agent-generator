@@ -2,6 +2,10 @@
 
 # Script to run the benchmark via a pure Python script and save results to a unified directory.
 
+# Ensure we are running from the project root
+PROJECT_ROOT="$(git rev-parse --show-toplevel)"
+cd "$PROJECT_ROOT" || exit 1
+
 # 1. Generate a shared timestamp/directory
 TIMESTAMP=$(date +"%Y-%m-%d_%H-%M-%S")
 OUTPUT_DIR="tmp/outputs/benchmark_runs/$TIMESTAMP"

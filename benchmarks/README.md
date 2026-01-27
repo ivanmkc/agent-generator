@@ -76,7 +76,7 @@ For a comprehensive evaluation run that saves all artifacts (notebook, traces, r
 **Using the Shell Script:**
 From the project root:
 ```bash
-./scripts/benchmark_run.sh notebooks/run_benchmarks.py
+./tools/cli/run_benchmarks.sh
 ```
 
 ### Verification Tools

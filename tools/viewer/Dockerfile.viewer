@@ -9,4 +9,4 @@ COPY . .
 
 EXPOSE 8080
 
-CMD ["streamlit", "run", "tools/benchmark_viewer.py", "--server.port=8080", "--server.address=0.0.0.0"]
+CMD ["streamlit", "run", "tools/viewer/view_benchmarks.py", "--server.port=8080", "--server.address=0.0.0.0"]

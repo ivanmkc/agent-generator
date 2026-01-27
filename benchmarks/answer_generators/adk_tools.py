@@ -403,7 +403,7 @@ class AdkTools:
         Uses runtime inspection to reveal docstrings, signatures, and hierarchy.
         """
         project_root = Path(__file__).resolve().parent.parent.parent
-        inspector_script = project_root / "tools" / "utils" / "inspect_fqn.py"
+        inspector_script = project_root / "tools" / "cli" / "inspect_code.py"
         
         # Build the execution command as a list to handle spaces in absolute paths safely
         cmd = ["python3", str(inspector_script), fqn, "--depth", str(depth)]

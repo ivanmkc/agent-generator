@@ -10,7 +10,7 @@ from typing import List
 from pydantic import TypeAdapter
 from benchmarks.data_models import BenchmarkRunResult, BenchmarkResultType, ForensicData, CaseSummary, ForensicInsight, TraceLogEvent
 from benchmarks.benchmark_candidates import CANDIDATE_GENERATORS
-from tools.analysis.analyze_benchmark_run import analyze_benchmark_run
+from tools.analysis.run_metrics import analyze_benchmark_run
 
 # --- GCS Support ---
 try:

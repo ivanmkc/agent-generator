@@ -33,9 +33,9 @@ from benchmarks.analysis import (
     format_as_markdown,
     Bcolors
 )
-from tools.analysis.analyze_benchmark_run import analyze_benchmark_run
-from tools.analysis.doc_generator import DOC_MANAGER
-from tools.analysis.case_summarizer import CASE_DOC_MANAGER
+from tools.analysis.run_metrics import analyze_benchmark_run
+from tools.analysis.generate_architecture_docs import DOC_MANAGER
+from tools.analysis.summarize_cases import CASE_DOC_MANAGER
 from benchmarks.benchmark_candidates import CANDIDATE_GENERATORS
 from benchmarks.config import MOST_POWERFUL_MODEL
 

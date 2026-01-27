@@ -12,7 +12,7 @@ from colorama import Fore, Style
 # Add project root to path
 sys.path.append(str(Path(__file__).parent.parent.parent))
 
-from tools.retrieval_dataset_generation.lib import RetrievalDataset
+from tools.retrieval_dataset_generation.retrieval_engine import RetrievalDataset
 
 def get_latest_log():
     log_files = glob.glob("logs/validation_run_*.yaml")

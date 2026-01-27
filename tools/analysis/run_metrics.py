@@ -3,8 +3,8 @@ import pathlib
 from typing import List, Dict, Any
 from collections import defaultdict
 
-from tools.analysis.analyze_case import analyze_case, CaseAnalysis
-from tools.analysis.analyze_generator import analyze_generator, GeneratorAnalysis
+from tools.analysis.case_inspection import analyze_case, CaseAnalysis
+from tools.analysis.generator_performance import analyze_generator, GeneratorAnalysis
 
 class BenchmarkRunAnalysis:
     def __init__(self, run_id: str):

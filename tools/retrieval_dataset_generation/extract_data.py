@@ -10,7 +10,7 @@ import re
 # Add project root to path for imports
 sys.path.append(str(Path(__file__).parent.parent.parent))
 
-from tools.retrieval_dataset_generation.lib import (
+from tools.retrieval_dataset_generation.retrieval_engine import (
     RetrievalDataset, RetrievalCase, RetrievalContext
 )
 

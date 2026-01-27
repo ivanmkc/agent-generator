@@ -25,7 +25,7 @@ from google.adk.tools import FunctionTool, exit_loop
 from google.genai import types
 from google.adk.events import Event, EventActions
 
-from tools.benchmark_generator.tools import (
+from tools.benchmark_generator.agent_tools import (
     trace_execution, validate_mutant, save_benchmark_case, 
     check_uniqueness, scan_repository, list_prioritized_targets, select_target,
     assemble_and_save_benchmark

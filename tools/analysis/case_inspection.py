@@ -1,5 +1,5 @@
 from typing import List, Dict, Any
-from tools.analysis.analyze_attempt import analyze_attempt, AttemptAnalysis
+from tools.analysis.attempt_forensics import analyze_attempt, AttemptAnalysis
 
 # Error Classifier Configuration
 ERROR_PATTERNS = [

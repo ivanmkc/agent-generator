@@ -4,14 +4,14 @@ This directory contains the modular engine used by all diagnostic and reporting 
 
 ## 1. Modular Hierarchy & Mechanisms
 
-*   **`analyze_benchmark_run.py`**: **Orchestrator**. Parses `results.json` and maps data into the hierarchical object model.
-*   **`analyze_generator.py`**: **Quantitative Stats**. Deterministic calculation of pass rates, latency, and estimated cost (blended input/output rate).
-*   **`analyze_case.py`**: **Regex Classifier**. Categorizes failures by matching validation error strings against known patterns:
+*   **`run_metrics.py`**: **Orchestrator**. Parses `results.json` and maps data into the hierarchical object model.
+*   **`generator_performance.py`**: **Quantitative Stats**. Deterministic calculation of pass rates, latency, and estimated cost (blended input/output rate).
+*   **`case_inspection.py`**: **Regex Classifier**. Categorizes failures by matching validation error strings against known patterns:
     *   `Malformed JSON`: Parsing failures in model output.
     *   `Interface Violation`: Missing required methods (e.g., `create_agent`).
     *   `Syntax Error`: Syntactically invalid Python code.
     *   `Infrastructure Error`: 429 Resource Exhaustion or Quota limits.
-*   **`analyze_attempt.py`**: **Heuristic Auditor**. Scans the chronological event timeline of a single trace to detect specific agent "brain-farts":
+*   **`attempt_forensics.py`**: **Heuristic Auditor**. Scans the chronological event timeline of a single trace to detect specific agent "brain-farts":
     *   **Early Loop Exit**: Detects when a `retrieval_worker` calls `exit_loop` and terminates the implementation sequence before code is generated.
     *   **Sanitizer Hallucination**: Detects when the `prompt_sanitizer` outputs a JSON answer structure instead of cleaning the text.
     *   **Router Decision**: Extracts the 'CODING' vs 'KNOWLEDGE' path chosen for the task.
@@ -36,7 +36,7 @@ For complex failures, the reporter uses a multi-stage LLM pipeline (`gemini-2.0-
 These modules are designed to be imported, not run directly.
 
 ```python
-from tools.analysis.analyze_benchmark_run import analyze_benchmark_run
+from tools.analysis.run_metrics import analyze_benchmark_run
 
 # 1. Load and process the run
 run = analyze_benchmark_run("2026-01-16_23-39-35")
@@ -51,17 +51,17 @@ alerts = run.get_critical_alerts()
 
 These tools work directly on `trace.yaml` files without needing the database.
 
-### `analyze_benchmark_chunks.py`
+### `chunk_metrics.py`
 Parses a raw trace file and outputs a clean Markdown table of every benchmark case, its pass/fail status, token usage, and duration.
 
 **Usage:**
 ```bash
-python tools/analysis/analyze_benchmark_chunks.py <path_to_trace.yaml>
+python tools/analysis/chunk_metrics.py <path_to_trace.yaml>
 ```
 
 **Example:**
 ```bash
-python tools/analysis/analyze_benchmark_chunks.py benchmark_runs/2026-01-13_04-07-18/trace.yaml
+python tools/analysis/chunk_metrics.py benchmark_runs/2026-01-13_04-07-18/trace.yaml
 ```
 
 **Output:**

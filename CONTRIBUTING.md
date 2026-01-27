@@ -17,7 +17,7 @@ Understanding where files belong is critical.
 | :--- | :--- |
 | **`ai/`** | **Central Context Hub.** Stores all AI inputs and outputs. <br> • `instructions/`: Input prompts, Knowledge Graph, Experiments. <br> • `reports/`: Generated analysis reports, Logs, and Doc caches. |
 | **`benchmarks/`** | **Execution Engine.** The core testing framework. <br> • `answer_generators/`: Candidate agents (the "Systems Under Test"). <br> • `benchmark_definitions/`: Test cases (YAML) and ground truth. <br> • `runner/`: Execution environments (Docker/Podman wrappers). |
-| **`scripts/`** | **Shell Helpers.** Bash scripts for orchestration and convenience. <br> • `benchmark_run.sh`: Main entry point for running benchmarks. |
+| **`tools/cli/`** | **Command Line Tools.** Main entry points for users. <br> • `run_benchmarks.sh`: Main benchmark runner. <br> • `list_models.py`: Check available models. |
 | **`tools/`** | **Python Utilities.** Specialized sub-systems and libraries. <br> • `analysis/`: Forensic engines for analyzing run logs. <br> • `target_ranker/`: Static analysis for codebase mapping. <br> • `benchmark_generator/`: The agentic system for generating new tests. <br> • `debugging/`: Scripts for deep-diving into specific failures. |
 | **`repos/`** | **Vendored Code.** External repositories (e.g., `adk-python`) used as targets for benchmark generation. |
 

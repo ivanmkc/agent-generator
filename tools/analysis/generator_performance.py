@@ -1,5 +1,5 @@
 from typing import List, Dict, Any
-from tools.analysis.analyze_case import CaseAnalysis
+from tools.analysis.case_inspection import CaseAnalysis
 
 class GeneratorAnalysis:
     def __init__(self, generator_name: str, cases: List[CaseAnalysis]):

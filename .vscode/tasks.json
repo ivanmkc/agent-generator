@@ -50,18 +50,6 @@
       "detail": "Executes benchmarks for API Understanding suite only."
     },
     {
-      "label": "Run ADK Benchmarks: fix_error suite only",
-      "type": "shell",
-      "command": "./scripts/benchmark_run.sh --generator-filter ADK_ --suite-filter fix_error",
-      "group": "test",
-      "presentation": {
-        "reveal": "always",
-        "panel": "new"
-      },
-      "problemMatcher": [],
-      "detail": "Executes benchmarks for fix_error suite only."
-    },
-    {
       "label": "Run GeminiCliPodman Benchmarks: All suites",
       "type": "shell",
       "command": "./scripts/benchmark_run.sh --generator-filter GeminiCliPodman",
@@ -88,7 +76,7 @@
     {
       "label": "Regenerate Generator Internals Docs",
       "type": "shell",
-      "command": "env/bin/python tools/utils/update_generator_docs.py",
+      "command": "env/bin/python tools/cli/update_docs.py",
       "group": "build",
       "presentation": {
         "reveal": "always",
@@ -100,14 +88,14 @@
     {
       "label": "Run All Tests",
       "type": "shell",
-      "command": "env/bin/python -m pytest -n auto -v benchmarks/ --import-mode=importlib",
+      "command": "env/bin/python -m pytest -n auto -v benchmarks/ tools/ --import-mode=importlib",
       "group": "test",
       "presentation": {
         "reveal": "always",
         "panel": "new"
       },
       "problemMatcher": [],
-      "detail": "Runs all pytest tests located in the benchmarks directory."
+      "detail": "Runs all pytest tests located in the benchmarks and tools directories."
     },
     {
       "label": "Unit/Integration Tests",
@@ -136,7 +124,7 @@
     {
       "label": "Integration Test: ADK-based Generators",
       "type": "shell",
-      "command": "env/bin/python -m pytest -v --import-mode=importlib benchmarks/tests/integration/test_unified_generators.py -k \"structured_workflow_adk_test_case or workflow_adk_test_case or adk_agent_test_case\"",
+      "command": "env/bin/python -m pytest -v --import-mode=importlib benchmarks/tests/integration/test_unified_generators.py -k "structured_workflow_adk_test_case or workflow_adk_test_case or adk_agent_test_case"",
       "group": "test",
       "presentation": {
         "reveal": "always",
@@ -172,7 +160,7 @@
     {
       "label": "Rebuild Docker Images using Podman (Local)",
       "type": "shell",
-      "command": "env/bin/python tools/rebuild_images.py",
+      "command": "env/bin/python tools/cli/rebuild_images.py",
       "group": "build",
       "presentation": {
         "reveal": "always",
@@ -184,7 +172,7 @@
     {
       "label": "Viewer",
       "type": "shell",
-      "command": "env/bin/python -m streamlit run tools/viewer/benchmark_viewer.py",
+      "command": "env/bin/python -m streamlit run tools/viewer/view_benchmarks.py",
       "options": {
         "cwd": "${workspaceFolder}"
       },
@@ -210,11 +198,11 @@
     {
       "label": "Index Co-occurrence Data",
       "type": "shell",
-      "command": "env/bin/python tools/cooccurrence_indexer.py --repo-paths ../adk-python/contributing/samples ../adk-python/tests/integration --output benchmarks/adk_cooccurrence.json",
+      "command": "env/bin/python tools/knowledge/run_cooccurrence_indexing.py --repo-paths ../adk-python/contributing/samples ../adk-python/tests/integration --output benchmarks/adk_cooccurrence.json",
       "group": "build",
       "presentation": {
         "reveal": "always",
-        "panel": "new"
+        "panel": "shared"
       },
       "problemMatcher": [],
       "detail": "Generates the co-occurrence matrix from local adk-python integration tests and samples."
@@ -222,11 +210,11 @@
     {
       "label": "Recalculate API Usage Stats",
       "type": "shell",
-      "command": "env/bin/python tools/api_indexer.py --config indexer_config_comprehensive.yaml --output benchmarks/adk_stats_samples.yaml",
+      "command": "env/bin/python tools/knowledge/run_api_indexing.py --config indexer_config_comprehensive.yaml --output benchmarks/adk_stats_samples.yaml",
       "group": "build",
       "presentation": {
         "reveal": "always",
-        "panel": "new"
+        "panel": "shared"
       },
       "problemMatcher": [],
       "detail": "Regenerates usage frequency stats for ADK APIs using local tests and samples."
@@ -238,7 +226,7 @@
       "group": "build",
       "presentation": {
         "reveal": "always",
-        "panel": "new"
+        "panel": "shared"
       },
       "problemMatcher": [],
       "detail": "Regenerates ranked_targets.yaml and ranked_targets.md based on latest stats."
@@ -250,31 +238,19 @@
       "group": "build",
       "presentation": {
         "reveal": "always",
-        "panel": "new"
+        "panel": "shared"
       },
       "problemMatcher": [],
       "detail": "Generates repository-specific execution benchmarks using Gemini 3 Pro (High Quality)."
     },
     {
-      "label": "Audit Failures (Latest Run)",
-      "type": "shell",
-      "command": "export PYTHONPATH=$PYTHONPATH:. && env/bin/python tools/cli/audit_failures.py",
-      "group": "test",
-      "presentation": {
-        "reveal": "always",
-        "panel": "new"
-      },
-      "problemMatcher": [],
-      "detail": "Runs forensic audit on the latest benchmark run."
-    },
-    {
       "label": "Generate Executive Report (Latest Run)",
       "type": "shell",
-      "command": "export PYTHONPATH=$PYTHONPATH:. && env/bin/python tools/cli/generate_report.py --model-name gemini-3-pro-preview",
+      "command": "export PYTHONPATH=$PYTHONPATH:. && env/bin/python tools/cli/generate_benchmark_report.py --model-name gemini-3-pro-preview",
       "group": "build",
       "presentation": {
         "reveal": "always",
-        "panel": "new"
+        "panel": "shared"
       },
       "problemMatcher": [],
       "detail": "Generates a comprehensive log_analysis.md using Map-Reduce LLM analysis."

@@ -26,7 +26,7 @@ import asyncio
 from unittest.mock import MagicMock
 from google.adk.tools import ToolContext
 from google.adk.sessions import Session
-from tools.benchmark_generator.tools import (
+from tools.benchmark_generator.agent_tools import (
     trace_execution, validate_mutant, 
     save_benchmark_case, list_prioritized_targets, select_target
 )

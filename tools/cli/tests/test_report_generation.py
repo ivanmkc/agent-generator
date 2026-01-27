@@ -10,10 +10,10 @@ sys.modules["benchmarks.api_key_manager"] = MagicMock()
 # Mocking internal dependencies to avoid import errors
 sys.modules["benchmarks.data_models"] = MagicMock()
 sys.modules["benchmarks.analysis"] = MagicMock()
-sys.modules["tools.analysis.analyze_benchmark_run"] = MagicMock()
+sys.modules["tools.analysis.run_metrics"] = MagicMock()
 sys.modules["tools.cli.audit_failures"] = MagicMock()
-sys.modules["tools.analysis.doc_generator"] = MagicMock()
-sys.modules["tools.analysis.case_summarizer"] = MagicMock()
+sys.modules["tools.analysis.generate_architecture_docs"] = MagicMock()
+sys.modules["tools.analysis.summarize_cases"] = MagicMock()
 sys.modules["benchmarks.benchmark_candidates"] = MagicMock()
 
 # Now import the class to test

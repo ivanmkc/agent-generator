@@ -22,5 +22,4 @@ env/bin/python tools/benchmark_verification/verify_apis.py
 ```
 **Output:** `api_verification_report.yaml` (in project root).
 
-### `extract_apis.py` (Legacy)
-A simpler regex-based extractor. Kept for reference.
+

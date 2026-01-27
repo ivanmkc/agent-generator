@@ -6,35 +6,13 @@ This repository contains tools and benchmarks for generating and evaluating AI a
 
 ```text
 .
-├── ai/                         # AI Inputs & Outputs
-│   ├── instructions/           # Instructions, Prompts, Knowledge Base
-│   │   ├── experiments/        # Historical experiment instructions
-│   │   ├── knowledge/          # ADK Knowledge Index & Stats
-│   │   ├── prompts/            # System Prompts for Analysis
-│   │   └── datasets/           # Synthetic Datasets
-│   └── reports/                # Generated Reports, Logs, & Doc Caches
-│
-├── benchmarks/                 # Execution Framework & Definitions
-│   ├── answer_generators/      # Candidate agents (ADK, Gemini, etc.)
-│   ├── benchmark_definitions/  # YAML test cases (API understanding, Fix Error)
-│   ├── runner/                 # Execution environments (Pytest, Docker)
-│   └── tests/                  # Integration tests for the framework
-│
-├── scripts/                    # Helper Scripts
-│   └── benchmark_run.sh        # Main entry point for running benchmarks
-│
-├── tools/                      # Utilities & Generators
-│   ├── analysis/               # Forensic Analysis Engine
-│   ├── benchmark_generator/    # Agentic Benchmark Generator
-│   ├── benchmark_verification/ # API Verification Tools
-│   ├── debugging/              # Debugging Scripts
-│   ├── knowledge/              # Knowledge Indexing Tools
-│   ├── target_ranker/          # Static Analysis & Prioritization
-│   └── viewer/                 # Visualization Tools
-│
-├── repos/
-│   └── adk-python/             # The target codebase (Vendored)
-│
+├── ai/                         # Design docs, prompts, and reports
+├── benchmarks/                 # Benchmark definitions, answer generators, and runner logic
+├── tools/                      # Core libraries and CLI tools
+│   ├── cli/                    # User-facing scripts (run_benchmarks.sh, etc.)
+│   ├── analysis/               # Analysis logic and notebooks
+│   └── benchmark_generator/    # Tools for generating new benchmarks
+├── env/                        # Virtual environment
 └── ...
 ```
 
@@ -53,7 +31,7 @@ This repository contains tools and benchmarks for generating and evaluating AI a
 ### Running Benchmarks
 Use the provided script to run benchmarks:
 ```bash
-./scripts/benchmark_run.sh notebooks/run_benchmarks.py --suite-filter "debug"
+./tools/cli/run_benchmarks.sh --suite-filter "debug"
 ```
 
 ### Verifying Benchmarks
