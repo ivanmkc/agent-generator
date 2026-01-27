@@ -30,7 +30,7 @@ env/bin/python -u tools/cli/run_benchmarks.py "$@" 2>&1 | tee -a "$LOG_FILE"
 
 # 4. Generate Visualization Report via Papermill
 log "Generating visualization report..."
-env/bin/python -m papermill tools/analysis/notebooks/visualization.ipynb "$OUTPUT_DIR/visualization.ipynb" \
+env/bin/python -m papermill tools/analysis/notebooks/benchmark_performance_summary.ipynb "$OUTPUT_DIR/benchmark_performance_summary.ipynb" \
   -p RUN_DIR "$OUTPUT_DIR" \
   --cwd . \
   -k python3 \
