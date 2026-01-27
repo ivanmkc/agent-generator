@@ -297,9 +297,17 @@ class TargetRanker:
 
         # 1. Check for explicit __init__
         children = struct.get("children", [])
-        has_init = any(c.split(".")[-1] == "__init__" for c in children)
-        if has_init:
-            return None # Already has explicit init
+        init_fqn = next((c for c in children if c.split(".")[-1] == "__init__"), None)
+        
+        if init_fqn:
+            # Found explicit init - prefer existing signature
+            if init_fqn in entity_map:
+                e = entity_map[init_fqn]
+                return e.get("signature_full") or e.get("signature")
+            elif init_fqn in structure_map:
+                s = structure_map[init_fqn]
+                return s.get("signature")
+            return None
 
         # 2. Analyze MRO to detect Pydantic models, Dataclasses, or inherit parent __init__
         # This uses BFS to gather the hierarchy. 

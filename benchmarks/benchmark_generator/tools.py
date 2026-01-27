@@ -358,7 +358,7 @@ def scan_repository(repo_path: str, tool_context: ToolContext, coverage_file: Op
                     old_in_func = self.in_function
                     self.in_function = True
                     
-                    is_public = not node.name.startswith("_") or node.name == "_run_async_impl"
+                    is_public = not node.name.startswith("_") or node.name == "_run_async_impl" or node.name == "__init__"
                     if is_public:
                         parent_fqn = self.current_class_fqn or self.mod_fqn
                         func_fqn = f"{parent_fqn}.{node.name}"
