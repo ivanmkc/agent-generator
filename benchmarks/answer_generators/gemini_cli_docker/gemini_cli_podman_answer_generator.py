@@ -227,13 +227,6 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
                     )
                 )
 
-        if stdout_str:
-            logs.append(
-                TraceLogEvent(
-                    type="CLI_STDOUT_FULL", source="podman_server", content=stdout_str
-                )
-            )
-
         response_dict = {
             "stdout": stdout_str,
             "stderr": stderr_str,
@@ -245,7 +238,13 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
             parsed_response_dict, parsed_logs = parse_cli_stream_json_output(stdout_str)
             response_dict.update(parsed_response_dict)
             logs.extend(parsed_logs)
+            # NOTE: We do NOT log CLI_STDOUT_FULL (the raw line) here because 
+            # parsed_logs already contains the individual events extracted from it.
+            # This avoids a 2x duplication of the entire output.
         else:
+            if stdout_str:
+                logs.append(TraceLogEvent(type="CLI_STDOUT_FULL", source="podman_server", content=stdout_str))
+            
             if stdout_str.strip():
                 logs.append(
                     TraceLogEvent(

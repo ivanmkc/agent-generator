@@ -39,6 +39,7 @@ from benchmarks.data_models import GenerationAttempt
 from benchmarks.data_models import BenchmarkGenerationError
 from benchmarks.logger import BenchmarkLogger
 import benchmarks.validation_utils as validation_utils
+import benchmarks.utils as benchmark_utils
 
 # Default configuration constants
 DEFAULT_MAX_CONCURRENCY = 10
@@ -94,6 +95,12 @@ async def _run_single_benchmark(
                 # Pass the run_id to the generator
                 generated_answer = await generator.generate_answer(case, run_id=run_id)
 
+                # Deduplicate trace logs to reduce storage size (remove redundant details)
+                if generated_answer.trace_logs:
+                    generated_answer.trace_logs = benchmark_utils.deduplicate_trace_logs(
+                        generated_answer.trace_logs
+                    )
+
                 # Extract answer string for history
                 attempt_answer_str = ""
                 if generated_answer and generated_answer.output:
@@ -135,6 +142,8 @@ async def _run_single_benchmark(
                 if isinstance(e, BenchmarkGenerationError):
                     failed_key_id = e.api_key_id
                     failed_logs = e.trace_logs
+                    if failed_logs:
+                        failed_logs = benchmark_utils.deduplicate_trace_logs(failed_logs)
                     failed_usage = e.usage_metadata
                     original_exception = e.original_exception
 
@@ -260,7 +269,7 @@ async def _run_single_benchmark(
         error_type=error_type,
         temp_test_file=temp_file_path,
         latency=latency,
-        trace_logs=generated_answer.trace_logs if generated_answer else None,
+        trace_logs=None,  # Optimization: Logs are already in generation_attempts
         usage_metadata=generated_answer.usage_metadata if generated_answer else None,
         ground_truth=ground_truth,
         unfixed_code=unfixed_code,

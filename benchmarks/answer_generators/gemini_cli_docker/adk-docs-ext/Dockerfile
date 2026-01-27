@@ -14,13 +14,20 @@ COPY settings.json /root/.gemini/settings.json
 
 # Install the extension
 RUN if [ -z "$EXTENSION_REF" ] || [ "$EXTENSION_REF" = "main" ]; then \
-      echo "Y" | gemini extensions install ${EXTENSION_REPO}; \
+      yes Y | gemini extensions install ${EXTENSION_REPO} --consent; \
     else \
-      echo "Y" | gemini extensions install ${EXTENSION_REPO} --ref ${EXTENSION_REF}; \
+      yes Y | gemini extensions install ${EXTENSION_REPO} --ref ${EXTENSION_REF} --consent; \
     fi
 
 # Create a symbolic link
 RUN ln -s /usr/local/bin/uv /root/.local/bin/uv
+
+# Install mcpdoc permanently to avoid uvx startup latency
+RUN /root/.local/bin/uv tool install mcpdoc
+
+# Update gemini-extension.json to use the installed mcpdoc and absolute paths
+COPY patch_config.py /tmp/patch_config.py
+RUN python3 /tmp/patch_config.py
 
 # Set working directory to /app
 WORKDIR /workdir

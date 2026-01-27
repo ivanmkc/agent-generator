@@ -4,7 +4,7 @@ This directory contains a data-driven framework for evaluating and comparing dif
 
 ## Overview
 
-The benchmark framework is orchestrated by `benchmark_orchestrator.py` and initiated by `test_benchmarks.py`. It operates by running `AnswerGenerator` classes against benchmark cases defined in YAML files. The orchestrator runs all tests in parallel and returns a list of strongly-typed `BenchmarkRunResult` Pydantic objects that can be easily converted into a pandas DataFrame for analysis.
+The benchmark framework is orchestrated by `benchmark_orchestrator.py` and initiated by `test_benchmarks.py`. It operates by running `AnswerGenerator` classes against benchmark cases defined in YAML files. The orchestrator runs all tests in parallel and returns a list of strongly-typed `BenchmarkRunResult` Pydantic objects (serialized to `results.yaml`) that can be easily converted into a pandas DataFrame for analysis.
 
 ### Architecture Call Graph
 
@@ -40,6 +40,7 @@ The benchmark framework is orchestrated by `benchmark_orchestrator.py` and initi
 *   **`benchmark_runner.py`**: Defines strategies for executing benchmarks (e.g., `PytestBenchmarkRunner`). Each runner creates a persistent temporary file for its test case to allow for inspection after the run.
 *   **`answer_generators/`**: A package containing different code generation strategies (e.g., `GroundTruthAnswerGenerator`, `GeminiAnswerGenerator`).
 *   **`data_models.py`**: Pydantic models for the benchmark YAML files, structured `AnswerOutput` schemas, and the `BenchmarkRunResult`.
+*   **`LOG_OPTIMIZATION.md`**: Documentation on the deduplication strategy used to manage log file sizes.
 *   **`benchmark_definitions/`**: Contains the YAML data files and test templates.
 *   **`ground_truth/`**: Contains the correct code snippets for `fix_error` benchmarks.
 

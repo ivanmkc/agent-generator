@@ -321,12 +321,22 @@ async def main():
         retry_on_validation_error=args.retry_on_validation_error,
     )
 
-    # Save raw results to JSON for later visualization
-    results_json_path = run_output_dir / "results.json"
-    TypeAdapter = pydantic.TypeAdapter(List[BenchmarkRunResult])
-    with open(results_json_path, "w", encoding="utf-8") as f:
-        f.write(TypeAdapter.dump_json(benchmark_run_results, indent=2).decode("utf-8"))
-    logger.log_message(f"Raw benchmark results saved to: {results_json_path}")
+    # Save raw results to YAML (Standardized Format)
+    import yaml
+    try:
+        from yaml import CDumper as Dumper
+    except ImportError:
+        from yaml import Dumper
+
+    results_yaml_path = run_output_dir / "results.yaml"
+    
+    # Convert Pydantic models to dicts first (mode='json' handles enums/datetimes)
+    results_data = [r.model_dump(mode='json') for r in benchmark_run_results]
+    
+    with open(results_yaml_path, "w", encoding="utf-8") as f:
+        yaml.dump(results_data, f, Dumper=Dumper, sort_keys=False)
+        
+    logger.log_message(f"Raw benchmark results saved to: {results_yaml_path}")
 
     logger.finalize_run()
 

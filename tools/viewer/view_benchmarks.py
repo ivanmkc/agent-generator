@@ -40,7 +40,9 @@ BENCHMARK_GCS_BUCKET = os.environ.get("BENCHMARK_GCS_BUCKET")
 class ArtifactManager:
 
     def __init__(
-        self, bucket_name: str | None = None, local_dir: Path = BENCHMARK_RUNS_DIR
+        self,
+        bucket_name: str | None = None,
+        local_dir: Path = BENCHMARK_RUNS_DIR
     ):
         self.bucket_name = bucket_name
         self.local_dir = local_dir
@@ -113,8 +115,8 @@ artifact_manager = ArtifactManager(bucket_name=BENCHMARK_GCS_BUCKET)
 
 def get_run_status(run_id: str) -> str:
     """Determines the status of a run based on file existence."""
-    # Check for results.json (Completed)
-    if artifact_manager.get_file(run_id, "results.json"):
+    # Check for results.yaml (Completed)
+    if artifact_manager.get_file(run_id, "results.yaml"):
         return "Completed"
     # Check for trace.yaml (In Progress or Failed)
     if artifact_manager.get_file(run_id, "trace.yaml"):
@@ -134,13 +136,25 @@ def load_run_options():
 
 @st.cache_data
 def load_results(run_id) -> List[BenchmarkRunResult]:
-    """Loads results.json for a given run ID into a list of BenchmarkRunResult objects."""
-    path = artifact_manager.get_file(run_id, "results.json")
+    """Loads results.yaml for a given run ID into a list of BenchmarkRunResult objects."""
+    path = artifact_manager.get_file(run_id, "results.yaml")
     if not path:
+        # Fallback to legacy results.json if yaml doesn't exist
+        path_json = artifact_manager.get_file(run_id, "results.json")
+        if path_json:
+            with open(path_json, "r") as f:
+                data = json.load(f)
+            return TypeAdapter(List[BenchmarkRunResult]).validate_python(data)
         return []
 
+    # Use LibYAML for speed if available
+    try:
+        from yaml import CLoader as Loader
+    except ImportError:
+        from yaml import Loader
+
     with open(path, "r") as f:
-        data = json.load(f)
+        data = yaml.load(f, Loader=Loader)
 
     # Validate and parse into objects
     results = TypeAdapter(List[BenchmarkRunResult]).validate_python(data)
@@ -638,16 +652,15 @@ def render_ai_insight(title, content, type="info", icon="🧠"):
 
 # --- Error Helper ---
 
-
-def _get_concise_error_message(row, case_trace_logs) -> str:
+def _get_concise_error_message(row: BenchmarkRunResult, case_trace_logs: List[TraceLogEvent]) -> str:
     """Extracts a concise error message for display in the header."""
     # Default message
     display_error = "Validation Failed (See 'Validation Error' tab for details)"
 
     # 1. First, try to extract from the validation_error string itself
-    validation_err_str = row.get("validation_error", "")
+    validation_err_str = row.validation_error or ""
     captured_report_match = re.search(
-        r"\[Captured Error Report\]\n(.*?)(?=\n\n|\[|$)", validation_err_str, re.DOTALL
+        r""\[Captured Error Report\]\n(.*?)(?=\n\n|\[|$)""", validation_err_str, re.DOTALL
     )
 
     if captured_report_match:
@@ -661,8 +674,8 @@ def _get_concise_error_message(row, case_trace_logs) -> str:
 
     # 2. If not found in validation_error, check trace_logs for GEMINI_CLIENT_ERROR
     for log_event in case_trace_logs:
-        if log_event.get("type") == "GEMINI_CLIENT_ERROR":
-            content = log_event.get("content", {})
+        if log_event.type == "GEMINI_CLIENT_ERROR":
+            content = log_event.content
             error_json = {}
 
             if isinstance(content, dict):
@@ -717,7 +730,7 @@ def main():
     selected_run_obj = st.sidebar.selectbox(
         "Select Run",
         runs,
-        format_func=lambda r: f"{'✅' if r['status'] == 'Completed' else '⚠️' if r['status'] == 'Pending/Failed' else '⚪'} {r['id']} ({r['status']})",
+        format_func=lambda r: f"{('✅' if r['status'] == 'Completed' else '⚠️' if r['status'] == 'Pending/Failed' else '⚪')} {r['id']} ({r['status']})",
     )
 
     if not selected_run_obj:
@@ -728,9 +741,7 @@ def main():
     # 2. Load Data
     results_list = load_results(selected_run)
     if not results_list:
-        st.warning(
-            f"No results found in {selected_run}/results.json. The benchmark run might have failed early or produced no output."
-        )
+        st.warning(f"No results found in {selected_run}/results.yaml. The benchmark run might have failed early or produced no output.")
         return
 
     # Convert to DataFrame for UI logic
@@ -935,14 +946,15 @@ def main():
                 passed=("result", "sum"),
                 system_failures=(
                     "status",
-                    lambda x: (
-                        x.isin(
-                            [
-                                BenchmarkResultType.FAIL_SETUP.value,
-                                BenchmarkResultType.FAIL_GENERATION.value,
-                            ]
-                        )
-                    ).sum(),
+                    lambda x:
+                        (
+                            x.isin(
+                                [
+                                    BenchmarkResultType.FAIL_SETUP.value,
+                                    BenchmarkResultType.FAIL_GENERATION.value,
+                                ]
+                            )
+                        ).sum(),
                 ),
             )
             .reset_index()
@@ -956,14 +968,15 @@ def main():
                 passed=("result", "sum"),
                 system_failures=(
                     "status",
-                    lambda x: (
-                        x.isin(
-                            [
-                                BenchmarkResultType.FAIL_SETUP.value,
-                                BenchmarkResultType.FAIL_GENERATION.value,
-                            ]
-                        )
-                    ).sum(),
+                    lambda x:
+                        (
+                            x.isin(
+                                [
+                                    BenchmarkResultType.FAIL_SETUP.value,
+                                    BenchmarkResultType.FAIL_GENERATION.value,
+                                ]
+                            )
+                        ).sum(),
                 ),
             )
             .reset_index()
@@ -1083,7 +1096,7 @@ def main():
                 failed_attempts = df_attempts[df_attempts["status"] == "failure"]
                 if not failed_attempts.empty:
                     st.dataframe(
-                        failed_attempts[["key_id", "suite", "generator", "error"]],
+                        failed_attempts[[ "key_id", "suite", "generator", "error"]],
                         use_container_width=True,
                     )
                 else:
@@ -1301,9 +1314,14 @@ def main():
                 st.success("**PASS**")
         else:
             # Failure
+            # Use trace_logs from the last generation attempt if top-level trace_logs is missing
+            fallback_logs = result_obj.trace_logs
+            if not fallback_logs and result_obj.generation_attempts:
+                fallback_logs = result_obj.generation_attempts[-1].trace_logs
+
             concise_err = _get_concise_error_message(
-                result_obj.model_dump(),
-                [t.model_dump() for t in (result_obj.trace_logs or [])],
+                result_obj,
+                fallback_logs or [],
             )
             st.error(f"**{result_obj.status.value.upper()}**: {concise_err}")
 

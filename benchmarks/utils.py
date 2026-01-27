@@ -37,6 +37,67 @@ def permute(cls, **kwargs):
         yield cls(**dict(zip(keys, instance_values)))
 
 
+def deduplicate_trace_logs(logs: list[TraceLogEvent]) -> list[TraceLogEvent]:
+    """Removes redundant information from trace logs to save space without data loss.
+
+    Specifically:
+    1. Removes the 'details' field from TOOL_RESULT events.
+    2. Truncates large context in GEMINI_CLIENT_ERROR events (context is redundant with trace history).
+
+    Args:
+        logs: The list of TraceLogEvent objects to deduplicate.
+
+    Returns:
+        The deduplicated list of logs.
+    """
+    if not logs:
+        return []
+
+    for log in logs:
+        # 1. Deduplicate TOOL_RESULT:
+        # The 'details' field usually contains the raw JSON event from the CLI.
+        # Since we've already extracted the 'output' into 'log.tool_output', 
+        # 'details' is a 100% redundant copy of the data.
+        if log.type == TraceEventType.TOOL_RESULT:
+            log.details = None
+
+        # 2. Deduplicate GEMINI_CLIENT_ERROR:
+        # These events often contain a 2MB+ 'context' field which is a dump of the
+        # entire conversation history (including previous huge tool outputs).
+        # Since this history is already captured by previous events in the trace,
+        # we truncate the 'context' payloads while keeping the error message.
+        if log.type == TraceEventType.GEMINI_CLIENT_ERROR and isinstance(log.content, str):
+            # Only attempt if content is suspiciously large (e.g. > 100KB)
+            if len(log.content) > 100000:
+                try:
+                    data = json.loads(log.content)
+                    if "context" in data and isinstance(data["context"], list):
+                        modified = False
+                        for msg in data["context"]:
+                            # Truncate function responses in the error context
+                            # The full response is already in the TOOL_RESULT event
+                            parts = msg.get("parts", [])
+                            if isinstance(parts, list):
+                                for part in parts:
+                                    if "functionResponse" in part:
+                                        fr = part["functionResponse"]
+                                        resp = fr.get("response", {})
+                                        if "output" in resp and len(str(resp["output"])) > 1000:
+                                            resp["output"] = "<TRUNCATED_SEE_TOOL_RESULT_EVENT>"
+                                            modified = True
+                                    # Also truncate huge text parts if they are likely file contents
+                                    if "text" in part and len(part["text"]) > 5000:
+                                        part["text"] = part["text"][:5000] + "... <TRUNCATED_CONTEXT>"
+                                        modified = True
+                        
+                        if modified:
+                            log.content = json.dumps(data)
+                except (json.JSONDecodeError, AttributeError):
+                    pass # Keep original if parsing fails
+
+    return logs
+
+
 def parse_cli_stream_json_output(
     stdout_str: str,
 ) -> tuple[dict[str, Any], list[TraceLogEvent]]:
@@ -77,8 +138,11 @@ def parse_cli_stream_json_output(
             else:
                 enum_type = TraceEventType.ADK_EVENT  # Default to generic ADK_EVENT
 
+            # Avoid storing 'details' for tool_result to prevent duplication of huge outputs
+            details = None if enum_type == TraceEventType.TOOL_RESULT else event
+
             log_event = TraceLogEvent(
-                type=enum_type, source="cli_stream", details=event
+                type=enum_type, source="cli_stream", details=details
             )
 
             if event_type == "message":

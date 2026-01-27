@@ -65,15 +65,6 @@ class GeminiCliLocalAnswerGenerator(GeminiCliAnswerGenerator):
                     )
                 )
 
-        # Always log full stdout for debugging/archival
-        if stdout_str:
-            logs.append(
-                TraceLogEvent(
-                    type="CLI_STDOUT_FULL", source=self.name, content=stdout_str
-                )
-            )
-
-        # Parse stdout. If stream-json, parse events. Otherwise, treat as raw message.
         response_dict = {
             "stdout": stdout_str,
             "stderr": stderr_str,
@@ -85,6 +76,14 @@ class GeminiCliLocalAnswerGenerator(GeminiCliAnswerGenerator):
             response_dict.update(parsed_response_dict)
             logs.extend(parsed_logs)
         else:
+            # Always log full stdout for debugging/archival if not parsed
+            if stdout_str:
+                logs.append(
+                    TraceLogEvent(
+                        type="CLI_STDOUT_FULL", source=self.name, content=stdout_str
+                    )
+                )
+
             # If not stream-json, treat stdout as a single response message for logging purposes
             if stdout_str.strip():
                 logs.append(
