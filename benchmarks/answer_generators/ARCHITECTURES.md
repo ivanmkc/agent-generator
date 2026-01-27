@@ -68,4 +68,44 @@ graph TD
     AsyncLoop -->|Spawn Subprocess| CLI[Gemini CLI Executable]
     CLI -->|Capture stdout/stderr| AsyncLoop
     AsyncLoop -->|Return JSON| API
+
+## gemini-cli:adk-docs-ext
+
+**Source:** `https://github.com/pierpaolo28/adk-docs-ext` (main branch)
+
+### Core Philosophy
+A documentation-centric environment designed to assist developers by providing access to ADK documentation tools.
+
+### Architecture Overview
+This image installs the standard `adk-docs-ext` extension. It likely provides tools or context injection related to the ADK documentation, serving as a baseline for the documentation-enhanced variants.
+
+## gemini-cli:adk-docs-ext-starter
+
+**Source:** `https://github.com/pierpaolo28/adk-docs-ext` (agent-starter-pack branch)
+
+### Core Philosophy
+A minimalist "Starter Pack" configuration.
+
+### Architecture Overview
+This variant is built from the `agent-starter-pack` branch. It likely represents a stripped-down or essential set of documentation tools, testing the model's performance with a lighter context load compared to the full documentation suite.
+
+## gemini-cli:adk-docs-ext-llms
+
+**Source:** `https://github.com/pierpaolo28/adk-docs-ext` (llms.txt branch)
+
+### Core Philosophy
+Optimized for Large Language Models using the `llms.txt` standard.
+
+### Architecture Overview
+This image includes the `llms.txt` file (or tools to read it), which is a standardized format for providing condensed, LLM-friendly documentation context. This variant tests the effectiveness of providing a curated, token-efficient context summary to the model.
+
+## gemini-cli:adk-docs-ext-llms-full
+
+**Source:** `https://github.com/pierpaolo28/adk-docs-ext` (llms-full.txt branch)
+
+### Core Philosophy
+Maximum context injection.
+
+### Architecture Overview
+This variant uses the `llms-full.txt` branch, implying a comprehensive, detailed dump of the ADK documentation in the `llms.txt` format. It tests the model's ability to handle and utilize a large context window populated with extensive domain knowledge, potentially at the cost of higher latency or "lost in the middle" effects.
 ```
