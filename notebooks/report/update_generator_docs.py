@@ -40,7 +40,7 @@ def clean_description(desc):
     return "\n".join(cleaned_lines).strip()
 
 def generate_docs():
-    output_path = project_root / "benchmarks" / "generator_internals.md"
+    output_path = project_root / "ai/reports/generator_internals.md"
     
     content = ["# Generator Internals (Static Reference)\n"]
     content.append("> This file describes the static architectures of the available generators. Runtime parameters (like Model) are injected during execution.\n")

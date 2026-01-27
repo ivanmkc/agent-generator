@@ -56,7 +56,7 @@ class CaseDocManager:
     Uses a YAML file for storage.
     Thread-safe using file locking and Pydantic models for data.
     """
-    def __init__(self, doc_path: str = "benchmarks/case_docs_cache.yaml"):
+    def __init__(self, doc_path: str = "ai/reports/case_docs_cache.yaml"):
         """
         Initialize the CaseDocManager.
         

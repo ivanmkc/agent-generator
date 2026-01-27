@@ -17,7 +17,7 @@ async def main():
 
     evaluator = RetrievalEvaluator(
         dataset_path="retrieval_dataset.yaml",
-        targets_path="benchmarks/benchmark_generator/data/ranked_targets.yaml"
+        targets_path="tools/benchmark_generator/data/ranked_targets.yaml"
     )
     
     print(f"Loaded {len(evaluator.dataset.pairs)} queries and {len(evaluator.targets)} targets.")

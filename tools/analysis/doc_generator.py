@@ -28,7 +28,7 @@ class GeneratorDocManager:
     Uses a YAML file for storage and Pydantic for structured generation.
     Thread-safe using file locking.
     """
-    def __init__(self, doc_path: str = "benchmarks/generator_docs_cache.yaml"):
+    def __init__(self, doc_path: str = "ai/reports/generator_docs_cache.yaml"):
         """
         Initialize the DocManager.
         
