@@ -30,7 +30,7 @@ This directory contains helper scripts and tools for analyzing benchmarks, debug
     python tools/cli/generate_benchmark_report.py [run_id]
     ```
 
--   **`benchmark_viewer.py`**: Streamlit-based TUI for visual forensics.
+-   **`viewer/benchmark_viewer.py`**: Streamlit-based TUI for visual forensics.
 
 ## Directory Structure
 
@@ -39,10 +39,12 @@ This directory contains helper scripts and tools for analyzing benchmarks, debug
 *   `target_ranker/`: Static analysis tool for ranking codebase targets.
 *   `benchmark_verification/`: Tools for validating benchmark integrity.
 *   `cli/`: Command-line interfaces for analysis tools.
+*   `debugging/`: Scripts for debugging specific runs or failures.
+*   `knowledge/`: Tools for indexing and analyzing the ADK knowledge base.
 *   `retrieval_dataset_generation/`: Tools for creating RAG datasets.
 *   `adk-knowledge-ext/`: ADK Knowledge extensions.
+*   `viewer/`: Visualization tools (Streamlit).
 *   `utils/`: Miscellaneous scripts.
 
 ## Legacy / Experimental
--   `api_indexer.py`, `generate_adk_index.py`: Tools for building the ADK knowledge index.
--   `graph_adk_structure.py`: Visualizes the ADK codebase structure.
+-   `extract_potential_frameworks.py` (Moved to `vibeshare/scripts/`)

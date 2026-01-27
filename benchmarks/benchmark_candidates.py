@@ -53,10 +53,10 @@ CANDIDATE_GENERATORS = [
     #     api_key_manager=api_key_manager,
     #     experiment_id="basic"
     # ),
-    create_hybrid_generator_v47(
-        model_name=ModelName.GEMINI_2_5_FLASH,
-        api_key_manager=api_key_manager,
-    ),
+    # create_hybrid_generator_v47(
+    #     model_name=ModelName.GEMINI_2_5_FLASH,
+    #     api_key_manager=api_key_manager,
+    # ),
     GeminiCliPodmanAnswerGenerator(
         image_definitions=IMAGE_DEFINITIONS,
         image_name="gemini-cli:adk-docs-ext",

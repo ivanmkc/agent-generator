@@ -1,11 +1,11 @@
 #!/bin/bash
 # Standard entry point for running ADK benchmarks.
-# Usage: ./benchmark_run.sh <experiment_script.py> [args]
+# Usage: ./scripts/benchmark_run.sh <experiment_script.py> [args]
 
 set -e
 
-# Ensure we are in the project root
-cd "$(dirname "$0")"
+# Ensure we are in the project root (one level up from this script)
+cd "$(dirname "$0")/.."
 
 # Activate Env
 source env/bin/activate
