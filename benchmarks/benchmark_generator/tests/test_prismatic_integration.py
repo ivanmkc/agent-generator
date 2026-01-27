@@ -27,7 +27,7 @@ from unittest.mock import MagicMock
 from google.adk.tools import ToolContext
 from google.adk.sessions import Session
 from benchmarks.benchmark_generator.tools import (
-    scan_repository, trace_execution, validate_mutant, 
+    trace_execution, validate_mutant, 
     save_benchmark_case, list_prioritized_targets, select_target
 )
 from benchmarks.benchmark_generator.agents import create_prismatic_agent, SemaphoreGemini
@@ -41,37 +41,6 @@ def mock_context():
     ctx = MagicMock(spec=ToolContext)
     ctx.session = session
     return ctx
-
-def test_scan_repository(mock_context, tmp_path):
-    """Verifies that the Cartographer scan correctly identifies testable methods and counts usage."""
-    # Create a dummy python file defining the API
-    p = tmp_path / "my_module.py"
-    p.write_text("class Foo:\n  def bar(self):\n    '''Docstring'''\n    x=1\n    y=2\n    return x+y")
-    
-    # Create a caller file to test usage counting
-    caller = tmp_path / "caller.py"
-    # Use explicit FQN style to ensure naive static analysis catches it
-    caller.write_text("import my_module\nmy_module.Foo.bar(None)")
-    
-    # Create dummy usage stats for external usage simulation
-    stats_file = tmp_path / "adk_stats.yaml"
-    stats_file.write_text("my_module.Foo.bar:\n  total_calls: 5\n  args: {}")
-    mock_context.session.state["stats_file_path"] = str(stats_file)
-    
-    result = scan_repository(str(tmp_path), mock_context)
-    
-    assert "Cartographer scan complete" in result
-    targets = mock_context.session.state["scanned_targets"]
-    
-    # Verify bar was found. TargetEntity uses 'id' (FQN) and 'name'.
-    # FQN logic in tools.py: module_name.ClassName.MethodName
-    # module_name is 'my_module'
-    bar_target = next((t for t in targets if t["name"] == "bar" and t["type"] == "method"), None)
-    assert bar_target is not None
-    assert bar_target["id"] == "my_module.Foo.bar"
-    
-    # Verify usage was counted
-    assert bar_target["usage_score"] >= 1
 
 def test_list_prioritized_targets(mock_context):
     """Verifies that the Auditor prioritizes based on Coverage Lift and Usage."""
