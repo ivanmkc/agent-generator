@@ -9,6 +9,7 @@ It serves as the data layer for the CLI reporting tools and the Streamlit viewer
 """
 
 import json
+import yaml
 import pathlib
 from typing import List, Dict, Any
 from collections import defaultdict
@@ -18,21 +19,42 @@ from tools.analysis.generator_performance import analyze_generator, GeneratorAna
 
 
 class BenchmarkRunAnalysis:
-
-    def __init__(self, run_id: str):
+    def __init__(self, run_id: str, runs_dir: pathlib.Path | None = None):
         self.run_id = run_id
-        self.run_dir = pathlib.Path("benchmark_runs") / run_id
-        self.results_path = self.run_dir / "results.json"
-
+        # Allow overriding base dir (useful for tools passing a Path object differently)
+        base_dir = runs_dir if runs_dir else pathlib.Path("benchmark_runs")
+        self.run_dir = base_dir / run_id
+        
         self.cases: List[CaseAnalysis] = []
         self.generators: Dict[str, GeneratorAnalysis] = {}
-
-        if self.results_path.exists():
-            self._load_and_process()
+        
+        self._load_and_process()
 
     def _load_and_process(self):
-        with open(self.results_path, "r") as f:
-            data = json.load(f)
+        data = []
+        
+        # Try YAML first
+        yaml_path = self.run_dir / "results.yaml"
+        if yaml_path.exists():
+            try:
+                try:
+                    from yaml import CLoader as Loader
+                except ImportError:
+                    from yaml import Loader
+                with open(yaml_path, "r") as f:
+                    data = yaml.load(f, Loader=Loader)
+            except Exception as e:
+                print(f"Error loading results.yaml: {e}")
+        else:
+            # Fallback to JSON
+            json_path = self.run_dir / "results.json"
+            if json_path.exists():
+                with open(json_path, "r") as f:
+                    data = json.load(f)
+        
+        if not data:
+            print(f"Warning: No valid results found in {self.run_dir}")
+            return
 
         # 1. Analyze every case
         self.cases = [analyze_case(c) for c in data]
@@ -70,6 +92,5 @@ class BenchmarkRunAnalysis:
                 )
         return [a for a in alerts if any(a["reasons"])]
 
-
-def analyze_benchmark_run(run_id: str) -> BenchmarkRunAnalysis:
-    return BenchmarkRunAnalysis(run_id)
+def analyze_benchmark_run(run_id: str, runs_dir: pathlib.Path | None = None) -> BenchmarkRunAnalysis:
+    return BenchmarkRunAnalysis(run_id, runs_dir)
