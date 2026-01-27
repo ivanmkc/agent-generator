@@ -332,8 +332,10 @@ class AdkTools:
 
     def _load_ranked_targets(self) -> List[RankedTarget]:
         candidates = [
+            self.workspace_root / "tmp/outputs/generated_benchmarks/ranked_targets.yaml",
             self.workspace_root / "tools/benchmark_generator/data/ranked_targets.yaml",
             self.workspace_root / "ranked_targets.yaml",
+            Path("tmp/outputs/generated_benchmarks/ranked_targets.yaml"),
             Path("tools/benchmark_generator/data/ranked_targets.yaml"),
             Path("ranked_targets.yaml"),
             Path(__file__).resolve().parent.parent.parent / "ranked_targets.yaml",
@@ -578,7 +580,7 @@ class AdkTools:
         Methodology:
         1. Validates input (must provide either agent_code or an agent_file path).
         2. If agent_code is provided, writes it to a temporary file in the workspace.
-        3. Invokes the standalone `tools/utils/adk_agent_runner.py` script.
+        3. Invokes the standalone `benchmarks/answer_generators/support_scripts/adk_agent_runner.py` script.
         4. The runner utility dynamically imports the agent, sets up an `InMemoryRunner`, 
            and executes the provided prompt.
         5. It captures all stdout/stderr from the agent's execution for forensic debugging.
@@ -610,7 +612,8 @@ class AdkTools:
         
         # Decouple execution into a standalone script
         project_root = Path(__file__).resolve().parent.parent.parent
-        runner_script = project_root / "tools" / "utils" / "adk_agent_runner.py"
+        # The runner script is now located in benchmarks/answer_generators/support_scripts
+        runner_script = project_root / "benchmarks" / "answer_generators" / "support_scripts" / "adk_agent_runner.py"
         
         # Build the command as a list for safe path handling
         cmd = [

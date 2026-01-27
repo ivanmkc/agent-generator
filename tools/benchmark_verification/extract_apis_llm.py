@@ -1,11 +1,11 @@
 import os
 import yaml
 import re
-from tools.constants import EXTRACTED_APIS_FILE
+from tools.constants import EXTRACTED_APIS_FILE, RANKED_TARGETS_FILE
 
 # Configuration
 BENCHMARK_ROOT = 'benchmarks/benchmark_definitions'
-RANKED_TARGETS_FILE = 'tools/benchmark_generator/data/ranked_targets.yaml'
+RANKED_TARGETS_FILE = str(RANKED_TARGETS_FILE)
 OUTPUT_FILE = str(EXTRACTED_APIS_FILE)
 
 def load_ranked_targets(filepath):

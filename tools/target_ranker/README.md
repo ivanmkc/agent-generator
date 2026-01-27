@@ -14,19 +14,17 @@ It acts as the "Cartographer" for the Agentic Benchmark Generator, providing a s
 
 ## Usage
 
-This module is typically invoked via the `Regenerate Ranked Targets` task in `.vscode/tasks.json` or by the Benchmark Generator agents.
+This module is typically invoked via the `Regenerate Ranked Targets` task in `.vscode/tasks.json`.
 
-To run standalone:
+To run standalone via the CLI:
 
 ```bash
-PYTHONPATH=. env/bin/python tools/target_ranker/ranker.py
+env/bin/python tools/target_ranker/run_ranker.py --repo-path repos/adk-python
 ```
-
-(Note: Ensure `benchmarks/adk_stats_samples.yaml` exists if using default stats file).
 
 ## Output
 
-It generates:
-*   `tools/benchmark_generator/data/ranked_targets.yaml`: Detailed metadata for agents.
-*   `tools/benchmark_generator/data/ranked_targets.md`: Human-readable summary.
+It generates artifacts in the centralized output directory (managed by `tools/constants.py`):
+*   `tmp/outputs/generated_benchmarks/ranked_targets.yaml`: Detailed metadata for agents.
+*   `tmp/outputs/generated_benchmarks/ranked_targets.md`: Human-readable summary.
 \n## Testing\n\nRun the unit tests:\n```bash\npython -m pytest tools/target_ranker/tests/\n```
