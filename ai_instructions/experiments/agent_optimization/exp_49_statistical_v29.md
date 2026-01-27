@@ -6,7 +6,7 @@
 **Previous Best (Baseline):** `ADK_STATISTICAL_V28`
 
 ## 1. Hypothesis & Configuration
-**Hypothesis:** Replacing flat index retrieval with a **Prismatic-inspired Association-Aware** strategy will improve context quality. By using real-world co-occurrence probabilities ($P(B|A)$), the agent can automatically discover related modules (e.g., discovering that `google.adk.events` is frequently used with `google.adk.agents.llm_agent`) even if they aren't explicitly mentioned in the request.
+**Hypothesis:** Replacing flat index retrieval with a **Agentic-inspired Association-Aware** strategy will improve context quality. By using real-world co-occurrence probabilities ($P(B|A)$), the agent can automatically discover related modules (e.g., discovering that `google.adk.events` is frequently used with `google.adk.agents.llm_agent`) even if they aren't explicitly mentioned in the request.
 
 **Configuration:**
 *   **Base:** V28 (Error Loop).

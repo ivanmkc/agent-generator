@@ -170,9 +170,9 @@ def load_benchmark_suite(suite_path: str) -> dict:
              path = Path(os.getcwd()) / suite_path
              
     if not path.exists():
-        # Fallback: Check standard locations for prismatic output
-        if suite_path.endswith("prismatic_generated_raw.jsonl"):
-             path = Path(os.getcwd()) / "prismatic_generated_raw.jsonl"
+        # Fallback: Check standard locations for agentic output
+        if suite_path.endswith("agentic_generated_raw.jsonl"):
+             path = Path(os.getcwd()) / "agentic_generated_raw.jsonl"
              
     if not path.exists():
         return {}

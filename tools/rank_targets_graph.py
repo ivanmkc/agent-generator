@@ -9,7 +9,7 @@ from collections import defaultdict, Counter
 # Add root to sys.path
 sys.path.append(os.getcwd())
 
-from benchmarks.benchmark_generator.models import TargetEntity, TargetType
+from tools.benchmark_generator.models import TargetEntity, TargetType
 
 def get_physical_structure(repo_path):
     """Scans the repo to build a map of FQN -> Definition metadata (including Constants)."""

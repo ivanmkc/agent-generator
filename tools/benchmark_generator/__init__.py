@@ -12,4 +12,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Prismatic Evaluation: A Comprehensive Architecture for Repository-Specific Benchmarking."""
+"""Agentic Evaluation: A Comprehensive Architecture for Repository-Specific Benchmarking."""

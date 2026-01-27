@@ -13,7 +13,7 @@
 # limitations under the License.
 
 """
-Functional Entry Point for the Prismatic Benchmark Generator.
+Functional Entry Point for the Agentic Benchmark Generator.
 
 This script orchestrates the generation process using a functional streaming
 architecture instead of a stateful agent loop. It uses:
@@ -33,12 +33,12 @@ from google.genai import types
 from google.adk.runners import Runner
 from google.adk.sessions.in_memory_session_service import InMemorySessionService
 
-from benchmarks.benchmark_generator.stream import AsyncStream
-from benchmarks.benchmark_generator.cartographer import Cartographer
-from benchmarks.benchmark_generator.agents import create_worker_pipeline
-from benchmarks.benchmark_generator.models import TargetEntity
+from tools.benchmark_generator.stream import AsyncStream
+from tools.benchmark_generator.cartographer import Cartographer
+from tools.benchmark_generator.agents import create_worker_pipeline
+from tools.benchmark_generator.models import TargetEntity
 from benchmarks.api_key_manager import API_KEY_MANAGER
-from benchmarks.benchmark_generator.irt import IRTManager
+from tools.benchmark_generator.irt import IRTManager
 
 # Configure Logging
 logging.basicConfig(
@@ -46,7 +46,7 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(message)s",
     datefmt="%H:%M:%S"
 )
-logger = logging.getLogger("PrismaticDriver")
+logger = logging.getLogger("AgenticDriver")
 
 async def load_manifest(log_file: Path) -> Set[str]:
     """Loads the set of processed target IDs from the raw JSONL log."""
@@ -94,14 +94,14 @@ async def process_target(
     runner = Runner(
         agent=agent, 
         session_service=session_service, 
-        app_name="prismatic_worker"
+        app_name="agentic_worker"
     )
     
     session_id = f"run_{target.id.replace('.', '_')}"
     await session_service.create_session(
         session_id=session_id, 
         user_id="gen_user", 
-        app_name="prismatic_worker"
+        app_name="agentic_worker"
     )
     
     # Pre-populate state with the specific target and global config
@@ -159,7 +159,7 @@ async def process_target(
         await runner.close()
 
 async def main():
-    parser = argparse.ArgumentParser(description="Functional Prismatic Generator")
+    parser = argparse.ArgumentParser(description="Functional Agentic Generator")
     parser.add_argument("--repo-path", type=str, default=".", help="Path to repository.")
     parser.add_argument("--model", type=str, default="gemini-3-pro-preview", help="Model name.")
     parser.add_argument("--concurrency", type=int, default=3, help="Concurrent workers.")
@@ -170,7 +170,7 @@ async def main():
     args = parser.parse_args()
 
     # 1. Initialize Components
-    log_file = Path("prismatic_generated_raw.jsonl")
+    log_file = Path("agentic_generated_raw.jsonl")
     manifest = await load_manifest(log_file)
     logger.info(f"Loaded manifest with {len(manifest)} processed targets.")
     

@@ -22,21 +22,21 @@ import yaml
 import json
 
 from benchmarks.data_models import BenchmarkFile
-from benchmarks.benchmark_generator.agents import create_prismatic_agent
+from tools.benchmark_generator.agents import create_agentic_agent
 from google.adk.runners import Runner
 from google.adk.sessions.sqlite_session_service import SqliteSessionService
 from google.genai import types
 from benchmarks.api_key_manager import API_KEY_MANAGER
-from benchmarks.benchmark_generator.logger import PrismaticLogger
+from tools.benchmark_generator.logger import AgenticLogger
 
 
 async def main():
     parser = argparse.ArgumentParser(description="Generate benchmarks for ADK.")
     parser.add_argument(
         "--type",
-        choices=["prismatic_adk"],
-        default="prismatic_adk",
-        help="Type of benchmark to generate (default: prismatic_adk).",
+        choices=["agentic_adk"],
+        default="agentic_adk",
+        help="Type of benchmark to generate (default: agentic_adk).",
     )
     parser.add_argument(
         "--output-dir",
@@ -73,7 +73,7 @@ async def main():
     )
     parser.add_argument("--concurrency", type=int, default=1, help="Max concurrent LLM requests.")
     parser.add_argument("--limit", type=int, default=100, help="Maximum number of benchmarks to generate (default: 100).")
-    parser.add_argument("--session-db", type=str, default="prismatic_sessions.db", help="Path to SQLite session database.")
+    parser.add_argument("--session-db", type=str, default="agentic_sessions.db", help="Path to SQLite session database.")
     parser.add_argument(
         "--mode",
         choices=["execution_mcq", "concept_mcq"],
@@ -84,10 +84,10 @@ async def main():
     args = parser.parse_args()
 
     benchmarks = []
-    logger = PrismaticLogger()
+    logger = AgenticLogger()
 
-    if args.type == "prismatic_adk":
-        logger.log_info(f"Starting Prismatic ADK Generator (Model: {args.model_name})...")
+    if args.type == "agentic_adk":
+        logger.log_info(f"Starting Agentic ADK Generator (Model: {args.model_name})...")
         logger.log_info(f"  Mode: {args.mode}")
         logger.log_info(f"  Repo Path: {args.repo_path}")
         logger.log_info(f"  Namespace: {args.namespace or 'All'}")
@@ -95,7 +95,7 @@ async def main():
         logger.log_info(f"  Limit: {args.limit}")
 
         # Model Injection Logic
-        from benchmarks.benchmark_generator.agents import SemaphoreGemini
+        from tools.benchmark_generator.agents import SemaphoreGemini
         
         # Use provided model for both roles
         model_name = args.model_name
@@ -109,7 +109,7 @@ async def main():
             model_worker = model_name
             model_auditor = model_name
         
-        agent = create_prismatic_agent(
+        agent = create_agentic_agent(
             model=model_worker,
             auditor_model=model_auditor,
             repo_path=args.repo_path, 
@@ -120,7 +120,7 @@ async def main():
         session_service = SqliteSessionService(db_path=args.session_db)
         runner = Runner(agent=agent, session_service=session_service, app_name="benchmark_generator")
         
-        session_id = "prismatic_run_0"
+        session_id = "agentic_run_0"
         
         # Check for existing session
         existing_session = await session_service.get_session(session_id=session_id, user_id="user", app_name="benchmark_generator")
@@ -224,7 +224,7 @@ async def main():
                 # Robust ID Injection for Legacy Data
                 if "id" not in data:
                     import time
-                    data["id"] = f"prismatic_legacy_{int(time.time())}_{idx}"
+                    data["id"] = f"agentic_legacy_{int(time.time())}_{idx}"
 
                 case = MultipleChoiceBenchmarkCase.model_validate(data)
                 benchmarks.append(case)

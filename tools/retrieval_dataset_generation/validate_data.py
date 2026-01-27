@@ -618,7 +618,7 @@ if __name__ == "__main__":
         print("No API key available.")
         exit(1)
         
-    targets_path = "benchmarks/benchmark_generator/data/ranked_targets.yaml"
+    targets_path = "tools/benchmark_generator/data/ranked_targets.yaml"
     
     print(f"{Fore.CYAN}Initializing Retrievers...{Style.RESET_ALL}")
     with open(targets_path, 'r') as f:

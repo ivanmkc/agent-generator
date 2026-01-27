@@ -69,8 +69,8 @@ graph TD
     
     Analyzer --> Tree[Probabilistic Dependency Tree]
     
-    JSON --> PrismaticTools[benchmarks/benchmark_generator/tools.py]
-    PrismaticTools -->|scan_repository| SessionState
+    JSON --> AgenticTools[benchmarks/benchmark_generator/tools.py]
+    AgenticTools -->|scan_repository| SessionState
     SessionState -->|get_prioritized_target| Auditor[Auditor Agent]
 ```
 
@@ -88,7 +88,7 @@ graph TD
         *   Runs **Probabilistic BFS** starting from `--start`.
         *   Calls `print_node_recursive()` to render the tree.
 
-3.  **`benchmarks/benchmark_generator/tools.py` (Prismatic Integration)**
+3.  **`benchmarks/benchmark_generator/tools.py` (Agentic Integration)**
     *   `scan_repository()`: Loads `adk_cooccurrence.json` into session state.
     *   `get_prioritized_target()`: Uses BFS logic (similar to `adk_chain_prob`) to find `associated_modules` for the active target, instructing the Observer to use them.
 
@@ -106,7 +106,7 @@ graph TD
 }
 ```
 
-### Flow of Execution (Prismatic Loop)
+### Flow of Execution (Agentic Loop)
 
 1.  **Auditor** calls `scan_repository` -> Loads stats, coverage, and co-occurrence data.
 

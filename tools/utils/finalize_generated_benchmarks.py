@@ -4,8 +4,8 @@ import os
 from pathlib import Path
 
 def finalize_benchmarks():
-    raw_path = Path("prismatic_generated_raw.jsonl")
-    output_dir = Path("benchmarks/benchmark_definitions/prismatic_generated")
+    raw_path = Path("agentic_generated_raw.jsonl")
+    output_dir = Path("benchmarks/benchmark_definitions/agentic_generated")
     output_dir.mkdir(parents=True, exist_ok=True)
     
     if not raw_path.exists():
@@ -22,10 +22,10 @@ def finalize_benchmarks():
                 # Map to ADK Benchmark YAML Schema
                 yaml_data = {
                     "metadata": {
-                        "id": f"prismatic_{count}",
+                        "id": f"agentic_{count}",
                         "target_id": data.get("target_id"),
                         "type": "multiple_choice",
-                        "source": "prismatic_generator"
+                        "source": "agentic_generator"
                     },
                     "prompts": [{
                         "q": data.get("question"),
@@ -37,11 +37,11 @@ def finalize_benchmarks():
                     }]
                 }
                 
-                # Fix options if they are dicts (Prismatic output) vs list of strings (Benchmark Runner expectation)
-                # The Prismatic output has options with descriptions. We need to format them for the runner.
+                # Fix options if they are dicts (Agentic output) vs list of strings (Benchmark Runner expectation)
+                # The Agentic output has options with descriptions. We need to format them for the runner.
                 # Runner expects list of strings usually? Or does it support objects?
                 # Looking at standard format: usually just strings.
-                # But Prismatic generates code blocks.
+                # But Agentic generates code blocks.
                 
                 # Let's clean up options.
                 # Identify index of correct option

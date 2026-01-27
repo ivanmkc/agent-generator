@@ -1,6 +1,6 @@
-# Prismatic Evaluation Generator
+# Agentic Evaluation Generator
 
-This module implements the **Prismatic Evaluation** architecture for generating repository-specific benchmarks using the ADK framework.
+This module implements the **Agentic Evaluation** architecture for generating repository-specific benchmarks using the ADK framework.
 
 ## Architecture
 
@@ -23,7 +23,7 @@ The system follows a closed-loop design with specialized pipelines for different
 The **Auditor** agent orchestrates the entire process, spending compute on high-value targets via a stateful BFS strategy.
 
 ### 1. Repository Cartography
-The `scan_repository` tool maps the repository topology using AST analysis, identifying hierarchies, dependencies, and public API surfaces.
+The `scan_repository` tool (located in `tools/target_ranker/scanner.py`) maps the repository topology using AST analysis, identifying hierarchies, dependencies, and public API surfaces.
 *   **Enhanced Resolution**: Automatically resolves type hints to their Fully Qualified Names (FQNs) by tracing imports, parsing string forward references (e.g., `'ToolConfig'`), and handling local class definitions.
 
 ### 2. BFS Prioritization Strategy
@@ -44,9 +44,9 @@ To update the ranked target list (e.g., when new samples or framework code are a
     *   Scans `adk-samples` and `contributing/samples` to determine which APIs are actually used by developers.
     *   Output: `benchmarks/adk_stats_samples.yaml`.
 2.  **`Regenerate Ranked Targets`**:
-    *   Runs `target_ranker.py`.
+    *   Runs `tools/target_ranker/ranker.py`.
     *   Loads the stats from step 1, performs a repository scan with runtime identity resolution, and applies the BFS ranking.
-    *   Output: `benchmarks/benchmark_generator/data/ranked_targets.yaml` and `.md`.
+    *   Output: `tools/benchmark_generator/data/ranked_targets.yaml` and `.md`.
 
 ## Reliability & Debugging
 
@@ -68,21 +68,21 @@ The generator is designed to be resumed after an interruption (e.g., rate limits
 To generate conceptual benchmarks for the ADK:
 
 ```bash
-PYTHONPATH=. env/bin/python benchmarks/benchmark_generator/run_generator.py \
-    --type prismatic_adk \
+PYTHONPATH=. env/bin/python tools/benchmark_generator/run_generator.py \
+    --type agentic_adk \
     --mode concept_mcq \
     --repo-path ../adk-python \
     --namespace google.adk \
     --output-dir benchmarks/benchmark_definitions/my_suite \
     --model-name gemini-3-pro-preview \
     --limit 100 \
-    --session-db prismatic_sessions.db
+    --session-db agentic_sessions.db
 ```
 
 ## Structure
 
 *   `agents.py`: MAS orchestration (Sequential, Loop, and Specialized Agents).
-*   `tools.py`: Core logic (Cartographer, BFS Strategist, Truth Lab, Sandbox).
+*   `tools.py`: Core logic (BFS Strategist, Truth Lab, Sandbox). Scanner logic is imported from `tools.target_ranker`.
 *   `logger.py`: Colored console logging and structured file tracing.
 *   `irt.py`: IRT-based prioritization scoring (Legacy support).
 
@@ -91,11 +91,11 @@ PYTHONPATH=. env/bin/python benchmarks/benchmark_generator/run_generator.py \
 The system relies on a set of specialized tools to map the codebase and prioritize testing targets.
 
 ### Primary Tools
-*   **`benchmarks/benchmark_generator/target_ranker.py`**: The main orchestrator. It triggers the repository scan, resolves inheritance hierarchies, applies filtering logic (like exclusion phrases), and generates the final reports.
-*   **`benchmarks/benchmark_generator/tools.py`**: Contains the core `scan_repository` logic. It uses a specialized AST visitor to map the framework's physical structure, extract full signatures, and identify property types.
+*   **`tools/target_ranker/ranker.py`**: The main orchestrator for ranking. It triggers the repository scan, resolves inheritance hierarchies, applies filtering logic (like exclusion phrases), and generates the final reports.
+*   **`tools/target_ranker/scanner.py`**: Contains the core `scan_repository` logic. It uses a specialized AST visitor to map the framework's physical structure, extract full signatures, and identify property types.
 *   **`tools/api_indexer.py`**: An AST-based usage scanner. It analyzes consumer code (samples and tests) to count how many times each class and method is called.
 
-### Data & Artifacts (`benchmarks/benchmark_generator/data/`)
+### Data & Artifacts (`tools/benchmark_generator/data/`)
 *   **`ranked_targets.yaml`**: The definitive dataset. 1,703+ public ADK entities enriched with **fully resolved FQN signatures** (e.g., `tool_config: typing.Optional[google.adk.types.ToolConfig]`), typed properties, clean docstrings, and grouped by inheritance. It is ranked by statistical relevance (usage in samples).
 *   **`ranked_targets.md`**: A human-readable prioritized list of the top targets (Seeds) and their internal reachability.
 

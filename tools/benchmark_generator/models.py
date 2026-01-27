@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Data models for Prismatic Evaluation."""
+"""Data models for Agentic Evaluation."""
 
 from typing import Any, Dict, List, Optional
 from enum import Enum

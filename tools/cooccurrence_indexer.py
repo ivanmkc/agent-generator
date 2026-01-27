@@ -9,7 +9,7 @@ likelihood that one component is used given the presence of another in the same 
 P(B | A) = Count(A and B) / Count(A)
 
 The output is a JSON file containing these associations, which is used by the 
-Prismatic Auditor and the Chain Prob Analyzer to build realistic, integrated 
+Agentic Auditor and the Chain Prob Analyzer to build realistic, integrated 
 benchmarking scenarios.
 
 Key tracking:

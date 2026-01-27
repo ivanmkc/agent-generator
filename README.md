@@ -4,17 +4,44 @@ This repository contains tools and benchmarks for generating and evaluating AI a
 
 ## Project Structure
 
-- **benchmarks/**: Contains benchmark definitions, generators, and runner infrastructure.
-  - `benchmark_definitions/`: YAML files defining specific benchmark cases (e.g., API understanding, error fixing).
-  - `benchmark_generator/`: Tools for generating benchmarks from data sources.
-  - `answer_generators/`: Implementations of agents/systems that attempt to solve the benchmarks.
-  - `runner/`: Infrastructure for executing benchmarks and collecting results.
+```text
+.
+├── benchmarks/                 # Execution Framework & Definitions
+│   ├── answer_generators/      # Candidate agents (ADK, Gemini, etc.)
+│   ├── benchmark_definitions/  # YAML test cases (API understanding, Fix Error)
+│   ├── runner/                 # Execution environments (Pytest, Docker)
+│   ├── tests/                  # Integration tests for the framework
+│   ├── benchmark_orchestrator.py
+│   └── benchmark_runner.py
+│
+├── tools/                      # Utilities & Generators
+│   ├── benchmark_generator/    # Agentic Benchmark Generator (Agentic)
+│   │   ├── agents.py           # Multi-agent orchestration
+│   │   ├── tools.py            # Sandbox & Truth Lab tools
+│   │   └── run_generator.py    # Entry point
+│   │
+│   ├── target_ranker/          # Static Analysis & Prioritization
+│   │   ├── ranker.py           # Ranking logic (BFS, Usage)
+│   │   ├── scanner.py          # AST Scanner & Type Resolver
+│   │   └── models.py           # Data schemas (RankedTarget)
+│   │
+│   ├── analysis/               # Forensic Analysis Engine
+│   ├── cli/                    # CLI tools (audit_failures, generate_report)
+│   ├── retrieval_dataset_generation/
+│   └── extract_apis_llm.py
+│
+├── repos/
+│   └── adk-python/             # The target codebase (Vendored)
+│
+└── ...
+```
 
-- **tools/**: Utility scripts for analysis, maintenance, and verification.
-  - `extract_apis_llm.py`: Tool for extracting API references from benchmark definitions.
-  - `verify_apis.py`: Tool for verifying that extracted APIs exist in the ADK codebase.
+### Key Directories
 
-- **repos/**: Contains vendored or referenced repositories (e.g., `adk-python`).
+- **benchmarks/**: The core execution engine. It loads YAML definitions and runs `AnswerGenerator` implementations against them.
+- **tools/benchmark_generator/**: An autonomous system that scans the `repos/` and generates new benchmark YAMLs.
+- **tools/target_ranker/**: A deterministic tool that maps the codebase structure and ranks APIs by importance/usage.
+- **tools/analysis/**: A hybrid (LLM + Stats) engine for analyzing why agents fail.
 
 ## Usage
 

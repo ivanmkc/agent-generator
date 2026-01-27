@@ -9,7 +9,7 @@
 **Hypothesis:** By creating two distinct, specialized `AgentTools`—one for Coding (V29) and one for Knowledge (Retrieval + QA Solver)—we can allow a simple `Delegator` to route requests effectively. This avoids the "Swiss Army Knife" problem where a single agent tries to do everything and gets confused about output formats.
 
 **Configuration:**
-*   **Coding Tool (`prismatic_solver_v29`):** The proven V29 pipeline.
+*   **Coding Tool (`agentic_solver_v29`):** The proven V29 pipeline.
 *   **Knowledge Tool (`knowledge_specialist`):** Retrieval Agents + `qa_solver` (optimized for JSON QA).
 *   **Delegator:** Routes based on intent.
 

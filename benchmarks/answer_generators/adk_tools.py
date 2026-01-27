@@ -26,7 +26,7 @@ import asyncio
 import functools
 import ast
 import sys
-from benchmarks.benchmark_generator.models import TargetEntity
+from tools.benchmark_generator.models import TargetEntity
 from tools.target_ranker.models import RankedTarget
 
 # Try to import yaml
@@ -332,9 +332,9 @@ class AdkTools:
 
     def _load_ranked_targets(self) -> List[RankedTarget]:
         candidates = [
-            self.workspace_root / "benchmarks/benchmark_generator/data/ranked_targets.yaml",
+            self.workspace_root / "tools/benchmark_generator/data/ranked_targets.yaml",
             self.workspace_root / "ranked_targets.yaml",
-            Path("benchmarks/benchmark_generator/data/ranked_targets.yaml"),
+            Path("tools/benchmark_generator/data/ranked_targets.yaml"),
             Path("ranked_targets.yaml"),
             Path(__file__).resolve().parent.parent.parent / "ranked_targets.yaml",
             Path(__file__).resolve().parent.parent / "benchmark_generator/data/ranked_targets.yaml"

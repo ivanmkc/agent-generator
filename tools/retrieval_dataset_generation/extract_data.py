@@ -125,7 +125,7 @@ class RetrievalDataExtractor:
 
 if __name__ == "__main__":
     extractor = RetrievalDataExtractor(
-        ranked_targets_path="benchmarks/benchmark_generator/data/ranked_targets.yaml",
+        ranked_targets_path="tools/benchmark_generator/data/ranked_targets.yaml",
         benchmarks_root="benchmarks"
     )
     extractor.load_ranked_targets()

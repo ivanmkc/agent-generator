@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Custom logger for Prismatic Generator events."""
+"""Custom logger for Agentic Generator events."""
 
 import datetime
 import json
@@ -26,8 +26,8 @@ from benchmarks.logger import BlockStyleDumper
 # Initialize colorama
 init(autoreset=True)
 
-class PrismaticLogger:
-    """Logs events from the Prismatic multi-agent system with color coding and structured file tracing."""
+class AgenticLogger:
+    """Logs events from the Agentic multi-agent system with color coding and structured file tracing."""
 
     AGENT_COLORS = {
         "Auditor": Fore.YELLOW,

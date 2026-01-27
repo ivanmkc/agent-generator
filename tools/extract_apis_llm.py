@@ -4,7 +4,7 @@ import re
 
 # Configuration
 BENCHMARK_ROOT = 'benchmarks/benchmark_definitions'
-RANKED_TARGETS_FILE = 'benchmarks/benchmark_generator/data/ranked_targets.yaml'
+RANKED_TARGETS_FILE = 'tools/benchmark_generator/data/ranked_targets.yaml'
 OUTPUT_FILE = 'extracted_apis_llm.yaml'
 
 def load_ranked_targets(filepath):

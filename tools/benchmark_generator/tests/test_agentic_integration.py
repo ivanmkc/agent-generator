@@ -13,7 +13,7 @@
 # limitations under the License.
 
 """
-Unit tests for the Prismatic Generator's core components.
+Unit tests for the Agentic Generator's core components.
 
 This suite verifies the individual tool functions (Scanning, Tracing, Sandboxing)
 and ensures that the multi-agent orchestration can be correctly instantiated
@@ -26,13 +26,13 @@ import asyncio
 from unittest.mock import MagicMock
 from google.adk.tools import ToolContext
 from google.adk.sessions import Session
-from benchmarks.benchmark_generator.tools import (
+from tools.benchmark_generator.tools import (
     trace_execution, validate_mutant, 
     save_benchmark_case, list_prioritized_targets, select_target
 )
-from benchmarks.benchmark_generator.agents import create_prismatic_agent, SemaphoreGemini
+from tools.benchmark_generator.agents import create_agentic_agent, SemaphoreGemini
 from benchmarks.api_key_manager import ApiKeyManager
-from benchmarks.benchmark_generator.models import TargetType
+from tools.benchmark_generator.models import TargetType
 
 @pytest.fixture
 def mock_context():
@@ -150,10 +150,10 @@ def test_save_benchmark_case(mock_context):
     assert mock_context.session.state["generated_benchmarks"][0]["question"] == "Q"
 
 def test_agent_creation():
-    """Sanity check that the Prismatic loop agent can be instantiated."""
-    agent = create_prismatic_agent()
+    """Sanity check that the Agentic loop agent can be instantiated."""
+    agent = create_agentic_agent()
     # Updated name expectation from agents.py
-    assert agent.name == "PrismaticRunner"
+    assert agent.name == "AgenticRunner"
 
 def test_semaphore_gemini_instantiation():
     """Verifies that the SemaphoreGemini class correctly stores the semaphore."""
@@ -162,11 +162,11 @@ def test_semaphore_gemini_instantiation():
     model = SemaphoreGemini(semaphore=sem, api_key_manager=akm, model="test")
     assert model._semaphore == sem
 
-def test_prismatic_agent_creation_with_manager():
+def test_agentic_agent_creation_with_manager():
     """Ensures the orchestrator correctly integrates with the ApiKeyManager."""
     akm = MagicMock(spec=ApiKeyManager)
-    agent = create_prismatic_agent(api_key_manager=akm, concurrency=5)
-    assert agent.name == "PrismaticRunner"
+    agent = create_agentic_agent(api_key_manager=akm, concurrency=5)
+    assert agent.name == "AgenticRunner"
 
 def test_list_prioritized_targets_with_coverage(mock_context):
     """Verifies that targets not present in coverage data are prioritized."""

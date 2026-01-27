@@ -13,7 +13,7 @@
 # limitations under the License.
 
 """
-Integration tests for the Prismatic Generator's state persistence.
+Integration tests for the Agentic Generator's state persistence.
 
 This module simulates system crashes and process restarts to verify that
 the SqliteSessionService correctly preserves the generation state, allowing
@@ -25,7 +25,7 @@ import json
 from unittest.mock import MagicMock
 from google.adk.sessions.sqlite_session_service import SqliteSessionService
 from google.adk.tools import ToolContext
-from benchmarks.benchmark_generator.tools import list_prioritized_targets, select_target
+from tools.benchmark_generator.tools import list_prioritized_targets, select_target
 
 @pytest.mark.asyncio
 async def test_session_resumption(tmp_path):

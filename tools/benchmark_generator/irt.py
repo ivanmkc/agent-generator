@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Item Response Theory (IRT) logic for the Prismatic Generator."""
+"""Item Response Theory (IRT) logic for the Agentic Generator."""
 
 import json
 import math

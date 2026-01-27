@@ -28,7 +28,7 @@ from pathlib import Path
 from typing import AsyncIterator, List, Dict, Optional, Set
 from collections import deque, defaultdict
 
-from benchmarks.benchmark_generator.models import TargetEntity, TargetType, ContextNode
+from tools.benchmark_generator.models import TargetEntity, TargetType, ContextNode
 
 logger = logging.getLogger(__name__)
 

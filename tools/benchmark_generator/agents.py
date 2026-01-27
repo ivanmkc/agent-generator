@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""ADK Agents for Prismatic Evaluation."""
+"""ADK Agents for Agentic Evaluation."""
 
 import asyncio
 import logging
@@ -25,12 +25,12 @@ from google.adk.tools import FunctionTool, exit_loop
 from google.genai import types
 from google.adk.events import Event, EventActions
 
-from benchmarks.benchmark_generator.tools import (
+from tools.benchmark_generator.tools import (
     trace_execution, validate_mutant, save_benchmark_case, 
     check_uniqueness, scan_repository, list_prioritized_targets, select_target,
     assemble_and_save_benchmark
 )
-from benchmarks.benchmark_generator.models import TargetEntity, TargetType, ObserverOutput, SaboteurOutput
+from tools.benchmark_generator.models import TargetEntity, TargetType, ObserverOutput, SaboteurOutput
 from benchmarks.data_models import MultipleChoiceBenchmarkCase
 from benchmarks.answer_generators.adk_agents import RotatingKeyGemini
 from benchmarks.api_key_manager import ApiKeyManager
@@ -348,11 +348,11 @@ def create_worker_pipeline(model: str | RotatingKeyGemini, mode: str) -> Agent:
 
 
 
-def create_prismatic_agent(model: str | RotatingKeyGemini, auditor_model: str | RotatingKeyGemini, repo_path: str, mode: str) -> Agent:
+def create_agentic_agent(model: str | RotatingKeyGemini, auditor_model: str | RotatingKeyGemini, repo_path: str, mode: str) -> Agent:
 
     """
 
-    Creates the top-level Prismatic Agent that orchestrates the entire generation process.
+    Creates the top-level Agentic Agent that orchestrates the entire generation process.
 
     It includes an 'Auditor' (Coordinator) that manages the target queue and a 'Worker' pipeline.
 
@@ -394,7 +394,7 @@ def create_prismatic_agent(model: str | RotatingKeyGemini, auditor_model: str | 
 
     return SequentialAgent(
 
-        name="PrismaticRunner",
+        name="AgenticRunner",
 
         sub_agents=[auditor, worker]
 

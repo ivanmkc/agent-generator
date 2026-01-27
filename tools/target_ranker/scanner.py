@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tools for the Prismatic Benchmark Generator agents."""
+"""Tools for the Agentic Benchmark Generator agents."""
 
 import ast
 import os
@@ -24,7 +24,7 @@ from typing import List, Dict, Any, Optional, Set
 from collections import defaultdict
 
 from google.adk.tools import ToolContext
-from benchmarks.benchmark_generator.models import TargetEntity, TargetType
+from tools.benchmark_generator.models import TargetEntity, TargetType
 
 # --- Scanner (Cartographer) Logic ---
 

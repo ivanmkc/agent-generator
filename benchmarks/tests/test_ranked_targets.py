@@ -3,7 +3,7 @@ import pytest
 from pathlib import Path
 import ast
 
-RANKED_TARGETS_PATH = Path("benchmarks/benchmark_generator/data/ranked_targets.yaml")
+RANKED_TARGETS_PATH = Path("tools/benchmark_generator/data/ranked_targets.yaml")
 REPO_ROOT = Path("repos/adk-python")
 
 def test_ranked_targets_integrity():

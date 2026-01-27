@@ -9,7 +9,7 @@ from collections import Counter, defaultdict
 # Add root to sys.path
 sys.path.append(os.getcwd())
 
-from benchmarks.benchmark_generator.models import TargetEntity, TargetType
+from tools.benchmark_generator.models import TargetEntity, TargetType
 
 def get_targets(repo_path, stats_path):
     root_dir = Path(repo_path).resolve()

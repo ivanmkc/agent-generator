@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tools for the Prismatic Benchmark Generator agents."""
+"""Tools for the Agentic Benchmark Generator agents."""
 
 import ast
 import os
@@ -28,9 +28,9 @@ from typing import List, Dict, Any, Optional, Set
 from collections import defaultdict, Counter, deque
 
 from google.adk.tools import ToolContext
-from benchmarks.benchmark_generator.models import TargetEntity, TargetType, GoldenSnapshot, DistractorOption, ValidationStatus, ContextNode
-from benchmarks.benchmark_generator.irt import IRTManager
-from benchmarks.benchmark_generator.logger import PrismaticLogger
+from tools.benchmark_generator.models import TargetEntity, TargetType, GoldenSnapshot, DistractorOption, ValidationStatus, ContextNode
+from tools.benchmark_generator.irt import IRTManager
+from tools.benchmark_generator.logger import AgenticLogger
 from tools.target_ranker.scanner import scan_repository
 
 # --- Scanner (Cartographer) Logic ---
@@ -284,7 +284,7 @@ def select_target(target_id: str, tool_context: ToolContext) -> str:
     
     # --- Trace Logging ---
     if output_dir:
-        logger = PrismaticLogger(output_dir=Path(output_dir))
+        logger = AgenticLogger(output_dir=Path(output_dir))
         # Recalculate queue stats for the log
         total_scanned = len(targets_data)
         remaining = total_scanned - len(processed_list)
@@ -747,11 +747,11 @@ def save_benchmark_case(tool_context: ToolContext, question: Optional[str] = Non
             current_list = []
         
         # Inject ID
-        normalized_case["id"] = f"prismatic_{int(time.time())}_{len(current_list)}"
+        normalized_case["id"] = f"agentic_{int(time.time())}_{len(current_list)}"
         
         # --- Persistence ---
         output_dir = state.get("output_dir")
-        raw_log_path = Path(output_dir) / "raw_benchmarks.jsonl" if output_dir else Path("prismatic_generated_raw.jsonl")
+        raw_log_path = Path(output_dir) / "raw_benchmarks.jsonl" if output_dir else Path("agentic_generated_raw.jsonl")
         yaml_path = Path(output_dir) / "benchmark_partial.yaml" if output_dir else None
         
         # 1. YAML (Strict)
@@ -783,7 +783,7 @@ def save_benchmark_case(tool_context: ToolContext, question: Optional[str] = Non
             processed = len(state.get("processed_targets_list", []))
             coverage_pct = (processed / total * 100) if total > 0 else 0.0
             
-            logger = PrismaticLogger(output_dir=Path(output_dir))
+            logger = AgenticLogger(output_dir=Path(output_dir))
             logger.log_trace("BENCHMARK_SAVED", {
                 "benchmark_id": normalized_case["id"],
                 "target_id": state.get("current_target_json", "{}"), # Best effort

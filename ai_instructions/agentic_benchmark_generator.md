@@ -1,8 +1,8 @@
-# Prismatic Benchmark Generator Development Log
+# Agentic Benchmark Generator Development Log
 
 ## 1. Overview & Objectives
-**Goal:** Implement a fully compliant **Prismatic Evaluation** architecture for repository-specific benchmarking using the ADK framework.
-**Context:** Static evaluation sets become stale; Prismatic generates dynamic, execution-verified benchmarks that target complex, uncovered logic in a target repository (specifically `adk-python`).
+**Goal:** Implement a fully compliant **Agentic Evaluation** architecture for repository-specific benchmarking using the ADK framework.
+**Context:** Static evaluation sets become stale; Agentic generates dynamic, execution-verified benchmarks that target complex, uncovered logic in a target repository (specifically `adk-python`).
 
 **Constraints & Requirements:**
 *   **Zero-Knowledge Rule:** The generator agents must not rely on pre-injected knowledge of the target repository. They must discover the topology and APIs dynamically using tools (`scan_repository`, `read_file`).
@@ -19,7 +19,7 @@
 *   **Closed-Loop Reliability**: Self-correcting agents (Saboteur/Referee loop) to minimize human-in-the-loop overhead.
 
 ### Core Components (Agent Architecture)
-*   **Topology**: **Hierarchical/Orchestrated MAS**. A `PrismaticRunner` orchestrates specialized agents and workers.
+*   **Topology**: **Hierarchical/Orchestrated MAS**. A `AgenticRunner` orchestrates specialized agents and workers.
 *   **Discovery Strategy**: **Automated Cartography**. AST-based mapping of structure and usage.
 *   **Prioritization Engine**: 
     *   **Relevancy**: Prioritizes targets that co-occur with major root nodes (e.g., `Agent`, `BaseTool`).
@@ -37,16 +37,16 @@
 **Step A: Unit Testing**
 ```bash
 # MANDATORY: Verify component logic (Scanner, Tracer, Sandbox)
-env/bin/python -m pytest benchmarks/benchmark_generator/test_prismatic.py benchmarks/benchmark_generator/test_resumption.py benchmarks/benchmark_generator/test_key_rotation.py
+env/bin/python -m pytest benchmarks/benchmark_generator/test_agentic.py benchmarks/benchmark_generator/test_resumption.py benchmarks/benchmark_generator/test_key_rotation.py
 ```
 
 **Step B: End-to-End Trial**
 ```bash
 # MANDATORY: Execute the generator on the target repo
 PYTHONPATH=. env/bin/python benchmarks/benchmark_generator/run_generator.py \
-    --type prismatic_adk \
+    --type agentic_adk \
     --repo-path ../adk-python \
-    --output-dir benchmarks/benchmark_definitions/prismatic_generated \
+    --output-dir benchmarks/benchmark_definitions/agentic_generated \
     --model gemini-3-pro-preview \
     --concurrency 1
 ```
@@ -124,12 +124,12 @@ PYTHONPATH=. env/bin/python benchmarks/benchmark_generator/run_generator.py \
 **Final Execution Command:**
 ```bash
 PYTHONPATH=. env/bin/python benchmarks/benchmark_generator/run_generator.py \
-    --type prismatic_adk \
-    --output-dir benchmarks/benchmark_definitions/prismatic_generated \
+    --type agentic_adk \
+    --output-dir benchmarks/benchmark_definitions/agentic_generated \
     --model-name gemini-3-pro-preview \
     --repo-path ../adk-python \
     --concurrency 2 \
-    --session-db prismatic_sessions.db \
+    --session-db agentic_sessions.db \
     --mode concept_mcq
 ```
 
