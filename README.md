@@ -28,7 +28,7 @@ This repository contains tools and benchmarks for generating and evaluating AI a
 │   ├── analysis/               # Forensic Analysis Engine
 │   ├── cli/                    # CLI tools (audit_failures, generate_report)
 │   ├── retrieval_dataset_generation/
-│   └── extract_apis_llm.py
+│   └── benchmark_verification/ # API Verification Tools
 │
 ├── repos/
 │   └── adk-python/             # The target codebase (Vendored)
@@ -53,12 +53,12 @@ To verify that the API references in the benchmark YAML files are valid:
 
 1. Extract API references:
    ```bash
-   env/bin/python tools/extract_apis_llm.py
+   env/bin/python tools/benchmark_verification/extract_apis_llm.py
    ```
 
 2. Verify existence:
    ```bash
-   env/bin/python tools/verify_apis.py
+   env/bin/python tools/benchmark_verification/verify_apis.py
    ```
 
 This will produce `extracted_apis_llm.yaml` and `api_verification_report.yaml`.

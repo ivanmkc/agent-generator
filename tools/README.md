@@ -37,6 +37,7 @@ This directory contains helper scripts and tools for analyzing benchmarks, debug
 *   `analysis/`: Analysis engine for understanding agent performance.
 *   `benchmark_generator/`: The Agentic Benchmark Generator module.
 *   `target_ranker/`: Static analysis tool for ranking codebase targets.
+*   `benchmark_verification/`: Tools for validating benchmark integrity.
 *   `cli/`: Command-line interfaces for analysis tools.
 *   `retrieval_dataset_generation/`: Tools for creating RAG datasets.
 *   `adk-knowledge-ext/`: ADK Knowledge extensions.
