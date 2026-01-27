@@ -1,6 +1,6 @@
 
 import pytest
-from benchmarks.benchmark_generator.target_ranker import TargetRanker
+from tools.target_ranker.ranker import TargetRanker
 
 class TestTargetRankerBlacklisting:
     

@@ -26,7 +26,8 @@ import asyncio
 import functools
 import ast
 import sys
-from benchmarks.benchmark_generator.models import RankedTarget
+from benchmarks.benchmark_generator.models import TargetEntity
+from tools.target_ranker.models import RankedTarget
 
 # Try to import yaml
 try:

@@ -1,7 +1,7 @@
 
 import pytest
 from unittest.mock import MagicMock
-from benchmarks.benchmark_generator.target_ranker import TargetRanker
+from tools.target_ranker.ranker import TargetRanker
 
 class TestTargetRankerLogic:
     

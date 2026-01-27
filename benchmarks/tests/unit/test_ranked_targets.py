@@ -3,7 +3,7 @@ from pathlib import Path
 from unittest.mock import patch, mock_open
 import yaml
 from benchmarks.answer_generators.adk_tools import AdkTools
-from benchmarks.benchmark_generator.models import RankedTarget
+from tools.target_ranker.models import RankedTarget
 
 class TestRankedTargets(unittest.TestCase):
     def setUp(self):
