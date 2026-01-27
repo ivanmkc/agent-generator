@@ -2,7 +2,7 @@
 
 This file documents the architectural designs of the Answer Generators used in the benchmark suite. It is used by the report generator to provide context for the AI analysis.
 
-## ranked_knowledge_bm25
+## gemini-cli:mcp_adk_agent_runner_ranked_knowledge
 
 **Source Image:** `gemini-cli:mcp_adk_agent_runner_ranked_knowledge`
 
@@ -21,6 +21,10 @@ Hierarchical Router-Gateway with Specialized Expert Agents
 ### Architecture Overview
 The system operates as a containerized Agent Generator. It employs a Router-Gateway pattern where an incoming request is first analyzed by a 'Router' agent. Based on intent, the request is dispatched to one of two primary sub-agent chains: the 'Implementation Planner' (Coding Expert) or the 'Single Step Solver' (Knowledge Expert). These experts leverage a custom Model Context Protocol (MCP) server to access a 'Ranked Knowledge Index' via specific tools. The entire lifecycle is wrapped in a rigorous benchmarking framework that executes agents in isolated containers.
 
+### Variants
+- **bm25 (Default):** Uses BM25/Hybrid search.
+- **keyword:** Uses pure Keyword search (baseline).
+
 ### Call Hierarchy
 ```mermaid
 graph TD
@@ -32,17 +36,6 @@ graph TD
     Worker -->|MCP Tool| MCP[search_adk_knowledge / inspect_adk_symbol]
     MCP --> Response[Response Generation]
 ```
-
-## ranked_knowledge_keyword
-
-**Source Image:** `gemini-cli:mcp_adk_agent_runner_ranked_knowledge`
-*(Variant using Keyword Search provider)*
-
-### Core Philosophy
-Same as `ranked_knowledge_bm25`, but configured to use a pure Keyword search strategy for the knowledge retrieval layer. This serves as a baseline to evaluate the impact of BM25/Semantic search ranking.
-
-### Architecture Overview
-Identical to `ranked_knowledge_bm25`. The `ADK_SEARCH_PROVIDER` environment variable is set to `keyword`.
 
 ## gemini-cli:base
 
