@@ -103,4 +103,4 @@ The system relies on a set of specialized tools to map the codebase and prioriti
 *   **`indexer_config_comprehensive.yaml`**: Configures the indexer to scan both `adk-samples/python` and `adk-python/contributing/samples` for a broad statistical base.
 *   **`.vscode/tasks.json`**: Contains automated tasks:
     *   `Recalculate API Usage Stats`: Runs the indexer.
-    *   `Regenerate Ranked Targets`: Runs the ranker to update the data files.
+    *   `Regenerate Ranked Targets`: Runs the ranker to update the data files.\n## Testing\n\nRun the agentic integration tests:\n```bash\npython -m pytest tools/benchmark_generator/tests/\n```

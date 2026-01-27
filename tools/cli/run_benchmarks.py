@@ -45,6 +45,7 @@ from benchmarks.logger import (
 )
 import benchmarks.analysis as analysis
 from tools.cli.generate_benchmark_report import analyze_run_logs
+from tools.constants import BENCHMARK_RUNS_DIR
 
 # Set pandas display options (needed for analysis functions)
 pd.set_option("display.max_colwidth", None)
@@ -297,7 +298,7 @@ async def main():
         run_output_dir = Path(run_output_dir_str)
     else:
         current_timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        run_output_dir = Path("benchmark_runs") / current_timestamp
+        run_output_dir = BENCHMARK_RUNS_DIR / current_timestamp
 
     run_output_dir.mkdir(parents=True, exist_ok=True)
 

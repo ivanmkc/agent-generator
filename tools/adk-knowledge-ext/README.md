@@ -35,3 +35,4 @@ Once installed, the tools are automatically available to the Gemini agent.
 > "How do I create a sequential agent?"
 > -> Agent calls `search_adk_knowledge("sequential agent")`
 > -> Agent calls `read_adk_source_code("google.adk.agents.sequential_agent.SequentialAgent")`
+\n## Testing\n\nRun the integration tests:\n```bash\npython -m pytest tools/adk-knowledge-ext/tests/\n```

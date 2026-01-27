@@ -11,6 +11,7 @@ Usage:
 
 import asyncio
 import json
+from pathlib import Path
 from asyncio import Semaphore
 from config import MODELS, MAX_CONCURRENCY
 from utils import load_prompts
@@ -47,9 +48,12 @@ async def run_analysis():
             result = create_vibeshare_result(model.model_name, prompt_item)
             results_list.append(result.to_dict())
 
-    with open('vibeshare_results.json', 'w') as f:
+    output_path = Path("tmp/outputs/vibeshare_results.json")
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    
+    with open(output_path, 'w') as f:
         json.dump(results_list, f, indent=2)
-    print(f"Analysis complete. Results saved to 'vibeshare_results.json'.")
+    print(f"Analysis complete. Results saved to '{output_path}'.")
 
 if __name__ == "__main__":
     asyncio.run(run_analysis())

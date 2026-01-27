@@ -4,7 +4,7 @@
     {
       "label": "Run All Benchmarks",
       "type": "shell",
-      "command": "./notebooks/run_benchmarks.sh",
+      "command": "./scripts/benchmark_run.sh",
       "group": "test",
       "presentation": {
         "reveal": "always",
@@ -16,7 +16,7 @@
     {
       "label": "Run Debug Benchmark",
       "type": "shell",
-      "command": "./notebooks/run_benchmarks.sh --suite-filter debug",
+      "command": "./scripts/benchmark_run.sh --suite-filter debug",
       "group": "test",
       "presentation": {
         "reveal": "always",
@@ -28,7 +28,7 @@
     {
       "label": "Run ADK Benchmarks: fix_error suite only",
       "type": "shell",
-      "command": "./notebooks/run_benchmarks.sh --generator-filter ADK_ --suite-filter fix_error",
+      "command": "./scripts/benchmark_run.sh --generator-filter ADK_ --suite-filter fix_error",
       "group": "test",
       "presentation": {
         "reveal": "always",
@@ -40,7 +40,7 @@
     {
       "label": "Run ADK Benchmarks: api_understanding suite only",
       "type": "shell",
-      "command": "./notebooks/run_benchmarks.sh --generator-filter ADK_ --suite-filter api_understanding",
+      "command": "./scripts/benchmark_run.sh --generator-filter ADK_ --suite-filter api_understanding",
       "group": "test",
       "presentation": {
         "reveal": "always",
@@ -52,7 +52,7 @@
     {
       "label": "Run ADK Benchmarks: fix_error suite only",
       "type": "shell",
-      "command": "./notebooks/run_benchmarks.sh --generator-filter ADK_ --suite-filter fix_error",
+      "command": "./scripts/benchmark_run.sh --generator-filter ADK_ --suite-filter fix_error",
       "group": "test",
       "presentation": {
         "reveal": "always",
@@ -64,7 +64,7 @@
     {
       "label": "Run GeminiCliPodman Benchmarks: All suites",
       "type": "shell",
-      "command": "./notebooks/run_benchmarks.sh --generator-filter GeminiCliPodman",
+      "command": "./scripts/benchmark_run.sh --generator-filter GeminiCliPodman",
       "group": "test",
       "presentation": {
         "reveal": "always",
@@ -76,7 +76,7 @@
     {
       "label": "Run Debug ADK Benchmark",
       "type": "shell",
-      "command": "./notebooks/run_benchmarks.sh --suite-filter debug --generator-filter ADK_",
+      "command": "./scripts/benchmark_run.sh --suite-filter debug --generator-filter ADK_",
       "group": "test",
       "presentation": {
         "reveal": "always",
@@ -88,7 +88,7 @@
     {
       "label": "Regenerate Generator Internals Docs",
       "type": "shell",
-      "command": "env/bin/python notebooks/report/update_generator_docs.py",
+      "command": "env/bin/python tools/utils/update_generator_docs.py",
       "group": "build",
       "presentation": {
         "reveal": "always",
@@ -184,7 +184,7 @@
     {
       "label": "Viewer",
       "type": "shell",
-      "command": "env/bin/python -m streamlit run tools/benchmark_viewer.py",
+      "command": "env/bin/python -m streamlit run tools/viewer/benchmark_viewer.py",
       "options": {
         "cwd": "${workspaceFolder}"
       },
@@ -270,7 +270,7 @@
     {
       "label": "Generate Executive Report (Latest Run)",
       "type": "shell",
-      "command": "export PYTHONPATH=$PYTHONPATH:. && env/bin/python tools/cli/generate_benchmark_report.py --model-name gemini-3-pro-preview",
+      "command": "export PYTHONPATH=$PYTHONPATH:. && env/bin/python tools/cli/generate_report.py --model-name gemini-3-pro-preview",
       "group": "build",
       "presentation": {
         "reveal": "always",

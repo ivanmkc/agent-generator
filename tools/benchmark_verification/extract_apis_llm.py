@@ -1,11 +1,12 @@
 import os
 import yaml
 import re
+from tools.constants import EXTRACTED_APIS_FILE
 
 # Configuration
 BENCHMARK_ROOT = 'benchmarks/benchmark_definitions'
 RANKED_TARGETS_FILE = 'tools/benchmark_generator/data/ranked_targets.yaml'
-OUTPUT_FILE = 'extracted_apis_llm.yaml'
+OUTPUT_FILE = str(EXTRACTED_APIS_FILE)
 
 def load_ranked_targets(filepath):
     """Load ranked targets and return a set of valid API IDs."""

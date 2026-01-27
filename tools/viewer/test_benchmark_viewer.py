@@ -9,7 +9,7 @@ import sys
 
 sys.modules["streamlit"] = MagicMock()
 
-from tools.benchmark_viewer import _get_concise_error_message, merge_consecutive_events, get_run_status
+from tools.viewer.benchmark_viewer import _get_concise_error_message, merge_consecutive_events, get_run_status
 from benchmarks.data_models import TraceLogEvent, TraceEventType
 
 
@@ -20,7 +20,7 @@ def test_get_run_status_completed(tmp_path, monkeypatch):
     (tmp_path / run_id / "results.json").write_text("[]")
     
     # Mock artifact_manager.get_file to use tmp_path
-    from tools import benchmark_viewer
+    from tools.viewer import benchmark_viewer
     monkeypatch.setattr(benchmark_viewer.artifact_manager, "get_file", lambda rid, fname: tmp_path / rid / fname if (tmp_path / rid / fname).exists() else None)
     
     assert get_run_status(run_id) == "Completed"
@@ -32,7 +32,7 @@ def test_get_run_status_pending(tmp_path, monkeypatch):
     (tmp_path / run_id).mkdir()
     (tmp_path / run_id / "trace.yaml").write_text("---")
     
-    from tools import benchmark_viewer
+    from tools.viewer import benchmark_viewer
     monkeypatch.setattr(benchmark_viewer.artifact_manager, "get_file", lambda rid, fname: tmp_path / rid / fname if (tmp_path / rid / fname).exists() else None)
     
     assert get_run_status(run_id) == "Pending/Failed"

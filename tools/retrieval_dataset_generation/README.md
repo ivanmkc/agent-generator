@@ -41,4 +41,4 @@ python tools/retrieval_dataset_generation/generate_report.py --input retrieval_d
 
 See `docs/design_docs/synthetic_retrieval_dataset.md` for a deep dive into the statistical methods used (Monte Carlo, Delta P, Adaptive Convergence).
 
-**Performance Note:** The validator uses **Dynamic Sampling** to reduce the presence of already-converged documents. Simulations show this reduces the required trials by **~22%** compared to fixed sampling.
+**Performance Note:** The validator uses **Dynamic Sampling** to reduce the presence of already-converged documents. Simulations show this reduces the required trials by **~22%** compared to fixed sampling.\n## Testing\n\nRun the validator tests:\n```bash\npython -m pytest tools/retrieval_dataset_generation/tests/\n```

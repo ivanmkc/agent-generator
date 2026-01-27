@@ -751,7 +751,7 @@ def save_benchmark_case(tool_context: ToolContext, question: Optional[str] = Non
         
         # --- Persistence ---
         output_dir = state.get("output_dir")
-        raw_log_path = Path(output_dir) / "raw_benchmarks.jsonl" if output_dir else Path("agentic_generated_raw.jsonl")
+        raw_log_path = Path(output_dir) / "raw_benchmarks.jsonl" if output_dir else Path("tmp/outputs/agentic_generated_raw.jsonl")
         yaml_path = Path(output_dir) / "benchmark_partial.yaml" if output_dir else None
         
         # 1. YAML (Strict)

@@ -17,7 +17,7 @@ if str(project_root) not in sys.path:
 
 def test_adk_index_validity():
     # Locate index relative to this test file
-    index_path = project_root / "benchmarks/adk_index.yaml"
+    index_path = project_root / "ai/instructions/knowledge/adk_index.yaml"
     
     if not index_path.exists():
         pytest.fail(f"Index file not found at {index_path}")

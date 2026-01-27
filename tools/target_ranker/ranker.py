@@ -60,7 +60,7 @@ class MockAgent(BaseAgent):
         if False: yield None
 
 class TargetRanker:
-    def __init__(self, repo_path: str, namespace: str = "google.adk", stats_file: str = "benchmarks/adk_stats_samples.yaml"):
+    def __init__(self, repo_path: str, namespace: str = "google.adk", stats_file: str = "ai/instructions/knowledge/adk_stats_samples.yaml"):
         self.repo_path = repo_path
         self.namespace = namespace
         self.stats_file = stats_file
@@ -191,7 +191,7 @@ class TargetRanker:
                     external_bases[cls_fqn].append(base)
 
         # Ranking
-        cooccurrence_path = Path("benchmarks/adk_cooccurrence.json")
+        cooccurrence_path = Path("ai/instructions/knowledge/adk_cooccurrence.json")
         entity_map = {t["id"]: t for t in targets_data}
         
         # Load co-occurrence if exists
@@ -393,9 +393,11 @@ class TargetRanker:
         if first_init_sig:
             return first_init_sig
 
-        return None
-
-    async def generate(self, output_yaml_path: str = "tools/benchmark_generator/data/ranked_targets.yaml", output_md_path: str = "tools/benchmark_generator/data/ranked_targets.md"):
+    async def generate(self, output_yaml_path: Optional[str] = None, output_md_path: Optional[str] = None):
+        from tools.constants import RANKED_TARGETS_FILE, RANKED_TARGETS_MD
+        output_yaml_path = output_yaml_path or str(RANKED_TARGETS_FILE)
+        output_md_path = output_md_path or str(RANKED_TARGETS_MD)
+        
         # Ensure output directory exists
         Path(output_yaml_path).parent.mkdir(parents=True, exist_ok=True)
         
@@ -497,7 +499,7 @@ class TargetRanker:
                     external_bases[cls_fqn].append(base)
 
         # Ranking
-        cooccurrence_path = Path("benchmarks/adk_cooccurrence.json")
+        cooccurrence_path = Path("ai/instructions/knowledge/adk_cooccurrence.json")
         entity_map = {t["id"]: t for t in targets_data}
         
         # Load co-occurrence if exists
@@ -693,8 +695,3 @@ class TargetRanker:
 
         logger.info("Done.")
 
-if __name__ == "__main__":
-    # Example usage for standalone run
-    logging.basicConfig(level=logging.INFO)
-    ranker = TargetRanker(repo_path="repos/adk-python", stats_file="benchmarks/adk_stats_samples.yaml")
-    asyncio.run(ranker.generate())

@@ -921,7 +921,7 @@ def _create_index_retrieval_agents(
 ) -> list[Agent]:
     """Creates index-based retrieval agents."""
     # Load index content
-    index_path = Path("benchmarks/adk_index.yaml")
+    index_path = Path("ai/instructions/knowledge/adk_index.yaml")
     if index_path.exists():
         with open(index_path, "r") as f:
             adk_index_content = f.read()

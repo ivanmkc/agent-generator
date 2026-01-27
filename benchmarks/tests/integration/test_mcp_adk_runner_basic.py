@@ -4,7 +4,7 @@ from pathlib import Path
 # Add the directory containing adk_agent_tool.py to the Python path for local testing
 # This assumes the test is run from the project root or the file structure is consistent
 project_root = Path(__file__).resolve().parent.parent.parent.parent
-adk_tool_path = project_root / "benchmarks" / "answer_generators" / "gemini_cli_docker" / "adk-python" / "src"
+adk_tool_path = project_root / "benchmarks" / "answer_generators" / "gemini_cli_docker" / "mcp_adk_agent_runner_basic" / "src"
 if str(adk_tool_path) not in sys.path:
     sys.path.append(str(adk_tool_path))
 

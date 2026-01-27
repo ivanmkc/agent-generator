@@ -35,7 +35,7 @@ The benchmark framework is orchestrated by `benchmark_orchestrator.py` and initi
 
 ### Key Components
 
-*   **`test_benchmarks.py`**: The main `pytest` entry point for validating the framework's integrity.
+*   **`benchmarks/tests/`**: The main `pytest` directory for validating the framework's integrity.
 *   **`benchmark_orchestrator.py`**: The central orchestrator that runs benchmarks in parallel, calls the appropriate runner for each case, and aggregates results into a list of `BenchmarkRunResult` objects.
 *   **`benchmark_runner.py`**: Defines strategies for executing benchmarks (e.g., `PytestBenchmarkRunner`). Each runner creates a persistent temporary file for its test case to allow for inspection after the run.
 *   **`answer_generators/`**: A package containing different code generation strategies (e.g., `GroundTruthAnswerGenerator`, `GeminiAnswerGenerator`).
@@ -55,18 +55,18 @@ These tests are not for evaluating candidates; they are for **validating the fra
 
  **To run the validation tests:**
 ```bash
-python -m pytest benchmarks/tests/integration/test_ground_truth_answer_generator.py --import-mode=importlib
+python -m pytest benchmarks/tests/integration/test_baseline_generators.py
 ```A successful run is a prerequisite for meaningful evaluation of other answer generators.
 
 ### Running Benchmark Tests
-To run all the benchmark tests directly, you can use the following command from the root of the project. **Crucially, you must use the `--import-mode=importlib` flag.** This flag ensures that Python's import system correctly handles the non-unique module names (`fixed.py`, `unfixed.py`) present in each test case directory.
+To run all the benchmark tests directly, you can use the following command from the root of the project.
 
 ```bash
-python -m pytest ./benchmarks/ --import-mode=importlib
+python -m pytest benchmarks/tests/
 ```
 To run tests in parallel, which can significantly speed up execution, use the following command:
 ```bash
-python -m pytest -n auto ./benchmarks/ --import-mode=importlib
+python -m pytest -n auto benchmarks/tests/
 ```
 
 ### 3. Running Benchmark Notebooks
@@ -76,21 +76,8 @@ For a comprehensive evaluation run that saves all artifacts (notebook, traces, r
 **Using the Shell Script:**
 From the project root:
 ```bash
-./scripts/run_benchmark_notebook.sh
+./scripts/benchmark_run.sh notebooks/run_benchmarks.py
 ```
-This will:
-1.  Create a timestamped directory (e.g., `benchmark_runs/2025-12-04_12-00-00`).
-2.  Execute `benchmark_run.ipynb` using `papermill`.
-3.  Save the executed notebook (`output.ipynb`) to that directory.
-4.  Configure the notebook to write all its logs and reports to the *same* directory.
-
-**Using VS Code:**
-You can also run this via the **Run Task** command:
-*   Press `Cmd+Shift+P` (or `Ctrl+Shift+P`).
-*   Select **Tasks: Run Task**.
-*   Choose **Run Benchmark Notebook (Timestamped)**.
-
-> **Note regarding Cloud Run:** If running benchmarks against Google Cloud Run, refer to `benchmarks/answer_generators/gemini_cli_docker/README.md` for important configuration details regarding concurrency and resource scaling.
 
 ### Verification Tools
 
@@ -111,7 +98,7 @@ This script is designed to proactively detect potential "answer leaks" in Multip
 ```bash
 # Ensure you have the GEMINI_API_KEY environment variable set.
 # Example: export GEMINI_API_KEY="YOUR_API_KEY"
-env/bin/python benchmarks/tests/verification/check_mc_leaks.py
+env/bin/python benchmarks/tests/verification/test_mc_leaks.py
 ```
 
 **Important Notes:**
@@ -125,14 +112,14 @@ To ensure that the API references (e.g., class names, methods) in the benchmark 
 1.  **Extract API References:**
     This script scans all benchmark YAMLs and extracts potential API references using heuristics and regex.
     ```bash
-    env/bin/python tools/extract_apis_llm.py
+    env/bin/python tools/benchmark_verification/extract_apis_llm.py
     ```
     This produces `extracted_apis_llm.yaml`.
 
 2.  **Verify Existence:**
     This script takes the extracted references and attempts to dynamically import them from the ADK source code.
     ```bash
-    env/bin/python tools/verify_apis.py
+    env/bin/python tools/benchmark_verification/verify_apis.py
     ```
     This produces `api_verification_report.yaml`, highlighting any missing or invalid references.
 

@@ -28,6 +28,7 @@ from google.adk.sessions.sqlite_session_service import SqliteSessionService
 from google.genai import types
 from benchmarks.api_key_manager import API_KEY_MANAGER
 from tools.benchmark_generator.logger import AgenticLogger
+from tools.constants import AGENTIC_SESSIONS_DB
 
 
 async def main():
@@ -73,7 +74,7 @@ async def main():
     )
     parser.add_argument("--concurrency", type=int, default=1, help="Max concurrent LLM requests.")
     parser.add_argument("--limit", type=int, default=100, help="Maximum number of benchmarks to generate (default: 100).")
-    parser.add_argument("--session-db", type=str, default="agentic_sessions.db", help="Path to SQLite session database.")
+    parser.add_argument("--session-db", type=str, default=str(AGENTIC_SESSIONS_DB), help="Path to SQLite session database.")
     parser.add_argument(
         "--mode",
         choices=["execution_mcq", "concept_mcq"],

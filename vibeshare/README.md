@@ -62,3 +62,4 @@ python -m pytest tests/unit
 ## Contributing
 
 Please ensure that any new data models are added to `data_models.py` and new model integrations follow the pattern in `models/`.
+\n## Testing\n\nRun the framework detection tests:\n```bash\npython -m pytest vibeshare/tests/\n```

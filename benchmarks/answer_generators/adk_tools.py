@@ -210,7 +210,7 @@ class AdkTools:
         """Lists files in a specific repository directory."""
         return self.list_directory(f"repos/{repo_name}/{dir_path}", ignore=ignore)
 
-    async def run_shell_command(self, command: str | List[str], dir_path: Optional[str] = None, extra_env: Optional[dict[str, str]] = None) -> str:
+    async def run_shell_command(self, command: str | List[str], dir_path: Optional[str] = None, extra_env: Optional[Any] = None) -> str:
         """Executes a shell command in the workspace asynchronously."""
         try:
             env = os.environ.copy()

@@ -47,4 +47,4 @@ This directory contains helper scripts and tools for analyzing benchmarks, debug
 *   `utils/`: Miscellaneous scripts.
 
 ## Legacy / Experimental
--   `extract_potential_frameworks.py` (Moved to `vibeshare/scripts/`)
+-   `extract_potential_frameworks.py` (Moved to `vibeshare/scripts/`)\n## Testing\n\nTo run tests for all tools:\n```bash\npython -m pytest tools/\n```

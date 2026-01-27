@@ -132,7 +132,7 @@ def clone_repo(url: str, branch: str = "main") -> Path:
 def main():
     parser = argparse.ArgumentParser(description="Generate Statistical API Index")
     parser.add_argument("--config", type=str, help="Path to YAML config file (sources)")
-    parser.add_argument("--output", type=str, default="api_metadata.yaml", help="Output YAML path")
+    parser.add_argument("--output", type=str, default="tmp/outputs/api_metadata.yaml", help="Output YAML path")
     # Quick mode: direct repo url
     parser.add_argument("--repo", type=str, help="Direct repo URL to analyze")
     parser.add_argument("--path", type=str, help="Subpath within repo (e.g. python/examples)")

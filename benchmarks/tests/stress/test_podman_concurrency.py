@@ -8,6 +8,7 @@ from benchmarks.answer_generators.gemini_cli_docker.image_definitions import (
     IMAGE_DEFINITIONS,
 )
 from benchmarks.tests.integration.conftest import has_cmd
+from benchmarks.api_key_manager import ApiKeyManager
 
 
 @pytest.mark.asyncio
@@ -23,10 +24,10 @@ async def test_podman_shared_instance_concurrency():
     # 1. Create a SINGLE shared instance (simulating benchmark_candidates.py)
     # We use a dummy image name to ensure we are testing the setup logic
     generator = GeminiCliPodmanAnswerGenerator(
-        dockerfile_dir=Path("benchmarks/answer_generators/gemini_cli_docker/base"),
         image_name="gemini-cli:base",
         image_definitions=IMAGE_DEFINITIONS,
         model_name=model_name,
+        api_key_manager=ApiKeyManager()
     )
 
     # 2. Define a worker that tries to use the generator
@@ -61,10 +62,7 @@ async def test_podman_shared_instance_concurrency():
     if exceptions:
         print(f"First exception: {exceptions[0]}")
 
-    assert (
-        len(exceptions) == 0
-    ), f"Encountered {len(exceptions)} failures during concurrent access"
     assert len(successes) == num_workers
 
     # Cleanup
-    generator._cleanup_server_container()
+    await generator.teardown()

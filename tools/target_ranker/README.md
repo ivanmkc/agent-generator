@@ -29,3 +29,4 @@ PYTHONPATH=. env/bin/python tools/target_ranker/ranker.py
 It generates:
 *   `tools/benchmark_generator/data/ranked_targets.yaml`: Detailed metadata for agents.
 *   `tools/benchmark_generator/data/ranked_targets.md`: Human-readable summary.
+\n## Testing\n\nRun the unit tests:\n```bash\npython -m pytest tools/target_ranker/tests/\n```

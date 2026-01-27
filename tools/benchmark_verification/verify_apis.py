@@ -2,9 +2,10 @@ import yaml
 import importlib
 import sys
 import os
+from tools.constants import EXTRACTED_APIS_FILE, API_VERIFICATION_REPORT
 
-INPUT_FILE = 'extracted_apis_llm.yaml'
-OUTPUT_REPORT = 'api_verification_report.yaml'
+INPUT_FILE = str(EXTRACTED_APIS_FILE)
+OUTPUT_REPORT = str(API_VERIFICATION_REPORT)
 
 def verify_api_existence(api_string):
     """
