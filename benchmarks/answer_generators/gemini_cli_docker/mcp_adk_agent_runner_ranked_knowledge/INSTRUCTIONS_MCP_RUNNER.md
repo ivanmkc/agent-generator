@@ -7,7 +7,11 @@ Before generating any code or answering questions, you MUST use your specialized
     *   *Do not skip this step.* It prevents hallucination by grounding you in the actual API structure.
 2.  **Inspect Symbols:** Once you identify a relevant class or function FQN from the list, use `inspect_adk_symbol(fqn="...")` to retrieve its exact signatures and docstrings.
 3.  **Read Source:** If you need deeper understanding or to see internal implementation details not fully captured by `inspect_adk_symbol`, use `read_adk_source_code(fqn="...")`.
-4.  **Last Resort Search:** Only use `search_adk_knowledge(query="keyword1 keyword2")` if you cannot find the functionality by browsing the module list. Keyword search is brittle; rely on the ranked module list first.
+4.  **Last Resort Search:** Only use `search_adk_knowledge(queries=["query1", "query2"])` if you cannot find the functionality by browsing the module list. 
+    *   You can pass a **single string** or a **list of strings** to search for multiple concepts at once.
+    *   *Example (Single):* `search_adk_knowledge(queries="LlmAgent instruction")`
+    *   *Example (Multiple):* `search_adk_knowledge(queries=["LlmAgent", "SequentialAgent", "state management"])`
+    *   Keyword search is brittle; rely on the ranked module list first.
 
 **CRITICAL PROTOCOL:**
 1.  **DO NOT HALLUCINATE.** Do not guess the API signature based on general conventions.
