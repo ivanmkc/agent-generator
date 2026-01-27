@@ -10,6 +10,7 @@ import asyncio
 import os
 import sys
 import json
+import yaml
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 
@@ -298,7 +299,9 @@ class LogAnalyzer:
         return "\n".join(context_parts)
 
     def _calculate_quantitative_stats(
-        self, results_df: pd.DataFrame, results_list: List[BenchmarkRunResult]
+        self,
+        results_df: pd.DataFrame,
+        results_list: List[BenchmarkRunResult],
     ) -> str:
         """Calculates quantitative statistics from the results DataFrame."""
         if results_df.empty:
@@ -310,8 +313,7 @@ class LogAnalyzer:
         stats_lines.append("| Metric | Definition | Calculation |")
         stats_lines.append("| :--- | :--- | :--- |")
         stats_lines.append(
-            "| **Overall Pass Rate** | Percentage of benchmark cases where the generator produced a correct, passing answer (Score = 1). | `(Passed Cases / Total Cases) * 100` |"
-        )
+            "| **Overall Pass Rate** | Percentage of benchmark cases where the generator produced a correct, passing answer (Score = 1). | `(Passed Cases / Total Cases) * 100` |")
         stats_lines.append(
             "| **Avg Latency** | Average execution time for *passing* cases only. | `Mean(Duration)` of successful runs. |"
         )
@@ -401,7 +403,9 @@ class LogAnalyzer:
         return "\n".join(stats_lines)
 
     async def _format_generator_logs(
-        self, generator_name: str, results_list: List[BenchmarkRunResult]
+        self,
+        generator_name: str,
+        results_list: List[BenchmarkRunResult],
     ) -> str:
         """
         Formats the execution logs for a specific generator into a structured text block for the LLM.
@@ -554,7 +558,10 @@ class LogAnalyzer:
         return "\n".join(lines)
 
     async def _analyze_generator(
-        self, generator_name: str, log_text: str, tool_stats_text: str = ""
+        self,
+        generator_name: str,
+        log_text: str,
+        tool_stats_text: str = "",
     ) -> GeneratorAnalysisSection:
         """
         Analyzes the logs for a single generator and returns a structured object.
@@ -593,7 +600,9 @@ class LogAnalyzer:
             )
 
     async def _generate_high_level_insights(
-        self, generator_summaries: str, quantitative_context: str
+        self,
+        generator_summaries: str,
+        quantitative_context: str,
     ) -> HighLevelInsights:
         """
         Generates the Executive Summary, Cross-Generator Comparison, and Recommendations based on
@@ -603,7 +612,7 @@ class LogAnalyzer:
         prompt = f"""
         You are a Lead AI Engineer creating a final Benchmark Execution Report.
         
-        Based on the quantitative data and generator summaries provided below, generate the high-level insights for the report.
+        Based on the quantitative data and generator summaries provided below, generate the high-level insights for the report. 
         
         **Quantitative Stats:**
         {quantitative_context}
@@ -628,7 +637,10 @@ class LogAnalyzer:
             )
 
     async def _analyze_attempt(
-        self, case_name: str, attempt_idx: int, attempt_analysis: Any
+        self,
+        case_name: str,
+        attempt_idx: int,
+        attempt_analysis: Any,
     ) -> Optional[ForensicInsight]:
         """Uses LLM to perform deep forensic analysis on a single attempt."""
 
@@ -662,7 +674,9 @@ class LogAnalyzer:
             return None
 
     async def _reduce_case_insights(
-        self, case_name: str, attempt_insights: List[ForensicInsight]
+        self,
+        case_name: str,
+        attempt_insights: List[ForensicInsight],
     ) -> Optional[CaseSummary]:
         """Reduces multiple attempt insights into a single case summary (Level 2)."""
         if not attempt_insights:
@@ -681,7 +695,9 @@ class LogAnalyzer:
             return None
 
     async def _summarize_generator_forensics(
-        self, generator_name: str, case_summaries: List[CaseSummary]
+        self,
+        generator_name: str,
+        case_summaries: List[CaseSummary],
     ) -> GeneratorForensicSummary:
         """Synthesizes individual case summaries into a generator-level diagnostic."""
 
@@ -830,7 +846,7 @@ class LogAnalyzer:
             return None
 
         try:
-            with open(cache_path, "r") as f:
+            with open(cache_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
 
             results = []
@@ -890,16 +906,34 @@ class LogAnalyzer:
 
         run_dir = log_path.parent
         generator_context = await self._load_static_context(run_dir)
-
-        results_path = run_dir / "results.json"
-
-        if not results_path.exists():
-            return "No results.json found."
+        
+        # Try YAML first (Standard Format)
+        results_path = run_dir / "results.yaml"
+        data = None
+        
+        if results_path.exists():
+            try:
+                try:
+                    from yaml import CLoader as Loader
+                except ImportError:
+                    from yaml import Loader
+                with open(results_path, "r", encoding="utf-8") as f:
+                    data = yaml.load(f, Loader=Loader)
+            except Exception as e:
+                return f"Error loading results.yaml: {e}"
+        else:
+            # Fallback to JSON (Legacy)
+            results_path = run_dir / "results.json"
+            if not results_path.exists():
+                return "No results.yaml or results.json found."
+            
+            try:
+                with open(results_path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+            except Exception as e:
+                return f"Error loading results.json: {e}"
 
         try:
-            with open(results_path, "r", encoding="utf-8") as f:
-                data = json.load(f)
-
             TypeAdapter = pydantic.TypeAdapter(List[BenchmarkRunResult])
             results_list = TypeAdapter.validate_python(data)
             results_df = process_results(results_list)
@@ -911,8 +945,8 @@ class LogAnalyzer:
             suite_context = self._get_suite_context(results_df)
 
         except Exception as e:
-            print(f"Error loading/processing results.json: {e}")
-            return f"Error analyzing results: {e}"
+            print(f"Error processing results data: {e}")
+            return f"Error processing results: {e}"
 
         # 1. Map: Analyze each Generator Independently
         generator_analyses: List[GeneratorAnalysisSection] = []
@@ -1102,7 +1136,7 @@ class LogAnalyzer:
                     lines.append("> **Strategic Recommendations:**")
                     for rec in ai_gen.strategic_recommendations:
                         lines.append(f"> * {rec}")
-                    lines.append("")
+                    lines.append("\n")
 
                 # 2. List Failed Cases
                 failed_cases = sorted(
