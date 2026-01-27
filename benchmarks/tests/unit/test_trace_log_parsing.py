@@ -1,3 +1,5 @@
+"""Test Trace Log Parsing module."""
+
 import pytest
 from pathlib import Path
 from benchmarks.utils import parse_cli_stream_json_output

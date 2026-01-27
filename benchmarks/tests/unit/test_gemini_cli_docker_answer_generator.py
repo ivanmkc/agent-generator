@@ -1,3 +1,5 @@
+"""Test Gemini Cli Docker Answer Generator module."""
+
 # Copyright 2025 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -33,6 +35,7 @@ async def test_docker_command_construction_api_key():
 
     with patch.dict(os.environ, {"GEMINI_API_KEY": "test-key"}, clear=True):
         from benchmarks.api_key_manager import ApiKeyManager
+
         mock_akm = MagicMock(spec=ApiKeyManager)
         mock_akm.get_key_for_run = AsyncMock(return_value=("test-key", "key-id"))
         mock_akm.report_result = AsyncMock()
@@ -40,7 +43,7 @@ async def test_docker_command_construction_api_key():
         generator = GeminiCliDockerAnswerGenerator(
             model_name="gemini-2.5-flash",
             image_name="gemini-cli:adk-python",
-            api_key_manager=mock_akm
+            api_key_manager=mock_akm,
         )
         generator._setup_completed = True
 
@@ -157,13 +160,13 @@ async def test_docker_command_construction_vertex_adc():
 
     with patch.dict(os.environ, env_vars, clear=True):
         from benchmarks.api_key_manager import ApiKeyManager
+
         mock_akm = MagicMock(spec=ApiKeyManager)
         mock_akm.get_key_for_run = AsyncMock(return_value=("test-key", "key-id"))
         mock_akm.report_result = AsyncMock()
 
         generator = GeminiCliDockerAnswerGenerator(
-            image_name="gemini-cli:adk-python",
-            api_key_manager=mock_akm
+            image_name="gemini-cli:adk-python", api_key_manager=mock_akm
         )
         generator._setup_completed = True
 

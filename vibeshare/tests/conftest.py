@@ -1,3 +1,5 @@
+"""Conftest module."""
+
 import sys
 from pathlib import Path
 

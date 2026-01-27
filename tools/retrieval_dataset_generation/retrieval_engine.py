@@ -1,3 +1,14 @@
+"""
+Core engine for Retrieval Augmented Generation (RAG) evaluation.
+
+This library provides the building blocks for:
+1. Retrievers: Implementations of BM25, Embedding, Random, and Gold-Miner retrieval strategies.
+2. Models: Pydantic schemas for RetrievalCases, Contexts, and Datasets.
+3. Evaluation: Logic to compute Recall@K and MRR (Mean Reciprocal Rank) metrics.
+
+It is used by the `run_retrieval_eval.py` CLI tool.
+"""
+
 import yaml
 import numpy as np
 import random
@@ -12,48 +23,72 @@ import os
 import asyncio
 from tqdm.asyncio import tqdm
 
+
 # --- Configuration ---
 class ValidatorConfig(BaseModel):
     """
     Configuration for the Monte Carlo validation process.
     """
-    monte_carlo_trials: int = Field(40, description="Max trials per case (Fixed mode) or max trials limit (Adaptive mode).")
-    adaptive_min_n: int = Field(15, description="Minimum trials before checking convergence.")
-    adaptive_max_n: int = Field(500, description="Maximum trials allowed in adaptive mode.")
-    se_threshold: float = Field(0.1, description="Standard Error threshold for convergence stopping.")
+
+    monte_carlo_trials: int = Field(
+        40,
+        description="Max trials per case (Fixed mode) or max trials limit (Adaptive mode).",
+    )
+    adaptive_min_n: int = Field(
+        15, description="Minimum trials before checking convergence."
+    )
+    adaptive_max_n: int = Field(
+        500, description="Maximum trials allowed in adaptive mode."
+    )
+    se_threshold: float = Field(
+        0.1, description="Standard Error threshold for convergence stopping."
+    )
     gold_miner_k: int = Field(3, description="Number of 'gold' candidates to include.")
     vector_search_k: int = Field(15, description="Number of vector search candidates.")
     random_noise_n: int = Field(20, description="Number of random noise candidates.")
     concurrency: int = Field(5, description="Number of concurrent trials to run.")
-    sampling_probability: float = Field(0.1, description="Probability of including a specific candidate in a trial context.")
-    log_file: str = Field("logs/validation_events.yaml", description="Path to the structured event log.")
+    sampling_probability: float = Field(
+        0.1,
+        description="Probability of including a specific candidate in a trial context.",
+    )
+    log_file: str = Field(
+        "logs/validation_events.yaml", description="Path to the structured event log."
+    )
+
 
 # --- Data Models ---
+
 
 class RetrievalResultMetadata(BaseModel):
     """
     Metadata capturing the empirical performance of a retrieval candidate.
     """
+
     delta_p: float = Field(
-        0.0, 
+        0.0,
         description="Impact Score: The change in success probability when this document is present vs absent. "
-                    "Range: [-1.0, 1.0]. Positive values indicate the document helps; negative values indicate it harms."
+        "Range: [-1.0, 1.0]. Positive values indicate the document helps; negative values indicate it harms.",
     )
     p_in: float = Field(
         0.0,
-        description="Probability of Success given IN: Success rate of trials where this document was included in the context."
+        description="Probability of Success given IN: Success rate of trials where this document was included in the context.",
     )
     p_out: float = Field(
         0.0,
-        description="Probability of Success given OUT: Success rate of trials where this document was excluded from the context."
+        description="Probability of Success given OUT: Success rate of trials where this document was excluded from the context.",
     )
-    n_in: int = Field(0, description="Number of trials where this document was included.")
-    n_out: int = Field(0, description="Number of trials where this document was excluded.")
+    n_in: int = Field(
+        0, description="Number of trials where this document was included."
+    )
+    n_out: int = Field(
+        0, description="Number of trials where this document was excluded."
+    )
     se_in: float = Field(0.0, description="Standard Error of p_in.")
     se_out: float = Field(0.0, description="Standard Error of p_out.")
-    
+
     # Allow extra fields
-    model_config = ConfigDict(extra='allow')
+    model_config = ConfigDict(extra="allow")
+
 
 class RetrievalContext(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
@@ -63,10 +98,11 @@ class RetrievalContext(BaseModel):
     empirical_relevance: str = "UNKNOWN"
     metadata: RetrievalResultMetadata = Field(default_factory=RetrievalResultMetadata)
 
+
 class RetrievalCase(BaseModel):
     """
     Represents a single benchmark case for retrieval evaluation.
-    
+
     Attributes:
         id: Unique identifier for the case.
         query: The natural language query or task.
@@ -75,10 +111,11 @@ class RetrievalCase(BaseModel):
         source: The original benchmark suite (e.g., 'api_understanding').
         metadata: Flexible storage for benchmark-specific data.
         ground_truth: The target answer or code for validation.
-        is_sufficient_set: If True, the entire candidate pool together is 
+        is_sufficient_set: If True, the entire candidate pool together is
             proven to be enough to solve the task.
         candidates: The pool of all candidates being validated for this case.
     """
+
     id: str
     query: str
     positive_ctxs: List[RetrievalContext] = Field(default_factory=list)
@@ -87,31 +124,39 @@ class RetrievalCase(BaseModel):
     metadata: Dict[str, Any]
     ground_truth: Dict[str, Any] = Field(default_factory=dict)
     is_sufficient_set: bool = False
-    candidates: List[RetrievalContext] = Field(default_factory=list) # Unified pool
+    candidates: List[RetrievalContext] = Field(default_factory=list)  # Unified pool
+
 
 class RetrievalDataset(BaseModel):
     """A collection of verified retrieval cases."""
+
     cases: List[RetrievalCase]
+
 
 class RankedTarget(BaseModel):
     """A simplified representation of a code symbol for retrieval."""
-    id: str # FQN
+
+    id: str  # FQN
     name: str
     docstring: str = ""
-    
+
     @property
     def corpus_text(self) -> str:
         """Text used for indexing by BM25 and Embeddings."""
         return f"{self.name} {self.id} {self.docstring}"
 
+
 # --- Logging Models ---
 class BaseLogEvent(BaseModel):
     """Base for structured YAML logging of validation trials."""
+
     timestamp: float = Field(default_factory=time.time)
     event: str
 
+
 class TrialCompleteEvent(BaseLogEvent):
     """Logged when a single Monte Carlo trial finishes."""
+
     event: Literal["trial_complete"] = "trial_complete"
     case_id: str
     trial_index: int
@@ -122,8 +167,10 @@ class TrialCompleteEvent(BaseLogEvent):
     generated_output: Optional[str] = None
     validation_error: Optional[str] = None
 
+
 class ConvergenceCheckEvent(BaseLogEvent):
     """Logged when checking statistical convergence across all candidates."""
+
     event: Literal["convergence_check"] = "convergence_check"
     case_id: str
     trial_index: int
@@ -131,59 +178,75 @@ class ConvergenceCheckEvent(BaseLogEvent):
     se_map: Dict[str, float]
     threshold: float
 
+
 class ValidationStartEvent(BaseLogEvent):
     """Logged when a new validation batch starts."""
+
     event: Literal["validation_start"] = "validation_start"
     mode: str
     case_count: int
 
+
 class PoolGeneratedEvent(BaseLogEvent):
     """Logged after retrievers generate the initial candidate pool."""
+
     event: Literal["pool_generated"] = "pool_generated"
     case_id: str
     pool_size: int
 
+
 class CaseSkippedEvent(BaseLogEvent):
     """Logged when a case is skipped due to zero-context baseline passing."""
+
     event: Literal["case_skipped"] = "case_skipped"
     case_id: str
     reason: str
     baseline_success_rate: float
     threshold: float
 
+
 class CandidateDowngradedEvent(BaseLogEvent):
     """Logged when a candidate's sampling probability is reduced due to convergence."""
+
     event: Literal["candidate_downgraded"] = "candidate_downgraded"
     case_id: str
     fqn: str
     se_diff: float
     new_prob: float
 
+
 class PoolingViolationEvent(BaseLogEvent):
     """
-    Logged when a document from the random noise set shows significant 
+    Logged when a document from the random noise set shows significant
     positive impact, suggesting the candidate pool might be incomplete.
     """
+
     event: Literal["pooling_violation"] = "pooling_violation"
     case_id: str
     fqn: str
     delta_p: float
 
+
 # --- Retrievers ---
 class AbstractRetriever(ABC):
     """Base interface for retrieving candidate documents for a query."""
+
     @abstractmethod
     async def index(self, documents: List[RankedTarget]):
         """Indexes the target corpus."""
         pass
 
     @abstractmethod
-    async def search(self, query: str, top_k: int = 5, case: Optional[RetrievalCase] = None) -> List[RankedTarget]:
+    async def search(
+        self, query: str, top_k: int = 5, case: Optional[RetrievalCase] = None
+    ) -> List[RankedTarget]:
         """Returns top K matches for the query."""
         pass
 
+
 class BM25Retriever(AbstractRetriever):
     """Standard keyword-based retriever using BM25Okapi."""
+
     def __init__(self):
         self.bm25 = None
         self.documents = []
@@ -193,22 +256,29 @@ class BM25Retriever(AbstractRetriever):
         tokenized_corpus = [doc.corpus_text.lower().split() for doc in documents]
         self.bm25 = BM25Okapi(tokenized_corpus)
 
-    async def search(self, query: str, top_k: int = 5, case: Optional[RetrievalCase] = None) -> List[RankedTarget]:
+    async def search(
+        self, query: str, top_k: int = 5, case: Optional[RetrievalCase] = None
+    ) -> List[RankedTarget]:
         tokenized_query = query.lower().split()
         scores = self.bm25.get_scores(tokenized_query)
         top_n = np.argsort(scores)[::-1][:top_k]
         return [self.documents[i] for i in top_n]
 
+
 EMBEDDING_MODEL = "text-embedding-004"
+
 
 class EmbeddingRetriever(AbstractRetriever):
     """Semantic retriever using Vertex AI / Google GenAI embeddings."""
+
     def __init__(self, api_key: str):
         self.client = genai.Client(api_key=api_key)
         self.documents = []
         self.embeddings = None
 
-    async def _get_embeddings_batched(self, texts: List[str], batch_size: int = 100) -> np.ndarray:
+    async def _get_embeddings_batched(
+        self, texts: List[str], batch_size: int = 100
+    ) -> np.ndarray:
         all_embeddings = []
         for i in range(0, len(texts), batch_size):
             batch = texts[i : i + batch_size]
@@ -229,7 +299,7 @@ class EmbeddingRetriever(AbstractRetriever):
         corpus_texts = [doc.corpus_text for doc in documents]
         cache_path = Path(".gemini/cache/vectors.npy")
         print(f"Indexing {len(documents)} documents. Cache path: {cache_path}")
-        
+
         if cache_path.exists():
             cached = np.load(cache_path)
             if len(cached) == len(documents):
@@ -242,10 +312,12 @@ class EmbeddingRetriever(AbstractRetriever):
         cache_path.parent.mkdir(parents=True, exist_ok=True)
         np.save(cache_path, self.embeddings)
 
-    async def search(self, query: str, top_k: int = 5, case: Optional[RetrievalCase] = None) -> List[RankedTarget]:
+    async def search(
+        self, query: str, top_k: int = 5, case: Optional[RetrievalCase] = None
+    ) -> List[RankedTarget]:
         if self.embeddings is None:
             raise ValueError("Retriever index not loaded.")
-            
+
         # Use CODE_RETRIEVAL_QUERY for code/ADK symbol search
         # Note: Previous run failed with 400 because text-embedding-004 might not support CODE_RETRIEVAL_QUERY yet
         # or the client lib mapping is specific. Reverting to RETRIEVAL_QUERY for safety as per turn 112 fix.
@@ -259,19 +331,25 @@ class EmbeddingRetriever(AbstractRetriever):
         top_n = np.argsort(scores)[::-1][:top_k]
         return [self.documents[i] for i in top_n]
 
+
 class RandomRetriever(AbstractRetriever):
     """Retriever that samples documents randomly to serve as a statistical control group."""
+
     def __init__(self):
         self.documents = []
 
     async def index(self, documents: List[RankedTarget]):
         self.documents = documents
 
-    async def search(self, query: str, top_k: int = 5, case: Optional[RetrievalCase] = None) -> List[RankedTarget]:
+    async def search(
+        self, query: str, top_k: int = 5, case: Optional[RetrievalCase] = None
+    ) -> List[RankedTarget]:
         return random.sample(self.documents, min(top_k, len(self.documents)))
+
 
 class GoldMinerRetriever(AbstractRetriever):
     """Retrieves candidates based on 'Gold' metadata already present in the benchmark case."""
+
     def __init__(self):
         self.documents = []
         self.fqn_map = {}
@@ -280,47 +358,59 @@ class GoldMinerRetriever(AbstractRetriever):
         self.documents = documents
         self.fqn_map = {doc.id: doc for doc in documents}
 
-    async def search(self, query: str, top_k: int = 5, case: Optional[RetrievalCase] = None) -> List[RankedTarget]:
+    async def search(
+        self, query: str, top_k: int = 5, case: Optional[RetrievalCase] = None
+    ) -> List[RankedTarget]:
         if not case:
             return []
-        
+
         results = []
         for ctx in case.positive_ctxs:
             if ctx.fqn in self.fqn_map:
                 results.append(self.fqn_map[ctx.fqn])
-        
+
         return results
+
 
 # --- Evaluation ---
 class RetrievalEvaluator:
     """Evaluates retriever performance against a verified retrieval dataset."""
-    def __init__(self, dataset_path: str, targets_path: str):
-        with open(dataset_path, 'r') as f:
-            self.dataset = RetrievalDataset.model_validate(yaml.safe_load(f))
-        
-        with open(targets_path, 'r') as f:
-            data = yaml.safe_load(f)
-            raw_targets = data if isinstance(data, list) else data.get('targets', [])
-            self.targets = [RankedTarget(id=t['id'], name=t['name'], docstring=t.get('docstring', '')) for t in raw_targets if t.get('id')]
 
-    async def run_benchmark(self, retriever: AbstractRetriever, name: str) -> Dict[str, float]:
+    def __init__(self, dataset_path: str, targets_path: str):
+        with open(dataset_path, "r") as f:
+            self.dataset = RetrievalDataset.model_validate(yaml.safe_load(f))
+
+        with open(targets_path, "r") as f:
+            data = yaml.safe_load(f)
+            raw_targets = data if isinstance(data, list) else data.get("targets", [])
+            self.targets = [
+                RankedTarget(
+                    id=t["id"], name=t["name"], docstring=t.get("docstring", "")
+                )
+                for t in raw_targets
+                if t.get("id")
+            ]
+
+    async def run_benchmark(
+        self, retriever: AbstractRetriever, name: str
+    ) -> Dict[str, float]:
         """
         Runs Recall@K and MRR benchmarks for a specific retriever.
-        A retrieval is successful if a ground-truth relevant document (from 
+        A retrieval is successful if a ground-truth relevant document (from
         positive_ctxs) appears in the top K results.
         """
         await retriever.index(self.targets)
-        
+
         recall_at_1 = 0
         recall_at_5 = 0
         mrr = 0
-        
+
         print(f"Benchmarking {name}...")
         for case in tqdm(self.dataset.cases):
             gold_fqns = {ctx.fqn for ctx in case.positive_ctxs}
             results = await retriever.search(case.query, top_k=5, case=case)
             result_fqns = [r.id for r in results]
-            
+
             if result_fqns and result_fqns[0] in gold_fqns:
                 recall_at_1 += 1
             if any(fqn in gold_fqns for fqn in result_fqns):
@@ -329,11 +419,11 @@ class RetrievalEvaluator:
                 if fqn in gold_fqns:
                     mrr += 1.0 / (i + 1)
                     break
-        
+
         total = len(self.dataset.cases)
         return {
             "model": name,
             "recall@1": recall_at_1 / total,
             "recall@5": recall_at_5 / total,
-            "mrr": mrr / total
+            "mrr": mrr / total,
         }

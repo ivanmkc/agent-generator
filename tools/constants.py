@@ -1,3 +1,11 @@
+"""
+Global Constants and File Paths.
+
+This module defines the central configuration for file paths and directories used across
+the project. It ensures that output directories exist and provides consistent access
+to artifact locations.
+"""
+
 from pathlib import Path
 
 # Project Root (calculated relative to tools/constants.py)
@@ -21,12 +29,14 @@ VIBESHARE_RESULTS_FILE = OUTPUT_ROOT / "vibeshare_results.json"
 RANKED_TARGETS_FILE = GENERATED_BENCHMARKS_DIR / "ranked_targets.yaml"
 RANKED_TARGETS_MD = GENERATED_BENCHMARKS_DIR / "ranked_targets.md"
 
+
 # Ensure dirs exist
 def ensure_output_dirs():
     OUTPUT_ROOT.mkdir(parents=True, exist_ok=True)
     BENCHMARK_RUNS_DIR.mkdir(parents=True, exist_ok=True)
     GENERATED_BENCHMARKS_DIR.mkdir(parents=True, exist_ok=True)
     REPORTS_DIR.mkdir(parents=True, exist_ok=True)
+
 
 # Call explicitly when importing if side-effects are desired, or let consumers call it.
 ensure_output_dirs()

@@ -1,3 +1,5 @@
+"""Test Adk Tools module."""
+
 # Copyright 2025 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -36,15 +38,16 @@ from benchmarks.answer_generators.adk_tools import AdkTools
 
 
 class TestAdkTools(unittest.IsolatedAsyncioTestCase):
+
     def setUp(self):
         self.workspace_dir = tempfile.mkdtemp()
         self.workspace_path = Path(self.workspace_dir)
-        
+
         # Use local 'env' as venv_path if available, to support running agents in tests
         venv_path = None
         if Path("env").exists():
             venv_path = Path("env").resolve()
-            
+
         self.tools = AdkTools(self.workspace_path, venv_path=venv_path)
 
     def tearDown(self):
@@ -84,12 +87,14 @@ class TestAdkTools(unittest.IsolatedAsyncioTestCase):
             outside_file = Path(outside_dir) / "secret.txt"
             with open(outside_file, "w") as f:
                 f.write("secret")
-            
+
             # Try to access it via ..
             # Note: _resolve_path prevents this by resolving canonical paths
-            result = self.tools.read_file(f"../{os.path.basename(outside_dir)}/secret.txt")
+            result = self.tools.read_file(
+                f"../{os.path.basename(outside_dir)}/secret.txt"
+            )
             self.assertIn("Access denied", result)
-            
+
             # Try absolute path outside
             result_abs = self.tools.read_file(str(outside_file))
             self.assertIn("Access denied", result_abs)
@@ -133,22 +138,22 @@ class TestAdkTools(unittest.IsolatedAsyncioTestCase):
         filename = "wide_line.txt"
         long_line = "A" * 1500  # Exceeds 1000 char limit
         self.tools.write_file(filename, long_line)
-        
+
         result = self.tools.read_file(filename)
         self.assertIn("IMPORTANT: The file content has been truncated", result)
         # self.assertIn("Status: Some lines exceeded 1000 characters and were shortened.", result) # Removed brittle check
         # Check that it ends with truncation marker
         self.assertIn("... [line truncated]", result)
         # Length of content part (roughly)
-        self.assertLess(len(result), 2000) # Message + 1000 chars
+        self.assertLess(len(result), 2000)  # Message + 1000 chars
 
     def test_read_file_binary(self):
         filename = "binary.bin"
         full_path = self.workspace_path / filename
         # Write invalid utf-8 bytes
         with open(full_path, "wb") as f:
-            f.write(b'\x80\x81')
-        
+            f.write(b"\x80\x81")
+
         result = self.tools.read_file(filename)
         self.assertIn("Error: File binary.bin appears to be binary", result)
 
@@ -158,31 +163,33 @@ class TestAdkTools(unittest.IsolatedAsyncioTestCase):
         filename = "code.py"
         content = "def foo():\n    return 1\n"
         self.tools.write_file(filename, content)
-        
+
         result = self.tools.replace_text(filename, "return 1", "return 2")
         self.assertIn("Successfully replaced 1 occurrence", result)
-        
+
         new_content = self.tools.read_file(filename)
         self.assertEqual(new_content, "def foo():\n    return 2\n")
 
     def test_replace_text_not_found(self):
         filename = "code.py"
         self.tools.write_file(filename, "content")
-        
+
         result = self.tools.replace_text(filename, "missing", "new")
         self.assertIn("Error: `old_string` not found", result)
 
     def test_replace_text_count_mismatch(self):
         filename = "code.py"
         self.tools.write_file(filename, "a a a")
-        
+
         # Default expected is 1, but found 3
         result = self.tools.replace_text(filename, "a", "b")
         self.assertIn("Error: Expected 1 matches, found 3.", result)
         # self.assertIn("found 3", result) # Redundant now
-        
+
         # Explicit correct count
-        result_success = self.tools.replace_text(filename, "a", "b", expected_replacements=3)
+        result_success = self.tools.replace_text(
+            filename, "a", "b", expected_replacements=3
+        )
         self.assertIn("Successfully replaced 3", result_success)
         self.assertEqual(self.tools.read_file(filename), "b b b")
 
@@ -207,7 +214,7 @@ class TestAdkTools(unittest.IsolatedAsyncioTestCase):
         self.tools.write_file("a.txt", "")
         self.tools.write_file("b.txt", "")
         os.makedirs(self.workspace_path / "sub")
-        
+
         result = self.tools.list_directory(".")
         self.assertIn("[DIR] sub", result)
         self.assertIn("a.txt", result)
@@ -216,13 +223,13 @@ class TestAdkTools(unittest.IsolatedAsyncioTestCase):
     def test_list_directory_sorting(self):
         self.tools.write_file("z_file.txt", "")
         os.makedirs(self.workspace_path / "a_dir")
-        
+
         result = self.tools.list_directory(".")
         lines = result.splitlines()
         # Find indices
         dir_idx = next(i for i, line in enumerate(lines) if "a_dir" in line)
         file_idx = next(i for i, line in enumerate(lines) if "z_file.txt" in line)
-        
+
         # Directory should come before file even if 'a' < 'z'
         self.assertLess(dir_idx, file_idx)
 
@@ -235,7 +242,7 @@ class TestAdkTools(unittest.IsolatedAsyncioTestCase):
         self.tools.write_file("keep.py", "")
         self.tools.write_file("ignore.pyc", "")
         self.tools.write_file("__pycache__/cache", "")
-        
+
         result = self.tools.list_directory(".", ignore=["*.pyc", "__pycache__"])
         self.assertIn("keep.py", result)
         self.assertNotIn("ignore.pyc", result)
@@ -282,13 +289,13 @@ class TestAdkTools(unittest.IsolatedAsyncioTestCase):
         # Mock subprocess.run to raise TimeoutExpired
         # We need to mock asyncio.get_running_loop().run_in_executor
         with patch("asyncio.get_running_loop") as mock_loop:
-             # Just simulate the return value string for timeout, as mocking the actual timeout is complex in async
-             # Alternatively, rely on the fact that run_shell_command catches TimeoutExpired
-             # But run_shell_command calls run_in_executor which runs subprocess.run
-             # We can't easily mock subprocess.run because it's wrapped in partial and run_in_executor
-             
-             # Let's trust the logic and just verify the tool handles an exception if we force one
-             pass
+            # Just simulate the return value string for timeout, as mocking the actual timeout is complex in async
+            # Alternatively, rely on the fact that run_shell_command catches TimeoutExpired
+            # But run_shell_command calls run_in_executor which runs subprocess.run
+            # We can't easily mock subprocess.run because it's wrapped in partial and run_in_executor
+
+            # Let's trust the logic and just verify the tool handles an exception if we force one
+            pass
 
     async def test_run_shell_command_failure(self):
         result = await self.tools.run_shell_command("ls nonexistentfile")
@@ -298,11 +305,11 @@ class TestAdkTools(unittest.IsolatedAsyncioTestCase):
         self.assertIn("Stderr:", result)
 
     # --- SearchFilesTool Tests ---
-    
+
     async def test_search_files(self):
         self.tools.write_file("a.txt", "findme")
         self.tools.write_file("b.txt", "ignore")
-        
+
         result = await self.tools.search_files("findme", ".")
         self.assertIn("a.txt", result)
         self.assertIn("findme", result)
@@ -323,16 +330,23 @@ class TestAdkTools(unittest.IsolatedAsyncioTestCase):
         initial_state_str = json.dumps(initial_state)
 
         # Mock run_shell_command to verify it gets called with correct python script
-        with patch.object(self.tools, "run_shell_command", new_callable=MagicMock) as mock_run_shell:
+        with patch.object(
+            self.tools, "run_shell_command", new_callable=MagicMock
+        ) as mock_run_shell:
             # Must set return value as a coroutine/future because run_shell_command is async
             f = asyncio.Future()
             f.set_result("Agent Output")
             mock_run_shell.return_value = f
-            
-            result = await self.tools.run_adk_agent(prompt=prompt, model_name=model, agent_code=agent_code, initial_state=initial_state_str)
-            
+
+            result = await self.tools.run_adk_agent(
+                prompt=prompt,
+                model_name=model,
+                agent_code=agent_code,
+                initial_state=initial_state_str,
+            )
+
             self.assertEqual(result, "Agent Output")
-            
+
             # Check arguments
             mock_run_shell.assert_called_once()
             cmd = mock_run_shell.call_args[0][0]
@@ -353,23 +367,27 @@ class TestAdkTools(unittest.IsolatedAsyncioTestCase):
 
     async def test_run_adk_agent_log_summarization(self):
         agent_code = "def create_agent(model_name): pass"
-        
+
         # Create a very long output
         long_output = "start" + ("." * 3000) + "end"
-        
-        with patch.object(self.tools, "run_shell_command", new_callable=MagicMock) as mock_run_shell:
+
+        with patch.object(
+            self.tools, "run_shell_command", new_callable=MagicMock
+        ) as mock_run_shell:
             f = asyncio.Future()
             f.set_result(long_output)
             mock_run_shell.return_value = f
-            
-            result = await self.tools.run_adk_agent(prompt="hi", model_name="m", agent_code=agent_code)
-            
+
+            result = await self.tools.run_adk_agent(
+                prompt="hi", model_name="m", agent_code=agent_code
+            )
+
             # Verify summary contains head
             self.assertIn("start", result)
             # self.assertIn("end", result) # Implementation only keeps head
             self.assertIn("...", result)
             self.assertLess(len(result), 3000)
-            
+
             # Verify full logs were written
             # Find the log file in the workspace
             log_files = list(self.workspace_path.glob("*.log"))
@@ -379,13 +397,13 @@ class TestAdkTools(unittest.IsolatedAsyncioTestCase):
     async def test_read_full_execution_logs(self):
         log_content = "Full execution log content"
         self.tools.write_file("_last_run.log", log_content)
-        
+
         result = await self.tools.read_full_execution_logs()
         self.assertEqual(result, log_content)
 
     async def test_run_adk_agent_injects_key(self):
         # This test verifies that the api_key argument is correctly passed to the subprocess environment
-        
+
         agent_code = """
 import os
 # We print to stdout so we can capture it even if the ADK import fails later
@@ -398,19 +416,20 @@ def create_agent(model_name: str):
         agent_file = self.workspace_path / "test_agent_key.py"
         with open(agent_file, "w") as f:
             f.write(agent_code)
-        
+
         test_key = "sk-TEST-ROTATION-KEY-999"
-        
+
         # Execute run_adk_agent with the specific key
         output = await self.tools.run_adk_agent(
-            prompt="hi", 
-            model_name="test-model", 
+            prompt="hi",
+            model_name="test-model",
             agent_file=str("test_agent_key.py"),
-            api_key=test_key
+            api_key=test_key,
         )
-        
+
         # Verify the key was present in the environment
         self.assertIn(f"DEBUG_ENV_KEY: {test_key}", output)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,6 +1,9 @@
+"""Utils module."""
+
 import yaml
 from pathlib import Path
 from typing import List, Dict
+
 
 def load_prompts() -> List[Dict[str, str]]:
     """
@@ -13,7 +16,7 @@ def load_prompts() -> List[Dict[str, str]]:
     prompts_path = Path(__file__).parent / "prompts.yaml"
     with open(prompts_path, "r") as f:
         data = yaml.safe_load(f)
-    
+
     all_prompts = []
     if isinstance(data, dict):
         for category, prompts in data.items():

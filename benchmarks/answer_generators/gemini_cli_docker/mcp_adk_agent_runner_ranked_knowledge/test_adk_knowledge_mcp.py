@@ -1,3 +1,4 @@
+"""Test Adk Knowledge Mcp module."""
 
 import sys
 import unittest
@@ -7,10 +8,12 @@ import yaml
 import tempfile
 import shutil
 
+
 # Define a dummy function to substitute run_adk_agent
 def dummy_run_adk_agent():
     """Dummy agent runner."""
     pass
+
 
 # Mock adk_agent_tool before importing adk_knowledge_mcp
 mock_adk_agent_tool = MagicMock()
@@ -24,11 +27,13 @@ sys.path.append(str(current_dir))
 
 import adk_knowledge_mcp
 
+
 class TestAdkKnowledgeMcp(unittest.TestCase):
+
     def setUp(self):
         self.test_dir = tempfile.mkdtemp()
         self.yaml_path = Path(self.test_dir) / "ranked_targets.yaml"
-        
+
         # Create sample data
         self.sample_data = [
             {
@@ -36,20 +41,20 @@ class TestAdkKnowledgeMcp(unittest.TestCase):
                 "id": "google.adk.runners.InMemoryRunner",
                 "name": "InMemoryRunner",
                 "type": "CLASS",
-                "docstring": "An in-memory Runner for testing."
+                "docstring": "An in-memory Runner for testing.",
             },
             {
                 "rank": 2,
                 "id": "google.adk.tools.agent_tool.AgentTool",
                 "name": "AgentTool",
                 "type": "CLASS",
-                "docstring": "Tool for agents."
-            }
+                "docstring": "Tool for agents.",
+            },
         ]
-        
+
         with open(self.yaml_path, "w") as f:
             yaml.dump(self.sample_data, f)
-            
+
         # Patch the module's path and clear cache
         self.original_path = adk_knowledge_mcp.RANKED_INDEX_PATH
         adk_knowledge_mcp.RANKED_INDEX_PATH = self.yaml_path
@@ -63,7 +68,7 @@ class TestAdkKnowledgeMcp(unittest.TestCase):
     def test_list_adk_modules(self):
         # Test listing
         output = adk_knowledge_mcp.list_adk_modules(page=1, page_size=10)
-        
+
         # Verify it contains the FQNs (which are 'id' in yaml)
         self.assertIn("google.adk.runners.InMemoryRunner", output)
         self.assertIn("google.adk.tools.agent_tool.AgentTool", output)
@@ -81,8 +86,11 @@ class TestAdkKnowledgeMcp(unittest.TestCase):
 
     def test_inspect_adk_symbol_missing_file_path(self):
         # Since our mock data doesn't have file_path, this should return a specific error
-        output = adk_knowledge_mcp.inspect_adk_symbol("google.adk.runners.InMemoryRunner")
+        output = adk_knowledge_mcp.inspect_adk_symbol(
+            "google.adk.runners.InMemoryRunner"
+        )
         self.assertIn("No file path recorded", output)
+
 
 if __name__ == "__main__":
     unittest.main()

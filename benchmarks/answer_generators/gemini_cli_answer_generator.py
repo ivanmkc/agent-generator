@@ -97,12 +97,12 @@ class GeminiCliAnswerGenerator(GeminiAnswerGenerator):
         """Returns a detailed description of the generator."""
         desc = f"**Model:** {self.model_name}\n\n"
         desc += "**Type:** Gemini CLI (Local Process)\n\n"
-        
+
         context_content = self._get_context_content()
         if context_content:
             preview = context_content[:200]
             desc += f"**Context Preview:**\n> {preview}..."
-            
+
         return desc
 
     async def generate_answer(
@@ -145,25 +145,35 @@ class GeminiCliAnswerGenerator(GeminiAnswerGenerator):
             "--debug",
             prompt,  # Positional argument for the prompt
         ]
-        
+
         # Resolve API Key for this run
         extra_env = {}
         api_key_id: Optional[str] = None
         if not self.api_key_manager:
-            raise RuntimeError("ApiKeyManager is not configured for GeminiCliAnswerGenerator.")
+            raise RuntimeError(
+                "ApiKeyManager is not configured for GeminiCliAnswerGenerator."
+            )
 
-        current_key, api_key_id = await self.api_key_manager.get_key_for_run(run_id, KeyType.GEMINI_API)
+        current_key, api_key_id = await self.api_key_manager.get_key_for_run(
+            run_id, KeyType.GEMINI_API
+        )
         if not current_key:
-            raise RuntimeError(f"No API key available for run_id '{run_id}' from ApiKeyManager.")
-        
+            raise RuntimeError(
+                f"No API key available for run_id '{run_id}' from ApiKeyManager."
+            )
+
         extra_env["GEMINI_API_KEY"] = current_key
 
         try:
             # Run the CLI command
-            cli_response_dict, logs = await self.run_cli_command(command_parts, extra_env=extra_env)
+            cli_response_dict, logs = await self.run_cli_command(
+                command_parts, extra_env=extra_env
+            )
 
             # Report success
-            await self.api_key_manager.report_result(KeyType.GEMINI_API, api_key_id, success=True)
+            await self.api_key_manager.report_result(
+                KeyType.GEMINI_API, api_key_id, success=True
+            )
             # Note: We don't easily detect 429s from CLI text output here unless we parse logs deeply.
             # Assuming CLI handles retries or we catch generic failures.
 
@@ -179,9 +189,15 @@ class GeminiCliAnswerGenerator(GeminiAnswerGenerator):
                 trace_logs=e.logs,
             ) from e
         except Exception as e:
-            # Report Failure 
-            await self.api_key_manager.report_result(KeyType.GEMINI_API, api_key_id, success=False, error_message=str(e))
-            raise BenchmarkGenerationError(f"Gemini CLI Generation failed: {e}", original_exception=e, api_key_id=api_key_id) from e
+            # Report Failure
+            await self.api_key_manager.report_result(
+                KeyType.GEMINI_API, api_key_id, success=False, error_message=str(e)
+            )
+            raise BenchmarkGenerationError(
+                f"Gemini CLI Generation failed: {e}",
+                original_exception=e,
+                api_key_id=api_key_id,
+            ) from e
         finally:
             self.api_key_manager.release_run(run_id)
 
@@ -198,7 +214,9 @@ class GeminiCliAnswerGenerator(GeminiAnswerGenerator):
             output = response_schema.model_validate_json(json_content)
         except Exception as e:
             # Report Failure if key was used
-            await self.api_key_manager.report_result(KeyType.GEMINI_API, api_key_id, success=False)
+            await self.api_key_manager.report_result(
+                KeyType.GEMINI_API, api_key_id, success=False
+            )
 
             # If parsing fails, raise BenchmarkGenerationError to preserve logs
             raise BenchmarkGenerationError(
@@ -213,9 +231,12 @@ class GeminiCliAnswerGenerator(GeminiAnswerGenerator):
         if "stats" in cli_response_dict:
             stats = cli_response_dict["stats"]
             usage_metadata = UsageMetadata(
-                total_tokens=stats.get("total_token_count") or stats.get("total_tokens"),
-                prompt_tokens=stats.get("prompt_token_count") or stats.get("input_tokens"),
-                completion_tokens=stats.get("candidates_token_count") or stats.get("output_tokens"),
+                total_tokens=stats.get("total_token_count")
+                or stats.get("total_tokens"),
+                prompt_tokens=stats.get("prompt_token_count")
+                or stats.get("input_tokens"),
+                completion_tokens=stats.get("candidates_token_count")
+                or stats.get("output_tokens"),
             )
 
         # Use our managed key ID if available, otherwise what CLI returned (if any)
@@ -231,7 +252,7 @@ class GeminiCliAnswerGenerator(GeminiAnswerGenerator):
     async def run_cli_command(
         self,
         command_parts: list[str],
-        extra_env: dict[str, str] = None, # Added argument
+        extra_env: dict[str, str] = None,  # Added argument
     ) -> tuple[dict[str, Any], list[TraceLogEvent]]:
         """Executes the gemini CLI command and returns the parsed JSON output and raw logs.
 
@@ -269,10 +290,10 @@ class GeminiCliAnswerGenerator(GeminiAnswerGenerator):
                 # Output formats:
                 # "✓ server-name (transport) - status"
                 # "✓ server-name (from ...): tool1, tool2"
-                
+
                 # Strip leading checkmarks/dots
                 clean_line = re.sub(r"^[✓✗…*]?\s*", "", clean_line)
-                
+
                 # Extract the server name (everything before the first parenthesis or colon)
                 # Matches "server-name" in "server-name (stdio)..."
                 match = re.search(r"^([^\(\:]+)", clean_line)

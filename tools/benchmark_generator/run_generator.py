@@ -1,3 +1,10 @@
+"""
+CLI entry point for the Agentic Benchmark Generator.
+
+This script initializes the agentic loop, manages the session state (sqlite),
+and orchestrates the generation process across multiple concurrent workers.
+"""
+
 # Copyright 2025 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -57,7 +64,9 @@ async def main():
         required=True,
         help="Model to use for generation and coordination.",
     )
-    parser.add_argument("--repo-path", type=str, default=".", help="Path to the repository to scan.")
+    parser.add_argument(
+        "--repo-path", type=str, default=".", help="Path to the repository to scan."
+    )
     parser.add_argument("--coverage-file", type=str, help="Path to coverage data.")
     parser.add_argument("--irt-file", type=str, help="Path to IRT data.")
     parser.add_argument(
@@ -72,9 +81,21 @@ async def main():
         required=True,
         help="Path to the JSON file containing co-occurrence data for context calculation.",
     )
-    parser.add_argument("--concurrency", type=int, default=1, help="Max concurrent LLM requests.")
-    parser.add_argument("--limit", type=int, default=100, help="Maximum number of benchmarks to generate (default: 100).")
-    parser.add_argument("--session-db", type=str, default=str(AGENTIC_SESSIONS_DB), help="Path to SQLite session database.")
+    parser.add_argument(
+        "--concurrency", type=int, default=1, help="Max concurrent LLM requests."
+    )
+    parser.add_argument(
+        "--limit",
+        type=int,
+        default=100,
+        help="Maximum number of benchmarks to generate (default: 100).",
+    )
+    parser.add_argument(
+        "--session-db",
+        type=str,
+        default=str(AGENTIC_SESSIONS_DB),
+        help="Path to SQLite session database.",
+    )
     parser.add_argument(
         "--mode",
         choices=["execution_mcq", "concept_mcq"],
@@ -97,37 +118,43 @@ async def main():
 
         # Model Injection Logic
         from tools.benchmark_generator.agents import SemaphoreGemini
-        
+
         # Use provided model for both roles
         model_name = args.model_name
         semaphore = asyncio.Semaphore(args.concurrency)
-        
+
         if API_KEY_MANAGER:
-            model_obj = SemaphoreGemini(model=model_name, api_key_manager=API_KEY_MANAGER, semaphore=semaphore)
+            model_obj = SemaphoreGemini(
+                model=model_name, api_key_manager=API_KEY_MANAGER, semaphore=semaphore
+            )
             model_worker = model_obj
             model_auditor = model_obj
         else:
             model_worker = model_name
             model_auditor = model_name
-        
+
         agent = create_agentic_agent(
             model=model_worker,
             auditor_model=model_auditor,
-            repo_path=args.repo_path, 
-            mode=args.mode
+            repo_path=args.repo_path,
+            mode=args.mode,
         )
-        
+
         # Setup Runner with Persistence
         session_service = SqliteSessionService(db_path=args.session_db)
-        runner = Runner(agent=agent, session_service=session_service, app_name="benchmark_generator")
-        
+        runner = Runner(
+            agent=agent, session_service=session_service, app_name="benchmark_generator"
+        )
+
         session_id = "agentic_run_0"
-        
+
         # Check for existing session
-        existing_session = await session_service.get_session(session_id=session_id, user_id="user", app_name="benchmark_generator")
-        
+        existing_session = await session_service.get_session(
+            session_id=session_id, user_id="user", app_name="benchmark_generator"
+        )
+
         state_delta = {}
-        
+
         if existing_session:
             logger.log_info(f"Resuming existing session: {session_id}")
             # Ensure required keys exist (if schema changed or new keys added)
@@ -136,7 +163,9 @@ async def main():
             # Do NOT overwrite scanned_targets or processed_targets_list if they exist
         else:
             logger.log_info(f"Creating new session: {session_id}")
-            await session_service.create_session(session_id=session_id, user_id="user", app_name="benchmark_generator")
+            await session_service.create_session(
+                session_id=session_id, user_id="user", app_name="benchmark_generator"
+            )
             # Initialize full state
             state_delta = {
                 "generated_benchmarks": [],
@@ -150,26 +179,28 @@ async def main():
                 "saboteur_feedback": "None",
                 "critic_verdict": "None",
             }
-        
+
         # Always update configuration from CLI args (overrides session state)
         state_delta["repo_path"] = str(args.repo_path)
         state_delta["output_dir"] = str(args.output_dir)
         if args.namespace:
             state_delta["target_namespace"] = args.namespace
         state_delta["cooccurrence_file"] = args.cooccurrence_file
-        
+
         if args.coverage_file:
             state_delta["coverage_file_path"] = args.coverage_file
         if args.irt_file:
             state_delta["irt_file"] = args.irt_file
-        
+
         # Get session object for current state
-        session = await session_service.get_session(session_id=session_id, user_id="user", app_name="benchmark_generator")
-        
+        session = await session_service.get_session(
+            session_id=session_id, user_id="user", app_name="benchmark_generator"
+        )
+
         # Run the agent in a loop until target is reached
         target_count = args.limit
         raw_log_path = args.output_dir / "raw_benchmarks.jsonl"
-        
+
         def get_current_count():
             count = 0
             if raw_log_path.exists():
@@ -178,53 +209,63 @@ async def main():
             return count
 
         current_count = get_current_count()
-        
+
         while current_count < target_count:
-            logger.log_info(f"[Coordinator]: Continuing loop... ({current_count}/{target_count} generated)")
-            logger.log_info(f"--- Starting Generation Cycle for Benchmark #{current_count + 1} ---")
-            
+            logger.log_info(
+                f"[Coordinator]: Continuing loop... ({current_count}/{target_count} generated)"
+            )
+            logger.log_info(
+                f"--- Starting Generation Cycle for Benchmark #{current_count + 1} ---"
+            )
+
             # Send the message to trigger next cycle
             # Use 'Start' if current_count is 0, else 'Continue'
-            trigger_msg = "Start generation" if current_count == 0 else "Continue generation"
-            
+            trigger_msg = (
+                "Start generation" if current_count == 0 else "Continue generation"
+            )
+
             async for event in runner.run_async(
                 user_id="user",
                 session_id=session_id,
                 new_message=types.Content(parts=[types.Part(text=trigger_msg)]),
-                state_delta=state_delta if current_count == 0 else None
+                state_delta=state_delta if current_count == 0 else None,
             ):
                 logger.log_event(event)
-            
+
             # Refresh count from file
             current_count = get_current_count()
-            if current_count >= target_count: break
-        
+            if current_count >= target_count:
+                break
+
         # Extract results from file if session state is stale
         if raw_log_path.exists():
             with open(raw_log_path, "r") as f:
                 generated_data = [json.loads(line) for line in f]
         else:
-            session = await session_service.get_session(session_id=session_id, user_id="user", app_name="benchmark_generator")
+            session = await session_service.get_session(
+                session_id=session_id, user_id="user", app_name="benchmark_generator"
+            )
             generated_data = session.state.get("generated_benchmarks", [])
-            
+
         logger.log_info(f"Generation complete. Found {len(generated_data)} benchmarks.")
-        
+
         # Convert JSON dicts to Pydantic models (MultipleChoiceBenchmarkCase)
         from benchmarks.data_models import MultipleChoiceBenchmarkCase
-        
+
         for idx, data in enumerate(generated_data):
             try:
                 # Ensure it matches the schema expected by BenchmarkFile
                 if isinstance(data, str):
                     data = json.loads(data)
-                
+
                 # Check/Fix missing fields if necessary
                 if "benchmark_type" not in data:
                     data["benchmark_type"] = "multiple_choice"
-                
+
                 # Robust ID Injection for Legacy Data
                 if "id" not in data:
                     import time
+
                     data["id"] = f"agentic_legacy_{int(time.time())}_{idx}"
 
                 case = MultipleChoiceBenchmarkCase.model_validate(data)
@@ -235,7 +276,7 @@ async def main():
 
     if benchmarks:
         benchmark_file = BenchmarkFile(benchmarks=benchmarks)
-        
+
         args.output_dir.mkdir(parents=True, exist_ok=True)
         output_yaml = args.output_dir / "benchmark.yaml"
         with open(output_yaml, "w", encoding="utf-8") as f:

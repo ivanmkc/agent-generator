@@ -139,7 +139,9 @@ def api_test_case(model_name: str, api_key_manager: ApiKeyManager) -> GeneratorT
     if not has_env("GEMINI_API_KEY"):
         pytest.skip("GEMINI_API_KEY not set")
 
-    gen = GeminiAnswerGenerator(model_name=model_name, context=None, api_key_manager=api_key_manager)
+    gen = GeminiAnswerGenerator(
+        model_name=model_name, context=None, api_key_manager=api_key_manager
+    )
 
     return GeneratorTestCase(id="api-direct", generator=gen)
 
@@ -148,9 +150,11 @@ def api_test_case(model_name: str, api_key_manager: ApiKeyManager) -> GeneratorT
 def adk_agent_image() -> str:
     return "gemini-cli:adk-python"
 
+
 @pytest.fixture(scope="module")
 def agent_name() -> str:
     return "default-adk-agent"
+
 
 @pytest.fixture(scope="module")
 def workspace_dir(tmp_path_factory: pytest.TempPathFactory) -> Path:
@@ -200,7 +204,9 @@ async def managed_generator_test_case(
 
     # Instantiate the correct generator class
     project_id = os.environ.get("GOOGLE_CLOUD_PROJECT", None)
-    gen = config.create_generator(model_name=model_name, project_id=project_id, api_key_manager=api_key_manager)
+    gen = config.create_generator(
+        model_name=model_name, project_id=project_id, api_key_manager=api_key_manager
+    )
 
     print(f"--- [Setup] Initializing {gen.name} ---")
     await gen.setup()
@@ -215,7 +221,7 @@ async def managed_generator_test_case(
         expected_tool_uses=config.expected_tool_uses,
         expected_sub_agent_calls=config.expected_sub_agent_calls,
     )
-    
+
     print(f"--- [Teardown] Cleaning up {gen.name} ---")
     await gen.teardown()
 
@@ -265,7 +271,11 @@ async def test_case(
 
             # Instantiate generator
             project_id = os.environ.get("GOOGLE_CLOUD_PROJECT", None)
-            gen = config.create_generator(model_name=model_name, project_id=project_id, api_key_manager=api_key_manager)
+            gen = config.create_generator(
+                model_name=model_name,
+                project_id=project_id,
+                api_key_manager=api_key_manager,
+            )
 
             custom_case_data = config.custom_case
             custom_case_instance = custom_case_data  # It's already an instance or None
@@ -286,14 +296,16 @@ async def test_case(
 
         # 2. Local Async Generators (Inlined to avoid event loop conflicts)
         elif case_id == "cli_local_test_case":
-            gen = GeminiCliLocalAnswerGenerator(model_name=model_name, context=None, api_key_manager=api_key_manager)
+            gen = GeminiCliLocalAnswerGenerator(
+                model_name=model_name, context=None, api_key_manager=api_key_manager
+            )
             await gen.setup()
             yield GeneratorTestCase(id="cli-local", generator=gen)
 
         elif case_id == "adk_agent_test_case":
             # Create an Agent instance
             agent = create_default_adk_agent(model_name=model_name)
-            
+
             gen = AdkAnswerGenerator(
                 agent=agent,
                 api_key_manager=api_key_manager,
@@ -305,19 +317,21 @@ async def test_case(
             if not has_env("GEMINI_API_KEY"):
                 pytest.skip("GEMINI_API_KEY not set")
 
-            gen = GeminiCliLocalAnswerGenerator(model_name=model_name, context=None, api_key_manager=api_key_manager)
+            gen = GeminiCliLocalAnswerGenerator(
+                model_name=model_name, context=None, api_key_manager=api_key_manager
+            )
             await gen.setup()
-            
+
             # Setup temp dir and files
             case_tmp_path = tmp_path_factory.mktemp("fix_error_case")
-            
+
             test_file_path = case_tmp_path / "test_agent.py"
             unfixed_file_path = case_tmp_path / "unfixed.py"
             fixed_file_path = case_tmp_path / "fixed.py"
 
-            test_file_path.write_text("def test_fixed(): pass", encoding='utf-8')
-            unfixed_file_path.write_text("def unfixed(): pass", encoding='utf-8')
-            fixed_file_path.write_text("def fixed(): pass", encoding='utf-8')
+            test_file_path.write_text("def test_fixed(): pass", encoding="utf-8")
+            unfixed_file_path.write_text("def unfixed(): pass", encoding="utf-8")
+            fixed_file_path.write_text("def fixed(): pass", encoding="utf-8")
 
             from benchmarks.tests.integration.test_utils import create_fix_error_benchmark_case
 
@@ -347,7 +361,7 @@ async def test_case(
         # 3. Fallback for Sync Fixtures (api_test_case)
         else:
             yield request.getfixturevalue(case_id)
-            
+
     finally:
         if gen:
             print(f"--- [Teardown] Cleaning up {gen.name} ---")

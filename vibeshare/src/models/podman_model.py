@@ -1,7 +1,16 @@
+"""
+Podman Model Implementation.
+
+This module defines the `PodmanModel` class, which serves as an adapter for running
+models that are encapsulated within a Podman container. It interfaces with the
+Gemini CLI running inside the container to execute prompts.
+"""
+
 import asyncio
 from typing import Optional, Any
 from .model import Model
 from benchmarks.answer_generators.gemini_cli_docker.podman_utils import PodmanContainer
+
 
 class PodmanModel(Model):
     """
@@ -32,14 +41,16 @@ class PodmanModel(Model):
         args = ["gemini", prompt]
 
         response_data = await self.container.send_command(args, env)
-        
+
         stdout = response_data.get("stdout", "")
         stderr = response_data.get("stderr", "")
         returncode = response_data.get("returncode", 0)
 
         if returncode != 0:
-            raise RuntimeError(f"Gemini CLI failed (code {returncode}):\n{stderr}\n{stdout}")
-        
+            raise RuntimeError(
+                f"Gemini CLI failed (code {returncode}):\n{stderr}\n{stdout}"
+            )
+
         return stdout.strip()
 
     def _cleanup(self):

@@ -306,19 +306,21 @@ class TraceEventType(str, enum.Enum):
     """
     Predefined types for trace log events.
     """
-    ADK_EVENT = "ADK_EVENT" # Generic ADK event if more specific type not inferred
+
+    ADK_EVENT = "ADK_EVENT"  # Generic ADK event if more specific type not inferred
     MESSAGE = "message"
     TOOL_USE = "tool_use"
     TOOL_RESULT = "tool_result"
     GEMINI_API_RESPONSE = "GEMINI_API_RESPONSE"
     INIT = "init"
-    CLI_STDOUT_FULL = "CLI_STDOUT_FULL" # Full stdout from CLI call
-    CLI_STDOUT_RAW = "CLI_STDOUT_RAW" # Raw stdout from CLI call if not stream-json
+    CLI_STDOUT_FULL = "CLI_STDOUT_FULL"  # Full stdout from CLI call
+    CLI_STDOUT_RAW = "CLI_STDOUT_RAW"  # Raw stdout from CLI call if not stream-json
     CLI_STDERR = "CLI_STDERR"
     GEMINI_CLIENT_ERROR = "GEMINI_CLIENT_ERROR"
-    SYSTEM_RESULT = "system_result" # Internal system result like stats
+    SYSTEM_RESULT = "system_result"  # Internal system result like stats
     RUN_START = "run_start"
     RUN_END = "run_end"
+
 
 class BenchmarkResult(pydantic.BaseModel):
     """Represents the result of a benchmark run."""
@@ -339,7 +341,8 @@ class UsageMetadata(pydantic.BaseModel):
     cost: Optional[float] = None
     total_time: Optional[float] = None
     extra_tags: dict[str, Any] = Field(
-        default_factory=dict, description="Additional metadata key-value pairs (e.g., loop exit reason)."
+        default_factory=dict,
+        description="Additional metadata key-value pairs (e.g., loop exit reason).",
     )
 
     @pydantic.field_validator("extra_tags", mode="before")
@@ -353,9 +356,7 @@ class TraceLogEvent(pydantic.BaseModel):
 
     type: TraceEventType = Field(
         ...,
-        description=(
-            "The type of event (e.g., 'tool_use', 'model_response')."
-        ),
+        description=("The type of event (e.g., 'tool_use', 'model_response')."),
     )
     timestamp: Optional[str] = Field(
         None, description="The ISO 8601 timestamp of the event."
@@ -486,7 +487,8 @@ class GeneratedAnswer(pydantic.BaseModel):
     output: Optional[AnswerOutput] = None
 
     raw_output: Optional[str] = Field(
-        None, description="The raw string output from the model, populated if parsing fails."
+        None,
+        description="The raw string output from the model, populated if parsing fails.",
     )
 
     trace_logs: Optional[list[TraceLogEvent]] = Field(
@@ -536,7 +538,7 @@ class GenerationAttempt(pydantic.BaseModel):
 class BenchmarkGenerationError(Exception):
     """
     Custom exception raised when an AnswerGenerator fails to produce a valid response.
-    
+
     This exception is used to wrap lower-level exceptions and attach additional metadata
     relevant to the benchmark execution, such as the `api_key_id` that was in use
     during the failed generation attempt. This allows the benchmark orchestrator
@@ -549,13 +551,14 @@ class BenchmarkGenerationError(Exception):
         trace_logs (Optional[list[TraceLogEvent]]): Partial trace logs captured before failure.
         usage_metadata (Optional[UsageMetadata]): Resource usage captured before failure.
     """
+
     def __init__(
-        self, 
-        message: str, 
-        original_exception: Exception, 
+        self,
+        message: str,
+        original_exception: Exception,
         api_key_id: Optional[str] = None,
         trace_logs: Optional[list["TraceLogEvent"]] = None,
-        usage_metadata: Optional["UsageMetadata"] = None
+        usage_metadata: Optional["UsageMetadata"] = None,
     ):
         super().__init__(message)
         self.original_exception = original_exception
@@ -650,33 +653,67 @@ class BenchmarkRunResult(pydantic.BaseModel):
         None, description="The original prompt/instruction given to the generator."
     )
     unfixed_code: Optional[str] = Field(
-        None, description="The original, unfixed code for the benchmark case (if applicable)."
+        None,
+        description="The original, unfixed code for the benchmark case (if applicable).",
     )
     generation_attempts: Optional[list[GenerationAttempt]] = Field(
         None, description="History of generation attempts for this benchmark."
     )
 
+
 # --- Forensic Analysis Models ---
 
+
 class ForensicInsight(pydantic.BaseModel):
-    root_cause_category: str = Field(..., description="The primary reason for failure (e.g. 'Hallucination', 'Retrieval Failure', 'Loop Exit').")
-    dag_failure_point: str = Field(..., description="Where in the Agent DAG did it fail? (e.g., 'Retrieval Loop -> Tool Call', 'Implementation Planner -> Plan Generation').")
-    explanation: str = Field(..., description="A precise narrative of why this specific attempt failed.")
-    evidence: list[str] = Field(..., description="Specific log events supporting the conclusion.")
+    root_cause_category: str = Field(
+        ...,
+        description="The primary reason for failure (e.g. 'Hallucination', 'Retrieval Failure', 'Loop Exit').",
+    )
+    dag_failure_point: str = Field(
+        ...,
+        description="Where in the Agent DAG did it fail? (e.g., 'Retrieval Loop -> Tool Call', 'Implementation Planner -> Plan Generation').",
+    )
+    explanation: str = Field(
+        ..., description="A precise narrative of why this specific attempt failed."
+    )
+    evidence: list[str] = Field(
+        ..., description="Specific log events supporting the conclusion."
+    )
+
 
 class CaseSummary(pydantic.BaseModel):
     benchmark_name: str = Field(..., description="The name of the benchmark case.")
-    failure_pattern: str = Field(..., description="The recurring failure mode across attempts (e.g. 'Persistent Hallucination', 'Flaky Tool Usage').")
-    progression: str = Field(..., description="Did the agent improve, regress, or loop? (e.g. 'Regressed', 'Stuck', 'Oscillated').")
-    key_evidence: list[str] = Field(..., description="Top 3 pieces of evidence summarizing the case failure.")
+    failure_pattern: str = Field(
+        ...,
+        description="The recurring failure mode across attempts (e.g. 'Persistent Hallucination', 'Flaky Tool Usage').",
+    )
+    progression: str = Field(
+        ...,
+        description="Did the agent improve, regress, or loop? (e.g. 'Regressed', 'Stuck', 'Oscillated').",
+    )
+    key_evidence: list[str] = Field(
+        ..., description="Top 3 pieces of evidence summarizing the case failure."
+    )
+
 
 class GeneratorForensicSummary(pydantic.BaseModel):
-    common_failure_patterns: str = Field(..., description="Summary of the most frequent failure modes observed across all failed cases for this generator.")
-    critical_anti_patterns: str = Field(..., description="Analysis of specific anti-patterns (e.g., ignoring tool outputs, strict schema violations) that appear systemically.")
-    strategic_recommendations: list[str] = Field(..., description="High-level architectural recommendations to address these root causes.")
+    common_failure_patterns: str = Field(
+        ...,
+        description="Summary of the most frequent failure modes observed across all failed cases for this generator.",
+    )
+    critical_anti_patterns: str = Field(
+        ...,
+        description="Analysis of specific anti-patterns (e.g., ignoring tool outputs, strict schema violations) that appear systemically.",
+    )
+    strategic_recommendations: list[str] = Field(
+        ...,
+        description="High-level architectural recommendations to address these root causes.",
+    )
+
 
 class ForensicData(pydantic.BaseModel):
     """Aggregated forensic data for the viewer."""
+
     generators: dict[str, GeneratorForensicSummary] = Field(default_factory=dict)
     cases: dict[str, CaseSummary] = Field(default_factory=dict)
     attempts: dict[str, list[ForensicInsight]] = Field(default_factory=dict)

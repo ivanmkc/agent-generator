@@ -1,3 +1,5 @@
+"""Test Ranked Targets module."""
+
 import unittest
 from pathlib import Path
 from unittest.mock import patch, mock_open
@@ -5,11 +7,13 @@ import yaml
 from benchmarks.answer_generators.adk_tools import AdkTools
 from tools.target_ranker.models import RankedTarget
 
+
 class TestRankedTargets(unittest.TestCase):
+
     def setUp(self):
         self.workspace_root = Path("/tmp/workspace")
         self.adk_tools = AdkTools(self.workspace_root)
-        
+
         self.mock_yaml_content = """
 - rank: 1
   id: google.adk.MockClass
@@ -38,10 +42,10 @@ class TestRankedTargets(unittest.TestCase):
         # Setup mocks
         mock_exists.return_value = True
         mock_yaml_load.return_value = self.mock_data
-        
+
         # Execute
         output = self.adk_tools.list_ranked_targets(page=1, page_size=10)
-        
+
         # Verify
         self.assertIn("--- Ranked Targets (Page 1 of 1) ---", output)
         self.assertIn("[1] google.adk.MockClass: A mock class for testing.", output)
@@ -91,7 +95,9 @@ class TestRankedTargets(unittest.TestCase):
     @patch("builtins.open", new_callable=mock_open)
     @patch("yaml.safe_load")
     @patch("pathlib.Path.exists")
-    def test_inspect_ranked_target_not_found(self, mock_exists, mock_yaml_load, mock_file):
+    def test_inspect_ranked_target_not_found(
+        self, mock_exists, mock_yaml_load, mock_file
+    ):
         # Setup mocks
         mock_exists.return_value = True
         mock_yaml_load.return_value = self.mock_data
@@ -101,6 +107,7 @@ class TestRankedTargets(unittest.TestCase):
 
         # Verify
         self.assertIn("Target 'google.adk.Unknown' not found in ranked index.", output)
+
 
 if __name__ == "__main__":
     unittest.main()

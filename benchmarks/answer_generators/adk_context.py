@@ -1,3 +1,5 @@
+"""Adk Context module."""
+
 from contextvars import ContextVar
 from typing import Optional, Dict, Any
 
@@ -12,6 +14,5 @@ thread-local storage, which is not suitable for async/await concurrency.
 """
 
 adk_execution_context: ContextVar[Dict[str, Any]] = ContextVar(
-    "adk_execution_context", 
-    default={}
+    "adk_execution_context", default={}
 )

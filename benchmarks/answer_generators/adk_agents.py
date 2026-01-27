@@ -73,7 +73,7 @@ class RotatingKeyGemini(Gemini):
     def api_client(self) -> Client:
         """Overrides the standard client to provide one with a rotated key."""
         current_key = None
-        
+
         # 1. Check for context-scoped key (set by AdkAnswerGenerator)
         ctx = adk_execution_context.get()
         if ctx and "api_key" in ctx:
@@ -88,7 +88,7 @@ class RotatingKeyGemini(Gemini):
             raise ValueError(
                 "No API keys available from ApiKeyManager or Context. Please ensure keys are configured or present in context."
             )
-        
+
         with self._lock:
             # Check cache
             if current_key not in self._client_cache:
@@ -102,16 +102,19 @@ class RotatingKeyGemini(Gemini):
 
             return self._client_cache[current_key]
 
+
 def get_workspace_dir(ctx: InvocationContext) -> str:
     """Retrieves the workspace directory name from the session state."""
     return ctx.session.state.get(
         "workspace_dir", "Error: No workspace directory found in session state."
     )
 
+
 def save_workspace_dir(dir_name: str, ctx: InvocationContext) -> str:
     """Saves the workspace directory name to the session state."""
     ctx.session.state["workspace_dir"] = dir_name
     return f"Saved workspace directory '{dir_name}' to session state."
+
 
 def uuid4() -> str:
     """Generates a random UUID."""
@@ -132,6 +135,7 @@ def create_default_adk_agent(model_name: str = DEFAULT_MODEL_NAME) -> LlmAgent:
         ),
     )
 
+
 class SetupAgentCodeBased(Agent):
     """
     A code-based agent that performs initial workspace setup programmatically.
@@ -142,14 +146,14 @@ class SetupAgentCodeBased(Agent):
         self._workspace_root = workspace_root
         self._tools_helper = tools_helper
 
-    async def _run_async_impl(self, ctx: InvocationContext) -> AsyncGenerator[Event, None]:
+    async def _run_async_impl(
+        self, ctx: InvocationContext
+    ) -> AsyncGenerator[Event, None]:
 
         # Get the original user request from the input context
         user_request = ""
         if ctx.user_content and ctx.user_content.parts:
-             user_request = "".join(
-                [p.text for p in ctx.user_content.parts if p.text]
-            )
+            user_request = "".join([p.text for p in ctx.user_content.parts if p.text])
 
         # 1. Generate a unique directory name
         unique_dir_name = f"task_{uuid.uuid4().hex}"
@@ -162,7 +166,7 @@ class SetupAgentCodeBased(Agent):
         # 3. Save the workspace directory to session state
         save_workspace_dir(str(workspace_dir), ctx)
         ctx.session.state["user_request"] = user_request
-        
+
         # Initialize loop variables to prevent missing key errors in first iteration if history is off
         ctx.session.state["agent_code"] = ""
         ctx.session.state["analysis_feedback"] = ""
@@ -174,33 +178,38 @@ class SetupAgentCodeBased(Agent):
             sanitized_user_request=None,
             knowledge_context=None,  # Populated by Knowledge Retrieval Agent
         )
-        
+
         json_output = json.dumps(setup_context.model_dump())
 
         yield Event(
             invocation_id=ctx.invocation_id,
             author=self.name,
-            content=types.Content(
-                role="model",
-                parts=[types.Part(text=json_output)]
-            )
+            content=types.Content(role="model", parts=[types.Part(text=json_output)]),
         )
+
 
 class CodeBasedTeardownAgent(Agent):
     """
     A code-based agent that performs teardown actions programmatically.
     """
+
     def __init__(self, workspace_root: Path, tools_helper: AdkTools, **kwargs):
         super().__init__(**kwargs)
         self._workspace_root = workspace_root
         self._tools_helper = tools_helper
 
-    async def _run_async_impl(self, ctx: InvocationContext) -> AsyncGenerator[Event, None]:
+    async def _run_async_impl(
+        self, ctx: InvocationContext
+    ) -> AsyncGenerator[Event, None]:
         # 1. Retrieve the temporary directory name.
         workspace_dir = get_workspace_dir(ctx)
-        
+
         # 2. Delete it using run_shell_command with rm -rf.
-        if workspace_dir and "Error" not in workspace_dir and Path(workspace_dir).exists():
+        if (
+            workspace_dir
+            and "Error" not in workspace_dir
+            and Path(workspace_dir).exists()
+        ):
             rm_command = f"rm -rf {workspace_dir}"
             await self._tools_helper.run_shell_command(rm_command)
 
@@ -212,18 +221,19 @@ class CodeBasedTeardownAgent(Agent):
             invocation_id=ctx.invocation_id,
             author=self.name,
             content=types.Content(
-                role="model",
-                parts=[types.Part(text=final_response_json)]
-            )
+                role="model", parts=[types.Part(text=final_response_json)]
+            ),
         )
+
 
 class PromptSanitizerAgent(LlmAgent):
     """
     An LLM agent that sanitizes user requests by removing direct tool-calling instructions.
     """
+
     def __init__(self, model: str | Gemini, **kwargs):
-        if 'instruction' not in kwargs:
-            kwargs['instruction'] = (
+        if "instruction" not in kwargs:
+            kwargs["instruction"] = (
                 "You are a prompt sanitization expert. "
                 "Request: {user_request}\n"
                 "Task: Remove explicit instructions to call tools (e.g., 'use run_adk_agent', 'write_file') "
@@ -234,26 +244,30 @@ class PromptSanitizerAgent(LlmAgent):
             name="prompt_sanitizer_agent",
             model=model,
             tools=[],  # No tools for this agent, purely text transformation
-            **kwargs
+            **kwargs,
         )
+
 
 class CodeBasedRunner(Agent):
     """
     A code-based agent that merely executes the agent code programmatically.
     It does NOT analyze the result.
     """
+
     def __init__(self, tools_helper: AdkTools, model_name: str, name: str):
         super().__init__(name=name)
         self._tools_helper = tools_helper
         self._model_name = model_name
 
-    async def _run_async_impl(self, ctx: InvocationContext) -> AsyncGenerator[Event, None]:
+    async def _run_async_impl(
+        self, ctx: InvocationContext
+    ) -> AsyncGenerator[Event, None]:
         # 1. Retrieve candidate response from state (saved via output_key)
         candidate_response = ctx.session.state.get("candidate_response", "")
-        
+
         # 2. Extract Python code
         agent_code = "# Error: No code found."
-        
+
         # Try finding a python block first
         python_match = re.search(r"```python\n([\s\S]*?)\n```", candidate_response)
         if python_match:
@@ -274,7 +288,9 @@ class CodeBasedRunner(Agent):
             else:
                 # Fallback: check for just ``` (generic block)
                 # Matches ``` followed by optional language identifier, then content
-                code_match_loose = re.search(r"```(?:\w+)?\n([\s\S]*?)\n```", candidate_response)
+                code_match_loose = re.search(
+                    r"```(?:\w+)?\n([\s\S]*?)\n```", candidate_response
+                )
                 if code_match_loose:
                     agent_code = code_match_loose.group(1).strip()
 
@@ -283,20 +299,25 @@ class CodeBasedRunner(Agent):
 
         # 3. Retrieve verification plan directly from session state
         verification_plan_data = ctx.session.state.get("verification_plan", {})
-        
+
         test_cases = []
         if isinstance(verification_plan_data, dict):
             test_cases = verification_plan_data.get("test_cases", [])
-        
+
         if not test_cases:
             # Fallback for empty or legacy plans
-            test_cases = [{"test_prompt": "Hello! Please confirm you are working.", "expected_behavior": "Agent responds."}]
+            test_cases = [
+                {
+                    "test_prompt": "Hello! Please confirm you are working.",
+                    "expected_behavior": "Agent responds.",
+                }
+            ]
 
         all_results = []
-        
+
         for i, tc in enumerate(test_cases):
             test_prompt = tc.get("test_prompt", "Hello")
-            
+
             # Yield fake tool call for trace logging consistency
             run_adk_tool_id = f"call_{uuid.uuid4().hex}"
             yield Event(
@@ -304,18 +325,26 @@ class CodeBasedRunner(Agent):
                 author=self.name,
                 content=types.Content(
                     role="model",
-                    parts=[types.Part(function_call=types.FunctionCall(
-                        name="run_adk_agent",
-                        args={"prompt": test_prompt, "agent_code": agent_code, "test_case_index": i},
-                        id=run_adk_tool_id 
-                    ))]
-                )
+                    parts=[
+                        types.Part(
+                            function_call=types.FunctionCall(
+                                name="run_adk_agent",
+                                args={
+                                    "prompt": test_prompt,
+                                    "agent_code": agent_code,
+                                    "test_case_index": i,
+                                },
+                                id=run_adk_tool_id,
+                            )
+                        )
+                    ],
+                ),
             )
 
             # 4. Execute the agent code using run_adk_agent
             run_output = await self._tools_helper.run_adk_agent(
                 prompt=test_prompt,
-                model_name=self._model_name, 
+                model_name=self._model_name,
                 agent_code=agent_code,
             )
 
@@ -325,15 +354,21 @@ class CodeBasedRunner(Agent):
                 author=self.name,
                 content=types.Content(
                     role="tool",
-                    parts=[types.Part(function_response=types.FunctionResponse(
-                        name="run_adk_agent",
-                        response={"result": run_output}, 
-                        id=run_adk_tool_id
-                    ))]
-                )
+                    parts=[
+                        types.Part(
+                            function_response=types.FunctionResponse(
+                                name="run_adk_agent",
+                                response={"result": run_output},
+                                id=run_adk_tool_id,
+                            )
+                        )
+                    ],
+                ),
             )
-            
-            all_results.append(f"--- TEST CASE {i+1} ---\nPrompt: {test_prompt}\nExpected: {tc.get('expected_behavior')}\nOutput:\n{run_output}\n")
+
+            all_results.append(
+                f"--- TEST CASE {i+1} ---\nPrompt: {test_prompt}\nExpected: {tc.get('expected_behavior')}\nOutput:\n{run_output}\n"
+            )
 
         # 5. Save combined output to session state for the Analyst
         combined_run_output = "\n".join(all_results)
@@ -345,8 +380,10 @@ class CodeBasedRunner(Agent):
             author=self.name,
             content=types.Content(
                 role="model",
-                parts=[types.Part(text=f"Combined Execution Logs:\n{combined_run_output}")]
-            )
+                parts=[
+                    types.Part(text=f"Combined Execution Logs:\n{combined_run_output}")
+                ],
+            ),
         )
 
 
@@ -354,43 +391,52 @@ class CodeBasedFinalVerifier(Agent):
     """
     A code-based agent that finalizes the solution by persisting it and returning the structured response.
     """
+
     def __init__(self, tools_helper: AdkTools, **kwargs):
         super().__init__(**kwargs)
         self._tools_helper = tools_helper
 
-    async def _run_async_impl(self, ctx: InvocationContext) -> AsyncGenerator[Event, None]:
+    async def _run_async_impl(
+        self, ctx: InvocationContext
+    ) -> AsyncGenerator[Event, None]:
         # 1. Retrieve code from session state
-        agent_code = ctx.session.state.get("agent_code", "# Error: No agent code found in session state.")
-        
+        agent_code = ctx.session.state.get(
+            "agent_code", "# Error: No agent code found in session state."
+        )
+
         # 2. Write to file
         # We assume 'my_agent.py' is the desired output file for this benchmark context
         self._tools_helper.write_file("my_agent.py", agent_code)
-        
+
         # Yield fake tool call for trace logging consistency
         yield Event(
             invocation_id=ctx.invocation_id,
             author=self.name,
             content=types.Content(
                 role="model",
-                parts=[types.Part(function_call=types.FunctionCall(
-                    name="write_file",
-                    args={"file_path": "my_agent.py", "content": agent_code},
-                    id=f"call_{uuid.uuid4().hex}"
-                ))]
-            )
+                parts=[
+                    types.Part(
+                        function_call=types.FunctionCall(
+                            name="write_file",
+                            args={"file_path": "my_agent.py", "content": agent_code},
+                            id=f"call_{uuid.uuid4().hex}",
+                        )
+                    )
+                ],
+            ),
         )
-        
+
         # 3. Construct FinalResponse
         # Ideally, we would retrieve the rationale from the CandidateCreator's output or session state.
         # For now, we provide a standard rationale.
         # TODO: Replace with FixErrorAnswerOutput or equivalent
         response = FinalResponse(
             code=agent_code,
-            rationale="The agent code has been implemented, verified, and persisted to my_agent.py."
+            rationale="The agent code has been implemented, verified, and persisted to my_agent.py.",
         )
-        
+
         json_str = json.dumps(response.model_dump())
-        
+
         # 4. Save to session state for TeardownAgent
         ctx.session.state["final_response"] = json_str
 
@@ -398,45 +444,58 @@ class CodeBasedFinalVerifier(Agent):
         yield Event(
             invocation_id=ctx.invocation_id,
             author=self.name,
-            content=types.Content(
-                role="model",
-                parts=[types.Part(text=json_str)]
-            )
+            content=types.Content(role="model", parts=[types.Part(text=json_str)]),
         )
+
 
 class DocstringFetcherAgent(Agent):
     """Fetches help for selected modules using captured tools_helper."""
+
     def __init__(self, tools_helper: AdkTools, **kwargs):
         super().__init__(**kwargs)
         self._tools_helper = tools_helper
 
-    async def _run_async_impl(self, ctx: InvocationContext) -> AsyncGenerator[Event, None]:
+    async def _run_async_impl(
+        self, ctx: InvocationContext
+    ) -> AsyncGenerator[Event, None]:
         # 1. Retrieve selected modules from session state
         relevant_modules_json = ctx.session.state.get("relevant_modules_json", "{}")
-        
+
         try:
             if isinstance(relevant_modules_json, str):
                 if "```json" in relevant_modules_json:
-                    relevant_modules_json = relevant_modules_json.split("```json", 1)[1].split("```", 1)[0].strip()
+                    relevant_modules_json = (
+                        relevant_modules_json.split("```json", 1)[1]
+                        .split("```", 1)[0]
+                        .strip()
+                    )
                 elif "```" in relevant_modules_json:
-                    relevant_modules_json = relevant_modules_json.split("```", 1)[1].split("```", 1)[0].strip()
-                relevant_modules = RelevantModules.model_validate_json(relevant_modules_json)
+                    relevant_modules_json = (
+                        relevant_modules_json.split("```", 1)[1]
+                        .split("```", 1)[0]
+                        .strip()
+                    )
+                relevant_modules = RelevantModules.model_validate_json(
+                    relevant_modules_json
+                )
             elif isinstance(relevant_modules_json, dict):
-                    relevant_modules = RelevantModules.model_validate(relevant_modules_json)
+                relevant_modules = RelevantModules.model_validate(relevant_modules_json)
             else:
-                    # Assume it's already a model object
-                    relevant_modules = relevant_modules_json
+                # Assume it's already a model object
+                relevant_modules = relevant_modules_json
 
         except Exception as e:
             # print(f"[WARNING] Failed to parse RelevantModules: {e}. Skipping knowledge retrieval.")
-            ctx.session.state["knowledge_context"] = f"Error retrieving knowledge context: {e}"
+            ctx.session.state["knowledge_context"] = (
+                f"Error retrieving knowledge context: {e}"
+            )
             yield Event(
                 invocation_id=ctx.invocation_id,
                 author=self.name,
                 content=types.Content(
                     role="model",
-                    parts=[types.Part(text=f"Error parsing relevant modules: {e}")]
-                )
+                    parts=[types.Part(text=f"Error parsing relevant modules: {e}")],
+                ),
             )
             return
 
@@ -445,24 +504,33 @@ class DocstringFetcherAgent(Agent):
         for module_name in relevant_modules.modules:
             try:
                 help_text = await self._tools_helper.get_module_help(module_name)
-                knowledge_context_parts.append(f"--- Help for {module_name} ---\n{help_text}\n")
+                knowledge_context_parts.append(
+                    f"--- Help for {module_name} ---\n{help_text}\n"
+                )
             except Exception as e:
-                knowledge_context_parts.append(f"Error fetching help for {module_name}: {e}\n")
+                knowledge_context_parts.append(
+                    f"Error fetching help for {module_name}: {e}\n"
+                )
 
         full_context = "\n".join(knowledge_context_parts)
-        
+
         # 3. Save to session state
         ctx.session.state["knowledge_context"] = full_context
-        
+
         # 4. Yield output
         yield Event(
             invocation_id=ctx.invocation_id,
             author=self.name,
             content=types.Content(
                 role="model",
-                parts=[types.Part(text=f"Fetched knowledge context for {len(relevant_modules.modules)} modules.")]
-            )
+                parts=[
+                    types.Part(
+                        text=f"Fetched knowledge context for {len(relevant_modules.modules)} modules."
+                    )
+                ],
+            ),
         )
+
 
 def create_structured_adk_agent(
     tools_helper: AdkTools,
@@ -492,7 +560,9 @@ def create_structured_adk_agent(
 
     def save_relevant_modules(modules: list[str], tool_context: ToolContext) -> str:
         """Saves the list of relevant modules to session state."""
-        tool_context.session.state["relevant_modules_json"] = json.dumps({"modules": modules})
+        tool_context.session.state["relevant_modules_json"] = json.dumps(
+            {"modules": modules}
+        )
         return f"Saved {len(modules)} modules."
 
     def save_implementation_plan(plan_text: str, tool_context: ToolContext) -> str:
@@ -562,13 +632,15 @@ def create_structured_adk_agent(
 
     # 0. Setup Agent
     setup_agent = SetupAgentCodeBased(
-        name="setup_agent", workspace_root=tools_helper.workspace_root, tools_helper=tools_helper
+        name="setup_agent",
+        workspace_root=tools_helper.workspace_root,
+        tools_helper=tools_helper,
     )
 
     # 0.2 Prompt Sanitizer
     prompt_sanitizer_agent = PromptSanitizerAgent(
         model=model,
-        include_contents='none',
+        include_contents="none",
         output_key="sanitized_user_request",
     )
 
@@ -577,7 +649,7 @@ def create_structured_adk_agent(
         name="implementation_planner",
         model=model,
         tools=[],
-        include_contents='none',
+        include_contents="none",
         output_key="implementation_plan",
         instruction=(
             "You are the Implementation Planner. "
@@ -600,7 +672,7 @@ def create_structured_adk_agent(
         name="verification_planner",
         model=model,
         tools=[],
-        include_contents='none',
+        include_contents="none",
         output_key="verification_plan",
         instruction=(
             "You are the Verification Planner. "
@@ -621,16 +693,15 @@ def create_structured_adk_agent(
         "Plan: {implementation_plan}\n"
         "Context: {knowledge_context}\n"
     )
-    
-    candidate_include_contents = 'default'
+
+    candidate_include_contents = "default"
 
     if not use_loop_history:
-        candidate_include_contents = 'none'
+        candidate_include_contents = "none"
         candidate_creator_instruction += (
-            "Previous Code: {agent_code}\n"
-            "Feedback: {analysis_feedback}\n"
+            "Previous Code: {agent_code}\n" "Feedback: {analysis_feedback}\n"
         )
-    
+
     candidate_creator_instruction += (
         "1. Analyze the given Plan and Context. If there is feedback from 'Run Analyst' in the history (or provided Feedback), address the reported failures. "
         "2. IMPLEMENT/FIX the agent code. "
@@ -655,18 +726,22 @@ def create_structured_adk_agent(
         instruction=candidate_creator_instruction,
     )
 
-
     code_based_runner = CodeBasedRunner(
-        name="code_based_runner",
-        tools_helper=tools_helper,
-        model_name=model_name
+        name="code_based_runner", tools_helper=tools_helper, model_name=model_name
     )
 
     run_analysis_agent = LlmAgent(
         name="run_analysis_agent",
         model=model,
-        tools=[exit_loop_tool, read_tool, get_help_tool, search_tool, list_tool, read_logs_tool],
-        include_contents='none',
+        tools=[
+            exit_loop_tool,
+            read_tool,
+            get_help_tool,
+            search_tool,
+            list_tool,
+            read_logs_tool,
+        ],
+        include_contents="none",
         output_key="analysis_feedback",
         instruction=(
             "You are the Run Analyst. "
@@ -686,7 +761,7 @@ def create_structured_adk_agent(
             "   - If FAILURE: Output a clear, concise analysis of WHY it failed. "
             "     Include specific findings from your investigation (e.g. 'Method X doesn't exist, use Y instead'). "
             "     This analysis will be read by the Candidate Creator in the next step to fix the code."
-        )
+        ),
     )
 
     implementation_loop = LoopAgent(
@@ -697,15 +772,14 @@ def create_structured_adk_agent(
 
     # 4. Final Verifier / Output
     final_verifier = CodeBasedFinalVerifier(
-        name="final_verifier",
-        tools_helper=tools_helper
+        name="final_verifier", tools_helper=tools_helper
     )
 
     # 5. Teardown Agent
     teardown_agent = CodeBasedTeardownAgent(
-        name="teardown_agent", 
-        workspace_root=tools_helper.workspace_root, 
-        tools_helper=tools_helper
+        name="teardown_agent",
+        workspace_root=tools_helper.workspace_root,
+        tools_helper=tools_helper,
     )
 
     agent_obj = SequentialAgent(
@@ -723,6 +797,7 @@ def create_structured_adk_agent(
     )
 
     return agent_obj
+
 
 def create_workflow_agent(
     workspace_root: Path,
@@ -1096,4 +1171,3 @@ def _create_managed_adk_generator(
         teardown_hook=teardown_hook,
         api_key_manager=api_key_manager,
     )
-

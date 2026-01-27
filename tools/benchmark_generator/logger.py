@@ -1,3 +1,12 @@
+"""
+Structured logging for the Agentic Generator.
+
+Provides the `AgenticLogger` class, which handles writing:
+- Raw trace logs (JSONL)
+- Human-readable event logs
+- Final benchmark artifacts
+"""
+
 # Copyright 2025 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,6 +35,7 @@ from benchmarks.logger import BlockStyleDumper
 # Initialize colorama
 init(autoreset=True)
 
+
 class AgenticLogger:
     """Logs events from the Agentic multi-agent system with color coding and structured file tracing."""
 
@@ -38,7 +48,7 @@ class AgenticLogger:
         "Assembler": Fore.GREEN,
         "Coordinator": Fore.LIGHTBLACK_EX,
         "model": Fore.WHITE,
-        "user": Fore.LIGHTWHITE_EX
+        "user": Fore.LIGHTWHITE_EX,
     }
 
     def __init__(self, output_dir: Optional[Path] = None):
@@ -55,17 +65,24 @@ class AgenticLogger:
         """Logs a structured event to the trace file."""
         if not self.trace_file:
             return
-            
+
         record = {
             "timestamp": datetime.datetime.now().isoformat(),
             "event_type": event_type,
-            "details": details
+            "details": details,
         }
-        
+
         try:
             with open(self.trace_file, "a", encoding="utf-8") as f:
                 f.write("---\n")
-                yaml.dump(record, f, Dumper=BlockStyleDumper, sort_keys=False, allow_unicode=True, default_flow_style=False)
+                yaml.dump(
+                    record,
+                    f,
+                    Dumper=BlockStyleDumper,
+                    sort_keys=False,
+                    allow_unicode=True,
+                    default_flow_style=False,
+                )
         except Exception as e:
             print(f"{Fore.RED}Failed to write to trace log: {e}{Style.RESET_ALL}")
 
@@ -74,9 +91,9 @@ class AgenticLogger:
         author = event.author or "unknown"
         color = self.AGENT_COLORS.get(author, Fore.WHITE)
         ts = self._timestamp()
-        
+
         prefix = f"{Style.DIM}{ts}{Style.RESET_ALL} {Style.BRIGHT}{color}[{author}]{Style.RESET_ALL}"
-        
+
         if not event.content or not event.content.parts:
             return
 
@@ -86,14 +103,18 @@ class AgenticLogger:
                 text = part.text.strip()
                 if not text:
                     continue
-                
+
                 # If text is a JSON block, maybe just show a summary?
                 # For now, just print it.
                 print(f"{prefix}: {text}")
-            
+
             if part.function_call:
-                print(f"{prefix} {Fore.LIGHTYELLOW_EX}➔ Tool Call: {part.function_call.name}{Style.RESET_ALL}")
-                print(f"{Style.DIM}   Arguments: {part.function_call.args}{Style.RESET_ALL}")
+                print(
+                    f"{prefix} {Fore.LIGHTYELLOW_EX}➔ Tool Call: {part.function_call.name}{Style.RESET_ALL}"
+                )
+                print(
+                    f"{Style.DIM}   Arguments: {part.function_call.args}{Style.RESET_ALL}"
+                )
                 print(f"{Style.DIM}   ... Waiting for result ...{Style.RESET_ALL}")
 
             if part.function_response:
@@ -102,19 +123,27 @@ class AgenticLogger:
                     display_text = response_text[:500] + "... (truncated)"
                 else:
                     display_text = response_text
-                print(f"{prefix} {Fore.LIGHTGREEN_EX}⬅ Tool Result: {part.function_response.name}: {display_text}{Style.RESET_ALL}") 
+                print(
+                    f"{prefix} {Fore.LIGHTGREEN_EX}⬅ Tool Result: {part.function_response.name}: {display_text}{Style.RESET_ALL}"
+                )
 
     def log_system(self, message: str):
         """Logs a system message."""
         ts = self._timestamp()
-        print(f"{Style.DIM}{ts}{Style.RESET_ALL} {Fore.LIGHTBLACK_EX}[System]: {message}{Style.RESET_ALL}")
+        print(
+            f"{Style.DIM}{ts}{Style.RESET_ALL} {Fore.LIGHTBLACK_EX}[System]: {message}{Style.RESET_ALL}"
+        )
 
     def log_info(self, message: str):
         """Logs an info message."""
         ts = self._timestamp()
-        print(f"{Style.DIM}{ts}{Style.RESET_ALL} {Fore.CYAN}[Info]: {message}{Style.RESET_ALL}")
+        print(
+            f"{Style.DIM}{ts}{Style.RESET_ALL} {Fore.CYAN}[Info]: {message}{Style.RESET_ALL}"
+        )
 
     def log_error(self, message: str):
         """Logs an error message."""
         ts = self._timestamp()
-        print(f"{Style.DIM}{ts}{Style.RESET_ALL} {Fore.RED}{Style.BRIGHT}[Error]: {message}{Style.RESET_ALL}")
+        print(
+            f"{Style.DIM}{ts}{Style.RESET_ALL} {Fore.RED}{Style.BRIGHT}[Error]: {message}{Style.RESET_ALL}"
+        )

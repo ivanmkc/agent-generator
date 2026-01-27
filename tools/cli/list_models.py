@@ -1,4 +1,3 @@
-
 """
 Utility to list available models for the Google Gen AI SDK.
 
@@ -19,6 +18,7 @@ if project_root not in sys.path:
 from google.genai import Client
 from benchmarks.api_key_manager import API_KEY_MANAGER, KeyType
 
+
 def list_models():
     """
     Authenticates with the Gemini API and lists all available models.
@@ -33,18 +33,19 @@ def list_models():
         # Check if list_models is supported or how to list models in this SDK version
         # Based on documentation it might be client.models.list_models() or similar
         # Since I am not sure about the exact method signature for this specific google.genai version wrapper
-        # I will try the standard way. 
+        # I will try the standard way.
         # Actually the error message said "Call ListModels"
-        
+
         # In google-genai 0.3+, it's client.models.list()
-        
+
         models = client.models.list()
         print("Available Models:")
         for m in models:
             print(f"- {m.name}")
-            
+
     except Exception as e:
         print(f"Error listing models: {e}")
+
 
 if __name__ == "__main__":
     list_models()

@@ -33,7 +33,7 @@ class GeminiAnswerGenerator(LlmAnswerGenerator):
         self.model_name = model_name
         self.context = context
         self.api_key_manager = api_key_manager
-        self.client = None # Initialized in _async_init
+        self.client = None  # Initialized in _async_init
 
     async def _async_init(self):
         """Asynchronous part of initialization."""
@@ -42,7 +42,9 @@ class GeminiAnswerGenerator(LlmAnswerGenerator):
         return self
 
     @classmethod
-    async def create(cls, model_name: str, context: str, api_key_manager: ApiKeyManager):
+    async def create(
+        cls, model_name: str, context: str, api_key_manager: ApiKeyManager
+    ):
         """Async factory for creating an instance."""
         instance = cls(model_name, context, api_key_manager)
         return await instance._async_init()
@@ -70,12 +72,12 @@ class GeminiAnswerGenerator(LlmAnswerGenerator):
         """Returns a detailed description of the generator."""
         desc = f"**Model:** {self.model_name}\n\n"
         desc += "**Type:** Gemini API (Direct Structured Output)\n\n"
-        
+
         context_content = self._get_context_content()
         if context_content:
             preview = context_content[:200]
             desc += f"**Context Preview:**\n> {preview}..."
-            
+
         return desc
 
     async def generate_answer(
@@ -107,11 +109,17 @@ class GeminiAnswerGenerator(LlmAnswerGenerator):
 
         # Retrieve API Key for this run
         if not self.api_key_manager:
-            raise RuntimeError("ApiKeyManager is not configured for GeminiAnswerGenerator.")
+            raise RuntimeError(
+                "ApiKeyManager is not configured for GeminiAnswerGenerator."
+            )
 
-        api_key, key_id = await self.api_key_manager.get_key_for_run(run_id, KeyType.GEMINI_API)
+        api_key, key_id = await self.api_key_manager.get_key_for_run(
+            run_id, KeyType.GEMINI_API
+        )
         if not api_key:
-            raise RuntimeError(f"No API key available for run_id '{run_id}' from ApiKeyManager.")
+            raise RuntimeError(
+                f"No API key available for run_id '{run_id}' from ApiKeyManager."
+            )
 
         client = genai.Client(api_key=api_key).aio
 
@@ -132,7 +140,11 @@ class GeminiAnswerGenerator(LlmAnswerGenerator):
             await self.api_key_manager.report_result(
                 KeyType.GEMINI_API, key_id, success=False, error_message=str(e)
             )
-            raise BenchmarkGenerationError(f"Gemini API Generation failed: {e}", original_exception=e, api_key_id=key_id) from e
+            raise BenchmarkGenerationError(
+                f"Gemini API Generation failed: {e}",
+                original_exception=e,
+                api_key_id=key_id,
+            ) from e
         finally:
             self.api_key_manager.release_run(run_id)
 
@@ -143,7 +155,7 @@ class GeminiAnswerGenerator(LlmAnswerGenerator):
             TraceLogEvent(
                 type=TraceEventType.GEMINI_API_RESPONSE,
                 content=response.text,
-                details=response.model_dump(mode='json'),
+                details=response.model_dump(mode="json"),
             )
         ]
 

@@ -110,7 +110,7 @@ class GeminiCliDockerAnswerGenerator(GeminiCliAnswerGenerator):
             # Pass CONTEXT7_API_KEY if present (for MCP)
             if os.environ.get("CONTEXT7_API_KEY"):
                 docker_args.extend(["-e", "CONTEXT7_API_KEY"])
-            
+
             # 2. Pass explicit extra_env variables
             if extra_env:
                 for k, v in extra_env.items():
@@ -221,7 +221,7 @@ class GeminiCliDockerAnswerGenerator(GeminiCliAnswerGenerator):
                         mapped_type = "system_result"
                     elif event_type == "init":
                         mapped_type = "init"
-                    
+
                     # Create a structured TraceLogEvent
                     log_event = TraceLogEvent(
                         type=mapped_type,

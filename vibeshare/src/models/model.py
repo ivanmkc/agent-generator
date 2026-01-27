@@ -1,4 +1,7 @@
+"""Model module."""
+
 import abc
+
 
 class Model(abc.ABC):
     """Abstract base class for models in VibeShare."""

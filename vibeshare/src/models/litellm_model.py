@@ -1,6 +1,9 @@
+"""Litellm Model module."""
+
 from typing import Any
 import litellm
 from .model import Model
+
 
 class LiteLLMModel(Model):
     """
@@ -30,16 +33,14 @@ class LiteLLMModel(Model):
             str: The generated response.
         """
         messages = [{"role": "user", "content": prompt}]
-        
+
         # Merge self.kwargs with passed kwargs, letting passed kwargs take precedence
         merged_kwargs = {**self.kwargs, **kwargs}
-        
+
         response = await litellm.acompletion(
-            model=self.model_name,
-            messages=messages,
-            **merged_kwargs
+            model=self.model_name, messages=messages, **merged_kwargs
         )
-        
+
         # Extract content from the response
         # litellm follows OpenAI format. Content can be None if the finish reason is length or content filter etc,
         # but usually it's a string.

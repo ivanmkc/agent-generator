@@ -155,7 +155,7 @@ async def test_generator_execution(
             success, error_msg = validate_trace_log_expectations(
                 answer.trace_logs,
                 test_case.expected_sub_agent_calls,
-                test_case.expected_tool_uses
+                test_case.expected_tool_uses,
             )
 
             if not success:
@@ -251,9 +251,7 @@ async def run_orchestrator():
     # Configuration for generators that need sequential execution
     # We filter specifically for Podman which requires orchestration
     generators = [
-        config
-        for config in GENERATOR_METADATA.values()
-        if config.type in ["podman"]
+        config for config in GENERATOR_METADATA.values() if config.type in ["podman"]
     ]
 
     print("=== Starting Sequential Integration Test Suite ===")
@@ -266,13 +264,14 @@ async def run_orchestrator():
         generator = None
         # Instantiate via config factory
         from benchmarks.api_key_manager import ApiKeyManager
+
         project_id = os.environ.get("GOOGLE_CLOUD_PROJECT", None)
-        
+
         try:
             generator = config.create_generator(
                 model_name="gemini-2.5-flash",
                 project_id=project_id,
-                api_key_manager=ApiKeyManager()
+                api_key_manager=ApiKeyManager(),
             )
         except Exception as e:
             print(f"!!! [{gen_id}] Initialization FAILED: {e}")

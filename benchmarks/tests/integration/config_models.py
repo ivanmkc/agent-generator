@@ -55,13 +55,16 @@ class PodmanGeneratorConfig(GeneratorConfig):
         image_name: Optional name (tag) of the Docker/Podman image. Derived from dockerfile_dir if omitted.
         service_url: Optional URL if using an existing service (proxy mode).
     """
+
     type: Literal["podman"] = "podman"
     dockerfile_dir: Path
     image_name: Optional[str] = None
     service_url: Optional[str] = None
     context_instruction: Optional[str] = None
 
-    def create_generator(self, model_name: str, project_id: str, api_key_manager: ApiKeyManager) -> AnswerGenerator:
+    def create_generator(
+        self, model_name: str, project_id: str, api_key_manager: ApiKeyManager
+    ) -> AnswerGenerator:
         """
         Creates a Podman-based AnswerGenerator instance based on this configuration.
         """
@@ -70,26 +73,28 @@ class PodmanGeneratorConfig(GeneratorConfig):
 
         image_name = self.image_name
         if not image_name:
-             # Logic to find image based on self.dockerfile_dir.name
-             source_dir_name = self.dockerfile_dir.name
-             for key, defn in IMAGE_DEFINITIONS.items():
-                 if defn.source_dir == source_dir_name:
-                     image_name = key
-                     break
-        
+            # Logic to find image based on self.dockerfile_dir.name
+            source_dir_name = self.dockerfile_dir.name
+            for key, defn in IMAGE_DEFINITIONS.items():
+                if defn.source_dir == source_dir_name:
+                    image_name = key
+                    break
+
         if not image_name:
-             # Fallback if still not found, though this likely means a config error
-             # But let the generator handle or fail later if we pass None, 
-             # wait, generator expects valid string.
-             # We raise here to be safe.
-             raise ValueError(f"Could not resolve image name for dockerfile_dir: {self.dockerfile_dir}")
+            # Fallback if still not found, though this likely means a config error
+            # But let the generator handle or fail later if we pass None,
+            # wait, generator expects valid string.
+            # We raise here to be safe.
+            raise ValueError(
+                f"Could not resolve image name for dockerfile_dir: {self.dockerfile_dir}"
+            )
 
         return GeminiCliPodmanAnswerGenerator(
             model_name=model_name,
             image_name=image_name,
             image_definitions=IMAGE_DEFINITIONS,
             api_key_manager=api_key_manager,
-            context_instruction=self.context_instruction
+            context_instruction=self.context_instruction,
         )
 
 
@@ -100,18 +105,21 @@ class WorkflowAdkGeneratorConfig(GeneratorConfig):
     Attributes:
         type: Literal "workflow_adk".
     """
+
     type: Literal["workflow_adk"] = "workflow_adk"
 
-    def create_generator(self, model_name: str, project_id: str, api_key_manager: ApiKeyManager) -> AnswerGenerator:
+    def create_generator(
+        self, model_name: str, project_id: str, api_key_manager: ApiKeyManager
+    ) -> AnswerGenerator:
         """
         Creates a WorkflowAdkAnswerGenerator instance (via factory).
         """
         from benchmarks.answer_generators.adk_agents import create_workflow_adk_generator
 
         return create_workflow_adk_generator(
-            model_name=model_name,
-            api_key_manager=api_key_manager
+            model_name=model_name, api_key_manager=api_key_manager
         )
+
 
 class StructuredWorkflowAdkGeneratorConfig(GeneratorConfig):
     """
@@ -120,18 +128,21 @@ class StructuredWorkflowAdkGeneratorConfig(GeneratorConfig):
     Attributes:
         type: Literal "structured_workflow_adk".
     """
+
     type: Literal["structured_workflow_adk"] = "structured_workflow_adk"
 
-    def create_generator(self, model_name: str, project_id: str, api_key_manager: ApiKeyManager) -> AnswerGenerator:
+    def create_generator(
+        self, model_name: str, project_id: str, api_key_manager: ApiKeyManager
+    ) -> AnswerGenerator:
         """
         Creates a StructuredWorkflowAdkAnswerGenerator instance (via factory).
         """
         from benchmarks.answer_generators.adk_agents import create_structured_workflow_adk_generator
 
         return create_structured_workflow_adk_generator(
-            model_name=model_name,
-            api_key_manager=api_key_manager
+            model_name=model_name, api_key_manager=api_key_manager
         )
+
 
 class HybridAdkGeneratorConfig(GeneratorConfig):
     """
@@ -140,23 +151,26 @@ class HybridAdkGeneratorConfig(GeneratorConfig):
     Attributes:
         type: Literal "hybrid_adk".
     """
+
     type: Literal["hybrid_adk"] = "hybrid_adk"
 
-    def create_generator(self, model_name: str, project_id: str, api_key_manager: ApiKeyManager) -> AnswerGenerator:
+    def create_generator(
+        self, model_name: str, project_id: str, api_key_manager: ApiKeyManager
+    ) -> AnswerGenerator:
         """
         Creates a HybridAdkAnswerGenerator instance (via factory).
         """
         from benchmarks.answer_generators.experiment_67 import create_hybrid_generator_v47
 
         return create_hybrid_generator_v47(
-            model_name=model_name,
-            api_key_manager=api_key_manager
+            model_name=model_name, api_key_manager=api_key_manager
         )
+
 
 # Union type for the configuration dictionary values
 AnyGeneratorConfig = Union[
-    PodmanGeneratorConfig, 
-    WorkflowAdkGeneratorConfig, 
+    PodmanGeneratorConfig,
+    WorkflowAdkGeneratorConfig,
     StructuredWorkflowAdkGeneratorConfig,
-    HybridAdkGeneratorConfig
+    HybridAdkGeneratorConfig,
 ]

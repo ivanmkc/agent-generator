@@ -1,3 +1,14 @@
+"""
+API Key Management Module.
+
+This module provides a robust system for managing multiple pools of API keys for different providers
+(Gemini, OpenAI, Anthropic, etc.). It handles:
+- Key rotation and selection strategies.
+- Rate limit handling and automatic cooldowns.
+- Persistence of key health statistics.
+- Thread-safe and async-safe access to keys.
+"""
+
 import asyncio
 import itertools
 import os
@@ -74,7 +85,7 @@ class ApiKeyManager:
         self._pools: Dict[KeyType, itertools.cycle] = {}
         # Mapping from run_id -> key_id for sticky sessions
         self._run_key_map: Dict[str, str] = {}
-        self._lock = asyncio.Lock() # Use asyncio.Lock for async safety
+        self._lock = asyncio.Lock()  # Use asyncio.Lock for async safety
 
         # Persistence setup
         self._stats_file = Path(".gemini/api_key_stats.json")
@@ -83,7 +94,9 @@ class ApiKeyManager:
         self._load_all_keys()
         self._load_stats()  # Load saved stats *after* keys are initialized
 
-    async def get_key_for_run(self, run_id: str, key_type: KeyType = KeyType.GEMINI_API) -> tuple[Optional[str], Optional[str]]:
+    async def get_key_for_run(
+        self, run_id: str, key_type: KeyType = KeyType.GEMINI_API
+    ) -> tuple[Optional[str], Optional[str]]:
         """
         Gets a sticky API key for a specific run ID.
         If the run_id already has a key, returns it.
@@ -100,10 +113,10 @@ class ApiKeyManager:
                     key_stat.last_used = time.time()
                     self._save_stats()
                     return key_stat.key, key_id
-        
+
         # Call outside the lock
         key, key_id = await self.get_next_key_with_id(key_type)
-        
+
         async with self._lock:
             if key and key_id:
                 self._run_key_map[run_id] = key_id
@@ -312,7 +325,9 @@ class ApiKeyManager:
                     )
                 elif is_quota:
                     # Exponential backoff: base, base*2, base*4...
-                    penalty = self.quota_cooldown_base * (2 ** max(0, key_stat.consecutive_failures - 1))
+                    penalty = self.quota_cooldown_base * (
+                        2 ** max(0, key_stat.consecutive_failures - 1)
+                    )
                     penalty = min(penalty, self.quota_cooldown_max)
                     key_stat.status = KeyStatus.COOLDOWN
                     key_stat.cooldown_until = now + penalty
@@ -330,7 +345,9 @@ class ApiKeyManager:
 
             self._save_stats()
 
-    async def get_next_key(self, key_type: KeyType = KeyType.GEMINI_API) -> Optional[str]:
+    async def get_next_key(
+        self, key_type: KeyType = KeyType.GEMINI_API
+    ) -> Optional[str]:
         """
         Wrapper for backward compatibility.
         """
@@ -340,7 +357,9 @@ class ApiKeyManager:
     def get_key_count(self, key_type: KeyType) -> int:
         return len(self._key_stats.get(key_type, {}))
 
-    async def get_key_id(self, key: str, key_type: KeyType = KeyType.GEMINI_API) -> Optional[str]:
+    async def get_key_id(
+        self, key: str, key_type: KeyType = KeyType.GEMINI_API
+    ) -> Optional[str]:
         """
         Reverse lookup: Find the ID for a given key string.
         """
@@ -348,7 +367,7 @@ class ApiKeyManager:
             stats_map = self._key_stats.get(key_type)
             if not stats_map:
                 return None
-            
+
             for k_id, stat in stats_map.items():
                 if stat.key == key:
                     return k_id

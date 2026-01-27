@@ -1,3 +1,5 @@
+"""Index module."""
+
 import yaml
 import logging
 import os
@@ -7,7 +9,9 @@ from .search import SearchProvider, get_search_provider
 
 logger = logging.getLogger(__name__)
 
+
 class KnowledgeIndex:
+
     def __init__(self):
         self._items: List[Dict[str, Any]] = []
         self._fqn_map: Dict[str, Dict[str, Any]] = {}
@@ -27,21 +31,21 @@ class KnowledgeIndex:
             with open(index_path, "r", encoding="utf-8") as f:
                 data = yaml.safe_load(f)
                 self._items = data if isinstance(data, list) else []
-                
+
                 # Sort by rank (ascending)
                 self._items.sort(key=lambda x: x.get("rank", 9999))
-                
+
                 self._fqn_map = {}
                 for item in self._items:
                     fqn = item.get("id") or item.get("fqn") or item.get("name")
                     if fqn:
                         self._fqn_map[fqn] = item
-                
+
                 # Build search index
                 provider_type = os.environ.get("ADK_SEARCH_PROVIDER", "bm25").lower()
                 self._provider = get_search_provider(provider_type)
                 self._provider.build_index(self._items)
-                
+
             self._loaded = True
             logger.info(f"Loaded {len(self._items)} targets from index.")
         except Exception as e:
@@ -54,14 +58,14 @@ class KnowledgeIndex:
         """
         if fqn in self._fqn_map:
             return self._fqn_map[fqn], ""
-            
+
         parts = fqn.split(".")
         for i in range(len(parts) - 1, 0, -1):
             prefix = ".".join(parts[:i])
             if prefix in self._fqn_map:
                 suffix = ".".join(parts[i:])
                 return self._fqn_map[prefix], suffix
-                
+
         return None, fqn
 
     def search(self, query: str, limit: int = 10) -> List[Tuple[float, Dict[str, Any]]]:
@@ -74,8 +78,10 @@ class KnowledgeIndex:
         end = start + page_size
         return self._items[start:end]
 
+
 # Singleton instance
 _global_index = KnowledgeIndex()
+
 
 def get_index() -> KnowledgeIndex:
     return _global_index

@@ -1,12 +1,20 @@
+"""
+Benchmark Candidates Definition.
+
+This module defines the list of candidate answer generators (agents) that will be evaluated
+during a benchmark run. It sets up the specific configurations, models, and environment variables
+for each candidate. It also defines the ModelName enum for consistent model referencing.
+"""
+
 import enum
 from pathlib import Path
 from benchmarks.utils import permute
 from benchmarks.api_key_manager import ApiKeyManager
 from benchmarks.answer_generators.adk_agents import (
-    create_default_adk_agent, 
-    create_workflow_adk_generator, 
+    create_default_adk_agent,
+    create_workflow_adk_generator,
     create_structured_workflow_adk_generator,
-    create_baseline_workflow_adk_generator
+    create_baseline_workflow_adk_generator,
 )
 from benchmarks.answer_generators.debug_adk_agents import create_react_workflow_adk_generator
 from benchmarks.answer_generators.experiment_66 import create_ranked_index_generator_v46
@@ -18,8 +26,8 @@ from benchmarks.answer_generators.gemini_cli_docker import (
 from benchmarks.answer_generators.ground_truth_answer_generator import GroundTruthAnswerGenerator
 from benchmarks.answer_generators.trivial_answer_generator import TrivialAnswerGenerator
 from benchmarks.answer_generators.gemini_cli_docker.image_definitions import (
-        IMAGE_DEFINITIONS,
-    )
+    IMAGE_DEFINITIONS,
+)
 
 
 # Define model constants as enum
@@ -29,6 +37,7 @@ class ModelName(enum.StrEnum):
 
     # Warning: Using Gemini 3 may lead to inability to use quota for gemini-cli itself
     GEMINI_3_PRO_PREVIEW = "gemini-3-pro-preview"
+
 
 api_key_manager = ApiKeyManager()
 
@@ -59,7 +68,7 @@ CANDIDATE_GENERATORS = [
         model_name=ModelName.GEMINI_2_5_FLASH,
         api_key_manager=api_key_manager,
         extra_env={"ADK_SEARCH_PROVIDER": "bm25"},
-        experiment_id="ranked_knowledge_bm25"
+        experiment_id="ranked_knowledge_bm25",
     ),
     # GeminiCliPodmanAnswerGenerator(
     #     image_definitions=IMAGE_DEFINITIONS,

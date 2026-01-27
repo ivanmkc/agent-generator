@@ -68,7 +68,7 @@ class BenchmarkLogger(abc.ABC):
     ) -> None:
         """Logs the result of a test execution."""
         pass
-    
+
     @abc.abstractmethod
     def log_summary_table(self, results: List[BenchmarkRunResult]) -> None:
         """Logs a summary table of all benchmark results."""
@@ -129,39 +129,43 @@ class ConsoleBenchmarkLogger(BenchmarkLogger):
         is_pass = result == "pass"
         status_color = Fore.GREEN if is_pass else Fore.RED
         status_icon = "✔" if is_pass else "✘"
-        
+
         # We assume this is called inside a 'Benchmark Suite' section or similar context
         # But since cases run in parallel, we want a self-contained block for the case.
-        
+
         # Indent specifically for this case block
         with self.section(f"Case: {id} (Suite: {suite})"):
             # Log attempts if provided
             if generation_attempts:
                 for attempt in generation_attempts:
                     # attempt is a GenerationAttempt object or dict. Assuming object based on orchestrator.
-                    # We need to handle if it's a dict or object. 
+                    # We need to handle if it's a dict or object.
                     # Based on codebase, it's a Pydantic model usually, but let's be safe.
-                    
-                    attr_getter = lambda x, k: getattr(x, k) if hasattr(x, k) else x.get(k)
-                    
+
+                    attr_getter = (
+                        lambda x, k: getattr(x, k) if hasattr(x, k) else x.get(k)
+                    )
+
                     a_num = attr_getter(attempt, "attempt_number")
                     a_status = attr_getter(attempt, "status")
                     a_error = attr_getter(attempt, "error_message")
                     a_key = attr_getter(attempt, "api_key_id")
-                    
+
                     key_str = f" (Key: {a_key})" if a_key else ""
-                    
+
                     if a_status == "success":
-                         self._print(f"Attempt {a_num}: Success{key_str}", Fore.GREEN)
+                        self._print(f"Attempt {a_num}: Success{key_str}", Fore.GREEN)
                     else:
-                         self._print(f"Attempt {a_num}: Failed - {a_error}{key_str}", Fore.YELLOW)
+                        self._print(
+                            f"Attempt {a_num}: Failed - {a_error}{key_str}", Fore.YELLOW
+                        )
 
             if validation_error:
                 self._print(f"Validation Error: {validation_error}", Fore.RED)
-            
+
             self._print(f"Result: {result.upper()} {status_icon}", status_color)
             if not is_pass and temp_test_file:
-                 self._print(f"Reproduce: {temp_test_file}", Fore.LIGHTBLACK_EX)
+                self._print(f"Reproduce: {temp_test_file}", Fore.LIGHTBLACK_EX)
 
     def log_summary_table(self, results: List[BenchmarkRunResult]) -> None:
         """Prints a summary table to the console."""
@@ -172,12 +176,12 @@ class ConsoleBenchmarkLogger(BenchmarkLogger):
         # Calculate widths
         max_name_len = max(len(r.benchmark_name) for r in results)
         max_name_len = max(max_name_len, len("Benchmark"))
-        max_name_len = min(max_name_len, 50) # Cap width
+        max_name_len = min(max_name_len, 50)  # Cap width
 
         # Headers
         headers = f"{'Benchmark':<{max_name_len}} | {'Result':<10} | {'Total Time':<10} | {'Last Run':<8} | {'Att.'}"
         separator = "-" * len(headers)
-        
+
         print("\n")
         self._print("SUMMARY TABLE", Fore.CYAN + Style.BRIGHT)
         self._print(separator)
@@ -187,11 +191,11 @@ class ConsoleBenchmarkLogger(BenchmarkLogger):
         for res in results:
             name = res.benchmark_name
             if len(name) > max_name_len:
-                name = name[:max_name_len-3] + "..."
-            
+                name = name[: max_name_len - 3] + "..."
+
             is_pass = res.status == "pass"
             color = Fore.GREEN if is_pass else Fore.RED
-            
+
             # Granular Status
             if res.status == "pass":
                 status_str = "PASS"
@@ -203,29 +207,33 @@ class ConsoleBenchmarkLogger(BenchmarkLogger):
                 status_str = "FAIL(S)"
             else:
                 status_str = str(res.status).upper()
-            
-            attempts_count = len(res.generation_attempts) if res.generation_attempts else 0
-            
+
+            attempts_count = (
+                len(res.generation_attempts) if res.generation_attempts else 0
+            )
+
             # Duration logic
             total_time = res.latency
             last_run_time = 0.0
             if res.generation_attempts:
                 last_run_time = res.generation_attempts[-1].duration
-            
+
             row = f"{name:<{max_name_len}} | {status_str:<10} | {total_time:9.2f}s | {last_run_time:7.2f}s | {attempts_count}"
             self._print(row, color)
-        
+
         self._print(separator)
-        
+
         # Stats
         total = len(results)
         passed = sum(1 for r in results if r.status == "pass")
         failed = total - passed
         pass_rate = (passed / total) * 100 if total > 0 else 0
-        
-        self._print(f"Total: {total}, Passed: {passed}, Failed: {failed} ({pass_rate:.1f}%)", Fore.CYAN)
-        print("\n")
 
+        self._print(
+            f"Total: {total}, Passed: {passed}, Failed: {failed} ({pass_rate:.1f}%)",
+            Fore.CYAN,
+        )
+        print("\n")
 
     def finalize_run(self) -> None:
         print("Benchmark run finalized (console output).")
@@ -280,25 +288,29 @@ class TraceMarkdownLogger(BenchmarkLogger):
             if generation_attempts:
                 f.write("**Generation Attempts:**\n")
                 for att in generation_attempts:
-                     # Handle Pydantic or dict
-                     att_data = att.model_dump() if hasattr(att, "model_dump") else att
-                     f.write(f"- {att_data}\n")
-            
+                    # Handle Pydantic or dict
+                    att_data = att.model_dump() if hasattr(att, "model_dump") else att
+                    f.write(f"- {att_data}\n")
+
             if validation_error:
                 f.write(f"**Validation Error:** {validation_error}\n")
             if temp_test_file:
                 f.write(f"**Temp Test File:** `{temp_test_file}`\n")
             if answer_data:
                 f.write("**Generated Answer:**\n")
-                f.write(f"```json\n{json.dumps(answer_data, indent=2, cls=BytesEncoder)}\n```\n")
+                f.write(
+                    f"```json\n{json.dumps(answer_data, indent=2, cls=BytesEncoder)}\n```\n"
+                )
             if trace_logs:
                 f.write("**Trace Logs:**\n")
                 try:
                     logs_data = [
-                        t.model_dump(mode='json') if hasattr(t, "model_dump") else t
+                        t.model_dump(mode="json") if hasattr(t, "model_dump") else t
                         for t in trace_logs
                     ]
-                    f.write(f"```json\n{json.dumps(logs_data, indent=2, cls=BytesEncoder)}\n```\n")
+                    f.write(
+                        f"```json\n{json.dumps(logs_data, indent=2, cls=BytesEncoder)}\n```\n"
+                    )
                 except Exception:
                     f.write(f"```\n{str(trace_logs)}\n```\n")
             f.write("\n")
@@ -312,7 +324,7 @@ class TraceMarkdownLogger(BenchmarkLogger):
             f.write("\n## Summary Table\n\n")
             f.write("| Benchmark | Result | Total Time | Last Run | Attempts |\n")
             f.write("| :--- | :---: | :---: | :---: | :---: |\n")
-            
+
             for res in results:
                 # Granular Status Icons
                 if res.status == "pass":
@@ -326,15 +338,22 @@ class TraceMarkdownLogger(BenchmarkLogger):
                 else:
                     status_icon = f"❓ {res.status}"
 
-                attempts_count = len(res.generation_attempts) if res.generation_attempts else 0
-                
+                attempts_count = (
+                    len(res.generation_attempts) if res.generation_attempts else 0
+                )
+
                 total_time = res.latency
-                last_run_time = res.generation_attempts[-1].duration if res.generation_attempts else 0.0
+                last_run_time = (
+                    res.generation_attempts[-1].duration
+                    if res.generation_attempts
+                    else 0.0
+                )
 
-                f.write(f"| {res.benchmark_name} | {status_icon} | {total_time:.2f}s | {last_run_time:.2f}s | {attempts_count} |\n")
-            
+                f.write(
+                    f"| {res.benchmark_name} | {status_icon} | {total_time:.2f}s | {last_run_time:.2f}s | {attempts_count} |\n"
+                )
+
             f.write("\n")
-
 
     def finalize_run(self) -> None:
         end_time = time.time()
@@ -349,6 +368,7 @@ class TraceMarkdownLogger(BenchmarkLogger):
 
 class BytesEncoder(json.JSONEncoder):
     """Custom JSON encoder to handle bytes and set objects."""
+
     def default(self, obj):
         if isinstance(obj, bytes):
             return repr(obj)
@@ -356,21 +376,24 @@ class BytesEncoder(json.JSONEncoder):
             return list(obj)
         return super().default(obj)
 
+
 class BlockStyleDumper(yaml.SafeDumper):
     """Custom YAML dumper that uses block style for multi-line strings."""
+
     def represent_scalar(self, tag, value, style=None):
-        if isinstance(value, str) and '\n' in value:
-            style = '|'
+        if isinstance(value, str) and "\n" in value:
+            style = "|"
         return super().represent_scalar(tag, value, style)
 
     def represent_data(self, data):
         if isinstance(data, bytes):
-            return self.represent_scalar('tag:yaml.org,2002:str', repr(data))
+            return self.represent_scalar("tag:yaml.org,2002:str", repr(data))
         if isinstance(data, set):
-            return self.represent_sequence('tag:yaml.org,2002:seq', list(data))
+            return self.represent_sequence("tag:yaml.org,2002:seq", list(data))
         if isinstance(data, enum.Enum):
-            return self.represent_scalar('tag:yaml.org,2002:str', str(data.value))
+            return self.represent_scalar("tag:yaml.org,2002:str", str(data.value))
         return super().represent_data(data)
+
 
 class YamlTraceLogger(BenchmarkLogger):
     """A benchmark logger that writes structured YAML trace information to a unique file per run."""
@@ -398,8 +421,15 @@ class YamlTraceLogger(BenchmarkLogger):
         entry = {"event_type": event_type, "timestamp": time.time(), "data": data}
         with open(self.output_file, "a", encoding="utf-8") as f:
             f.write("---\n")
-            yaml.dump(entry, f, Dumper=BlockStyleDumper, sort_keys=False, allow_unicode=True, default_flow_style=False)
-    
+            yaml.dump(
+                entry,
+                f,
+                Dumper=BlockStyleDumper,
+                sort_keys=False,
+                allow_unicode=True,
+                default_flow_style=False,
+            )
+
     @contextlib.contextmanager
     def section(self, name: str):
         self._log_event("section_start", {"name": name})
@@ -437,13 +467,15 @@ class YamlTraceLogger(BenchmarkLogger):
         logs_data = None
         if trace_logs:
             logs_data = [
-                t.model_dump(mode='json') if hasattr(t, "model_dump") else t for t in trace_logs
+                t.model_dump(mode="json") if hasattr(t, "model_dump") else t
+                for t in trace_logs
             ]
-        
+
         attempts_data = None
         if generation_attempts:
             attempts_data = [
-                a.model_dump(mode='json') if hasattr(a, "model_dump") else a for a in generation_attempts
+                a.model_dump(mode="json") if hasattr(a, "model_dump") else a
+                for a in generation_attempts
             ]
 
         self._log_event(
@@ -460,18 +492,22 @@ class YamlTraceLogger(BenchmarkLogger):
                 "generation_attempts": attempts_data,
             },
         )
-    
+
     def log_summary_table(self, results: List[BenchmarkRunResult]) -> None:
         """Logs the summary table as a structured event."""
         summary_data = []
         for res in results:
-            summary_data.append({
-                "benchmark_name": res.benchmark_name,
-                "status": res.status,
-                "latency": res.latency,
-                "attempts_count": len(res.generation_attempts) if res.generation_attempts else 0
-            })
-        
+            summary_data.append(
+                {
+                    "benchmark_name": res.benchmark_name,
+                    "status": res.status,
+                    "latency": res.latency,
+                    "attempts_count": len(res.generation_attempts)
+                    if res.generation_attempts
+                    else 0,
+                }
+            )
+
         self._log_event("summary_table", {"results": summary_data})
 
     def finalize_run(self) -> None:

@@ -47,8 +47,9 @@ FRAMEWORKS_TO_DETECT = [
     "openai sdk",
     "openai api",
     "google cloud vertex ai sdk",
-    "google-cloud-aiplatform"
+    "google-cloud-aiplatform",
 ]
+
 
 class VibeshareResult(BaseModel):
     category: str
@@ -76,7 +77,7 @@ class VibeshareResult(BaseModel):
         """
         if not self.response:
             return False
-        
+
         # Matches 'adk', 'adk-python', 'adk python', 'adk-js', etc. or 'Agent Development Kit'
         # The pattern is:
         # 1. \b(adk ...): Starts with 'adk' word boundary
@@ -85,7 +86,7 @@ class VibeshareResult(BaseModel):
         #    - (?:python|js|java|go): one of the languages
         # OR
         # 3. agent development kit
-        
+
         pattern = r"(?i)\b(adk(?:[- ](?:python|js|java|go))?|agent development kit)\b"
         return bool(re.search(pattern, self.response))
 
@@ -97,15 +98,17 @@ class VibeshareResult(BaseModel):
         """
         if not self.response:
             return []
-        
+
         detected = []
         for framework in FRAMEWORKS_TO_DETECT:
             pattern = r"(?i)\b" + re.escape(framework) + r"\b"
             # Only include if in response AND NOT in prompt
-            if re.search(pattern, self.response) and not re.search(pattern, self.prompt):
+            if re.search(pattern, self.response) and not re.search(
+                pattern, self.prompt
+            ):
                 detected.append(framework)
         return detected
-    
+
     def to_dict(self):
         return {
             "category": self.category,
@@ -115,5 +118,5 @@ class VibeshareResult(BaseModel):
             "success": self.success,
             "error_message": self.error_message,
             "was_adk_mentioned": self.was_adk_mentioned,
-            "mentioned_frameworks": self.mentioned_frameworks
+            "mentioned_frameworks": self.mentioned_frameworks,
         }

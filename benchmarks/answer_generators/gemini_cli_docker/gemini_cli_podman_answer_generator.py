@@ -63,13 +63,15 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
         self.container_name = f"gemini-cli-podman-container-{uuid.uuid4()}"
         self.extra_env = extra_env or {}
         self.experiment_id = experiment_id
-        
+
         self._is_proxy = False
         self._base_url = None
         self._setup_lock = asyncio.Lock()
         self._setup_completed = False
         self._image_checked = False
-        self.container = PodmanContainer(image_name=self.image_name, container_name=self.container_name)
+        self.container = PodmanContainer(
+            image_name=self.image_name, container_name=self.container_name
+        )
 
     @classmethod
     async def create(
@@ -109,6 +111,7 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
         if self.extra_env:
             # Append hash or summary of extra_env to distinguish instances
             import hashlib
+
             env_str = json.dumps(self.extra_env, sort_keys=True)
             env_hash = hashlib.md5(env_str.encode()).hexdigest()[:6]
             return f"{base}[env:{env_hash}]"
@@ -118,16 +121,18 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
     def description(self) -> str:
         image_def = self._image_definitions.get(self.image_name)
         content_desc = image_def.description if image_def else "Custom environment."
-        
+
         desc = f"**Model:** {self.model_name}\n\n"
         desc += f"**Environment:** {content_desc}\n\n"
-        
+
         if self._is_proxy:
             desc += f"*Note: Acting as a proxy to service at {self._base_url}.*"
-        
+
         if self.context_instruction:
-            desc += f"\n\n**Context Instruction:**\n> {self.context_instruction[:200]}..."
-            
+            desc += (
+                f"\n\n**Context Instruction:**\n> {self.context_instruction[:200]}..."
+            )
+
         return desc
 
     async def setup(self, force_deploy: bool = False) -> None:
@@ -145,9 +150,11 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
             # Start via PodmanContainer
             await self.container.start()
             self._base_url = self.container.base_url
-            
+
             self._setup_completed = True
-            print(f"[Podman Setup] Setup for {self.name} completed. Listening on {self._base_url}")
+            print(
+                f"[Podman Setup] Setup for {self.name} completed. Listening on {self._base_url}"
+            )
 
     async def teardown(self) -> None:
         if self.container:
@@ -167,12 +174,20 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
             f"Image '{self.image_name}' is not a known managed image and no "
             "dockerfile_dir was provided for a custom build."
         )
-    
+
     async def _get_image_label(self, image_name: str, label_key: str) -> str | None:
         try:
-            inspect_cmd = ["podman", "inspect", "--format", f"{{{{.Config.Labels.{label_key}}}}}", image_name]
+            inspect_cmd = [
+                "podman",
+                "inspect",
+                "--format",
+                f"{{{{.Config.Labels.{label_key}}}}}",
+                image_name,
+            ]
             proc = await asyncio.create_subprocess_exec(
-                *inspect_cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
+                *inspect_cmd,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
             )
             stdout, _ = await proc.communicate()
             if proc.returncode == 0:
@@ -182,7 +197,14 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
             pass
         return None
 
-    async def _execute_podman_build(self, image_name: str, dockerfile_path: Path, context_path: Path, build_args: Optional[dict[str, str]] = None, labels: Optional[dict[str, str]] = None):
+    async def _execute_podman_build(
+        self,
+        image_name: str,
+        dockerfile_path: Path,
+        context_path: Path,
+        build_args: Optional[dict[str, str]] = None,
+        labels: Optional[dict[str, str]] = None,
+    ):
         print(f"Building Podman image: {image_name}...")
         build_cmd = ["podman", "build", "-t", image_name, "-f", str(dockerfile_path)]
         if build_args:
@@ -198,7 +220,7 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
         )
         stdout, stderr = await proc.communicate()
         if proc.returncode != 0:
-             raise RuntimeError(f"Build failed for {image_name}: {stderr.decode()}")
+            raise RuntimeError(f"Build failed for {image_name}: {stderr.decode()}")
         print(f"Successfully built {image_name}")
 
     async def _build_image_chain(self, image_key: str, force: bool = False) -> bool:
@@ -218,12 +240,18 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
 
         if not should_build:
             exists_cmd = ["podman", "image", "exists", full_image_name]
-            proc = await asyncio.create_subprocess_exec(*exists_cmd, stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.PIPE)
+            proc = await asyncio.create_subprocess_exec(
+                *exists_cmd,
+                stdout=asyncio.subprocess.DEVNULL,
+                stderr=asyncio.subprocess.PIPE,
+            )
             await proc.communicate()
             if proc.returncode != 0:
                 should_build = True
             else:
-                existing_hash = await self._get_image_label(full_image_name, "source_hash")
+                existing_hash = await self._get_image_label(
+                    full_image_name, "source_hash"
+                )
                 if existing_hash != current_hash:
                     should_build = True
 
@@ -260,8 +288,8 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
 
         try:
             if self._is_proxy:
-                 payload = {"args": full_args, "env": combined_env}
-                 async with aiohttp.ClientSession() as session:
+                payload = {"args": full_args, "env": combined_env}
+                async with aiohttp.ClientSession() as session:
                     async with session.post(self._base_url, json=payload) as resp:
                         if resp.status != 200:
                             raise RuntimeError(f"Proxy returned {resp.status}")
@@ -271,29 +299,46 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
 
         except Exception as e:
             raise RuntimeError(f"Failed to communicate with API server: {e}")
- 
+
         stdout_str = result.get("stdout", "")
         stderr_str = result.get("stderr", "")
         returncode = result.get("returncode", 0)
 
         for line in stderr_str.splitlines():
             if line.strip():
-                logs.append(TraceLogEvent(type="CLI_STDERR", source="podman_server", content=line.strip()))
+                logs.append(
+                    TraceLogEvent(
+                        type="CLI_STDERR", source="podman_server", content=line.strip()
+                    )
+                )
 
         captured_error_report = None
-        error_report_match = re.search(r"Error when talking to Gemini API Full report available at: (\S+)", stderr_str)
+        error_report_match = re.search(
+            r"Error when talking to Gemini API Full report available at: (\S+)",
+            stderr_str,
+        )
         if error_report_match:
             report_path = error_report_match.group(1)
             error_content = None
             if self.container:
                 error_content = await self.container.read_file(report_path)
-            
+
             if error_content:
                 captured_error_report = error_content
-                logs.append(TraceLogEvent(type="GEMINI_CLIENT_ERROR", source="podman_server", content=error_content))
+                logs.append(
+                    TraceLogEvent(
+                        type="GEMINI_CLIENT_ERROR",
+                        source="podman_server",
+                        content=error_content,
+                    )
+                )
 
         if stdout_str:
-            logs.append(TraceLogEvent(type="CLI_STDOUT_FULL", source="podman_server", content=stdout_str))
+            logs.append(
+                TraceLogEvent(
+                    type="CLI_STDOUT_FULL", source="podman_server", content=stdout_str
+                )
+            )
 
         response_dict = {
             "stdout": stdout_str,
@@ -308,18 +353,24 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
             logs.extend(parsed_logs)
         else:
             if stdout_str.strip():
-                logs.append(TraceLogEvent(type="CLI_STDOUT_RAW", source="podman_server", content=stdout_str.strip()))
+                logs.append(
+                    TraceLogEvent(
+                        type="CLI_STDOUT_RAW",
+                        source="podman_server",
+                        content=stdout_str.strip(),
+                    )
+                )
             response_dict["response"] = stdout_str.strip()
 
         if returncode != 0:
             error_msg = stderr_str.strip() or stdout_str.strip()
             if captured_error_report:
                 error_msg += f"\n\n[Captured Error Report]\n{captured_error_report}"
-            
+
             raise GeminiCliExecutionError(
                 f"Gemini CLI failed with code {returncode}: {error_msg}",
                 logs=logs,
-                response_dict=response_dict
+                response_dict=response_dict,
             )
 
         return response_dict, logs

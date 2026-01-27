@@ -12,7 +12,7 @@ import aiohttp
 
 from benchmarks.answer_generators.gemini_cli_docker.gemini_cli_podman_answer_generator import (
     GeminiCliPodmanAnswerGenerator,
-    GeminiCliExecutionError
+    GeminiCliExecutionError,
 )
 from benchmarks.data_models import AnswerTemplate
 from benchmarks.data_models import ApiUnderstandingBenchmarkCase
@@ -31,6 +31,7 @@ def mock_subprocess():
 @pytest.fixture
 def mock_akm():
     from benchmarks.api_key_manager import ApiKeyManager
+
     manager = MagicMock(spec=ApiKeyManager)
     manager.get_key_for_run = AsyncMock(return_value=("test-key", "key-id"))
     manager.report_result = AsyncMock()
@@ -39,7 +40,9 @@ def mock_akm():
 
 @pytest.fixture
 def mock_container():
-    with patch("benchmarks.answer_generators.gemini_cli_docker.gemini_cli_podman_answer_generator.PodmanContainer") as mock:
+    with patch(
+        "benchmarks.answer_generators.gemini_cli_docker.gemini_cli_podman_answer_generator.PodmanContainer"
+    ) as mock:
         instance = mock.return_value
         instance.start = AsyncMock()
         instance.stop = MagicMock()
@@ -56,7 +59,7 @@ async def test_podman_generator_setup(mock_subprocess, mock_akm, mock_container)
         image_name="test-image",
         model_name="gemini-2.5-flash",
         image_definitions={},
-        api_key_manager=mock_akm
+        api_key_manager=mock_akm,
     )
     generator._ensure_image_ready = AsyncMock()
 
@@ -67,14 +70,16 @@ async def test_podman_generator_setup(mock_subprocess, mock_akm, mock_container)
 
 
 @pytest.mark.asyncio
-async def test_podman_generator_env_vars_setup(mock_subprocess, mock_akm, mock_container):
+async def test_podman_generator_env_vars_setup(
+    mock_subprocess, mock_akm, mock_container
+):
     """Test that env vars are correctly set on the generator."""
     generator = GeminiCliPodmanAnswerGenerator(
         image_name="test-image",
         model_name="gemini-2.5-flash",
         image_definitions={},
         api_key_manager=mock_akm,
-        extra_env={"CUSTOM_VAR": "custom-val"}
+        extra_env={"CUSTOM_VAR": "custom-val"},
     )
 
     assert generator.extra_env["CUSTOM_VAR"] == "custom-val"
@@ -87,7 +92,7 @@ async def test_podman_generator_run_cli_command(mock_akm, mock_container):
         image_name="test-image",
         model_name="gemini-2.5-flash",
         image_definitions={},
-        api_key_manager=mock_akm
+        api_key_manager=mock_akm,
     )
 
     # Manually set up generator state to bypass setup()
@@ -125,7 +130,7 @@ async def test_podman_generator_generate_answer(mock_akm, mock_container):
         image_name="test-image",
         model_name="gemini-2.5-flash",
         image_definitions={},
-        api_key_manager=mock_akm
+        api_key_manager=mock_akm,
     )
     generator._setup_completed = True
     generator._base_url = "http://localhost:12345"
@@ -172,7 +177,9 @@ async def test_podman_generator_generate_answer(mock_akm, mock_container):
 
 
 @pytest.mark.asyncio
-async def test_run_cli_command_error_report_capture(mock_subprocess, mock_akm, mock_container):
+async def test_run_cli_command_error_report_capture(
+    mock_subprocess, mock_akm, mock_container
+):
     """
     Tests that a Gemini client error report file mentioned in stderr is captured
     and added to trace logs using the /read_file API endpoint.
@@ -181,7 +188,7 @@ async def test_run_cli_command_error_report_capture(mock_subprocess, mock_akm, m
         image_name="test-image",
         model_name="gemini-2.5-flash",
         image_definitions={},
-        api_key_manager=mock_akm
+        api_key_manager=mock_akm,
     )
     generator._setup_completed = True
     generator._base_url = "http://localhost:12345"

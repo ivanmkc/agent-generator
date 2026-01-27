@@ -1,3 +1,5 @@
+"""Adk Runner Server module."""
+
 from mcp.server.fastmcp import FastMCP
 from adk_agent_tool import run_adk_agent
 

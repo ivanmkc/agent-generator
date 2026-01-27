@@ -1,3 +1,12 @@
+"""
+Data models for the Benchmark Generator.
+
+Defines Pydantic models for:
+- TargetEntity: A code element to be tested.
+- GoldenSnapshot: A recorded execution trace of valid usage.
+- BenchmarkCase: The final generated test case structure.
+"""
+
 # Copyright 2025 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,11 +27,13 @@ from typing import Any, Dict, List, Optional
 from enum import Enum
 import pydantic
 
+
 class ValidationStatus(str, Enum):
     PASS = "PASS"
     FAIL_CRASH = "FAIL_CRASH"
     FAIL_ASSERTION = "FAIL_ASSERTION"
     FAIL_TIMEOUT = "FAIL_TIMEOUT"
+
 
 class TargetType(str, Enum):
     MODULE = "module"
@@ -31,16 +42,20 @@ class TargetType(str, Enum):
     PROPERTY = "property"
     PARAMETER = "parameter"
 
+
 class ContextNode(pydantic.BaseModel):
     """A node in the associated context tree (flattened)."""
+
     id: str
     type: str
     probability: float
     usage: int = 0
-    parent_id: Optional[str] = None # Used to reconstruct hierarchy if needed
+    parent_id: Optional[str] = None  # Used to reconstruct hierarchy if needed
+
 
 class TargetEntity(pydantic.BaseModel):
     """A hierarchical entity in the codebase targeted for benchmarking."""
+
     id: str  # Fully Qualified Name (FQN)
     type: TargetType
     name: str
@@ -56,8 +71,10 @@ class TargetEntity(pydantic.BaseModel):
     # Context Expansion (Flattened list of related entities)
     associated_context: List[ContextNode] = []
 
+
 class GoldenSnapshot(pydantic.BaseModel):
     """The 'ground truth' capture from the Tracer."""
+
     target: TargetEntity
     valid_usage_code: str  # Option A (The correct code)
     stdout: str
@@ -65,36 +82,44 @@ class GoldenSnapshot(pydantic.BaseModel):
     local_vars: Dict[str, str]  # Captured local variables
     execution_time: float
 
+
 class ObserverOutput(pydantic.BaseModel):
     """Output from the Observer agent."""
+
     status: str  # SUCCESS or FAILED
     rationale: str
     code_generated: Optional[str] = None
 
+
 class DistractorOption(pydantic.BaseModel):
     """A generated distractor option (B, C, D)."""
+
     code: str
     mutation_type: str  # e.g., "Semantic", "Context Poisoning", "SAFIM"
     mutation_description: str
     diff_from_golden: str  # Diff string
 
+
 class SaboteurOutput(pydantic.BaseModel):
     """Output from the Saboteur agent."""
+
     mutants: List[DistractorOption]
-    status: str # SUCCESS or FAILED
+    status: str  # SUCCESS or FAILED
+
 
 class BenchmarkCandidate(pydantic.BaseModel):
     """A fully assembled candidate question."""
+
     snapshot: GoldenSnapshot
     distractors: List[DistractorOption]
     question_text: str
     metadata: Dict[str, Any]  # Difficulty, estimated IRT params, etc.
 
+
 class BenchmarkResult(pydantic.BaseModel):
     """Result of running a candidate through validation."""
+
     candidate: BenchmarkCandidate
     valid: bool
     validation_logs: List[str]
     uniqueness_score: float = 0.0
-
-

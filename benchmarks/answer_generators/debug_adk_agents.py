@@ -26,7 +26,7 @@ from benchmarks.answer_generators.adk_agents import (
     CodeBasedFinalVerifier,
     CodeBasedTeardownAgent,
     _create_index_retrieval_agents,
-    can_use_output_schema_with_tools
+    can_use_output_schema_with_tools,
 )
 from benchmarks.answer_generators.adk_tools import AdkTools
 from benchmarks.answer_generators.adk_answer_generator import AdkAnswerGenerator
@@ -34,19 +34,24 @@ from benchmarks.api_key_manager import ApiKeyManager
 
 from google.adk.agents.callback_context import CallbackContext
 
+
 # --- Guard Implementation ---
 def input_guard_callback(callback_context: CallbackContext):
     """Prevents the solver from running if input state is corrupted."""
     # Dynamic context attribute resolution to handle different ADK versions/mocks
-    ctx = getattr(callback_context, 'invocation_context', None) or \
-          getattr(callback_context, 'context', None) or \
-          getattr(callback_context, '_invocation_context', None)
-    
+    ctx = (
+        getattr(callback_context, "invocation_context", None)
+        or getattr(callback_context, "context", None)
+        or getattr(callback_context, "_invocation_context", None)
+    )
+
     if not ctx:
-        raise RuntimeError("CRITICAL: Could not resolve InvocationContext from CallbackContext.")
+        raise RuntimeError(
+            "CRITICAL: Could not resolve InvocationContext from CallbackContext."
+        )
 
     sanitized_request = ctx.session.state.get("sanitized_user_request")
-    
+
     if not sanitized_request or sanitized_request == "null":
         # Log heavily so it shows up in trace
         msg = (
@@ -54,8 +59,9 @@ def input_guard_callback(callback_context: CallbackContext):
             "This indicates an upstream failure (e.g., PromptSanitizer failed or Quota Limit hit). "
             "Aborting chain to prevent hallucination."
         )
-        print(msg) # Print to stdout for log capture
+        print(msg)  # Print to stdout for log capture
         raise ValueError(msg)
+
 
 def create_debug_structured_adk_agent(
     tools_helper: AdkTools,
@@ -71,7 +77,7 @@ def create_debug_structured_adk_agent(
     # Bespoke Tools
     get_help_tool = FunctionTool(tools_helper.get_module_help)
     search_tool = FunctionTool(tools_helper.search_files)
-    
+
     # Standard tools
     write_tool = FunctionTool(tools_helper.write_file)
     replace_tool = FunctionTool(tools_helper.replace_text)
@@ -86,13 +92,15 @@ def create_debug_structured_adk_agent(
 
     # 0. Setup Agent
     setup_agent = SetupAgentCodeBased(
-        name="setup_agent", workspace_root=tools_helper.workspace_root, tools_helper=tools_helper
+        name="setup_agent",
+        workspace_root=tools_helper.workspace_root,
+        tools_helper=tools_helper,
     )
 
     # 0.2 Prompt Sanitizer
     prompt_sanitizer_agent = PromptSanitizerAgent(
         model=model,
-        include_contents='none',
+        include_contents="none",
         output_key="sanitized_user_request",
     )
 
@@ -101,9 +109,9 @@ def create_debug_structured_adk_agent(
         name="solver_agent",
         model=model,
         tools=[get_help_tool, search_tool, write_tool, replace_tool],
-        include_contents='default',
+        include_contents="default",
         output_key="candidate_response",
-        before_agent_callback=input_guard_callback, # Attach Guard
+        before_agent_callback=input_guard_callback,  # Attach Guard
         instruction=(
             """You are the Expert Codebase Solver. 
 Input Check: If the following request is empty or 'null', stop and ask for clarification.
@@ -127,22 +135,19 @@ Output reasoning then code."""
     )
 
     code_based_runner = CodeBasedRunner(
-        name="code_based_runner",
-        tools_helper=tools_helper,
-        model_name=model_name
+        name="code_based_runner", tools_helper=tools_helper, model_name=model_name
     )
 
     # 3. Final Verifier
     final_verifier = CodeBasedFinalVerifier(
-        name="final_verifier",
-        tools_helper=tools_helper
+        name="final_verifier", tools_helper=tools_helper
     )
 
     # 4. Teardown Agent
     teardown_agent = CodeBasedTeardownAgent(
-        name="teardown_agent", 
-        workspace_root=tools_helper.workspace_root, 
-        tools_helper=tools_helper
+        name="teardown_agent",
+        workspace_root=tools_helper.workspace_root,
+        tools_helper=tools_helper,
     )
 
     agent_obj = SequentialAgent(
@@ -159,6 +164,7 @@ Output reasoning then code."""
 
     return agent_obj
 
+
 def create_debug_structured_adk_agent_v3(
     tools_helper: AdkTools,
     model_name: str = DEFAULT_MODEL_NAME,
@@ -173,7 +179,7 @@ def create_debug_structured_adk_agent_v3(
     # Bespoke Tools
     get_help_tool = FunctionTool(tools_helper.get_module_help)
     search_tool = FunctionTool(tools_helper.search_files)
-    
+
     # Standard tools
     write_tool = FunctionTool(tools_helper.write_file)
     replace_tool = FunctionTool(tools_helper.replace_text)
@@ -188,13 +194,15 @@ def create_debug_structured_adk_agent_v3(
 
     # 0. Setup Agent
     setup_agent = SetupAgentCodeBased(
-        name="setup_agent", workspace_root=tools_helper.workspace_root, tools_helper=tools_helper
+        name="setup_agent",
+        workspace_root=tools_helper.workspace_root,
+        tools_helper=tools_helper,
     )
 
     # 0.2 Prompt Sanitizer
     prompt_sanitizer_agent = PromptSanitizerAgent(
         model=model,
-        include_contents='none',
+        include_contents="none",
         output_key="sanitized_user_request",
     )
 
@@ -203,9 +211,9 @@ def create_debug_structured_adk_agent_v3(
         name="solver_agent",
         model=model,
         tools=[get_help_tool, search_tool, write_tool, replace_tool],
-        include_contents='default',
+        include_contents="default",
         output_key="candidate_response",
-        before_agent_callback=input_guard_callback, # Attach Guard
+        before_agent_callback=input_guard_callback,  # Attach Guard
         instruction=(
             """You are the Expert Codebase Solver. 
 Input Check: If the following request is empty or 'null', stop and ask for clarification.
@@ -228,20 +236,17 @@ Output reasoning then code."""
     )
 
     code_based_runner = CodeBasedRunner(
-        name="code_based_runner",
-        tools_helper=tools_helper,
-        model_name=model_name
+        name="code_based_runner", tools_helper=tools_helper, model_name=model_name
     )
 
     final_verifier = CodeBasedFinalVerifier(
-        name="final_verifier",
-        tools_helper=tools_helper
+        name="final_verifier", tools_helper=tools_helper
     )
 
     teardown_agent = CodeBasedTeardownAgent(
-        name="teardown_agent", 
-        workspace_root=tools_helper.workspace_root, 
-        tools_helper=tools_helper
+        name="teardown_agent",
+        workspace_root=tools_helper.workspace_root,
+        tools_helper=tools_helper,
     )
 
     agent_obj = SequentialAgent(
@@ -258,6 +263,7 @@ Output reasoning then code."""
 
     return agent_obj
 
+
 def create_react_workflow_adk_generator(
     model_name: str,
     api_key_manager: ApiKeyManager | None = None,
@@ -267,8 +273,8 @@ def create_react_workflow_adk_generator(
     """
     Factory for Experiment 20.
     """
-    name_prefix="ADK_STATISTICAL"
-    folder_prefix="adk_stat_"
+    name_prefix = "ADK_STATISTICAL"
+    folder_prefix = "adk_stat_"
     workspace_root = Path(tempfile.mkdtemp(prefix=folder_prefix))
     venv_path = workspace_root / "venv"
     tools_helper = AdkTools(workspace_root, venv_path=venv_path)
@@ -277,8 +283,13 @@ def create_react_workflow_adk_generator(
     else:
         model = model_name
     agent = create_debug_structured_adk_agent(
-        tools_helper=tools_helper, model_name=model_name, api_key_manager=api_key_manager, retrieval_agents=[], use_loop_history=False,
+        tools_helper=tools_helper,
+        model_name=model_name,
+        api_key_manager=api_key_manager,
+        retrieval_agents=[],
+        use_loop_history=False,
     )
+
     async def setup_hook():
         print(f"[{name_prefix}] Setting up workspace at {workspace_root}")
         workspace_root.mkdir(parents=True, exist_ok=True)
@@ -287,15 +298,63 @@ def create_react_workflow_adk_generator(
         repos_dir.mkdir(exist_ok=True)
         if not adk_repo_dir.exists():
             print(f"[{name_prefix}] Cloning adk-python...")
-            subprocess.run(["git", "clone", "--branch", adk_branch, "https://github.com/google/adk-python.git", str(adk_repo_dir)], check=True, capture_output=True, timeout=300)
+            subprocess.run(
+                [
+                    "git",
+                    "clone",
+                    "--branch",
+                    adk_branch,
+                    "https://github.com/google/adk-python.git",
+                    str(adk_repo_dir),
+                ],
+                check=True,
+                capture_output=True,
+                timeout=300,
+            )
         if not venv_path.exists():
             print(f"[{name_prefix}] Creating venv...")
-            subprocess.run([os.sys.executable, "-m", "venv", str(venv_path)], check=True, timeout=300)
+            subprocess.run(
+                [os.sys.executable, "-m", "venv", str(venv_path)],
+                check=True,
+                timeout=300,
+            )
             pip_cmd = [str(venv_path / "bin" / "pip"), "install"]
-            subprocess.run(pip_cmd + ["--upgrade", "--quiet", "pip"], check=True, timeout=300)
-            subprocess.run(pip_cmd + ["--quiet", "pytest", "PyYAML", "--index-url", "https://pypi.org/simple"], check=True, timeout=300)
-            subprocess.run(pip_cmd + ["--quiet", "-e", str(adk_repo_dir), "--index-url", "https://pypi.org/simple"], check=True, timeout=300)
+            subprocess.run(
+                pip_cmd + ["--upgrade", "--quiet", "pip"], check=True, timeout=300
+            )
+            subprocess.run(
+                pip_cmd
+                + [
+                    "--quiet",
+                    "pytest",
+                    "PyYAML",
+                    "--index-url",
+                    "https://pypi.org/simple",
+                ],
+                check=True,
+                timeout=300,
+            )
+            subprocess.run(
+                pip_cmd
+                + [
+                    "--quiet",
+                    "-e",
+                    str(adk_repo_dir),
+                    "--index-url",
+                    "https://pypi.org/simple",
+                ],
+                check=True,
+                timeout=300,
+            )
         print(f"[{name_prefix}] Setup complete.")
+
     async def teardown_hook():
         pass
-    return AdkAnswerGenerator(agent=agent, name=f"{name_prefix}({model_name})", setup_hook=setup_hook, teardown_hook=teardown_hook, api_key_manager=api_key_manager)
+
+    return AdkAnswerGenerator(
+        agent=agent,
+        name=f"{name_prefix}({model_name})",
+        setup_hook=setup_hook,
+        teardown_hook=teardown_hook,
+        api_key_manager=api_key_manager,
+    )

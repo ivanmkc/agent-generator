@@ -1,3 +1,5 @@
+"""Verify Context7 module."""
+
 import asyncio
 import sys
 import os

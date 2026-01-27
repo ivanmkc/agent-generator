@@ -34,9 +34,10 @@ class GeminiCliLocalAnswerGenerator(GeminiCliAnswerGenerator):
         extra_env: dict[str, str] = None,
     ) -> tuple[dict[str, Any], list[TraceLogEvent]]:
         """Executes the gemini CLI command and returns the parsed JSON output and raw logs."""
-        
+
         # Prepare environment
         import os
+
         env = os.environ.copy()
         if extra_env:
             env.update(extra_env)
@@ -100,7 +101,7 @@ class GeminiCliLocalAnswerGenerator(GeminiCliAnswerGenerator):
             raise GeminiCliExecutionError(
                 f"Gemini CLI failed with code {proc.returncode}: {error_msg}",
                 logs=logs,
-                response_dict=response_dict
+                response_dict=response_dict,
             )
 
         return response_dict, logs

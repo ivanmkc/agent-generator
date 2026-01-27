@@ -1,3 +1,5 @@
+"""Test Podman Concurrency module."""
+
 import pytest
 import asyncio
 from pathlib import Path
@@ -27,7 +29,7 @@ async def test_podman_shared_instance_concurrency():
         image_name="gemini-cli:base",
         image_definitions=IMAGE_DEFINITIONS,
         model_name=model_name,
-        api_key_manager=ApiKeyManager()
+        api_key_manager=ApiKeyManager(),
     )
 
     # 2. Define a worker that tries to use the generator

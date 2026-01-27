@@ -113,7 +113,9 @@ async def _run_single_benchmark(
                         api_key_id=generated_answer.api_key_id,
                         trace_logs=generated_answer.trace_logs,
                         answer=attempt_answer_str,
-                        rationale=generated_answer.output.rationale if generated_answer.output else None,
+                        rationale=generated_answer.output.rationale
+                        if generated_answer.output
+                        else None,
                         usage_metadata=generated_answer.usage_metadata,
                     )
                 )
@@ -123,19 +125,19 @@ async def _run_single_benchmark(
                 # Record Failure
                 # We do NOT print stack traces to console anymore to keep the output clean.
                 # The logger will summarize the failure at the end.
-                
+
                 # Extract metadata if available in the custom exception
                 failed_key_id = None
                 failed_logs = None
                 failed_usage = None
                 original_exception = e
-                
+
                 if isinstance(e, BenchmarkGenerationError):
                     failed_key_id = e.api_key_id
                     failed_logs = e.trace_logs
                     failed_usage = e.usage_metadata
                     original_exception = e.original_exception
-                
+
                 attempts_history.append(
                     GenerationAttempt(
                         attempt_number=attempt_idx + 1,
@@ -150,9 +152,11 @@ async def _run_single_benchmark(
 
                 # Check if we should retry
                 should_retry = attempt_idx < max_retries
-                
+
                 # Check for validation error logic
-                is_validation_error = isinstance(original_exception, (pydantic.ValidationError, ValueError))
+                is_validation_error = isinstance(
+                    original_exception, (pydantic.ValidationError, ValueError)
+                )
                 if is_validation_error and not retry_on_validation_error:
                     should_retry = False
 
@@ -317,8 +321,12 @@ async def run_benchmarks(
 
     for generator in answer_generators:
         # Use context manager for section logging if logger is available
-        ctx = logger.section(f"Agent: {generator.name}") if logger else contextlib.nullcontext()
-        
+        ctx = (
+            logger.section(f"Agent: {generator.name}")
+            if logger
+            else contextlib.nullcontext()
+        )
+
         with ctx:
             if not logger:
                 print(f"\n=== Processing Answer Generator: {generator.name} ===")
@@ -327,7 +335,7 @@ async def run_benchmarks(
                 logger.log_message(f"Setting up answer generator: {generator.name}...")
             else:
                 print(f"  - Setting up answer generator: {generator.name}...")
-            
+
             await generator.setup()  # Initialize/Deploy if needed
 
             generator_tasks = []
@@ -337,7 +345,7 @@ async def run_benchmarks(
                     logger.log_message(f"Loading benchmark suite: {suite_file}")
                 else:
                     print(f"  - Loading benchmark suite: {suite_file}")
-                    
+
                 with open(suite_file, "r", encoding="utf-8") as f:
                     data = yaml.safe_load(f)
                 benchmark_file = BenchmarkFile.model_validate(data)
@@ -360,8 +368,9 @@ async def run_benchmarks(
             total_gen_tasks = len(generator_tasks)
             tasks_by_generator[generator.name] = total_gen_tasks
 
-            msg = (f"Running {total_gen_tasks} benchmarks in parallel for {generator.name}"
-                   f" (max_concurrency={max_concurrency})..."
+            msg = (
+                f"Running {total_gen_tasks} benchmarks in parallel for {generator.name}"
+                f" (max_concurrency={max_concurrency})..."
             )
             if logger:
                 logger.log_message(msg)
@@ -383,8 +392,10 @@ async def run_benchmarks(
                     completed_tasks = completed_by_generator[result.answer_generator]
                     total_tasks = tasks_by_generator[result.answer_generator]
                     timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                    msg = (f"[{timestamp}] - {generator.name}: {completed_tasks}/{total_tasks} tasks "
-                           f"completed in {elapsed_minutes:.1f} minutes.")
+                    msg = (
+                        f"[{timestamp}] - {generator.name}: {completed_tasks}/{total_tasks} tasks "
+                        f"completed in {elapsed_minutes:.1f} minutes."
+                    )
                     if logger:
                         logger.log_message(msg)
                     else:
@@ -393,11 +404,13 @@ async def run_benchmarks(
 
             if logger:
                 logger.log_message(f"Completed all tasks for {generator.name}.")
-                logger.log_message(f"Tearing down answer generator: {generator.name}...")
+                logger.log_message(
+                    f"Tearing down answer generator: {generator.name}..."
+                )
             else:
                 print(f"  - Completed all tasks for {generator.name}.")
                 print(f"  - Tearing down answer generator: {generator.name}...")
-            
+
             try:
                 await generator.teardown()
             except Exception as e:
@@ -412,10 +425,12 @@ async def run_benchmarks(
         with logger.section("Summary of Progress"):
             for gen_name, total_tasks in tasks_by_generator.items():
                 completed = completed_by_generator[gen_name]
-                logger.log_message(f"{gen_name}: {completed} of {total_tasks} tasks completed.")
-        
+                logger.log_message(
+                    f"{gen_name}: {completed} of {total_tasks} tasks completed."
+                )
+
         # Log the summary table
         logger.log_summary_table(results)
-        
+
         logger.finalize_run()
     return results

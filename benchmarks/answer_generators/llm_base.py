@@ -36,11 +36,11 @@ class LlmAnswerGenerator(AnswerGenerator):
     def __init__(
         self,
         context: str | Path | None = None,
-        api_key_manager: ApiKeyManager | None = None, # Added this argument
+        api_key_manager: ApiKeyManager | None = None,  # Added this argument
     ):
         super().__init__()
         self.context = context
-        self.api_key_manager = api_key_manager # Store api_key_manager
+        self.api_key_manager = api_key_manager  # Store api_key_manager
         self._prompts_dir = Path(__file__).resolve().parents[0] / "prompts"
 
     def _read_prompt_template(self, filename: str) -> str:
@@ -117,7 +117,9 @@ class LlmAnswerGenerator(AnswerGenerator):
                 code_snippet_section = f"Code:\n```python\n{code_content}\n```\n\n"
             except Exception as e:
                 # Warning: Failed to load code snippet. The model will not have this context.
-                logging.warning(f"Failed to load code snippet {case.code_snippet_ref}: {e}")
+                logging.warning(
+                    f"Failed to load code snippet {case.code_snippet_ref}: {e}"
+                )
                 pass
 
         template = self._read_prompt_template("multiple_choice_prompt.txt")

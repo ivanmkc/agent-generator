@@ -1,3 +1,5 @@
+"""Verify Adk Runner module."""
+
 import asyncio
 import sys
 import os
@@ -56,24 +58,24 @@ async def verify():
         # We don't need manual print calls here anymore if we use the logger effectively,
         # but the original script had them. We can keep them or replace them.
         # Let's keep the script structure but rely on the logger for the heavy lifting.
-        
+
         # logger.log_message(f"Setting up generator...") # The orchestrator does this now inside a section
         # await target_generator.setup() # The orchestrator does this too!
-        
-        # Wait, the orchestrator calls generator.setup()! 
+
+        # Wait, the orchestrator calls generator.setup()!
         # But this script calls it manually *before* creating a proxy?
         # Ah, the script logic is:
         # 1. Setup target_generator (which might be a base image)
         # 2. Check for _base_url and Create a PROXY generator if needed.
         # 3. Pass the (possibly new) generator to orchestrator.
-        
+
         # So we MUST keep the manual setup here if we want to do the proxy trick.
         # However, calling setup() twice (once here, once in orchestrator) might be bad?
         # AnswerGenerator.setup() is usually idempotent or checks state, but let's be careful.
         # If orchestrator calls setup(), we should probably let it.
         # BUT, the proxy creation depends on `_base_url` which might only be available after setup?
         # Let's assume the existing logic was correct about needing setup first.
-        
+
         print(f"{Fore.CYAN}Setting up generator...{Style.RESET_ALL}")
         await target_generator.setup()
 
@@ -90,10 +92,10 @@ async def verify():
                 context_instruction=target_generator.context_instruction,
                 service_url=target_generator._base_url,
             )
-        
+
         # Note: Orchestrator will call setup() again on the passed generator.
         # If it's a proxy, setup() might be a no-op or just readying clients.
-        
+
         print(f"{Fore.CYAN}Running debug suite...{Style.RESET_ALL}")
         results = await benchmark_orchestrator.run_benchmarks(
             benchmark_suites=[suite_path],

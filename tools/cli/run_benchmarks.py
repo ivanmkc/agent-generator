@@ -38,11 +38,7 @@ from benchmarks.answer_generators.gemini_cli_docker import (
 from benchmarks.answer_generators.base import AnswerGenerator
 from benchmarks.config import PODMAN_CONFIG
 from benchmarks.data_models import BenchmarkRunResult
-from benchmarks.logger import (
-    YamlTraceLogger, 
-    ConsoleBenchmarkLogger, 
-    CompositeLogger
-)
+from benchmarks.logger import (YamlTraceLogger, ConsoleBenchmarkLogger, CompositeLogger)
 import benchmarks.analysis as analysis
 from tools.cli.generate_benchmark_report import analyze_run_logs
 from tools.constants import BENCHMARK_RUNS_DIR
@@ -53,43 +49,40 @@ pd.set_option("display.max_rows", None)
 
 
 def save_static_metadata(
-    output_dir: Path,
-    generators: List[AnswerGenerator],
-    suites_paths: List[str]
+    output_dir: Path, generators: List[AnswerGenerator], suites_paths: List[str]
 ) -> None:
     """Saves static metadata about generators and suites to a JSON file and a Markdown file."""
-    
+
     # Extract Generator Metadata (for JSON)
     gen_meta_list = []
     for g in generators:
         model_name = getattr(g, "model_name", "Unknown")
         desc = getattr(g, "description", "No description provided.")
         image_name = getattr(g, "image_name", None)
-        
-        gen_meta_list.append({
-            "name": g.name,
-            "model_name": model_name,
-            "description": desc,
-            "image_name": image_name
-        })
+
+        gen_meta_list.append(
+            {
+                "name": g.name,
+                "model_name": model_name,
+                "description": desc,
+                "image_name": image_name,
+            }
+        )
 
     # Extract Suite Metadata
     suite_meta_list = []
     for s_path in suites_paths:
         path_obj = Path(s_path)
         name = path_obj.parent.name
-        
-        suite_meta_list.append({
-            "name": name,
-            "path": s_path
-        })
+
+        suite_meta_list.append({"name": name, "path": s_path})
 
     metadata = {
         "timestamp": datetime.now().isoformat(),
         "generators": gen_meta_list,
-        "suites": suite_meta_list
+        "suites": suite_meta_list,
     }
-    
+
     # Save JSON
     output_path = output_dir / "run_metadata.json"
     try:
@@ -101,17 +94,20 @@ def save_static_metadata(
     # Copy Markdown Cache
     md_output_path = output_dir / "generator_internals.md"
     cached_md_path = Path("ai/reports/generator_internals.md")
-    
+
     if cached_md_path.exists():
         try:
             import shutil
+
             shutil.copy(cached_md_path, md_output_path)
             # print(f"Copied generator internals from {cached_md_path}")
         except Exception as e:
             print(f"Failed to copy generator internals markdown: {e}")
     else:
         # Fallback: Generate on the fly if cache is missing
-        print("Warning: benchmarks/generator_internals.md not found. Generating on the fly.")
+        print(
+            "Warning: benchmarks/generator_internals.md not found. Generating on the fly."
+        )
         gen_md_content = ["# Generator Internals (Generated on the fly)\n"]
         for g in generators:
             model_name = getattr(g, "model_name", "Unknown")
@@ -119,7 +115,7 @@ def save_static_metadata(
             gen_md_content.append(f"### {g.name}")
             gen_md_content.append(f"- **Model:** `{model_name}`")
             gen_md_content.append(f"\n{desc}\n")
-            
+
         try:
             with open(md_output_path, "w", encoding="utf-8") as f:
                 f.write("\n".join(gen_md_content))
@@ -128,19 +124,19 @@ def save_static_metadata(
 
 
 async def run_comparison(
-    logger: CompositeLogger, 
+    logger: CompositeLogger,
     run_output_dir: Path,
     selected_suite: Optional[str] = None,
     selected_generator_filter: Optional[str] = None,
     selected_model_filter: Optional[str] = None,
-    retry_on_validation_error: bool = False
+    retry_on_validation_error: bool = False,
 ) -> List[BenchmarkRunResult]:
     """Sets up and runs the benchmark comparison sequentially per generator."""
     logger.log_message("Configuring benchmark run...")
 
     debug_suite = "benchmarks/benchmark_definitions/debug_suite/benchmark.yaml"
     debug_single = "benchmarks/benchmark_definitions/debug_single/benchmark.yaml"
-    
+
     standard_suites = [
         "benchmarks/benchmark_definitions/api_understanding/benchmark.yaml",
         "benchmarks/benchmark_definitions/fix_errors/benchmark.yaml",
@@ -164,48 +160,56 @@ async def run_comparison(
         all_suites = standard_suites + [debug_suite]
         # Apply filter if present
         if selected_suite:
-             benchmark_suites = [s for s in all_suites if matches_filter(s, selected_suite)]
-             if not benchmark_suites:
-                raise ValueError(f"Specified suite filter '{selected_suite}' matched no suites.")
+            benchmark_suites = [
+                s for s in all_suites if matches_filter(s, selected_suite)
+            ]
+            if not benchmark_suites:
+                raise ValueError(
+                    f"Specified suite filter '{selected_suite}' matched no suites."
+                )
         else:
-             benchmark_suites = standard_suites
+            benchmark_suites = standard_suites
 
     # Filter generators
     answer_generators: list[AnswerGenerator] = []
-    
+
     # Start with all candidates
     all_candidates = CANDIDATE_GENERATORS
-    
+
     for g in all_candidates:
         # Check Generator Name Filter
         if not matches_filter(g.name, selected_generator_filter):
             continue
-            
+
         # Check Model Name Filter
         g_model = getattr(g, "model_name", "Unknown")
         # Handle enum or string
-        if hasattr(g_model, "value"): 
+        if hasattr(g_model, "value"):
             g_model = g_model.value
-        
+
         if not matches_filter(str(g_model), selected_model_filter):
             continue
-            
+
         answer_generators.append(g)
 
     if not answer_generators:
-         logger.log_message(f"Warning: No generators matched the provided filters (gen: {selected_generator_filter}, model: {selected_model_filter}).")
+        logger.log_message(
+            f"Warning: No generators matched the provided filters (gen: {selected_generator_filter}, model: {selected_model_filter})."
+        )
 
     # Save Static Metadata
     save_static_metadata(run_output_dir, answer_generators, benchmark_suites)
 
-    logger.log_message(f"Executing benchmarks with {len(answer_generators)} generators on {len(benchmark_suites)} suites...")
+    logger.log_message(
+        f"Executing benchmarks with {len(answer_generators)} generators on {len(benchmark_suites)} suites..."
+    )
 
     all_results = []
 
     for generator in answer_generators:
         # Use logger section for the generator block
         with logger.section(f"Generator: {generator.name}"):
-            
+
             # Filter suites based on generator compatibility
             current_suites = list(benchmark_suites)
             # # TODO: Remove this filter when StructuredWorkflowAdk can adapt its output schema
@@ -309,12 +313,12 @@ async def main():
 
     # Execute the benchmarks
     benchmark_run_results = await run_comparison(
-        logger=logger, 
+        logger=logger,
         run_output_dir=run_output_dir,
         selected_suite=args.suite_filter,
         selected_generator_filter=args.generator_filter,
         selected_model_filter=args.model_filter,
-        retry_on_validation_error=args.retry_on_validation_error
+        retry_on_validation_error=args.retry_on_validation_error,
     )
 
     # Save raw results to JSON for later visualization

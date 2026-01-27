@@ -1,3 +1,11 @@
+"""
+CLI tool to force-rebuild Docker/Podman images for benchmarks.
+
+This script iterates through the defined `IMAGE_DEFINITIONS` for Gemini CLI agents
+and triggers a rebuild of the container images. It is useful when the agent's
+source code or dependencies have changed.
+"""
+
 import asyncio
 import sys
 from pathlib import Path
@@ -16,17 +24,18 @@ from benchmarks.answer_generators.gemini_cli_docker.image_definitions import (
 
 from benchmarks.api_key_manager import API_KEY_MANAGER
 
+
 async def main():
     print("Force rebuilding all images in IMAGE_DEFINITIONS...")
-    
+
     # Filter targets from args if provided
     target_images = sys.argv[1:]
-    
+
     generator = await GeminiCliPodmanAnswerGenerator.create(
         model_name="dummy",
         api_key_manager=API_KEY_MANAGER,
         image_definitions=IMAGE_DEFINITIONS,
-        image_name="dummy"
+        image_name="dummy",
     )
 
     if target_images:
@@ -37,7 +46,7 @@ async def main():
             for dep in defn.dependencies:
                 all_dependencies.add(dep)
         leaves = [name for name in IMAGE_DEFINITIONS if name not in all_dependencies]
-    
+
     print(f"Target images: {leaves}")
 
     for image_name in leaves:

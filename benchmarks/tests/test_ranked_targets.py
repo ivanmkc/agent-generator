@@ -1,3 +1,5 @@
+"""Test Ranked Targets module."""
+
 import yaml
 import pytest
 from pathlib import Path
@@ -5,6 +7,7 @@ import ast
 
 RANKED_TARGETS_PATH = Path("tools/benchmark_generator/data/ranked_targets.yaml")
 REPO_ROOT = Path("repos/adk-python")
+
 
 def test_ranked_targets_integrity():
     """
@@ -16,22 +19,24 @@ def test_ranked_targets_integrity():
 
     with open(RANKED_TARGETS_PATH, "r") as f:
         data = yaml.safe_load(f)
-    
-    assert isinstance(data, list), "ranked_targets.yaml should contain a list of entries"
-    
+
+    assert isinstance(
+        data, list
+    ), "ranked_targets.yaml should contain a list of entries"
+
     errors = []
-    
+
     print(f"Verifying {len(data)} targets...")
-    
+
     for entry in data:
         fqn = entry.get("id") or entry.get("fqn")
         if not fqn:
             errors.append(f"Entry missing FQN/ID: {entry}")
             continue
-            
+
         rel_path = entry.get("file_path")
         if not rel_path:
-            # Some entries might not have file_path if they are module-level? 
+            # Some entries might not have file_path if they are module-level?
             # But we want them for inspection.
             errors.append(f"No file_path for {fqn}")
             continue
@@ -51,29 +56,37 @@ def test_ranked_targets_integrity():
 
         # Try to parse and find the symbol
         if entry.get("type") == "MODULE":
-            continue # Just verify file exists for modules
+            continue  # Just verify file exists for modules
 
         try:
             content = full_path.read_text(encoding="utf-8")
             tree = ast.parse(content)
             target_name = fqn.split(".")[-1]
-            
+
             found = False
             for node in tree.body:
-                if isinstance(node, (ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)):
+                if isinstance(
+                    node, (ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)
+                ):
                     if node.name == target_name:
                         found = True
                         break
-            
+
             if not found:
                 # Fallback check for constants or imports
                 if target_name not in content:
-                    errors.append(f"Symbol {target_name} not found in {rel_path} for {fqn}")
+                    errors.append(
+                        f"Symbol {target_name} not found in {rel_path} for {fqn}"
+                    )
         except Exception as e:
             errors.append(f"Exception parsing {rel_path} for {fqn}: {e}")
 
     if errors:
-        pytest.fail(f"Found {len(errors)} errors in ranked_targets.yaml:\n" + "\n".join(errors[:20]))
+        pytest.fail(
+            f"Found {len(errors)} errors in ranked_targets.yaml:\n"
+            + "\n".join(errors[:20])
+        )
+
 
 if __name__ == "__main__":
     # Allow manual run

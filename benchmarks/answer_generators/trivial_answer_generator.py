@@ -45,7 +45,9 @@ class TrivialAnswerGenerator(AnswerGenerator):
             )
             return GeneratedAnswer(output=output)
         elif isinstance(benchmark_case, FixErrorBenchmarkCase):
-            output = FixErrorAnswerOutput(code="class Trivial: pass", rationale="Trivial answer.")
+            output = FixErrorAnswerOutput(
+                code="class Trivial: pass", rationale="Trivial answer."
+            )
             return GeneratedAnswer(output=output)
         elif isinstance(benchmark_case, MultipleChoiceBenchmarkCase):
             import random  # pylint: disable=import-outside-toplevel

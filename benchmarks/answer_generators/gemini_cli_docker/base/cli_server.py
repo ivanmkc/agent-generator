@@ -1,3 +1,5 @@
+"""Cli Server module."""
+
 import asyncio
 import os
 import json

@@ -1,10 +1,14 @@
+"""Test Workflow Adk Agent module."""
+
 import pytest
 import shutil
 import tempfile
 from pathlib import Path
 from benchmarks.answer_generators.adk_tools import AdkTools
 
+
 class TestAdkTools:
+
     @pytest.fixture
     def workspace(self):
         tmp_dir = Path(tempfile.mkdtemp()).resolve()
@@ -38,7 +42,7 @@ class TestAdkTools:
         # Absolute path outside workspace
         with pytest.raises(ValueError, match="outside the workspace"):
             tools._resolve_path("/etc/passwd")
-            
+
         # Tricky traversal
         with pytest.raises(ValueError, match="outside the workspace"):
             tools._resolve_path("subdir/../../outside.txt")
@@ -70,11 +74,11 @@ class TestAdkTools:
         """Test that shell commands use the venv PATH."""
         venv_path = workspace / "venv"
         tools = AdkTools(workspace_root=workspace, venv_path=venv_path)
-        
+
         # We expect the venv bin directory to be at the start of PATH
         venv_bin = str(venv_path / "bin")
         result = await tools.run_shell_command("echo $PATH")
-        
+
         # The result string contains Stdout: ...
         assert venv_bin in result
         # Check it's near the start (ignoring "Stdout: ")

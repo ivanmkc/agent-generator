@@ -75,7 +75,7 @@ def parse_cli_stream_json_output(
             elif event_type == "result":
                 enum_type = TraceEventType.SYSTEM_RESULT
             else:
-                enum_type = TraceEventType.ADK_EVENT # Default to generic ADK_EVENT
+                enum_type = TraceEventType.ADK_EVENT  # Default to generic ADK_EVENT
 
             log_event = TraceLogEvent(
                 type=enum_type, source="cli_stream", details=event
@@ -114,6 +114,10 @@ def parse_cli_stream_json_output(
 
         except json.JSONDecodeError:
             logs.append(
-                TraceLogEvent(type=TraceEventType.CLI_STDOUT_RAW, source="cli_stream", content=line)
+                TraceLogEvent(
+                    type=TraceEventType.CLI_STDOUT_RAW,
+                    source="cli_stream",
+                    content=line,
+                )
             )
     return response_dict, logs

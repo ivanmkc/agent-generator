@@ -1,3 +1,5 @@
+"""Test Verify Fix Errors module."""
+
 import ast
 import os
 from pathlib import Path

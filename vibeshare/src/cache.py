@@ -13,12 +13,14 @@ from typing import Optional, Dict, Any
 
 CACHE_FILE = "vibeshare_cache.json"
 
+
 class CacheManager:
     """
     Manages a persistent JSON cache for model responses.
-    
+
     The cache uses a composite key of (model_name, md5(prompt)) to store results.
     """
+
     def __init__(self, cache_file: str = CACHE_FILE):
         self.cache_file = cache_file
         self.cache = self._load_cache()
@@ -26,7 +28,7 @@ class CacheManager:
     def _load_cache(self) -> Dict[str, Any]:
         if os.path.exists(self.cache_file):
             try:
-                with open(self.cache_file, 'r') as f:
+                with open(self.cache_file, "r") as f:
                     return json.load(f)
             except json.JSONDecodeError:
                 print(f"Warning: Corrupt cache file {self.cache_file}. Starting fresh.")
@@ -36,7 +38,7 @@ class CacheManager:
     def _get_key(self, model_name: str, prompt: str) -> str:
         """Creates a unique key for the model and prompt combination."""
         # Using hash of prompt to keep keys short and avoid filesystem issues if we switched to file-per-entry
-        prompt_hash = hashlib.md5(prompt.encode('utf-8')).hexdigest()
+        prompt_hash = hashlib.md5(prompt.encode("utf-8")).hexdigest()
         return f"{model_name}::{prompt_hash}"
 
     def get(self, model_name: str, prompt: str) -> Optional[Dict[str, Any]]:
@@ -55,7 +57,8 @@ class CacheManager:
         # Ideally, we should load-modify-save or append.
         # Better yet, since we are using asyncio, we can assume this runs in the main process
         # provided we don't use multiprocessing.
-        with open(self.cache_file, 'w') as f:
+        with open(self.cache_file, "w") as f:
             json.dump(self.cache, f, indent=2)
+
 
 CACHE_MANAGER = CacheManager()

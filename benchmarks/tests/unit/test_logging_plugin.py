@@ -29,16 +29,19 @@ from google.genai.types import UsageMetadata
 from benchmarks.answer_generators.adk_answer_generator import TraceCollectorPlugin
 from benchmarks.data_models import TraceEventType
 
+
 # A simple tool for the test agent to call
 def simple_test_tool(query: str) -> str:
     """A simple tool that returns a fixed string."""
     return f"Response for '{query}'"
+
 
 class MockLlm(BaseLlm):
     """
     A mock LLM that returns a tool call on the first request and a final text
     response on the second, mimicking a real tool-using flow.
     """
+
     call_count: int = 0
 
     async def generate_content_async(self, request, **kwargs):
@@ -64,7 +67,7 @@ class MockLlm(BaseLlm):
             final_text = types.Part(text="Okay, the tool has been called.")
             content = types.Content(parts=[final_text], role="model")
             usage = types.GenerateContentResponseUsageMetadata(
-                prompt_token_count=20, # Represents tool result in context
+                prompt_token_count=20,  # Represents tool result in context
                 candidates_token_count=8,
                 total_token_count=28,
             )
@@ -74,6 +77,7 @@ class MockLlm(BaseLlm):
         # 2. The final partial=False response with the full content.
         yield LlmResponse(content=content, usage_metadata=usage, partial=True)
         yield LlmResponse(content=content, usage_metadata=usage, partial=False)
+
 
 @pytest.mark.asyncio
 async def test_trace_collector_plugin_captures_events():
@@ -107,12 +111,12 @@ async def test_trace_collector_plugin_captures_events():
     ):
         # We don't need to inspect the live events, just the final collected logs
         pass
-    
-    collector.finalize() # Finalize to capture last agent's timing
+
+    collector.finalize()  # Finalize to capture last agent's timing
 
     # 3. Assertions
     logs = collector.logs
-    
+
     assert len(logs) > 0, "Collector should have captured logs."
 
     # Verify that key events were captured
@@ -122,13 +126,22 @@ async def test_trace_collector_plugin_captures_events():
     assert TraceEventType.TOOL_RESULT in event_types
 
     # Verify MESSAGE event content
-    message_event = next((log for log in logs if log.type == TraceEventType.MESSAGE and log.role == 'user'), None)
+    message_event = next(
+        (
+            log
+            for log in logs
+            if log.type == TraceEventType.MESSAGE and log.role == "user"
+        ),
+        None,
+    )
     assert message_event is not None
     assert message_event.author == "user"
     assert initial_prompt in message_event.content
 
     # Verify TOOL_USE event content
-    tool_use_event = next((log for log in logs if log.type == TraceEventType.TOOL_USE), None)
+    tool_use_event = next(
+        (log for log in logs if log.type == TraceEventType.TOOL_USE), None
+    )
     assert tool_use_event is not None
     assert tool_use_event.tool_name == "simple_test_tool"
     assert tool_use_event.tool_input == {"query": "test_query"}
@@ -136,12 +149,14 @@ async def test_trace_collector_plugin_captures_events():
     assert tool_use_event.author == "test_agent"
 
     # Verify TOOL_RESULT event content
-    tool_result_event = next((log for log in logs if log.type == TraceEventType.TOOL_RESULT), None)
+    tool_result_event = next(
+        (log for log in logs if log.type == TraceEventType.TOOL_RESULT), None
+    )
     assert tool_result_event is not None
     assert tool_result_event.tool_name == "simple_test_tool"
     assert tool_result_event.tool_output == "Response for 'test_query'"
     assert tool_result_event.tool_call_id == "tool_call_1234"
-    
+
     # Verify usage metadata was collected
     assert collector.total_prompt_tokens == 30
     assert collector.total_completion_tokens == 13
@@ -149,9 +164,15 @@ async def test_trace_collector_plugin_captures_events():
 
     # Verify agent execution timing was captured
     assert len(collector.execution_sequence) > 0
-    test_agent_timing = next((item for item in collector.execution_sequence if item["agent"] == "test_agent"), None)
+    test_agent_timing = next(
+        (
+            item
+            for item in collector.execution_sequence
+            if item["agent"] == "test_agent"
+        ),
+        None,
+    )
     assert test_agent_timing is not None
     assert test_agent_timing["duration"] > 0
     assert test_agent_timing["prompt_tokens"] == 30
     assert test_agent_timing["completion_tokens"] == 13
-

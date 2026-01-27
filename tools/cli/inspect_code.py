@@ -20,6 +20,7 @@ import importlib
 import argparse
 import pkgutil
 
+
 def get_summary(obj, max_len=300):
     """Returns a single-line summary from the object's docstring."""
     try:
@@ -31,15 +32,16 @@ def get_summary(obj, max_len=300):
     except Exception:
         return ""
 
+
 def inspect_type(fqn, obj):
     """Inspects a class object."""
     print(f"=== Type Hierarchy for {fqn} ===")
     print(f"Doc: {get_summary(obj)}")
-    
+
     # MRO
     print("\n[Method Resolution Order (MRO)]")
     for base in inspect.getmro(obj):
-        if base.__module__ != 'builtins':
+        if base.__module__ != "builtins":
             print(f"  - {base.__module__}.{base.__name__}")
         else:
             print(f"  - {base.__name__}")
@@ -60,10 +62,17 @@ def inspect_type(fqn, obj):
     print("\n[Public Members]")
     for n, m in inspect.getmembers(obj):
         if not n.startswith("_"):
-            kind = "method" if inspect.isfunction(m) or inspect.ismethod(m) else "prop" if isinstance(m, property) else "attr"
+            kind = (
+                "method"
+                if inspect.isfunction(m) or inspect.ismethod(m)
+                else "prop"
+                if isinstance(m, property)
+                else "attr"
+            )
             doc = get_summary(m, max_len=100)
             doc_suffix = f": {doc}" if doc else ""
             print(f"  - {n} ({kind}){doc_suffix}")
+
 
 def inspect_module(name, mod, current_depth=0, max_depth=0):
     """Recursively inspects and prints help for a module."""
@@ -75,7 +84,7 @@ def inspect_module(name, mod, current_depth=0, max_depth=0):
     for n, o in inspect.getmembers(mod, inspect.isclass):
         if n.startswith("_"):
             continue
-        
+
         # Pydantic support
         fields_str = ""
         if hasattr(o, "model_fields"):
@@ -94,7 +103,7 @@ def inspect_module(name, mod, current_depth=0, max_depth=0):
         # Get base classes
         bases = []
         for b in o.__bases__:
-            if b.__module__ != 'builtins':
+            if b.__module__ != "builtins":
                 bases.append(b.__name__)
         bases_str = f"({', '.join(bases)})" if bases else ""
 
@@ -104,11 +113,13 @@ def inspect_module(name, mod, current_depth=0, max_depth=0):
         methods = [
             (mn, mo)
             for mn, mo in inspect.getmembers(o)
-            if (not mn.startswith("_") or mn == "__init__") 
+            if (not mn.startswith("_") or mn == "__init__")
             and (inspect.isfunction(mo) or inspect.ismethod(mo))
         ]
         # Show __init__ first, then others alphabetically, limit to 5
-        for mn, mo in sorted(methods, key=lambda x: (0 if x[0] == "__init__" else 1, x[0]))[:5]:
+        for mn, mo in sorted(
+            methods, key=lambda x: (0 if x[0] == "__init__" else 1, x[0])
+        )[:5]:
             try:
                 msig = inspect.signature(mo)
             except Exception:
@@ -120,14 +131,27 @@ def inspect_module(name, mod, current_depth=0, max_depth=0):
         try:
             for _, subname, _ in pkgutil.iter_modules(mod.__path__):
                 if not subname.startswith("_"):
-                    inspect_module(f"{name}.{subname}", importlib.import_module(f"{name}.{subname}"), current_depth + 1, max_depth)
+                    inspect_module(
+                        f"{name}.{subname}",
+                        importlib.import_module(f"{name}.{subname}"),
+                        current_depth + 1,
+                        max_depth,
+                    )
         except Exception:
             pass
 
+
 def main():
-    parser = argparse.ArgumentParser(description="Inspect a Python object (class or module).")
-    parser.add_argument("fqn", help="Fully qualified name of the object (e.g. google.adk.agents.LlmAgent)")
-    parser.add_argument("--depth", type=int, default=0, help="Recursion depth for modules.")
+    parser = argparse.ArgumentParser(
+        description="Inspect a Python object (class or module)."
+    )
+    parser.add_argument(
+        "fqn",
+        help="Fully qualified name of the object (e.g. google.adk.agents.LlmAgent)",
+    )
+    parser.add_argument(
+        "--depth", type=int, default=0, help="Recursion depth for modules."
+    )
     args = parser.parse_args()
 
     # Try to import as module first
@@ -143,18 +167,21 @@ def main():
         module_name, class_name = args.fqn.rsplit(".", 1)
         mod = importlib.import_module(module_name)
         obj = getattr(mod, class_name)
-        
+
         if inspect.isclass(obj):
             inspect_type(args.fqn, obj)
         elif inspect.ismodule(obj):
-             inspect_module(args.fqn, obj, max_depth=args.depth)
+            inspect_module(args.fqn, obj, max_depth=args.depth)
         else:
-             print(f"Object '{args.fqn}' is {type(obj)}, not a class or module. Simple inspection:")
-             print(f"Doc: {get_summary(obj)}")
-             print(f"Value: {obj}")
+            print(
+                f"Object '{args.fqn}' is {type(obj)}, not a class or module. Simple inspection:"
+            )
+            print(f"Doc: {get_summary(obj)}")
+            print(f"Value: {obj}")
 
     except (ValueError, ImportError, AttributeError) as e:
         print(f"Error: Could not load '{args.fqn}'.\nDetails: {e}")
+
 
 if __name__ == "__main__":
     main()

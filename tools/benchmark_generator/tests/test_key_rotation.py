@@ -20,6 +20,7 @@ from unittest.mock import MagicMock, AsyncMock, patch
 from tools.benchmark_generator.agents import SemaphoreGemini
 from benchmarks.api_key_manager import ApiKeyManager
 
+
 @pytest.mark.asyncio
 async def test_key_rotation_on_429():
     """
@@ -30,29 +31,32 @@ async def test_key_rotation_on_429():
     """
     sem = asyncio.Semaphore(1)
     akm = MagicMock(spec=ApiKeyManager)
-    
+
     # Patch the superclass method to simulate failure then success
     # We patch the method on the CLASS RotatingKeyGemini where it is defined
-    with patch('benchmarks.answer_generators.adk_agents.RotatingKeyGemini.generate_content_async', new_callable=AsyncMock) as mock_super:
-        # Define side effects: 
+    with patch(
+        "benchmarks.answer_generators.adk_agents.RotatingKeyGemini.generate_content_async",
+        new_callable=AsyncMock,
+    ) as mock_super:
+        # Define side effects:
         # 1. Raise 429 Error
         # 2. Return "Success" (as a simple value, wrapper yields it)
         error_429 = Exception("429 RESOURCE_EXHAUSTED")
         mock_super.side_effect = [error_429, "Success"]
-        
+
         # Instantiate model
         model = SemaphoreGemini(semaphore=sem, api_key_manager=akm, model_name="test")
-        
+
         # Execute
         # generate_content_async returns an async generator wrapper
         agen = model.generate_content_async("prompt")
-        
+
         results = []
         async for res in agen:
             results.append(res)
-            
+
         # Verify results
         assert results == ["Success"]
-        
+
         # Verify retries
         assert mock_super.call_count == 2
