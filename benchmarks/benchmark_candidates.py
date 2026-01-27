@@ -17,14 +17,14 @@ from benchmarks.answer_generators.adk_agents import (
     create_baseline_workflow_adk_generator,
 )
 from benchmarks.answer_generators.debug_adk_agents import create_react_workflow_adk_generator
-from experiments.experiment_66 import create_ranked_index_generator_v46
-from experiments.experiment_67 import create_hybrid_generator_v47
+from benchmarks.answer_generators.experiment_66 import create_ranked_index_generator_v46
+from benchmarks.answer_generators.experiment_67 import create_hybrid_generator_v47
 
 from benchmarks.answer_generators.gemini_cli_docker import (
     GeminiCliPodmanAnswerGenerator,
 )
-from benchmarks.answer_generators.ground_truth_answer_generator import GroundTruthAnswerGenerator
-from benchmarks.answer_generators.trivial_answer_generator import TrivialAnswerGenerator
+from benchmarks.answer_generators.ground_truth import GroundTruthAnswerGenerator
+from benchmarks.answer_generators.trivial import TrivialAnswerGenerator
 from benchmarks.answer_generators.gemini_cli_docker.image_definitions import (
     IMAGE_DEFINITIONS,
 )
@@ -48,7 +48,7 @@ CANDIDATE_GENERATORS = [
     # GeminiCliPodmanAnswerGenerator(
     #     image_definitions=IMAGE_DEFINITIONS,
     #     image_name="gemini-cli:mcp_adk_agent_runner_basic",
-    #     model_name=ModelName.GEMINI_2_5_PRO,
+    #     model_name=ModelName.GEMINI_2_5_FLASH,
     #     api_key_manager=api_key_manager,
     #     experiment_id="basic"
     # ),
@@ -56,36 +56,36 @@ CANDIDATE_GENERATORS = [
     #     model_name=ModelName.GEMINI_2_5_FLASH,
     #     api_key_manager=api_key_manager,
     # ),
-    GeminiCliPodmanAnswerGenerator(
-        image_definitions=IMAGE_DEFINITIONS,
-        image_name="gemini-cli:base",
-        model_name=ModelName.GEMINI_2_5_FLASH,
-        api_key_manager=api_key_manager,
-    ),
-    GeminiCliPodmanAnswerGenerator(
-        image_definitions=IMAGE_DEFINITIONS,
-        image_name="gemini-cli:adk-docs-ext",
-        model_name=ModelName.GEMINI_2_5_FLASH,
-        api_key_manager=api_key_manager,
-    ),
-    GeminiCliPodmanAnswerGenerator(
-        image_definitions=IMAGE_DEFINITIONS,
-        image_name="gemini-cli:adk-docs-ext-starter",
-        model_name=ModelName.GEMINI_2_5_FLASH,
-        api_key_manager=api_key_manager,
-    ),
-    GeminiCliPodmanAnswerGenerator(
-        image_definitions=IMAGE_DEFINITIONS,
-        image_name="gemini-cli:adk-docs-ext-llms",
-        model_name=ModelName.GEMINI_2_5_FLASH,
-        api_key_manager=api_key_manager,
-    ),
-    GeminiCliPodmanAnswerGenerator(
-        image_definitions=IMAGE_DEFINITIONS,
-        image_name="gemini-cli:adk-docs-ext-llms-full",
-        model_name=ModelName.GEMINI_2_5_FLASH,
-        api_key_manager=api_key_manager,
-    ),
+    # GeminiCliPodmanAnswerGenerator(
+    #     image_definitions=IMAGE_DEFINITIONS,
+    #     image_name="gemini-cli:base",
+    #     model_name=ModelName.GEMINI_2_5_FLASH,
+    #     api_key_manager=api_key_manager,
+    # ),
+    # GeminiCliPodmanAnswerGenerator(
+    #     image_definitions=IMAGE_DEFINITIONS,
+    #     image_name="gemini-cli:adk-docs-ext",
+    #     model_name=ModelName.GEMINI_2_5_FLASH,
+    #     api_key_manager=api_key_manager,
+    # ),
+    # GeminiCliPodmanAnswerGenerator(
+    #     image_definitions=IMAGE_DEFINITIONS,
+    #     image_name="gemini-cli:adk-docs-ext-starter",
+    #     model_name=ModelName.GEMINI_2_5_FLASH,
+    #     api_key_manager=api_key_manager,
+    # ),
+    # GeminiCliPodmanAnswerGenerator(
+    #     image_definitions=IMAGE_DEFINITIONS,
+    #     image_name="gemini-cli:adk-docs-ext-llms",
+    #     model_name=ModelName.GEMINI_2_5_FLASH,
+    #     api_key_manager=api_key_manager,
+    # ),
+    # GeminiCliPodmanAnswerGenerator(
+    #     image_definitions=IMAGE_DEFINITIONS,
+    #     image_name="gemini-cli:adk-docs-ext-llms-full",
+    #     model_name=ModelName.GEMINI_2_5_FLASH,
+    #     api_key_manager=api_key_manager,
+    # ),
     GeminiCliPodmanAnswerGenerator(
         image_definitions=IMAGE_DEFINITIONS,
         image_name="gemini-cli:mcp_adk_agent_runner_ranked_knowledge",
@@ -97,7 +97,7 @@ CANDIDATE_GENERATORS = [
     # GeminiCliPodmanAnswerGenerator(
     #     image_definitions=IMAGE_DEFINITIONS,
     #     image_name="gemini-cli:mcp_adk_agent_runner_ranked_knowledge",
-    #     model_name=ModelName.GEMINI_2_5_PRO,
+    #     model_name=ModelName.GEMINI_2_5_FLASH,
     #     api_key_manager=api_key_manager,
     #     extra_env={"ADK_SEARCH_PROVIDER": "keyword"},
     #     experiment_id="ranked_knowledge_keyword"

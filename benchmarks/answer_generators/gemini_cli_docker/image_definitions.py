@@ -51,7 +51,8 @@ IMAGE_DEFINITIONS: Dict[str, ImageDefinition] = {
         dependencies=[f"{IMAGE_PREFIX}:base"],
         build_args={
             "BASE_IMAGE": f"{IMAGE_PREFIX}:base",
-            "EXTENSION_URL": "https://github.com/pierpaolo28/adk-docs-ext/tree/agent-starter-pack",
+            "EXTENSION_REPO": "https://github.com/pierpaolo28/adk-docs-ext",
+            "EXTENSION_REF": "agent-starter-pack",
         },
     ),
     f"{IMAGE_PREFIX}:adk-docs-ext-llms": ImageDefinition(
@@ -61,7 +62,8 @@ IMAGE_DEFINITIONS: Dict[str, ImageDefinition] = {
         dependencies=[f"{IMAGE_PREFIX}:base"],
         build_args={
             "BASE_IMAGE": f"{IMAGE_PREFIX}:base",
-            "EXTENSION_URL": "https://github.com/pierpaolo28/adk-docs-ext/tree/llms.txt",
+            "EXTENSION_REPO": "https://github.com/pierpaolo28/adk-docs-ext",
+            "EXTENSION_REF": "llms.txt",
         },
     ),
     f"{IMAGE_PREFIX}:adk-docs-ext-llms-full": ImageDefinition(
@@ -71,7 +73,8 @@ IMAGE_DEFINITIONS: Dict[str, ImageDefinition] = {
         dependencies=[f"{IMAGE_PREFIX}:base"],
         build_args={
             "BASE_IMAGE": f"{IMAGE_PREFIX}:base",
-            "EXTENSION_URL": "https://github.com/pierpaolo28/adk-docs-ext/tree/llms-full.txt",
+            "EXTENSION_REPO": "https://github.com/pierpaolo28/adk-docs-ext",
+            "EXTENSION_REF": "llms-full.txt",
         },
     ),
     f"{IMAGE_PREFIX}:mcp_adk_agent_runner_basic": ImageDefinition(

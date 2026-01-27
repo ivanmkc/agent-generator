@@ -1,0 +1,1 @@
+from .trivial_answer_generator import TrivialAnswerGenerator
