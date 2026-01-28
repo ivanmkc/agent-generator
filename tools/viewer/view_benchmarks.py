@@ -22,6 +22,7 @@ from pydantic import TypeAdapter
 from benchmarks.data_models import BenchmarkRunResult, BenchmarkResultType, ForensicData, CaseSummary, ForensicInsight, TraceLogEvent
 from benchmarks.benchmark_candidates import CANDIDATE_GENERATORS
 from tools.analysis.run_metrics import analyze_benchmark_run
+from core.config import BENCHMARK_RUNS_DIR
 
 # --- GCS Support ---
 try:
@@ -32,7 +33,6 @@ except ImportError:
     HAS_GCS = False
 
 # --- Constants ---
-BENCHMARK_RUNS_DIR = Path("benchmark_runs")
 BENCHMARK_GCS_BUCKET = os.environ.get("BENCHMARK_GCS_BUCKET")
 
 
