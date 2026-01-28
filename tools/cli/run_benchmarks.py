@@ -15,13 +15,15 @@
 """Script to run benchmarks and analyze results."""
 
 import asyncio
+import argparse
+import sys
 import json
+import logging
+import shutil
 import os
 from pathlib import Path
-from typing import List, Optional
 from datetime import datetime
-import sys
-import argparse
+from typing import List, Optional
 
 # Add root to sys.path if not there
 if str(Path.cwd()) not in sys.path:
@@ -91,36 +93,15 @@ def save_static_metadata(
     except Exception as e:
         print(f"Failed to save run metadata: {e}")
 
-    # Copy Markdown Cache
-    md_output_path = output_dir / "generator_internals.md"
-    cached_md_path = Path("ai/reports/generator_internals.md")
+    # 3. Copy/Generate Architecture Docs
+    # We now use the static ARCHITECTURES.md as the source of truth
+    md_output_path = output_dir / "ARCHITECTURES.md"
+    cached_md_path = Path("benchmarks/answer_generators/ARCHITECTURES.md")
 
     if cached_md_path.exists():
-        try:
-            import shutil
-
-            shutil.copy(cached_md_path, md_output_path)
-            # print(f"Copied generator internals from {cached_md_path}")
-        except Exception as e:
-            print(f"Failed to copy generator internals markdown: {e}")
+        shutil.copy(cached_md_path, md_output_path)
     else:
-        # Fallback: Generate on the fly if cache is missing
-        print(
-            "Warning: benchmarks/generator_internals.md not found. Generating on the fly."
-        )
-        gen_md_content = ["# Generator Internals (Generated on the fly)\n"]
-        for g in generators:
-            model_name = getattr(g, "model_name", "Unknown")
-            desc = getattr(g, "description", "No description provided.")
-            gen_md_content.append(f"### {g.name}")
-            gen_md_content.append(f"- **Model:** `{model_name}`")
-            gen_md_content.append(f"\n{desc}\n")
-
-        try:
-            with open(md_output_path, "w", encoding="utf-8") as f:
-                f.write("\n".join(gen_md_content))
-        except Exception as e:
-            print(f"Failed to save generator internals markdown: {e}")
+        print(f"Warning: {cached_md_path} not found. Docs will be generated on the fly.")
 
 
 async def run_comparison(
