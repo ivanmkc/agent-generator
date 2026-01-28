@@ -39,12 +39,12 @@
 ## 1. Generate a notebook that analyzes the percentage cumulative usage of ranked_targets.yaml. I want to know how many items to return on first page which will capture (>99% of usage).
 
 ## 2. Vector Search for Ranked Targets (`docs/design_docs/vector_search_ranked_targets.md`)
-- [ ] **Implementation:**
-    - [ ] Create `tools/build_vector_index.py` to embed `ranked_targets.yaml`.
-    - [ ] Implement `VectorSearchProvider` in `AdkTools`.
-    - [ ] Integrate into `search_ranked_targets` (Hybrid BM25 + Vector).
-- [ ] **Verification:**
-    - [ ] Add `benchmark_definitions/search_relevance` to test semantic queries.
+- [x] **Implementation:**
+    - [x] Create `tools/build_vector_index.py` to embed `ranked_targets.yaml`.
+    - [x] Implement `VectorSearchProvider` in `AdkTools`.
+    - [x] Integrate into `search_ranked_targets` (Hybrid BM25 + Vector).
+- [x] **Verification:**
+    - [x] Add `benchmark_definitions/search_relevance` to test semantic queries.
 
 # Completed
 

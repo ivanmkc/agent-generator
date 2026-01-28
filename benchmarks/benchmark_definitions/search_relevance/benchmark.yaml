@@ -1,0 +1,27 @@
+# Benchmark for testing search relevance (Semantic / Vector Search)
+benchmarks:
+- id: search_relevance:how_to_retry_failed_agent_turns
+  category: Semantic Search
+  question: "What class should I use if I want my agent to automatically reflect on its mistakes and retry failed turns?"
+  rationale: "The ReflectAndRetryToolPlugin is designed specifically for this behavior, providing a mechanism for agents to analyze errors and retry tool calls."
+  benchmark_type: api_understanding
+  template: identifier
+  answers:
+  - answer_template: StringMatchAnswer
+    answer: ReflectAndRetryToolPlugin
+    fully_qualified_class_name:
+    - google.adk.plugins.reflect_and_retry_plugin.ReflectAndRetryToolPlugin
+  file: src/google/adk/plugins/reflect_and_retry_plugin.py
+
+- id: search_relevance:how_to_save_session_state
+  category: Semantic Search
+  question: "Which component is responsible for persisting the agent's session state to a database or memory?"
+  rationale: "The Runner (e.g., InMemoryRunner or CloudRunner) manages session state persistence through SessionState stores."
+  benchmark_type: api_understanding
+  template: identifier
+  answers:
+  - answer_template: StringMatchAnswer
+    answer: InMemoryRunner
+    fully_qualified_class_name:
+    - google.adk.runners.in_memory_runner.InMemoryRunner
+  file: src/google/adk/runners/in_memory_runner.py

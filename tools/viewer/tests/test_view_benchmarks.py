@@ -8,9 +8,9 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 # --- Global Mock Setup ---
-# Must be done before importing the module under test because it imports streamlit at the top level
+# Save original streamlit if it exists in sys.modules
+original_st = sys.modules.get("streamlit")
 mock_st = MagicMock()
-# Make cache_data a simple pass-through decorator for testing
 mock_st.cache_data = lambda func: func
 sys.modules["streamlit"] = mock_st
 
@@ -28,6 +28,12 @@ from tools.viewer.view_benchmarks import (
     merge_consecutive_events,
     get_run_status,
 )
+
+# Restore original streamlit (or remove mock) to avoid breaking other tests that need real streamlit
+if original_st:
+    sys.modules["streamlit"] = original_st
+else:
+    del sys.modules["streamlit"]
 from benchmarks.data_models import BenchmarkRunResult, ForensicData, BenchmarkResultType, ExpectedOutcome, TraceLogEvent, TraceEventType
 
 # --- Fixtures ---
@@ -206,6 +212,18 @@ def test_merge_consecutive_events_tracelogevent_objects():
     assert merged[0]["content"] == "Hello\nWorld"
 
 
+def test_get_concise_error_message_with_captured_report():
+    """Tests that a concise message is extracted from the validation_error string."""
+    error_json = {"error": {"message": "Semantic Error: Invalid tool output"}}
+    validation_err = f"Some text\n\n[Captured Error Report]\n{json.dumps(error_json)}\n\nMore text"
+    mock_row = {
+        "validation_error": validation_err,
+        "trace_logs": []
+    }
+    expected_message = "❌ Error: Semantic Error: Invalid tool output"
+    assert _get_concise_error_message(mock_row, []) == expected_message
+
+
 def test_get_concise_error_message_with_gemini_client_error_json():
     """Tests that a concise message is extracted from GEMINI_CLIENT_ERROR JSON content."""
     mock_row = {
@@ -311,7 +329,8 @@ def test_load_results_malformed(mock_artifact_manager, tmp_path):
 
     mock_artifact_manager.get_file.return_value = file_path
 
-    with pytest.raises(json.JSONDecodeError):
+    # Since yaml.load is used, it might raise yaml.YAMLError
+    with pytest.raises((json.JSONDecodeError, yaml.YAMLError)):
         load_results(run_id)
 
 

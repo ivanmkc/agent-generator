@@ -115,8 +115,8 @@ artifact_manager = ArtifactManager(bucket_name=BENCHMARK_GCS_BUCKET)
 
 def get_run_status(run_id: str) -> str:
     """Determines the status of a run based on file existence."""
-    # Check for results.yaml (Completed)
-    if artifact_manager.get_file(run_id, "results.yaml"):
+    # Check for results.yaml or results.json (Completed)
+    if artifact_manager.get_file(run_id, "results.yaml") or artifact_manager.get_file(run_id, "results.json"):
         return "Completed"
     # Check for trace.yaml (In Progress or Failed)
     if artifact_manager.get_file(run_id, "trace.yaml"):
@@ -251,23 +251,6 @@ def load_case_docs_cache() -> dict:
     except Exception as e:
         print(f"Error loading case_docs_cache: {e}")
         return {}
-    path = artifact_manager.get_file(run_id, "trace.yaml")
-    if not path:
-        return {}
-
-    traces = {}
-    with open(path, "r") as f:
-        # Use yaml.safe_load_all for multi-document YAML
-        for entry in yaml.safe_load_all(f):
-            if entry is None:
-                continue
-            try:
-                data = entry.get("data", {})
-                if "benchmark_name" in data and "trace_logs" in data:
-                    traces[data["benchmark_name"]] = data["trace_logs"]
-            except Exception:
-                continue
-    return traces
 
 
 @st.cache_data
@@ -657,10 +640,16 @@ def _get_concise_error_message(row: BenchmarkRunResult, case_trace_logs: List[Tr
     # Default message
     display_error = "Validation Failed (See 'Validation Error' tab for details)"
 
+    # Helper to get field from either dict or Pydantic model
+    def get_field(obj, field_name, default=None):
+        if isinstance(obj, dict):
+            return obj.get(field_name, default)
+        return getattr(obj, field_name, default)
+
     # 1. First, try to extract from the validation_error string itself
-    validation_err_str = row.validation_error or ""
+    validation_err_str = get_field(row, "validation_error") or ""
     captured_report_match = re.search(
-        r""\[Captured Error Report\]\n(.*?)(?=\n\n|\[|$)""", validation_err_str, re.DOTALL
+        r"""\[Captured Error Report\]\n(.*?)(?=\n\n|\[|$)""", validation_err_str, re.DOTALL
     )
 
     if captured_report_match:
@@ -674,8 +663,8 @@ def _get_concise_error_message(row: BenchmarkRunResult, case_trace_logs: List[Tr
 
     # 2. If not found in validation_error, check trace_logs for GEMINI_CLIENT_ERROR
     for log_event in case_trace_logs:
-        if log_event.type == "GEMINI_CLIENT_ERROR":
-            content = log_event.content
+        if get_field(log_event, "type") == "GEMINI_CLIENT_ERROR":
+            content = get_field(log_event, "content")
             error_json = {}
 
             if isinstance(content, dict):

@@ -57,6 +57,7 @@ class AdkTools:
         self._stats_index = None
         self._coocc_index = None
         self._search_provider = None
+        self._ranked_targets_path = None
         self._load_stats_index()
         self._load_coocc_index()
         self._init_search_provider()
@@ -66,8 +67,10 @@ class AdkTools:
         if HAS_SEARCH_PROVIDER and yaml:
             try:
                 targets = self._load_ranked_targets()
-                if targets:
-                    self._search_provider = get_search_provider("bm25")
+                if targets and self._ranked_targets_path:
+                    index_dir = self._ranked_targets_path.parent
+                    # Default to hybrid which now includes vector if index exists in same dir
+                    self._search_provider = get_search_provider("hybrid", index_dir=index_dir)
                     # Convert Pydantic models to dicts for the provider
                     items = [t.model_dump() for t in targets]
                     self._search_provider.build_index(items)
@@ -412,10 +415,11 @@ class AdkTools:
         candidates = [
             self.workspace_root
             / "tmp/outputs/generated_benchmarks/ranked_targets.yaml",
-            self.workspace_root / "benchmarks.generator.benchmark_generator/data/ranked_targets.yaml",
+            self.workspace_root
+            / "benchmarks/generator/benchmark_generator/data/ranked_targets.yaml",
             self.workspace_root / "ranked_targets.yaml",
             Path("tmp/outputs/generated_benchmarks/ranked_targets.yaml"),
-            Path("benchmarks.generator.benchmark_generator/data/ranked_targets.yaml"),
+            Path("benchmarks/generator/benchmark_generator/data/ranked_targets.yaml"),
             Path("ranked_targets.yaml"),
             Path(__file__).resolve().parent.parent.parent / "ranked_targets.yaml",
             Path(__file__).resolve().parent.parent
@@ -430,6 +434,8 @@ class AdkTools:
 
         if not index_path:
             return []
+
+        self._ranked_targets_path = index_path
 
         try:
             with open(index_path, "r", encoding="utf-8") as f:
@@ -535,7 +541,7 @@ class AdkTools:
         except Exception as e:
             return f"Error reading ranked targets: {e}"
 
-    def search_ranked_targets(
+    async def search_ranked_targets(
         self, query: str | list[str], page: int = 1, page_size: int = 10
     ) -> str:
         """
@@ -547,8 +553,8 @@ class AdkTools:
             q_str = str(query)
 
         if self._search_provider:
-            # Use advanced search provider (BM25 -> Keyword)
-            matches = self._search_provider.search(
+            # Use advanced search provider
+            matches = await self._search_provider.search(
                 q_str, page=page, page_size=page_size
             )
 

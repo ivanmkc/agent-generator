@@ -48,14 +48,9 @@ from benchmarks.answer_generators.adk_agents import (
     CodeBasedRunner,
     CodeBasedFinalVerifier,
 )
-<<<<<<<< HEAD:experiments/experiment_67.py
-from experiments.experiment_66 import PostProcessedAdkAnswerGenerator
-========
 from benchmarks.answer_generators.experiment_66.experiment_66 import PostProcessedAdkAnswerGenerator
->>>>>>>> 92bf5fe (Refactor answer generators into package structure and cleanup old experiments):benchmarks/answer_generators/experiment_67/experiment_67.py
 
 # --- Retrieval Components ---
-
 
 def _create_isolated_retrieval_loop(
     tools_helper: AdkTools, model, is_coding=False
@@ -81,7 +76,7 @@ def _create_isolated_retrieval_loop(
     async def search_ranked_targets(
         query: str | list[str], page: int = 1, tool_context: ToolContext = None
     ) -> str:
-        return tools_helper.search_ranked_targets(query, page=page)
+        return await tools_helper.search_ranked_targets(query, page=page)
 
     instruction = (
         "You are the Hierarchical Retrieval Agent. Your goal is to find relevant ADK classes/methods "
@@ -152,7 +147,7 @@ def _create_interactive_retrieval_agent(tools_helper: AdkTools, model) -> Agent:
     async def search_ranked_targets(
         query: str | list[str], page: int = 1, tool_context: ToolContext = None
     ) -> str:
-        return tools_helper.search_ranked_targets(query, page=page)
+        return await tools_helper.search_ranked_targets(query, page=page)
 
     return LlmAgent(
         name="knowledge_retrieval_agent",
@@ -208,7 +203,6 @@ def _create_knowledge_expert(tools_helper: AdkTools, model) -> Agent:
     retrieval = _create_interactive_retrieval_agent(tools_helper, model)
     solver = SharedHistorySolver(model=model)
     return SequentialAgent(name="knowledge_expert", sub_agents=[retrieval, solver])
-
 
 # --- Coding Expert Components ---
 
@@ -314,7 +308,6 @@ def _create_coding_expert(tools_helper: AdkTools, model) -> Agent:
         ],
     )
 
-
 # --- Router ---
 
 
@@ -368,7 +361,6 @@ class RoutingDelegator(Agent):
                         result_text = part.text
 
         ctx.session.state["final_response"] = result_text
-
 
 # --- Factory ---
 
