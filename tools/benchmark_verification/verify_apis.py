@@ -4,7 +4,7 @@ import yaml
 import importlib
 import sys
 import os
-from tools.constants import EXTRACTED_APIS_FILE, API_VERIFICATION_REPORT
+from core.config import EXTRACTED_APIS_FILE, API_VERIFICATION_REPORT
 
 INPUT_FILE = str(EXTRACTED_APIS_FILE)
 OUTPUT_REPORT = str(API_VERIFICATION_REPORT)

@@ -23,7 +23,7 @@ This repository contains tools and benchmarks for generating and evaluating AI a
     - **reports/**: Output artifacts (analysis reports, generated documentation).
 - **benchmarks/**: The core execution engine. It loads YAML definitions and runs `AnswerGenerator` implementations against them.
 - **scripts/**: Convenience scripts for common tasks.
-- **tools/benchmark_generator/**: An autonomous system that scans the `repos/` and generates new benchmark YAMLs.
+- **benchmarks.generator.benchmark_generator/**: An autonomous system that scans the `repos/` and generates new benchmark YAMLs.
 - **tools/analysis/**: A hybrid (LLM + Stats) engine for analyzing why agents fail.
 
 ## Usage

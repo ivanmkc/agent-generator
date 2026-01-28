@@ -16,7 +16,7 @@ from benchmarks.answer_generators.gemini_cli_docker import (
     GeminiCliPodmanAnswerGenerator,
 )
 from benchmarks.logger import YamlTraceLogger, ConsoleBenchmarkLogger, CompositeLogger
-from benchmarks.config import PODMAN_CONFIG
+from core.config import PODMAN_CONFIG
 
 # Initialize colorama
 init()

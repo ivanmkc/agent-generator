@@ -46,7 +46,7 @@ To update the ranked target list (e.g., when new samples or framework code are a
 2.  **`Regenerate Ranked Targets`**:
     *   Runs `tools/target_ranker/ranker.py`.
     *   Loads the stats from step 1, performs a repository scan with runtime identity resolution, and applies the BFS ranking.
-    *   Output: `tools/benchmark_generator/data/ranked_targets.yaml` and `.md`.
+    *   Output: `benchmarks.generator.benchmark_generator/data/ranked_targets.yaml` and `.md`.
 
 ## Reliability & Debugging
 
@@ -68,7 +68,7 @@ The generator is designed to be resumed after an interruption (e.g., rate limits
 To generate conceptual benchmarks for the ADK:
 
 ```bash
-PYTHONPATH=. env/bin/python tools/benchmark_generator/run_generator.py \
+PYTHONPATH=. env/bin/python benchmarks.generator.benchmark_generator/run_generator.py \
     --type agentic_adk \
     --mode concept_mcq \
     --repo-path ../adk-python \
@@ -95,7 +95,7 @@ The system relies on a set of specialized tools to map the codebase and prioriti
 *   **`tools/target_ranker/scanner.py`**: Contains the core `scan_repository` logic. It uses a specialized AST visitor to map the framework's physical structure, extract full signatures, and identify property types.
 *   **`tools/api_indexer.py`**: An AST-based usage scanner. It analyzes consumer code (samples and tests) to count how many times each class and method is called.
 
-### Data & Artifacts (`tools/benchmark_generator/data/`)
+### Data & Artifacts (`benchmarks.generator.benchmark_generator/data/`)
 *   **`ranked_targets.yaml`**: The definitive dataset. 1,703+ public ADK entities enriched with **fully resolved FQN signatures** (e.g., `tool_config: typing.Optional[google.adk.types.ToolConfig]`), typed properties, clean docstrings, and grouped by inheritance. It is ranked by statistical relevance (usage in samples).
 *   **`ranked_targets.md`**: A human-readable prioritized list of the top targets (Seeds) and their internal reachability.
 
@@ -103,4 +103,4 @@ The system relies on a set of specialized tools to map the codebase and prioriti
 *   **`indexer_config_comprehensive.yaml`**: Configures the indexer to scan both `adk-samples/python` and `adk-python/contributing/samples` for a broad statistical base.
 *   **`.vscode/tasks.json`**: Contains automated tasks:
     *   `Recalculate API Usage Stats`: Runs the indexer.
-    *   `Regenerate Ranked Targets`: Runs the ranker to update the data files.\n## Testing\n\nRun the agentic integration tests:\n```bash\npython -m pytest tools/benchmark_generator/tests/\n```
+    *   `Regenerate Ranked Targets`: Runs the ranker to update the data files.\n## Testing\n\nRun the agentic integration tests:\n```bash\npython -m pytest benchmarks.generator.benchmark_generator/tests/\n```

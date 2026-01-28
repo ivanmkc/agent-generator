@@ -63,7 +63,7 @@ Run specific batches:
 python -m pytest benchmarks/tests/
 
 # Generators
-python -m pytest tools/benchmark_generator/tests/
+python -m pytest benchmarks.generator.benchmark_generator/tests/
 ```
 
 ## 5. Documentation Standards

@@ -32,7 +32,7 @@ from typing import List, Dict, Any, Optional, Set
 from collections import defaultdict
 
 from google.adk.tools import ToolContext
-from tools.benchmark_generator.models import TargetEntity, TargetType
+from benchmarks.generator.benchmark_generator.models import TargetEntity, TargetType
 
 # --- Scanner (Cartographer) Logic ---
 

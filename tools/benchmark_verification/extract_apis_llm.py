@@ -3,7 +3,7 @@
 import os
 import yaml
 import re
-from tools.constants import EXTRACTED_APIS_FILE, RANKED_TARGETS_FILE
+from core.config import EXTRACTED_APIS_FILE, RANKED_TARGETS_FILE
 
 # Configuration
 BENCHMARK_ROOT = "benchmarks/benchmark_definitions"

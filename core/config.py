@@ -1,0 +1,93 @@
+"""
+Core Configuration Module.
+
+This module consolidates all configuration settings for the Agentic Benchmark Generator,
+including file paths, runtime settings (concurrency, resources), and model constants.
+"""
+
+import os
+from dataclasses import dataclass
+from pathlib import Path
+import enum
+
+# --- File Paths (Migrated from tools/constants.py) ---
+
+# Project Root
+# Assuming this file is in core/config.py, parent is core, parent.parent is project root
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
+# Centralized Output Directory
+OUTPUT_ROOT = PROJECT_ROOT / "tmp/outputs"
+
+# Sub-directories for specific artifacts
+BENCHMARK_RUNS_DIR = OUTPUT_ROOT / "benchmark_runs"
+GENERATED_BENCHMARKS_DIR = OUTPUT_ROOT / "generated_benchmarks"
+REPORTS_DIR = OUTPUT_ROOT / "reports"
+
+# Common File Paths
+AGENTIC_SESSIONS_DB = OUTPUT_ROOT / "agentic_sessions.db"
+AGENTIC_LOG_JSONL = OUTPUT_ROOT / "agentic_generated_raw.jsonl"
+EXTRACTED_APIS_FILE = OUTPUT_ROOT / "extracted_apis_llm.yaml"
+API_VERIFICATION_REPORT = OUTPUT_ROOT / "api_verification_report.yaml"
+API_METADATA_FILE = OUTPUT_ROOT / "api_metadata.yaml"
+VIBESHARE_RESULTS_FILE = OUTPUT_ROOT / "vibeshare_results.json"
+RANKED_TARGETS_FILE = PROJECT_ROOT / "benchmarks/generator/benchmark_generator/data/ranked_targets.yaml"
+RANKED_TARGETS_MD = PROJECT_ROOT / "benchmarks/generator/benchmark_generator/data/ranked_targets.md"
+
+
+# Ensure dirs exist
+def ensure_output_dirs():
+    OUTPUT_ROOT.mkdir(parents=True, exist_ok=True)
+    BENCHMARK_RUNS_DIR.mkdir(parents=True, exist_ok=True)
+    GENERATED_BENCHMARKS_DIR.mkdir(parents=True, exist_ok=True)
+    REPORTS_DIR.mkdir(parents=True, exist_ok=True)
+
+# --- Runtime Configuration (Migrated from benchmarks/config.py) ---
+
+@dataclass(frozen=True)
+class CloudRunConfig:
+    """Configuration settings for Cloud Run environment."""
+
+    # Global Concurrency: How many benchmark cases to run in parallel client-side.
+    # Cloud Run scales horizontally, so this can be high.
+    MAX_GLOBAL_CONCURRENCY: int = 400
+
+    # Per-Instance Concurrency: How many requests a SINGLE Cloud Run container handles.
+    # Tested stable limit is 10 requests per 4GB/4CPU instance.
+    MAX_INSTANCE_CONCURRENCY: int = 10
+
+    # Max Instances: How many containers Cloud Run is allowed to spin up.
+    MAX_INSTANCES: int = 100
+
+    # Resource Limits
+    MEMORY_LIMIT: str = "4Gi"
+    CPU_LIMIT: str = "4"
+
+
+@dataclass(frozen=True)
+class PodmanConfig:
+    """Configuration settings for local Podman environment."""
+
+    # Global Concurrency: Constrained by local machine resources (CPU/RAM).
+    # 20 was tested for a machine with the following specs: Apple M4 Pro, 48GB RAM
+    # The podman machine was provisioned with the following resources: 7 CPUs, 16GB RAM
+    MAX_GLOBAL_CONCURRENCY: int = 15
+
+
+# Instantiate for usage
+CLOUD_RUN_CONFIG = CloudRunConfig()
+PODMAN_CONFIG = PodmanConfig()
+
+# --- Model Configuration ---
+
+# To avoid circular imports, we define ModelName enum here if it's simple string constants,
+# or we import it if it's defined elsewhere.
+# Ideally, constants like ModelName should be in core/constants.py or core/models.py
+# For now, we will import it lazily or redefine if it's just strings.
+# Checking benchmarks/benchmark_candidates.py, ModelName is an StrEnum.
+# Let's import it to keep single source of truth, but we must be careful of circular imports.
+# benchmarks.benchmark_candidates imports benchmarks.config usually.
+# So we should probably MOVE ModelName here or to core/models.py.
+
+# For now, let's just define the constant string to avoid breaking things immediately.
+MOST_POWERFUL_MODEL: str = "gemini-3-pro-preview" 

@@ -36,12 +36,12 @@ from benchmarks.answer_generators.gemini_cli_docker import (
     GeminiCliPodmanAnswerGenerator,
 )
 from benchmarks.answer_generators.base import AnswerGenerator
-from benchmarks.config import PODMAN_CONFIG
+from core.config import PODMAN_CONFIG
 from benchmarks.data_models import BenchmarkRunResult
 from benchmarks.logger import (YamlTraceLogger, ConsoleBenchmarkLogger, CompositeLogger)
 import benchmarks.analysis as analysis
 from tools.cli.generate_benchmark_report import analyze_run_logs
-from tools.constants import BENCHMARK_RUNS_DIR
+from core.config import BENCHMARK_RUNS_DIR
 
 # Set pandas display options (needed for analysis functions)
 pd.set_option("display.max_colwidth", None)

@@ -25,7 +25,7 @@ import json
 from unittest.mock import MagicMock
 from google.adk.sessions.sqlite_session_service import SqliteSessionService
 from google.adk.tools import ToolContext
-from tools.benchmark_generator.agent_tools import list_prioritized_targets, select_target
+from benchmarks.generator.benchmark_generator.agent_tools import list_prioritized_targets, select_target
 
 
 @pytest.mark.asyncio

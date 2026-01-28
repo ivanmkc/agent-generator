@@ -29,13 +29,13 @@ import yaml
 import json
 
 from benchmarks.data_models import BenchmarkFile
-from tools.benchmark_generator.agents import create_agentic_agent
+from benchmarks.generator.benchmark_generator.agents import create_agentic_agent
 from google.adk.runners import Runner
 from google.adk.sessions.sqlite_session_service import SqliteSessionService
 from google.genai import types
 from benchmarks.api_key_manager import API_KEY_MANAGER
-from tools.benchmark_generator.logger import AgenticLogger
-from tools.constants import AGENTIC_SESSIONS_DB
+from benchmarks.generator.benchmark_generator.logger import AgenticLogger
+from core.config import AGENTIC_SESSIONS_DB
 
 
 async def main():
@@ -117,7 +117,7 @@ async def main():
         logger.log_info(f"  Limit: {args.limit}")
 
         # Model Injection Logic
-        from tools.benchmark_generator.agents import SemaphoreGemini
+        from benchmarks.generator.benchmark_generator.agents import SemaphoreGemini
 
         # Use provided model for both roles
         model_name = args.model_name

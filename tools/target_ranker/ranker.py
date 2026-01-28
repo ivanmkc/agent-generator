@@ -114,8 +114,8 @@ class TargetRanker:
 
     async def generate(
         self,
-        output_yaml_path: str = "tools/benchmark_generator/data/ranked_targets.yaml",
-        output_md_path: str = "tools/benchmark_generator/data/ranked_targets.md",
+        output_yaml_path: str = "benchmarks.generator.benchmark_generator/data/ranked_targets.yaml",
+        output_md_path: str = "benchmarks.generator.benchmark_generator/data/ranked_targets.md",
     ):
         # Ensure output directory exists
         Path(output_yaml_path).parent.mkdir(parents=True, exist_ok=True)
@@ -444,7 +444,7 @@ class TargetRanker:
         output_yaml_path: Optional[str] = None,
         output_md_path: Optional[str] = None,
     ):
-        from tools.constants import RANKED_TARGETS_FILE, RANKED_TARGETS_MD
+        from core.config import RANKED_TARGETS_FILE, RANKED_TARGETS_MD
 
         output_yaml_path = output_yaml_path or str(RANKED_TARGETS_FILE)
         output_md_path = output_md_path or str(RANKED_TARGETS_MD)

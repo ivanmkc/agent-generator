@@ -26,16 +26,16 @@ import asyncio
 from unittest.mock import MagicMock
 from google.adk.tools import ToolContext
 from google.adk.sessions import Session
-from tools.benchmark_generator.agent_tools import (
+from benchmarks.generator.benchmark_generator.agent_tools import (
     trace_execution,
     validate_mutant,
     save_benchmark_case,
     list_prioritized_targets,
     select_target,
 )
-from tools.benchmark_generator.agents import create_agentic_agent, SemaphoreGemini
+from benchmarks.generator.benchmark_generator.agents import create_agentic_agent, SemaphoreGemini
 from benchmarks.api_key_manager import ApiKeyManager
-from tools.benchmark_generator.models import TargetType
+from benchmarks.generator.benchmark_generator.models import TargetType
 
 
 @pytest.fixture

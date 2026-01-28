@@ -48,7 +48,7 @@ from benchmarks.answer_generators.adk_agents import (
     CodeBasedRunner,
     CodeBasedFinalVerifier,
 )
-from benchmarks.answer_generators.experiment_66 import PostProcessedAdkAnswerGenerator
+from experiments.experiment_66 import PostProcessedAdkAnswerGenerator
 
 # --- Retrieval Components ---
 

@@ -5,10 +5,10 @@ This directory contains helper scripts and tools for analyzing benchmarks, debug
 ## Primary Tools
 
 ### Benchmark Generation
--   **`tools/benchmark_generator/`**: The Agentic Benchmark Generator.
+-   **`benchmarks.generator.benchmark_generator/`**: The Agentic Benchmark Generator.
     -   **Mechanism**: **Autonomous Agentic**.
     -   Uses a multi-agent system (Auditor, Observer, Saboteur, Referee) to generate code-based benchmarks from the repository itself.
-    -   See [tools/benchmark_generator/README.md](benchmark_generator/README.md).
+    -   See [benchmarks.generator.benchmark_generator/README.md](benchmark_generator/README.md).
 
 -   **`tools/target_ranker/`**: The Target Ranker.
     -   **Mechanism**: **Deterministic Static Analysis**.

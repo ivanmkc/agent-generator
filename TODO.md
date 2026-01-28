@@ -24,6 +24,11 @@
 - [ ] **Verification:**
     - [ ] Run the whole pipeline again on the latest dataset and ensure convergence works as expected.
 
+## 3. Codebase Improvements (Refactoring Phase 2)
+- [ ] **Vibeshare Independence:** Ensure `vibeshare/` treats the main repo as a proper library dependency rather than using cross-imports.
+- [ ] **Notebook CI:** Add a CI step (or pre-commit hook) to run `papermill` on visualization notebooks with dummy data to prevent regressions.
+- [ ] **Remove `utils.py` Anti-Pattern:** Decompose `core/utils.py` into semantic modules like `core/filesystem.py`, `core/strings.py`, etc.
+
 # On Hold (do not start)
 
 ## 1. Generate a notebook that analyzes the percentage cumulative usage of ranked_targets.yaml. I want to know how many items to return on first page which will capture (>99% of usage).
@@ -72,3 +77,5 @@
 - [x] **Viewer:** Consolidated error tabs and added run status indicators.
 - [x] **Tools:** Reorganized `tools/cli` and renamed `audit_failures.py`.
 - [x] **Hybrid Generator:** Fixed `create_hybrid_generator_v47` integration.
+- [x] **Documentation:** Added missing module-level docstrings across the codebase.
+- [x] **Refactor:** Renamed analysis notebooks and removed redundant/artifact files.

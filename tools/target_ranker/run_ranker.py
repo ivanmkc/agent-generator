@@ -22,7 +22,7 @@ if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
 from tools.target_ranker.ranker import TargetRanker
-from tools.constants import RANKED_TARGETS_FILE, RANKED_TARGETS_MD
+from core.config import RANKED_TARGETS_FILE, RANKED_TARGETS_MD
 
 
 async def main():

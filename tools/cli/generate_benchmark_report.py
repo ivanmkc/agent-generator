@@ -45,7 +45,7 @@ from tools.analysis.run_metrics import analyze_benchmark_run
 from tools.analysis.generate_architecture_docs import DOC_MANAGER
 from tools.analysis.summarize_cases import CASE_DOC_MANAGER
 from benchmarks.benchmark_candidates import CANDIDATE_GENERATORS
-from benchmarks.config import MOST_POWERFUL_MODEL
+from core.config import MOST_POWERFUL_MODEL
 
 # Configure logging to suppress noisy libraries
 import logging

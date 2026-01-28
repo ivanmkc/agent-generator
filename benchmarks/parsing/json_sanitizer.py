@@ -13,7 +13,7 @@ from typing import Type, Optional, Any
 from pydantic import BaseModel
 from google.genai import Client, types
 from benchmarks.api_key_manager import ApiKeyManager, KeyType
-from benchmarks.config import MOST_POWERFUL_MODEL
+from core.config import MOST_POWERFUL_MODEL
 
 logger = logging.getLogger(__name__)
 

@@ -28,8 +28,8 @@ from typing import List, Dict, Any, Optional, Set
 from collections import defaultdict, Counter, deque
 
 from google.adk.tools import ToolContext
-from tools.benchmark_generator.models import TargetEntity, TargetType, GoldenSnapshot, DistractorOption, ValidationStatus, ContextNode
-from tools.benchmark_generator.logger import AgenticLogger
+from benchmarks.generator.benchmark_generator.models import TargetEntity, TargetType, GoldenSnapshot, DistractorOption, ValidationStatus, ContextNode
+from benchmarks.generator.benchmark_generator.logger import AgenticLogger
 from tools.target_ranker.scanner import scan_repository
 
 # --- Scanner (Cartographer) Logic ---

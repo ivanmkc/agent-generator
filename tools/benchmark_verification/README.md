@@ -5,7 +5,7 @@ This directory contains tools for validating the integrity of benchmark definiti
 ## Tools
 
 ### `extract_apis_llm.py`
-Scans all `benchmark.yaml` files in `benchmarks/benchmark_definitions` and extracts potential API references (Fully Qualified Names). It uses `tools/benchmark_generator/data/ranked_targets.yaml` to validate matches against known ADK entities.
+Scans all `benchmark.yaml` files in `benchmarks/benchmark_definitions` and extracts potential API references (Fully Qualified Names). It uses `benchmarks.generator.benchmark_generator/data/ranked_targets.yaml` to validate matches against known ADK entities.
 
 **Usage:**
 ```bash

@@ -33,12 +33,12 @@ from google.genai import types
 from google.adk.runners import Runner
 from google.adk.sessions.in_memory_session_service import InMemorySessionService
 
-from tools.benchmark_generator.stream import AsyncStream
-from tools.benchmark_generator.cartographer import Cartographer
-from tools.benchmark_generator.agents import create_worker_pipeline
-from tools.benchmark_generator.models import TargetEntity
+from benchmarks.generator.benchmark_generator.stream import AsyncStream
+from benchmarks.generator.benchmark_generator.cartographer import Cartographer
+from benchmarks.generator.benchmark_generator.agents import create_worker_pipeline
+from benchmarks.generator.benchmark_generator.models import TargetEntity
 from benchmarks.api_key_manager import API_KEY_MANAGER
-from tools.benchmark_generator.irt import IRTManager
+from benchmarks.generator.benchmark_generator.irt import IRTManager
 
 # Configure Logging
 logging.basicConfig(

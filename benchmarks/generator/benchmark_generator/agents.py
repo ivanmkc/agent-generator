@@ -36,7 +36,7 @@ from google.adk.tools import FunctionTool, exit_loop
 from google.genai import types
 from google.adk.events import Event, EventActions
 
-from tools.benchmark_generator.agent_tools import (
+from benchmarks.generator.benchmark_generator.agent_tools import (
     trace_execution,
     validate_mutant,
     save_benchmark_case,
@@ -46,7 +46,7 @@ from tools.benchmark_generator.agent_tools import (
     select_target,
     assemble_and_save_benchmark,
 )
-from tools.benchmark_generator.models import TargetEntity, TargetType, ObserverOutput, SaboteurOutput
+from benchmarks.generator.benchmark_generator.models import TargetEntity, TargetType, ObserverOutput, SaboteurOutput
 from benchmarks.data_models import MultipleChoiceBenchmarkCase
 from benchmarks.answer_generators.adk_agents import RotatingKeyGemini
 from benchmarks.api_key_manager import ApiKeyManager

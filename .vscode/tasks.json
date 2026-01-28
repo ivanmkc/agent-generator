@@ -234,7 +234,7 @@
     {
       "label": "Agentic: Generate Execution MCQ (Gemini 3 Pro)",
       "type": "shell",
-      "command": "PYTHONPATH=. env/bin/python tools/benchmark_generator/run_generator.py --type agentic_adk --output-dir benchmarks/benchmark_definitions/agentic_generated --model-name gemini-3-pro-preview --repo-path ../adk-python --concurrency 3 --session-db agentic_sessions.db --namespace google.adk --cooccurrence-file benchmarks/adk_cooccurrence.json --mode execution_mcq",
+      "command": "PYTHONPATH=. env/bin/python benchmarks.generator.benchmark_generator/run_generator.py --type agentic_adk --output-dir benchmarks/benchmark_definitions/agentic_generated --model-name gemini-3-pro-preview --repo-path ../adk-python --concurrency 3 --session-db agentic_sessions.db --namespace google.adk --cooccurrence-file benchmarks/adk_cooccurrence.json --mode execution_mcq",
       "group": "build",
       "presentation": {
         "reveal": "always",
