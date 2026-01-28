@@ -848,7 +848,16 @@ def main():
 
         def format_case_label(idx):
             r = gen_specific_df.loc[idx]
-            icon = "✅" if r["result"] == 1 else "❌"
+            if r["result"] == 1:
+                icon = "✅"
+            else:
+                status = r["status"]
+                if status == "fail_generation":
+                    icon = "💥"
+                elif status == "fail_setup":
+                    icon = "🚧"
+                else:
+                    icon = "❌"
             return f"{icon} [{r['suite']}] {r['benchmark_name']}"
 
         # Scrollable container in sidebar for cases
@@ -1093,84 +1102,6 @@ def main():
         else:
             st.info("No generation attempt history found in this dataset.")
 
-        # 7. Forensic Analysis Integration
-        st.divider()
-        st.subheader("🕵️ Forensic Diagnosis")
-
-        # We need access to analyze_benchmark_run logic, but we might not want to re-run it
-        # fully inside the UI if we already have the JSON.
-        # For now, disable the "Run Deep Scan" button if we are in GCS mode and don't have write access easily.
-        # Or just allow it if it works locally on the cached files.
-        if st.button("Run Deep Forensic Scan"):
-            with st.spinner("Analyzing trace logs..."):
-                # Run analysis on the LOCAL path (downloaded)
-                # analyze_benchmark_run takes (run_id, runs_dir)
-                # It returns a RunAnalysis object
-                try:
-                    run_analysis = analyze_benchmark_run(
-                        selected_run, BENCHMARK_RUNS_DIR
-                    )
-
-                    if run_analysis.total_failures == 0:
-                        st.success("No failures detected in this run to analyze!")
-                    else:
-                        # Categories
-                        from collections import Counter
-
-                        all_failed_cases = [
-                            c for c in run_analysis.cases if c.result_score == 0
-                        ]
-                        cats = Counter(
-                            [c.primary_failure_category for c in all_failed_cases]
-                        )
-
-                        # Heuristics
-                        alerts = run_analysis.get_critical_alerts()
-                        hallucinations = sum(
-                            1
-                            for a in alerts
-                            if "Sanitizer Hallucination" in a["reasons"]
-                        )
-                        loop_kills = sum(
-                            1 for a in alerts if "Early Loop Exit" in a["reasons"]
-                        )
-
-                        # Layout
-                        c1, c2, c3 = st.columns(3)
-                        c1.metric("Analyzed Cases", len(run_analysis.cases))
-                        c2.metric(
-                            "Critical Hallucinations",
-                            hallucinations,
-                            delta=-hallucinations if hallucinations > 0 else 0,
-                            delta_color="inverse",
-                        )
-                        c3.metric(
-                            "Early Loop Exits",
-                            loop_kills,
-                            delta=-loop_kills if loop_kills > 0 else 0,
-                            delta_color="inverse",
-                        )
-
-                        st.write("**Top Failure Categories:**")
-                        cat_df = pd.DataFrame(
-                            cats.most_common(), columns=["Category", "Count"]
-                        )
-                        st.dataframe(cat_df, use_container_width=True, hide_index=True)
-
-                        with st.expander("View Detailed Forensic Report"):
-                            for c in all_failed_cases:
-                                icon = "⚠️" if c.has_critical_heuristic_failure else "❌"
-                                st.markdown(f"**{icon} {c.benchmark_name}**")
-                                st.caption(f"Error: {c.primary_failure_category}")
-
-                                for i, att in enumerate(c.attempts):
-                                    if len(c.attempts) > 1:
-                                        st.write(f"Attempt {i+1}")
-                                    st.json(att.__dict__)  # Dump analysis stats
-                                st.divider()
-                except Exception as e:
-                    st.error(f"Analysis failed: {e}")
-
     elif selected_case_id == "Generator Diagnosis":
         st.header(f"🧠 Generator Diagnosis: {selected_generator}")
         forensic_data = load_forensic_data(selected_run, ttl_hash=forensic_ttl)
@@ -1223,6 +1154,27 @@ def main():
 
     elif selected_case_id == "AI Report":
         st.header("🤖 AI Analysis Report")
+
+        if st.button("Generate Deep Forensic Report"):
+            with st.spinner("Analyzing trace logs... This may take a few minutes."):
+                try:
+                    # analyze_benchmark_run returns a RunAnalysis object, but we need
+                    # generate_benchmark_report.analyze_run_logs to regenerate the full MD.
+                    # However, importing that might be heavy.
+                    # Let's just run the analysis and reload the file.
+                    from tools.cli.generate_benchmark_report import analyze_run_logs
+                    import asyncio
+                    
+                    # We need an event loop for the async analyzer
+                    # Streamlit handles async, but we need to call it properly
+                    run_dir = BENCHMARK_RUNS_DIR / selected_run
+                    # Assuming default model for now, or we could add a selector
+                    asyncio.run(analyze_run_logs(run_dir, model_name="gemini-2.5-pro"))
+                    st.success("Report generated successfully! Reloading...")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Report generation failed: {e}")
+
         # Use artifact manager to get the file
         report_path = artifact_manager.get_file(selected_run, "log_analysis.md")
 
