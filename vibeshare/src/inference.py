@@ -69,7 +69,7 @@ async def run_inference_task(
     key_type = get_key_type_for_model(model.model_name)
 
     if key_type:
-        key, key_id = API_KEY_MANAGER.get_next_key_with_id(key_type)
+        key, key_id = await API_KEY_MANAGER.get_next_key_with_id(key_type)
         if not key:
             error_msg = f"No active API keys available for {key_type.value}."
 
@@ -86,12 +86,12 @@ async def run_inference_task(
             error_msg = str(e)
             success = False
             if key_type and key_id:
-                API_KEY_MANAGER.report_result(
+                await API_KEY_MANAGER.report_result(
                     key_type, key_id, False, error_message=error_msg
                 )
         else:
             if key_type and key_id:
-                API_KEY_MANAGER.report_result(key_type, key_id, True)
+                await API_KEY_MANAGER.report_result(key_type, key_id, True)
 
     # 3. Save to Cache
     raw_result = {"response": response, "success": success, "error_message": error_msg}

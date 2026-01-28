@@ -61,6 +61,7 @@ graph TD
     AsyncLoop -->|Spawn Subprocess| CLI[Gemini CLI Executable]
     CLI -->|Capture stdout/stderr| AsyncLoop
     AsyncLoop -->|Return JSON| API
+```
 
 ## gemini-cli:adk-docs-ext
 
@@ -101,4 +102,62 @@ Maximum context injection.
 
 ### Architecture Overview
 This variant uses the `llms-full.txt` branch, implying a comprehensive, detailed dump of the ADK documentation in the `llms.txt` format. It tests the model's ability to handle and utilize a large context window populated with extensive domain knowledge, potentially at the cost of higher latency or "lost in the middle" effects.
+
+## ADK_HYBRID_V47
+
+### Core Philosophy
+A specialized "Mixture of Experts" architecture that routes user requests to either a dedicated "Coding Expert" (implementation loop) or a "Knowledge Expert" (retrieval pipeline) to maximize performance on distinct task types.
+
+### Topology
+Hierarchical Router-Gateway with Specialized Expert Agents.
+
+### Architecture Overview
+The system employs a Router to analyze the incoming request.
+- If **Knowledge**, it delegates to the Knowledge Expert, which uses hierarchical retrieval and shared history to answer questions.
+- If **Coding**, it delegates to the Coding Expert, which uses an isolated iterative loop to plan, write, run, and verify code in a temporary workspace.
+
+### Call Hierarchy
+```mermaid
+graph TD
+    User[User Request] --> Router[Routing Delegator]
+    Router --(Knowledge)--> KnowledgeExp[Knowledge Expert]
+    Router --(Coding)--> CodingExp[Coding Expert]
+    
+    subgraph Knowledge Expert
+    Retrieval --> Solver
+    end
+
+    subgraph Coding Expert
+    Planner --> Verifier --> ImplementLoop
+    end
+```
+
+## ADK_RANKED_V46
+
+### Core Philosophy
+A retrieval-augmented generation (RAG) agent that utilizes a pre-computed "ranked index" of the ADK codebase to perform efficient, hierarchical knowledge discovery before attempting to answer queries.
+
+### Topology
+Sequential Pipeline (Hierarchical Retrieval -> Single Step Solver -> JSON Formatter)
+
+### Architecture Overview
+The system operates in two distinct phases: Discovery and Solving. 
+1. The **Retrieval Agent** explores the ADK API surface using a paginated "ranked index" (most used classes first). It saves relevant "seeds" (class names) to the session state.
+2. The **Solver** uses the conversation history (including the retrieval steps and docstrings) to generate a comprehensive natural language response.
+3. A **Post-Processor** ensures the final output adheres to the strict JSON schema required by the benchmark harness.
+
+### Key Tool Chain
+- `list_ranked_targets`: Browses a paginated list of ADK symbols ranked by usage/importance.
+- `search_ranked_targets`: Performs keyword searches against the index.
+- `inspect_fqn`: Retrieves detailed docstrings, class hierarchy, and members for a specific Fully Qualified Name.
+
+### Call Hierarchy
+```mermaid
+graph TD
+    User[User Request] --> Setup[Setup Agent]
+    Setup --> Retrieval[Hierarchical Retrieval Agent]
+    Retrieval --(List/Search/Inspect)--> Index[Ranked Index]
+    Retrieval --(Save Seeds)--> Solver[Single Step Solver]
+    Solver --(Raw Text)--> PostProc[Post-Processor]
+    PostProc --(JSON)--> Final[Final Answer]
 ```

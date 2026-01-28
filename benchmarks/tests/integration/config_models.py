@@ -160,7 +160,7 @@ class HybridAdkGeneratorConfig(GeneratorConfig):
         """
         Creates a HybridAdkAnswerGenerator instance (via factory).
         """
-        from benchmarks.answer_generators.experiment_67 import create_hybrid_generator_v47
+        from experiments.experiment_67 import create_hybrid_generator_v47
 
         return create_hybrid_generator_v47(
             model_name=model_name, api_key_manager=api_key_manager

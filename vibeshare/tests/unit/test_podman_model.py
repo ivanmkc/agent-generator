@@ -10,10 +10,9 @@ from models.podman_model import PodmanModel
 async def test_podman_model_initialization():
     """Test that PodmanModel initializes with correct attributes."""
     with patch("models.podman_model.PodmanContainer") as MockContainer:
-        model = PodmanModel(model_name="gemini/test", image_name="test-image")
-        assert model.model_name == "gemini/test"
-        MockContainer.assert_called_with(image_name="test-image")
-
+                    model = PodmanModel(model_name="gemini/test", image_name="test-image")
+                    assert model.model_name == "gemini/test"
+                    MockContainer.assert_called_with(image_name="test-image", image_definitions=None)
 
 @pytest.mark.asyncio
 async def test_podman_model_predict_success():

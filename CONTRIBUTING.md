@@ -15,10 +15,13 @@ Understanding where files belong is critical.
 
 | Directory | Purpose |
 | :--- | :--- |
+| **`core/`** | **Centralized logic.** Standardized configuration, shared models, API key management, and trace utilities. |
 | **`ai/`** | **Central Context Hub.** Stores all AI inputs and outputs. <br> • `instructions/`: Input prompts, Knowledge Graph, Experiments. <br> • `reports/`: Generated analysis reports, Logs, and Doc caches. |
-| **`benchmarks/`** | **Execution Engine.** The core testing framework. <br> • `answer_generators/`: Candidate agents (the "Systems Under Test"). <br> • `benchmark_definitions/`: Test cases (YAML) and ground truth. <br> • `runner/`: Execution environments (Docker/Podman wrappers). |
+| **`benchmarks/`** | **Execution Engine.** The core testing framework. <br> • `answer_generators/`: Stable candidate agents. <br> • `benchmark_definitions/`: Test cases (YAML) and ground truth. <br> • `generator/`: The agentic system for generating new tests. |
+| **`experiments/`** | **Experimental Agents.** Sandbox for developing and testing new agent architectures (e.g., V46/V47). |
+| **`data/`** | **Persistent State.** Root directory for unified runtime data (databases, persistent logs). |
 | **`tools/cli/`** | **Command Line Tools.** Main entry points for users. <br> • `run_benchmarks.sh`: Main benchmark runner. <br> • `list_models.py`: Check available models. |
-| **`tools/`** | **Python Utilities.** Specialized sub-systems and libraries. <br> • `analysis/`: Forensic engines for analyzing run logs. <br> • `target_ranker/`: Static analysis for codebase mapping. <br> • `benchmark_generator/`: The agentic system for generating new tests. <br> • `debugging/`: Scripts for deep-diving into specific failures. |
+| **`tools/`** | **Python Utilities.** Specialized sub-systems and libraries. <br> • `analysis/`: Forensic engines for analyzing run logs. <br> • `target_ranker/`: Static analysis for codebase mapping. <br> • `debugging/`: Scripts for deep-diving into specific failures. |
 | **`repos/`** | **Vendored Code.** External repositories (e.g., `adk-python`) used as targets for benchmark generation. |
 
 ## 3. Development Workflow
@@ -37,8 +40,8 @@ Understanding where files belong is critical.
 5.  Register it in the suite's `benchmark.yaml`.
 
 ### Adding a Candidate Agent
-1.  Navigate to `benchmarks/answer_generators/`.
-2.  Create a new module (e.g., `experiment_99.py`).
+1.  Stable agents go to `benchmarks/answer_generators/`.
+2.  New experiments go to `experiments/` (e.g., `experiment_99.py`).
 3.  Implement a class inheriting from `AnswerGenerator`.
 4.  Register it in `benchmarks/benchmark_candidates.py`.
 

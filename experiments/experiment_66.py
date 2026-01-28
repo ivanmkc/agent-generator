@@ -48,56 +48,6 @@ from benchmarks.answer_generators.setup_utils import create_standard_setup_hook
 from benchmarks.answer_generators.adk_agents import SetupAgentCodeBased, PromptSanitizerAgent, CodeBasedTeardownAgent, RotatingKeyGemini
 from google.adk.tools import FunctionTool, ToolContext
 
-"""
-Experiment 66: Statistical Discovery V46 (Ranked Index Retrieval).
-
-Builds on V45 (Task-Aware Solver) but switches the index source to 'ranked_targets.yaml'.
-This new index provides a flattened, ranked list of seeds (classes/methods) with usage scores.
-
-Key Changes:
-- Seed Selector uses `ranked_targets.yaml`.
-- Docstring Fetcher pulls details directly from `ranked_targets.yaml` (offline).
-- Context Expander is disabled.
-- Single Step Solver used for answer generation.
-- Decoupled Formatting.
-- **NEW:** Sanitizer disabled for testing.
-"""
-
-from pathlib import Path
-import tempfile
-import json
-import re
-import yaml
-import datetime
-from typing import AsyncGenerator, Optional, List
-
-from pydantic import PrivateAttr
-
-from benchmarks.answer_generators.adk_tools import AdkTools
-from benchmarks.answer_generators.adk_answer_generator import AdkAnswerGenerator
-from core.api_key_manager import ApiKeyManager, KeyType
-from benchmarks.data_models import (
-    GeneratedAnswer,
-    BenchmarkGenerationError,
-    FixErrorBenchmarkCase,
-    ApiUnderstandingBenchmarkCase,
-    MultipleChoiceBenchmarkCase,
-    FixErrorAnswerOutput,
-    ApiUnderstandingAnswerOutput,
-    MultipleChoiceAnswerOutput,
-    BaseBenchmarkCase,
-    TraceLogEvent,
-    TraceEventType,
-)
-from benchmarks.answer_generators.adk_context import adk_execution_context
-
-from google.adk.agents import LlmAgent, SequentialAgent, Agent, InvocationContext
-from google.adk.events import Event
-from google.genai import types
-from benchmarks.answer_generators.setup_utils import create_standard_setup_hook
-from benchmarks.answer_generators.adk_agents import SetupAgentCodeBased, PromptSanitizerAgent, CodeBasedTeardownAgent, RotatingKeyGemini
-from google.adk.tools import FunctionTool, ToolContext
-
 # --- Agents ---
 
 

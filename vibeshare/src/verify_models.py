@@ -8,7 +8,7 @@ before running the full benchmark suite.
 
 import asyncio
 from .config import MODELS
-from .core import get_key_type_for_model
+from .inference import get_key_type_for_model
 from core.api_key_manager import API_KEY_MANAGER
 
 

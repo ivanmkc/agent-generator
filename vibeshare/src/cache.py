@@ -10,8 +10,9 @@ import json
 import os
 import hashlib
 from typing import Optional, Dict, Any
+from core.config import DATA_DIR
 
-CACHE_FILE = "vibeshare_cache.json"
+CACHE_FILE = DATA_DIR / "vibeshare_cache.json"
 
 
 class CacheManager:

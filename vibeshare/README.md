@@ -11,17 +11,17 @@ VibeShare is an evaluation and analysis suite for Large Language Models (LLMs), 
     - **Inference Phase:** Executes prompts with configurable concurrency and robust caching.
     - **Analysis Phase:** Processes cached responses into structured JSON reports with detected framework metadata.
 - **Smart API Key Management:** Automated rotation and health reporting for API keys.
-- **Caching:** Persistent storage of model responses to minimize costs.
+- **Caching:** Persistent storage of model responses to minimize costs (stored in `data/vibeshare_cache.json`).
 - **Data Visualization:** Jupyter notebooks for comparing model performance and framework mindshare.
 
 ## Project Structure
 
 - `analyze_vibeshare.py`: Main entry point for the analysis pipeline.
-- `core.py`: Core logic for inference tasks and result generation.
+- `inference.py`: Core logic for inference tasks and result generation.
 - `config.py`: Configuration for models and concurrency limits.
 - `models/`: Abstractions for different LLM interfaces.
 - `data_models.py`: Pydantic models for structured data validation.
-- `cache.py`: Management of the local result cache.
+- `cache.py`: Management of the persistent result cache.
 - `utils.py`: Utility functions for loading prompts and data.
 - `visualization.ipynb`: Notebook for data analysis and visualization.
 
@@ -33,33 +33,37 @@ VibeShare is an evaluation and analysis suite for Large Language Models (LLMs), 
     ```
 
 2.  **Configure API Keys:**
-    VibeShare expects API keys to be managed via the `core.api_key_manager` (ensure this dependency is correctly configured in your environment).
+    VibeShare expects API keys to be managed via the `core.api_key_manager`. Ensure you have your keys set in your environment (e.g., `GEMINI_API_KEY`).
 
 3.  **Define Prompts:**
-    Add your evaluation prompts to `prompts.yaml`.
+    Add your evaluation prompts to `vibeshare/src/prompts.yaml`.
 
 ## Usage
 
 Run the full analysis pipeline:
 
 ```bash
-python -m vibeshare.analyze_vibeshare
+# Execute as a module from the project root
+python -m vibeshare.src.analyze_vibeshare
 ```
 
 This will:
 1. Verify model availability.
 2. Run inference for all prompts across all configured models (using cache where available).
-3. Generate `vibeshare_results.json` with the processed results.
+3. Generate `vibeshare_results.json` in the configured output directory (typically `tmp/outputs/`).
 
 ## Testing
 
-Run unit tests using `pytest`:
+Run the full test suite, including unit and integration tests:
 
 ```bash
-python -m pytest tests/unit
+# Run all tests
+python -m pytest vibeshare/tests/
+
+# Run specifically the new mock integration test
+python -m pytest vibeshare/tests/integration/test_analyze_mock.py
 ```
 
 ## Contributing
 
 Please ensure that any new data models are added to `data_models.py` and new model integrations follow the pattern in `models/`.
-\n## Testing\n\nRun the framework detection tests:\n```bash\npython -m pytest vibeshare/tests/\n```

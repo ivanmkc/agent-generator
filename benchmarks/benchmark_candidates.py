@@ -16,8 +16,8 @@ from benchmarks.answer_generators.adk_agents import (
     create_baseline_workflow_adk_generator,
 )
 from benchmarks.answer_generators.debug_adk_agents import create_react_workflow_adk_generator
-from benchmarks.answer_generators.experiment_66 import create_ranked_index_generator_v46
-from benchmarks.answer_generators.experiment_67 import create_hybrid_generator_v47
+from experiments.experiment_66 import create_ranked_index_generator_v46
+from experiments.experiment_67 import create_hybrid_generator_v47
 
 from benchmarks.answer_generators.gemini_cli_docker import (
     GeminiCliPodmanAnswerGenerator,

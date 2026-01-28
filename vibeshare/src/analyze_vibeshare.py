@@ -15,8 +15,9 @@ from pathlib import Path
 from asyncio import Semaphore
 from .config import MODELS, MAX_CONCURRENCY
 from .utils import load_prompts
-from .core import run_inference_task, create_vibeshare_result
+from .inference import run_inference_task, create_vibeshare_result
 from .verify_models import run_verification
+from core.config import VIBESHARE_RESULTS_FILE
 
 
 async def run_analysis():
@@ -51,7 +52,7 @@ async def run_analysis():
             result = create_vibeshare_result(model.model_name, prompt_item)
             results_list.append(result.to_dict())
 
-    output_path = Path("tmp/outputs/vibeshare_results.json")
+    output_path = VIBESHARE_RESULTS_FILE
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
     with open(output_path, "w") as f:

@@ -6,25 +6,28 @@ This repository contains tools and benchmarks for generating and evaluating AI a
 
 ```text
 .
+├── core/                       # Standardized configuration, shared models, and utilities
 ├── ai/                         # Design docs, prompts, and reports
-├── benchmarks/                 # Benchmark definitions, answer generators, and runner logic
+├── benchmarks/                 # Benchmark definitions and stable answer generators
+│   └── generator/              # Tools for generating new benchmarks
+├── experiments/                # Sandbox for experimental agent architectures (V46/V47)
 ├── tools/                      # Core libraries and CLI tools
-│   ├── cli/                    # User-facing scripts (run_benchmarks.sh, etc.)
-│   ├── analysis/               # Analysis logic and notebooks
-│   └── benchmark_generator/    # Tools for generating new benchmarks
-├── env/                        # Virtual environment
-└── ...
+│   └── cli/                    # User-facing scripts (run_benchmarks.sh, etc.)
+├── data/                       # Unified directory for persistent runtime state
+└── repos/                      # Vendored target repositories (adk-python)
 ```
 
 ### Key Directories
 
+- **core/**: Centralized logic for the entire repo. Includes `config.py` (Pydantic Settings), `models.py` (shared schemas), and `api_key_manager.py`.
 - **ai/**: Centralized directory for all AI-related context.
     - **instructions/**: Input data (prompts, knowledge, experiment specs).
     - **reports/**: Output artifacts (analysis reports, generated documentation).
 - **benchmarks/**: The core execution engine. It loads YAML definitions and runs `AnswerGenerator` implementations against them.
-- **scripts/**: Convenience scripts for common tasks.
-- **benchmarks.generator.benchmark_generator/**: An autonomous system that scans the `repos/` and generates new benchmark YAMLs.
+- **experiments/**: Where new agent versions are developed and benchmarked before being moved to stable `answer_generators`.
+- **benchmarks/generator/**: An autonomous system that scans the `repos/` and generates new benchmark YAMLs.
 - **tools/analysis/**: A hybrid (LLM + Stats) engine for analyzing why agents fail.
+- **data/**: The root for all persistent files created during runs (SQLite DBs, persistent logs).
 
 ## Usage
 

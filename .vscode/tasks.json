@@ -4,7 +4,7 @@
     {
       "label": "Run All Benchmarks",
       "type": "shell",
-      "command": "./scripts/benchmark_run.sh",
+      "command": "./tools/cli/run_benchmarks.sh",
       "group": "test",
       "presentation": {
         "reveal": "always",
@@ -16,7 +16,7 @@
     {
       "label": "Run Debug Benchmark",
       "type": "shell",
-      "command": "./scripts/benchmark_run.sh --suite-filter debug",
+      "command": "./tools/cli/run_benchmarks.sh --suite-filter debug",
       "group": "test",
       "presentation": {
         "reveal": "always",
@@ -28,7 +28,7 @@
     {
       "label": "Run ADK Benchmarks: fix_error suite only",
       "type": "shell",
-      "command": "./scripts/benchmark_run.sh --generator-filter ADK_ --suite-filter fix_error",
+      "command": "./tools/cli/run_benchmarks.sh --generator-filter ADK_ --suite-filter fix_error",
       "group": "test",
       "presentation": {
         "reveal": "always",
@@ -40,7 +40,7 @@
     {
       "label": "Run ADK Benchmarks: api_understanding suite only",
       "type": "shell",
-      "command": "./scripts/benchmark_run.sh --generator-filter ADK_ --suite-filter api_understanding",
+      "command": "./tools/cli/run_benchmarks.sh --generator-filter ADK_ --suite-filter api_understanding",
       "group": "test",
       "presentation": {
         "reveal": "always",
@@ -52,7 +52,7 @@
     {
       "label": "Run GeminiCliPodman Benchmarks: All suites",
       "type": "shell",
-      "command": "./scripts/benchmark_run.sh --generator-filter GeminiCliPodman",
+      "command": "./tools/cli/run_benchmarks.sh --generator-filter GeminiCliPodman",
       "group": "test",
       "presentation": {
         "reveal": "always",
@@ -64,7 +64,7 @@
     {
       "label": "Run Debug ADK Benchmark",
       "type": "shell",
-      "command": "./scripts/benchmark_run.sh --suite-filter debug --generator-filter ADK_",
+      "command": "./tools/cli/run_benchmarks.sh --suite-filter debug --generator-filter ADK_",
       "group": "test",
       "presentation": {
         "reveal": "always",
@@ -124,7 +124,7 @@
     {
       "label": "Integration Test: ADK-based Generators",
       "type": "shell",
-      "command": "env/bin/python -m pytest -v --import-mode=importlib benchmarks/tests/integration/test_unified_generators.py -k "structured_workflow_adk_test_case or workflow_adk_test_case or adk_agent_test_case"",
+      "command": "env/bin/python -m pytest -v --import-mode=importlib benchmarks/tests/integration/test_unified_generators.py -k \"structured_workflow_adk_test_case or workflow_adk_test_case or adk_agent_test_case\"",
       "group": "test",
       "presentation": {
         "reveal": "always",
@@ -144,18 +144,6 @@
       },
       "problemMatcher": [],
       "detail": "Runs integration tests with profiling enabled."
-    },
-    {
-      "label": "Build & Push Docker Images",
-      "type": "shell",
-      "command": "./benchmarks/answer_generators/gemini_cli_docker/build_and_push_images.sh",
-      "group": "build",
-      "presentation": {
-        "reveal": "always",
-        "panel": "new"
-      },
-      "problemMatcher": [],
-      "detail": "Builds and pushes Docker images to the registry."
     },
     {
       "label": "Rebuild Docker Images using Podman (Local)",
@@ -198,7 +186,7 @@
     {
       "label": "Index Co-occurrence Data",
       "type": "shell",
-      "command": "env/bin/python tools/knowledge/run_cooccurrence_indexing.py --repo-paths ../adk-python/contributing/samples ../adk-python/tests/integration --output benchmarks/adk_cooccurrence.json",
+      "command": "env/bin/python tools/knowledge/run_cooccurrence_indexing.py --repo-paths ../adk-python/contributing/samples ../adk-python/tests/integration --output ai/instructions/knowledge/adk_cooccurrence.json",
       "group": "build",
       "presentation": {
         "reveal": "always",
@@ -210,7 +198,7 @@
     {
       "label": "Recalculate API Usage Stats",
       "type": "shell",
-      "command": "env/bin/python tools/knowledge/run_api_indexing.py --config indexer_config_comprehensive.yaml --output benchmarks/adk_stats_samples.yaml",
+      "command": "env/bin/python tools/knowledge/run_api_indexing.py --config indexer_config_comprehensive.yaml --output ai/instructions/knowledge/adk_stats_samples.yaml",
       "group": "build",
       "presentation": {
         "reveal": "always",
@@ -234,7 +222,7 @@
     {
       "label": "Agentic: Generate Execution MCQ (Gemini 3 Pro)",
       "type": "shell",
-      "command": "PYTHONPATH=. env/bin/python benchmarks.generator.benchmark_generator/run_generator.py --type agentic_adk --output-dir benchmarks/benchmark_definitions/agentic_generated --model-name gemini-3-pro-preview --repo-path ../adk-python --concurrency 3 --session-db agentic_sessions.db --namespace google.adk --cooccurrence-file benchmarks/adk_cooccurrence.json --mode execution_mcq",
+      "command": "PYTHONPATH=. env/bin/python benchmarks/generator/benchmark_generator/run_generator.py --type agentic_adk --output-dir benchmarks/benchmark_definitions/agentic_generated --model-name gemini-3-pro-preview --repo-path ../adk-python --concurrency 3 --session-db data/agentic_sessions.db --namespace google.adk --cooccurrence-file ai/instructions/knowledge/adk_cooccurrence.json --mode execution_mcq",
       "group": "build",
       "presentation": {
         "reveal": "always",

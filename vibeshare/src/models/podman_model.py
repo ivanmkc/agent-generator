@@ -7,7 +7,7 @@ Gemini CLI running inside the container to execute prompts.
 """
 
 import asyncio
-from typing import Optional, Any
+from typing import Optional, Any, Dict
 from .model import Model
 from benchmarks.answer_generators.gemini_cli_docker.podman_utils import PodmanContainer
 

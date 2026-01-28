@@ -6,6 +6,7 @@
 *.egg-info/
 .pytest_cache/
 *.json
+!/.vscode/tasks.json
 *.yaml
 
 # Jupyter Notebook stuff

@@ -7,18 +7,8 @@
 - [x] **Consolidate Data Paths:** Review `core/config.py` paths (`AGENTIC_SESSIONS_DB`, `VIBESHARE_RESULTS_FILE`, etc.). Simplify by moving all runtime state to a unified `data/` directory or a single SQLite database (`core.db`). Remove ad-hoc JSONL/YAML files where possible.
 - [x] **Adopt Pydantic Settings:** Upgrade `core/config.py` to use `pydantic-settings`. This allows robust environment variable overrides (e.g., `ADK_OUTPUT_ROOT=/tmp/custom`) which is crucial for CI/CD flexibility.
 - [x] **Remove `utils.py` Anti-Pattern:** Decompose `core/utils.py` (if/when created) into semantic modules like `core/filesystem.py`, `core/strings.py`, etc.
-- [ ] **Vibeshare Independence:** Ensure `vibeshare/` treats the main repo as a proper library dependency rather than using cross-imports. Audit `vibeshare/src/cache.py` vs `core/config.py` usage.
-
-## 2. Synthetic Retrieval Dataset (`docs/design_docs/synthetic_retrieval_dataset.md`)
-- [ ] **Verification:**
-    - [ ] Run the whole pipeline again on the latest dataset and ensure convergence works as expected.
-
-## 3. Question Quality Verifier (`docs/design_docs/question_quality_verifier.md`)
-- [ ] **Implementation:**
-    - [ ] Create `tools/verify_benchmarks.py` script.
-    - [ ] Implement `VerifierAgent` using `AdkAnswerGenerator`.
-    - [ ] Create a loop to run verification on all cases in `benchmarks/benchmark_definitions`.
-    - [ ] Generate `quality_report.md`.
+- [x] **Refactor Answer Generators:** Moved `experiment_66/67` back to `experiments/` and fixed imports in `benchmarks/` to restore modularity.
+- [x] **Vibeshare Independence:** Ensure `vibeshare/` treats the main repo as a proper library dependency rather than using cross-imports. Audit `vibeshare/src/cache.py` vs `core/config.py` usage.
 
 # Ongoing Maintenance
 
@@ -45,6 +35,17 @@
     - [ ] Integrate into `search_ranked_targets` (Hybrid BM25 + Vector).
 - [ ] **Verification:**
     - [ ] Add `benchmark_definitions/search_relevance` to test semantic queries.
+
+## 3. Synthetic Retrieval Dataset (`docs/design_docs/synthetic_retrieval_dataset.md`)
+- [ ] **Verification:**
+    - [ ] Run the whole pipeline again on the latest dataset and ensure convergence works as expected.
+
+## 4. Question Quality Verifier (`docs/design_docs/question_quality_verifier.md`)
+- [ ] **Implementation:**
+    - [ ] Create `tools/verify_benchmarks.py` script.
+    - [ ] Implement `VerifierAgent` using `AdkAnswerGenerator`.
+    - [ ] Create a loop to run verification on all cases in `benchmarks/benchmark_definitions`.
+    - [ ] Generate `quality_report.md`.
 
 # Completed
 
