@@ -102,7 +102,7 @@ def _create_hierarchical_retrieval_agent(tools_helper: AdkTools, model) -> Agent
         query: str | list[str], page: int = 1, tool_context: ToolContext = None
     ) -> str:
         """Searches the ranked index of ADK symbols by keyword(s). Supports pagination."""
-        return tools_helper.search_ranked_targets(query, page=page)
+        return await tools_helper.search_ranked_targets(query, page=page)
 
     hierarchical_agent = LlmAgent(
         name="hierarchical_retrieval_agent",

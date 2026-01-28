@@ -251,23 +251,6 @@ def load_case_docs_cache() -> dict:
     except Exception as e:
         print(f"Error loading case_docs_cache: {e}")
         return {}
-    path = artifact_manager.get_file(run_id, "trace.yaml")
-    if not path:
-        return {}
-
-    traces = {}
-    with open(path, "r") as f:
-        # Use yaml.safe_load_all for multi-document YAML
-        for entry in yaml.safe_load_all(f):
-            if entry is None:
-                continue
-            try:
-                data = entry.get("data", {})
-                if "benchmark_name" in data and "trace_logs" in data:
-                    traces[data["benchmark_name"]] = data["trace_logs"]
-            except Exception:
-                continue
-    return traces
 
 
 @st.cache_data

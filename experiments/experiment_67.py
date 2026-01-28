@@ -52,7 +52,6 @@ from benchmarks.answer_generators.experiment_66.experiment_66 import PostProcess
 
 # --- Retrieval Components ---
 
-
 def _create_isolated_retrieval_loop(
     tools_helper: AdkTools, model, is_coding=False
 ) -> Agent:
@@ -205,7 +204,6 @@ def _create_knowledge_expert(tools_helper: AdkTools, model) -> Agent:
     solver = SharedHistorySolver(model=model)
     return SequentialAgent(name="knowledge_expert", sub_agents=[retrieval, solver])
 
-
 # --- Coding Expert Components ---
 
 
@@ -310,7 +308,6 @@ def _create_coding_expert(tools_helper: AdkTools, model) -> Agent:
         ],
     )
 
-
 # --- Router ---
 
 
@@ -364,7 +361,6 @@ class RoutingDelegator(Agent):
                         result_text = part.text
 
         ctx.session.state["final_response"] = result_text
-
 
 # --- Factory ---
 
