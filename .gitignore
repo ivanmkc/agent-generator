@@ -42,3 +42,7 @@ retrieval_dataset.yaml
 .gemini/
 *.jsonl
 retrieval_dataset_verified.yaml
+
+# Analysis Artifacts
+analysis_cache.db
+data_science_stats.json
