@@ -338,6 +338,12 @@ async def main():
         
     logger.log_message(f"Raw benchmark results saved to: {results_yaml_path}")
 
+    # Also save to JSON for compatibility
+    results_json_path = run_output_dir / "results.json"
+    with open(results_json_path, "w", encoding="utf-8") as f:
+        json.dump(results_data, f, indent=2)
+    logger.log_message(f"Raw benchmark results (JSON) saved to: {results_json_path}")
+
     logger.finalize_run()
 
     # # Run Log Analysis
