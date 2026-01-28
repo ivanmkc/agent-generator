@@ -62,6 +62,9 @@ class TraceLogEvent(BaseModel):
     content: Union[str, dict[str, Any], list[Any], None] = Field(
         None, description="The primary content of the event."
     )
+    details: Optional[dict[str, Any]] = Field(
+        None, description="Additional metadata or structured details."
+    )
 
 class ModelName(enum.StrEnum):
     """Enumeration of available LLM model names."""
