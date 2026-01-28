@@ -62,7 +62,12 @@ class TraceLogEvent(BaseModel):
     content: Union[str, dict[str, Any], list[Any], None] = Field(
         None, description="The primary content of the event."
     )
-    details: Optional[dict[str, Any]] = Field(
-        None,
-        description=("Additional details about the event, as a flexible dictionary."),
-    )
+
+class ModelName(enum.StrEnum):
+    """Enumeration of available LLM model names."""
+    GEMINI_2_5_FLASH = "gemini-2.5-flash"
+    GEMINI_2_5_PRO = "gemini-2.5-pro"
+    
+    # Warning: Using Gemini 3 may lead to inability to use quota for gemini-cli itself
+    GEMINI_3_PRO_PREVIEW = "gemini-3-pro-preview"
+

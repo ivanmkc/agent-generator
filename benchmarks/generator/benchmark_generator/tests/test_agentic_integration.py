@@ -34,7 +34,7 @@ from benchmarks.generator.benchmark_generator.agent_tools import (
     select_target,
 )
 from benchmarks.generator.benchmark_generator.agents import create_agentic_agent, SemaphoreGemini
-from benchmarks.api_key_manager import ApiKeyManager
+from core.api_key_manager import ApiKeyManager
 from benchmarks.generator.benchmark_generator.models import TargetType
 
 

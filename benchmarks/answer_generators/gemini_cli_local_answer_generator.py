@@ -22,7 +22,7 @@ from benchmarks.answer_generators.gemini_cli_answer_generator import (
     GeminiCliExecutionError,
 )
 from benchmarks.data_models import TraceLogEvent
-from benchmarks.utils import parse_cli_stream_json_output
+from core.trace_utils import parse_cli_stream_json_output
 
 
 class GeminiCliLocalAnswerGenerator(GeminiCliAnswerGenerator):

@@ -26,7 +26,7 @@ from benchmarks.answer_generators.gemini_cli_answer_generator import (
     GeminiCliAnswerGenerator,
 )
 from benchmarks.data_models import TraceLogEvent
-from benchmarks.api_key_manager import ApiKeyManager
+from core.api_key_manager import ApiKeyManager
 
 
 class GeminiCliDockerAnswerGenerator(GeminiCliAnswerGenerator):

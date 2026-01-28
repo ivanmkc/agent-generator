@@ -24,7 +24,7 @@ from benchmarks.data_models import FixErrorBenchmarkCase
 from benchmarks.data_models import MultipleChoiceBenchmarkCase
 from benchmarks.validation_utils import load_snippet
 from benchmarks.validation_utils import TEMPLATES
-from benchmarks.api_key_manager import ApiKeyManager
+from core.api_key_manager import ApiKeyManager
 
 
 class LlmAnswerGenerator(AnswerGenerator):

@@ -39,7 +39,7 @@ from benchmarks.data_models import GenerationAttempt
 from benchmarks.data_models import BenchmarkGenerationError
 from benchmarks.logger import BenchmarkLogger
 import benchmarks.validation_utils as validation_utils
-import benchmarks.utils as benchmark_utils
+import core.trace_utils as benchmark_utils
 
 # Default configuration constants
 DEFAULT_MAX_CONCURRENCY = 10

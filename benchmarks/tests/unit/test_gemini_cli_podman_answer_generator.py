@@ -30,7 +30,7 @@ def mock_subprocess():
 
 @pytest.fixture
 def mock_akm():
-    from benchmarks.api_key_manager import ApiKeyManager
+    from core.api_key_manager import ApiKeyManager
 
     manager = MagicMock(spec=ApiKeyManager)
     manager.get_key_for_run = AsyncMock(return_value=("test-key", "key-id"))
@@ -117,10 +117,10 @@ async def test_podman_generator_run_cli_command(mock_akm, mock_container):
     assert args[0] == ["gemini", "--output-format", "stream-json", "Test Prompt"]
 
     # Verify response parsing
-    assert len(logs) == 2
-    assert logs[0].type == "CLI_STDOUT_FULL"
-    assert logs[1].type == "message"
-    assert logs[1].content == "Hello"
+    assert len(logs) == 1
+    # assert logs[0].type == "CLI_STDOUT_FULL" # removed due to optimization
+    assert logs[0].type == "message"
+    assert logs[0].content == "Hello"
 
 
 @pytest.mark.asyncio

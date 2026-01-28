@@ -17,7 +17,7 @@ import random
 from pathlib import Path
 from typing import Dict, Any, Optional
 from google.genai import Client, types
-from benchmarks.api_key_manager import API_KEY_MANAGER, KeyType
+from core.api_key_manager import API_KEY_MANAGER, KeyType
 from pydantic import BaseModel, Field
 
 # Configure Logging

@@ -4,7 +4,7 @@ import os
 import pytest
 from unittest.mock import patch
 
-from benchmarks.api_key_manager import ApiKeyManager, KeyType
+from core.api_key_manager import ApiKeyManager, KeyType
 
 
 @pytest.fixture(autouse=True)
@@ -32,8 +32,8 @@ def clean_env():
 
 @pytest.fixture(autouse=True)
 def mock_persistence():
-    with patch("benchmarks.api_key_manager.ApiKeyManager._save_stats"), patch(
-        "benchmarks.api_key_manager.ApiKeyManager._load_stats"
+    with patch("core.api_key_manager.ApiKeyManager._save_stats"), patch(
+        "core.api_key_manager.ApiKeyManager._load_stats"
     ):
         yield
 

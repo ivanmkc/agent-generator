@@ -15,7 +15,7 @@ During large-scale benchmark runs, log files were reaching several gigabytes in 
 The optimization strategy focuses on removing **structurally redundant** data without losing **unique information**.
 
 ### 1. Tool Result Deduplication
-In `benchmarks/utils.py`, the `deduplicate_trace_logs` function removes the `details` field from `TOOL_RESULT` events. 
+In `core.trace_utils.py`, the `deduplicate_trace_logs` function removes the `details` field from `TOOL_RESULT` events. 
 *   **Rationale**: The relevant data has already been parsed into `tool_output`.
 
 ### 2. Stream-JSON Optimization

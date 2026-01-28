@@ -18,7 +18,7 @@ import pytest
 import asyncio
 from unittest.mock import MagicMock, AsyncMock, patch
 from benchmarks.generator.benchmark_generator.agents import SemaphoreGemini
-from benchmarks.api_key_manager import ApiKeyManager
+from core.api_key_manager import ApiKeyManager
 
 
 @pytest.mark.asyncio

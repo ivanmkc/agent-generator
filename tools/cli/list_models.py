@@ -16,7 +16,7 @@ if project_root not in sys.path:
     sys.path.append(project_root)
 
 from google.genai import Client
-from benchmarks.api_key_manager import API_KEY_MANAGER, KeyType
+from core.api_key_manager import API_KEY_MANAGER, KeyType
 
 
 def list_models():

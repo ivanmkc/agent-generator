@@ -33,7 +33,7 @@ from benchmarks.generator.benchmark_generator.agents import create_agentic_agent
 from google.adk.runners import Runner
 from google.adk.sessions.sqlite_session_service import SqliteSessionService
 from google.genai import types
-from benchmarks.api_key_manager import API_KEY_MANAGER
+from core.api_key_manager import API_KEY_MANAGER
 from benchmarks.generator.benchmark_generator.logger import AgenticLogger
 from core.config import AGENTIC_SESSIONS_DB
 

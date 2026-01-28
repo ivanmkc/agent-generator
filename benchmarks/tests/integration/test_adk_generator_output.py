@@ -5,7 +5,7 @@ import os
 import uuid
 from benchmarks.answer_generators.adk_agents import create_workflow_adk_generator
 from benchmarks.tests.integration.predefined_cases import SIMPLE_API_UNDERSTANDING_CASE
-from benchmarks.api_key_manager import ApiKeyManager
+from core.api_key_manager import ApiKeyManager
 from benchmarks.data_models import GeneratedAnswer, ApiUnderstandingAnswerOutput
 
 

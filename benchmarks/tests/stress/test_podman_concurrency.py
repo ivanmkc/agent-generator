@@ -10,7 +10,7 @@ from benchmarks.answer_generators.gemini_cli_docker.image_definitions import (
     IMAGE_DEFINITIONS,
 )
 from benchmarks.tests.integration.conftest import has_cmd
-from benchmarks.api_key_manager import ApiKeyManager
+from core.api_key_manager import ApiKeyManager
 
 
 @pytest.mark.asyncio

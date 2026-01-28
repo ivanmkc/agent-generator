@@ -34,7 +34,7 @@ async def test_docker_command_construction_api_key():
     """Test that Docker command is constructed correctly with GEMINI_API_KEY."""
 
     with patch.dict(os.environ, {"GEMINI_API_KEY": "test-key"}, clear=True):
-        from benchmarks.api_key_manager import ApiKeyManager
+        from core.api_key_manager import ApiKeyManager
 
         mock_akm = MagicMock(spec=ApiKeyManager)
         mock_akm.get_key_for_run = AsyncMock(return_value=("test-key", "key-id"))
@@ -159,7 +159,7 @@ async def test_docker_command_construction_vertex_adc():
     }
 
     with patch.dict(os.environ, env_vars, clear=True):
-        from benchmarks.api_key_manager import ApiKeyManager
+        from core.api_key_manager import ApiKeyManager
 
         mock_akm = MagicMock(spec=ApiKeyManager)
         mock_akm.get_key_for_run = AsyncMock(return_value=("test-key", "key-id"))

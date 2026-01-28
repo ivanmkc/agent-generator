@@ -7,7 +7,7 @@ import pydantic
 from benchmarks.benchmark_orchestrator import run_benchmarks
 from benchmarks.answer_generators import AnswerGenerator
 from benchmarks.data_models import BaseBenchmarkCase, GeneratedAnswer, BenchmarkType, TraceLogEvent
-from benchmarks.api_key_manager import ApiKeyManager
+from core.api_key_manager import ApiKeyManager
 from benchmarks import benchmark_orchestrator
 
 

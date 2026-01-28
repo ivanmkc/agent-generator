@@ -19,7 +19,7 @@ from typing import AsyncGenerator, Optional, List
 
 from benchmarks.answer_generators.adk_tools import AdkTools
 from benchmarks.answer_generators.adk_answer_generator import AdkAnswerGenerator
-from benchmarks.api_key_manager import ApiKeyManager
+from core.api_key_manager import ApiKeyManager
 from benchmarks.data_models import (
     GeneratedAnswer,
     BenchmarkGenerationError,

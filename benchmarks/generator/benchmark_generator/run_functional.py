@@ -37,7 +37,7 @@ from benchmarks.generator.benchmark_generator.stream import AsyncStream
 from benchmarks.generator.benchmark_generator.cartographer import Cartographer
 from benchmarks.generator.benchmark_generator.agents import create_worker_pipeline
 from benchmarks.generator.benchmark_generator.models import TargetEntity
-from benchmarks.api_key_manager import API_KEY_MANAGER
+from core.api_key_manager import API_KEY_MANAGER
 from benchmarks.generator.benchmark_generator.irt import IRTManager
 
 # Configure Logging

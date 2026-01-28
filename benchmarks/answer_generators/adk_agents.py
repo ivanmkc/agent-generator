@@ -36,7 +36,7 @@ from google.adk.utils.output_schema_utils import can_use_output_schema_with_tool
 from benchmarks.answer_generators.adk_tools import AdkTools
 from benchmarks.answer_generators.adk_answer_generator import AdkAnswerGenerator
 from benchmarks.answer_generators.adk_context import adk_execution_context
-from benchmarks.api_key_manager import ApiKeyManager
+from core.api_key_manager import ApiKeyManager
 from benchmarks.answer_generators.adk_schemas import (
     CandidateSolution,
     FinalResponse,

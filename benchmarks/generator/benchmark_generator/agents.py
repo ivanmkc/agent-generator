@@ -49,7 +49,7 @@ from benchmarks.generator.benchmark_generator.agent_tools import (
 from benchmarks.generator.benchmark_generator.models import TargetEntity, TargetType, ObserverOutput, SaboteurOutput
 from benchmarks.data_models import MultipleChoiceBenchmarkCase
 from benchmarks.answer_generators.adk_agents import RotatingKeyGemini
-from benchmarks.api_key_manager import ApiKeyManager
+from core.api_key_manager import ApiKeyManager
 
 # Setup logger for agents
 logger = logging.getLogger(__name__)

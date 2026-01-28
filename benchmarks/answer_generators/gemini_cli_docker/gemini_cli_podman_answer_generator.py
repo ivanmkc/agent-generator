@@ -28,10 +28,10 @@ import aiohttp
 # Initialize colorama
 init()
 
-from benchmarks.api_key_manager import API_KEY_MANAGER, ApiKeyManager, KeyType
+from core.api_key_manager import API_KEY_MANAGER, ApiKeyManager, KeyType
 from benchmarks.answer_generators.gemini_cli_answer_generator import GeminiCliAnswerGenerator, GeminiCliExecutionError
 from benchmarks.data_models import TraceLogEvent
-from benchmarks.utils import parse_cli_stream_json_output
+from core.trace_utils import parse_cli_stream_json_output
 from benchmarks.answer_generators.gemini_cli_docker.image_definitions import ImageDefinition, IMAGE_DEFINITIONS, IMAGE_PREFIX
 from benchmarks.answer_generators.hash_utils import calculate_source_hash
 from benchmarks.answer_generators.gemini_cli_docker.podman_utils import PodmanContainer

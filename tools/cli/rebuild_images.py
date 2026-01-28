@@ -22,7 +22,7 @@ from benchmarks.answer_generators.gemini_cli_docker.image_definitions import (
 )
 
 
-from benchmarks.api_key_manager import API_KEY_MANAGER
+from core.api_key_manager import API_KEY_MANAGER
 
 
 async def main():

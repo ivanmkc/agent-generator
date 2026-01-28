@@ -12,7 +12,7 @@ import abc
 from pydantic import BaseModel, Field
 from benchmarks.data_models import BaseBenchmarkCase
 from benchmarks.answer_generators.base import AnswerGenerator
-from benchmarks.api_key_manager import ApiKeyManager
+from core.api_key_manager import ApiKeyManager
 
 
 class GeneratorConfig(BaseModel, abc.ABC):

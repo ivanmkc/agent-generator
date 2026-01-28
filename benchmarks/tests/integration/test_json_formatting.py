@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, AsyncMock
 from benchmarks.answer_generators.adk_answer_generator import AdkAnswerGenerator
 from benchmarks.benchmark_runner import MultipleChoiceRunner
 from benchmarks.data_models import MultipleChoiceBenchmarkCase, BenchmarkType, GeneratedAnswer, MultipleChoiceAnswerOutput
-from benchmarks.api_key_manager import ApiKeyManager
+from core.api_key_manager import ApiKeyManager
 
 
 @pytest.mark.asyncio
@@ -22,7 +22,7 @@ async def test_json_sanitizer_integration(monkeypatch):
     mock_api.get_next_key = AsyncMock(return_value="fake_key_sanitizer")
 
     # Mock global API_KEY_MANAGER used by runner
-    monkeypatch.setattr("benchmarks.api_key_manager.API_KEY_MANAGER", mock_api)
+    monkeypatch.setattr("core.api_key_manager.API_KEY_MANAGER", mock_api)
 
     generator = AdkAnswerGenerator(agent=mock_agent, api_key_manager=mock_api)
 

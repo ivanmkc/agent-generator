@@ -19,7 +19,7 @@ class MockGeminiCliAnswerGenerator(GeminiCliAnswerGenerator):
         self, mcp_list_output_content: str, extensions_list_output_content: str
     ):
         # Initialize parent with dummy values
-        from benchmarks.api_key_manager import ApiKeyManager
+        from core.api_key_manager import ApiKeyManager
 
         super().__init__(
             model_name="test-model",

@@ -34,9 +34,9 @@ from benchmarks.data_models import MultipleChoiceBenchmarkCase
 from benchmarks.data_models import TraceLogEvent
 from benchmarks.data_models import UsageMetadata
 from benchmarks.data_models import BenchmarkGenerationError
-from benchmarks.utils import parse_cli_stream_json_output
+from core.trace_utils import parse_cli_stream_json_output
 from pydantic import BaseModel
-from benchmarks.api_key_manager import ApiKeyManager, KeyType
+from core.api_key_manager import ApiKeyManager, KeyType
 from benchmarks.answer_generators.gemini_answer_generator import GeminiAnswerGenerator
 
 

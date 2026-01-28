@@ -7,7 +7,7 @@ from unittest.mock import MagicMock
 # Mock dependencies before importing module under test
 sys.modules["google.genai"] = MagicMock()
 sys.modules["google.genai.types"] = MagicMock()
-sys.modules["benchmarks.api_key_manager"] = MagicMock()
+sys.modules["core.api_key_manager"] = MagicMock()
 
 # Mocking internal dependencies to avoid import errors
 sys.modules["benchmarks.data_models"] = MagicMock()

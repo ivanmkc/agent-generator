@@ -3,11 +3,11 @@
 # Immediate Priorities (Refactoring Phase 2)
 
 ## 1. Codebase Improvements
+- [x] **Refactor ModelName:** Move the `ModelName` enum to `core/models.py` (or `core/constants.py`) so both `benchmarks` and `config` can import it without circular dependency.
+- [x] **Consolidate Data Paths:** Review `core/config.py` paths (`AGENTIC_SESSIONS_DB`, `VIBESHARE_RESULTS_FILE`, etc.). Simplify by moving all runtime state to a unified `data/` directory or a single SQLite database (`core.db`). Remove ad-hoc JSONL/YAML files where possible.
+- [x] **Adopt Pydantic Settings:** Upgrade `core/config.py` to use `pydantic-settings`. This allows robust environment variable overrides (e.g., `ADK_OUTPUT_ROOT=/tmp/custom`) which is crucial for CI/CD flexibility.
+- [x] **Remove `utils.py` Anti-Pattern:** Decompose `core/utils.py` (if/when created) into semantic modules like `core/filesystem.py`, `core/strings.py`, etc.
 - [ ] **Vibeshare Independence:** Ensure `vibeshare/` treats the main repo as a proper library dependency rather than using cross-imports. Audit `vibeshare/src/cache.py` vs `core/config.py` usage.
-- [ ] **Consolidate Data Paths:** Review `core/config.py` paths (`AGENTIC_SESSIONS_DB`, `VIBESHARE_RESULTS_FILE`, etc.). Simplify by moving all runtime state to a unified `data/` directory or a single SQLite database (`core.db`). Remove ad-hoc JSONL/YAML files where possible.
-- [ ] **Refactor ModelName:** Move the `ModelName` enum to `core/models.py` (or `core/constants.py`) so both `benchmarks` and `config` can import it without circular dependency.
-- [ ] **Adopt Pydantic Settings:** Upgrade `core/config.py` to use `pydantic-settings`. This allows robust environment variable overrides (e.g., `ADK_OUTPUT_ROOT=/tmp/custom`) which is crucial for CI/CD flexibility.
-- [ ] **Remove `utils.py` Anti-Pattern:** Decompose `core/utils.py` (if/when created) into semantic modules like `core/filesystem.py`, `core/strings.py`, etc.
 
 ## 2. Synthetic Retrieval Dataset (`docs/design_docs/synthetic_retrieval_dataset.md`)
 - [ ] **Verification:**
@@ -54,6 +54,10 @@
 - [x] **Cleanup:** Removed `tools/constants.py`, `benchmarks/config.py`, and redundant notebooks/scripts.
 - [x] **Notebooks:** Renamed analysis notebooks to be descriptive (`forensic_failure_analysis.ipynb`) and parameterized for Papermill.
 - [x] **Documentation:** Added module-level docstrings across the codebase.
+- [x] **ModelName:** Moved `ModelName` to `core/models.py`.
+- [x] **Data Paths:** Consolidated paths to `data/` directory.
+- [x] **Pydantic Settings:** Implemented env var reading for config (using `os.environ` as lightweight alternative).
+- [x] **Trace Utils:** Moved trace utilities to `core/trace_utils.py` and deleted `benchmarks/utils.py`.
 
 ## Features
 - [x] **Implement Robust LLM-Based JSON Extraction:** Created `JsonSanitizer` with multi-stage fallback (Direct -> Regex -> LLM Repair) and integrated it into `BenchmarkRunner`.

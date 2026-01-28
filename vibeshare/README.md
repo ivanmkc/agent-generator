@@ -33,7 +33,7 @@ VibeShare is an evaluation and analysis suite for Large Language Models (LLMs), 
     ```
 
 2.  **Configure API Keys:**
-    VibeShare expects API keys to be managed via the `benchmarks.api_key_manager` (ensure this dependency is correctly configured in your environment).
+    VibeShare expects API keys to be managed via the `core.api_key_manager` (ensure this dependency is correctly configured in your environment).
 
 3.  **Define Prompts:**
     Add your evaluation prompts to `prompts.yaml`.

@@ -263,7 +263,7 @@ async def run_orchestrator():
 
         generator = None
         # Instantiate via config factory
-        from benchmarks.api_key_manager import ApiKeyManager
+        from core.api_key_manager import ApiKeyManager
 
         project_id = os.environ.get("GOOGLE_CLOUD_PROJECT", None)
 

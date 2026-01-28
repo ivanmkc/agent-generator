@@ -42,8 +42,8 @@ from benchmarks.data_models import (
 from benchmarks.benchmark_runner import ApiUnderstandingRunner, PytestBenchmarkRunner, MultipleChoiceRunner
 from core.config import MOST_POWERFUL_MODEL
 from benchmarks.parsing.json_sanitizer import JsonSanitizer
-from benchmarks.api_key_manager import API_KEY_MANAGER, KeyType
-from benchmarks.benchmark_candidates import ModelName
+from core.api_key_manager import API_KEY_MANAGER, KeyType
+from core.models import ModelName
 from tools.retrieval_dataset_generation.retrieval_engine import (
     EmbeddingRetriever,
     RankedTarget,

@@ -82,7 +82,7 @@ async def test_gemini_answer_generator(
     mock_api_case: ApiUnderstandingBenchmarkCase,
 ):
     """Tests that the GeminiAnswerGenerator returns the mocked response."""
-    from benchmarks.api_key_manager import ApiKeyManager
+    from core.api_key_manager import ApiKeyManager
 
     mock_akm = MagicMock(spec=ApiKeyManager)
     mock_akm.get_key_for_run = AsyncMock(return_value=("test-key", "key-id"))
@@ -127,7 +127,7 @@ async def test_gemini_cli_answer_generator(
     mock_api_case: ApiUnderstandingBenchmarkCase,
 ):
     """Tests that the GeminiCliAnswerGenerator correctly parses CLI output."""
-    from benchmarks.api_key_manager import ApiKeyManager
+    from core.api_key_manager import ApiKeyManager
 
     mock_akm = MagicMock(spec=ApiKeyManager)
     mock_akm.get_key_for_run = AsyncMock(return_value=("test-key", "key-id"))
@@ -202,7 +202,7 @@ async def test_gemini_answer_generator_multiple_choice_with_snippet():
                 return_value=mock_response
             )
 
-            from benchmarks.api_key_manager import ApiKeyManager
+            from core.api_key_manager import ApiKeyManager
 
             mock_akm = MagicMock(spec=ApiKeyManager)
             mock_akm.get_key_for_run = AsyncMock(return_value=("test-key", "key-id"))
@@ -268,7 +268,7 @@ async def test_adk_answer_generator(
         )
 
         # Need api_key_manager
-        from benchmarks.api_key_manager import ApiKeyManager
+        from core.api_key_manager import ApiKeyManager
 
         generator.api_key_manager = MagicMock(spec=ApiKeyManager)
         generator.api_key_manager.get_key_for_run = AsyncMock(

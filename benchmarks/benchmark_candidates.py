@@ -8,8 +8,7 @@ for each candidate. It also defines the ModelName enum for consistent model refe
 
 import enum
 from pathlib import Path
-from benchmarks.utils import permute
-from benchmarks.api_key_manager import ApiKeyManager
+from core.api_key_manager import ApiKeyManager
 from benchmarks.answer_generators.adk_agents import (
     create_default_adk_agent,
     create_workflow_adk_generator,
@@ -28,15 +27,7 @@ from benchmarks.answer_generators.trivial import TrivialAnswerGenerator
 from benchmarks.answer_generators.gemini_cli_docker.image_definitions import (
     IMAGE_DEFINITIONS,
 )
-
-
-# Define model constants as enum
-class ModelName(enum.StrEnum):
-    GEMINI_2_5_FLASH = "gemini-2.5-flash"
-    GEMINI_2_5_PRO = "gemini-2.5-pro"
-
-    # Warning: Using Gemini 3 may lead to inability to use quota for gemini-cli itself
-    GEMINI_3_PRO_PREVIEW = "gemini-3-pro-preview"
+from core.models import ModelName
 
 
 api_key_manager = ApiKeyManager()

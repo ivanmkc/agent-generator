@@ -64,7 +64,7 @@ class BenchmarkRunner(abc.ABC, Generic[BenchmarkCaseT]):
             )
 
         from benchmarks.parsing.json_sanitizer import JsonSanitizer
-        from benchmarks.api_key_manager import API_KEY_MANAGER
+        from core.api_key_manager import API_KEY_MANAGER
 
         sanitizer = JsonSanitizer(api_key_manager=API_KEY_MANAGER)
         try:

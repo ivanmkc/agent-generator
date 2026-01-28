@@ -26,7 +26,7 @@ from benchmarks.data_models import (
     UsageMetadata,
     BenchmarkGenerationError,
 )
-from benchmarks.api_key_manager import ApiKeyManager, KeyType
+from core.api_key_manager import ApiKeyManager, KeyType
 from benchmarks.answer_generators.adk_context import adk_execution_context
 
 

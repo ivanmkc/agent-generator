@@ -23,7 +23,7 @@ from pathlib import Path
 from dataclasses import dataclass, field
 from typing import List, Optional, Any, Callable
 
-from benchmarks.api_key_manager import ApiKeyManager
+from core.api_key_manager import ApiKeyManager
 
 # --- Generator Imports ---
 from benchmarks.answer_generators.base import AnswerGenerator

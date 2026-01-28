@@ -19,7 +19,7 @@ from pathlib import Path
 
 from benchmarks.answer_generators.llm_base import LlmAnswerGenerator
 from benchmarks.data_models import BaseBenchmarkCase, ApiUnderstandingAnswerOutput, ApiUnderstandingBenchmarkCase, FixErrorAnswerOutput, FixErrorBenchmarkCase, GeneratedAnswer, MultipleChoiceAnswerOutput, MultipleChoiceBenchmarkCase, TraceLogEvent, TraceEventType, UsageMetadata, BenchmarkGenerationError
-from benchmarks.api_key_manager import API_KEY_MANAGER, ApiKeyManager, KeyType
+from core.api_key_manager import API_KEY_MANAGER, ApiKeyManager, KeyType
 from google import genai
 
 

@@ -2,7 +2,7 @@
 
 import pytest
 from pathlib import Path
-from benchmarks.utils import parse_cli_stream_json_output
+from core.trace_utils import parse_cli_stream_json_output
 from benchmarks.data_models import TraceLogEvent
 
 DATA_DIR = Path(__file__).parent / "data" / "cli_outputs"
