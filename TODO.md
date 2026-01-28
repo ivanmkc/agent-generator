@@ -1,64 +1,26 @@
 # Todo List
-## 1. search_adk_knowledge
-- [x] Tries to query for multiple items using an OR. search_adk_knowledge needs to take a list[str] for queries. Improve docs/comments/desc for this Tool so callers know how to use this tool correctly. Add examples.
 
-Current usage (which doesn't work):
-```
-{
-"query":"orchestrate agents OR multi-agent"
-}
-```
+# Immediate Priorities (Refactoring Phase 2)
 
-## 2. Missing signatures in ranked_targets.yaml for method.
-- [x] Added `signature` field to `RankedTarget` model.
-- [x] Updated `TargetRanker` to populate signature from `signature_full`.
-- [x] Updated `test_ranked_targets.py` to assert signature presence for methods.
-- [x] Regenerated `ranked_targets.yaml` with signatures.
+## 1. Codebase Improvements
+- [ ] **Vibeshare Independence:** Ensure `vibeshare/` treats the main repo as a proper library dependency rather than using cross-imports. Audit `vibeshare/src/cache.py` vs `core/config.py` usage.
+- [ ] **Consolidate Data Paths:** Review `core/config.py` paths (`AGENTIC_SESSIONS_DB`, `VIBESHARE_RESULTS_FILE`, etc.). Simplify by moving all runtime state to a unified `data/` directory or a single SQLite database (`core.db`). Remove ad-hoc JSONL/YAML files where possible.
+- [ ] **Refactor ModelName:** Move the `ModelName` enum to `core/models.py` (or `core/constants.py`) so both `benchmarks` and `config` can import it without circular dependency.
+- [ ] **Adopt Pydantic Settings:** Upgrade `core/config.py` to use `pydantic-settings`. This allows robust environment variable overrides (e.g., `ADK_OUTPUT_ROOT=/tmp/custom`) which is crucial for CI/CD flexibility.
+- [ ] **Remove `utils.py` Anti-Pattern:** Decompose `core/utils.py` (if/when created) into semantic modules like `core/filesystem.py`, `core/strings.py`, etc.
 
 ## 2. Synthetic Retrieval Dataset (`docs/design_docs/synthetic_retrieval_dataset.md`)
-- [ ] **Implementation:**
-    - [x] In DataValidator._generate_candidate_pool: Randomize candidates
-    - [x] In DataValidator: Remove the manual retry here since the ApiKeyManager already handles key rotation. See how benchmark_runner handles it.
-    - [x] In DataValidator._generate_answer_with_retry: Modify the data model that is returned by AnswerGenerator's to allow a refusal_reason: str, which is used to refuse answering if it doesn't know or feels unconfident to answer, based on the given context. This would count as a validation failure but as least the model can refuse to guess, which keeps data clean from random guessing.
-    - [x] Not a dealbreaker, but can you find out why the stdout includes "AFC is enabled with max remote calls: 10." and surpress it if possible?
-    - [x] I want the in-progress logging to show convergence metrics (per-context) once in a while so I can see how long convergence will take. I imagine that once a particular context has converged, it can be removed from the candidate pool to make room for other context, or at least it's pick rate can be lowered? wdyt is way to do this without introducing more hyperparameters?
-    - [x] Prompt the LLM to only answer based on info from context and not from it's own preconcieved knowledge.
-    - [x] Report should show 'Impact Scores' as order of impact (descending)
-    - [x] Increase max trials from 150 to 500
-    - [x] Plan in the design doc, an adaptive (simulated annealing type) solution to gradually lower number of context to optimize information gain (by isolating context) over time. Prove or disprove this can work mathematically. Show whether it can improve convergence rates. Do not implement.
-    - [x] Running Zero-Context Baseline: Needs to be run sufficiently long to establish confidence. Please log how many trials were used and confidence level. If baseline success rate mean is greater than would be expected from random guessing (calculate this % for MC. for non-MC the bar is that the mean must be 0.0), then skip this question.
-        - [x] In the generated report, include a section to show the skipped questions
-        - [x] In design doc, show mathematically whether these questions (that can pass with zero-context) can harm convergence times or prevent it altogether.
-    - [x] Since it's possible to run out of quota on these long generations, please add a way to continue a specific run from an arbitrary stoppage. Add an integration test for this functionality.
-    - [x] All internal functions under retrieval_dataset_generation need docstrings, methodology and explanation of how to interpret/use outputs if not immediately obvious, e.g. case.is_sufficient_set
 - [ ] **Verification:**
     - [ ] Run the whole pipeline again on the latest dataset and ensure convergence works as expected.
 
-## 3. Codebase Improvements (Refactoring Phase 2)
-- [ ] **Vibeshare Independence:** Ensure `vibeshare/` treats the main repo as a proper library dependency rather than using cross-imports.
-- [ ] **Notebook CI:** Add a CI step (or pre-commit hook) to run `papermill` on visualization notebooks with dummy data to prevent regressions.
-- [ ] **Remove `utils.py` Anti-Pattern:** Decompose `core/utils.py` into semantic modules like `core/filesystem.py`, `core/strings.py`, etc.
-
-# On Hold (do not start)
-
-## 1. Generate a notebook that analyzes the percentage cumulative usage of ranked_targets.yaml. I want to know how many items to return on first page which will capture (>99% of usage).
-
-## 2. Question Quality Verifier (`docs/design_docs/question_quality_verifier.md`)
+## 3. Question Quality Verifier (`docs/design_docs/question_quality_verifier.md`)
 - [ ] **Implementation:**
     - [ ] Create `tools/verify_benchmarks.py` script.
     - [ ] Implement `VerifierAgent` using `AdkAnswerGenerator`.
     - [ ] Create a loop to run verification on all cases in `benchmarks/benchmark_definitions`.
     - [ ] Generate `quality_report.md`.
 
-## 3. Vector Search for Ranked Targets (`docs/design_docs/vector_search_ranked_targets.md`)
-- [ ] **Implementation:**
-    - [ ] Create `tools/build_vector_index.py` to embed `ranked_targets.yaml`.
-    - [ ] Implement `VectorSearchProvider` in `AdkTools`.
-    - [ ] Integrate into `search_ranked_targets` (Hybrid BM25 + Vector).
-- [ ] **Verification:**
-    - [ ] Add `benchmark_definitions/search_relevance` to test semantic queries.
-    
-# Active Legacy Tasks
+# Ongoing Maintenance
 
 ## Benchmark Case Reviews & Fixes
 - [ ] **Predict Runtime Behavior Review:** `predict_runtime_behaviour` cases with `code_snippet_ref` need manual review for validity.
@@ -68,24 +30,44 @@ Current usage (which doesn't work):
 - [ ] **Custom Agent Sub-agents:** Check if `fix_errors:08_custom_agent` needs `sub_agents` passed to `CustomConditionalAgent`.
 
 ## Codebase Maintenance
+- [ ] **Notebook CI:** Add a CI step (or pre-commit hook) to run `papermill` on visualization notebooks with dummy data to prevent regressions.
 - [ ] **Canonical Agent:** Create one canonical agent that uses 99% of the API, with comments. This will be used as a sample to present as initial context. It needs tests.
 - [ ] **List Modules Pagination:** Determine at what page cumulative usage hits 99%.
 
+# On Hold (do not start)
+
+## 1. Generate a notebook that analyzes the percentage cumulative usage of ranked_targets.yaml. I want to know how many items to return on first page which will capture (>99% of usage).
+
+## 2. Vector Search for Ranked Targets (`docs/design_docs/vector_search_ranked_targets.md`)
+- [ ] **Implementation:**
+    - [ ] Create `tools/build_vector_index.py` to embed `ranked_targets.yaml`.
+    - [ ] Implement `VectorSearchProvider` in `AdkTools`.
+    - [ ] Integrate into `search_ranked_targets` (Hybrid BM25 + Vector).
+- [ ] **Verification:**
+    - [ ] Add `benchmark_definitions/search_relevance` to test semantic queries.
+
 # Completed
+
+## Refactoring & Core
+- [x] **Core Module:** Created `core/` with `config.py`, `models.py`, and `logging_utils.py`.
+- [x] **Directory Structure:** Moved `tools/benchmark_generator` to `benchmarks/generator`, moved experiments to `experiments/`, deleted redundant `docs/`.
+- [x] **Cleanup:** Removed `tools/constants.py`, `benchmarks/config.py`, and redundant notebooks/scripts.
+- [x] **Notebooks:** Renamed analysis notebooks to be descriptive (`forensic_failure_analysis.ipynb`) and parameterized for Papermill.
+- [x] **Documentation:** Added module-level docstrings across the codebase.
 
 ## Features
 - [x] **Implement Robust LLM-Based JSON Extraction:** Created `JsonSanitizer` with multi-stage fallback (Direct -> Regex -> LLM Repair) and integrated it into `BenchmarkRunner`.
+- [x] **Missing signatures:** Added `signature` field to `RankedTarget` model and populated it.
+- [x] **Synthetic Retrieval Dataset:** Implemented randomization, removed manual retry, added refusal reason, suppressed AFC logs, added convergence logging, zero-context baseline checks, and resumption support.
 
 ## Fixes
-- [x] **Fix Ambiguous Runner Question:** Reworded `api_understanding:which_class_is_used_to_run_multiple_agents_concurr` to specify "sub-agents" and point to `ParallelAgent`.
-- [x] **Observer Plugin Ambiguity:** Reworded `api_understanding:which_specific_plugin_class_is_designed_to_observe` to specify "standard logger".
-- [x] **Custom Tool Implementation:** Fixed `configure_adk_features_mc:you_are_implementing_a_custom_tool_which_method_mu` to allow `run_async` as the correct answer.
-- [x] **Fix BM25 Search:** Updated tokenization to split FQNs by dots/underscores.
-- [x] **Search Fallback:** Implemented cascading fallback from BM25 to Keyword search in `HybridSearchProvider`.
-- [x] **Search Determinism:** Added stable sorting to search providers.
-- [x] **Benchmark Reality Checks:** Fixed `cache_ttl_string` (ttl_seconds), `compaction_interval_zero` (no error), and `sequential_empty_subagents` questions.
+- [x] **Fix Ambiguous Runner Question:** Reworded `api_understanding` questions.
+- [x] **Observer Plugin Ambiguity:** Reworded `api_understanding` questions.
+- [x] **Custom Tool Implementation:** Fixed `configure_adk_features_mc` case.
+- [x] **Fix BM25 Search:** Updated tokenization.
+- [x] **Search Fallback:** Implemented cascading fallback.
+- [x] **Search Determinism:** Added stable sorting.
+- [x] **Benchmark Reality Checks:** Fixed multiple reality check benchmarks.
 - [x] **Viewer:** Consolidated error tabs and added run status indicators.
-- [x] **Tools:** Reorganized `tools/cli` and renamed `audit_failures.py`.
+- [x] **Tools:** Reorganized `tools/cli`.
 - [x] **Hybrid Generator:** Fixed `create_hybrid_generator_v47` integration.
-- [x] **Documentation:** Added missing module-level docstrings across the codebase.
-- [x] **Refactor:** Renamed analysis notebooks and removed redundant/artifact files.
