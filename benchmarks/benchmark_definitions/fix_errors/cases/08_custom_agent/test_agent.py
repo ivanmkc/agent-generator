@@ -53,3 +53,8 @@ async def test_create_agent_passes():
 
   assert root_agent.agent_a.name == "agent_a", "Sub-agent A name mismatch."
   assert root_agent.agent_b.name == "agent_b", "Sub-agent B name mismatch."
+
+  # Verify that sub-agents are properly registered in the base class for framework integration
+  assert len(root_agent.sub_agents) == 2, "Sub-agents must be registered in root_agent.sub_agents"
+  assert root_agent.agent_a in root_agent.sub_agents
+  assert root_agent.agent_b in root_agent.sub_agents

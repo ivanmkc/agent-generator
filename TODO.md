@@ -19,7 +19,7 @@
 - [x] **Duplicate Name Check:** Verified `predict_runtime_behavior_mc:duplicate_agent_name` matches `validate_sub_agents_unique_names` behavior (warning logged, no error raised).
 - [x] **Event Extra Fields:** Verified `predict_runtime_behavior_mc:event_extra_fields_error` matches code (Pydantic forbids extra fields).
 - [x] **Tool Injection Ambiguity:** Improved `predict_runtime_behavior_mc:tool_session_id_injection` by clarifying options and explanation.
-- [ ] **Custom Agent Sub-agents:** Check if `fix_errors:08_custom_agent` needs `sub_agents` passed to `CustomConditionalAgent`.
+- [x] **Custom Agent Sub-agents:** Enforced strict `sub_agents` registration in `fix_errors:08_custom_agent` by updating the test assertions.
 
 ## Codebase Maintenance
 - [ ] **Notebook CI:** Add a CI step (or pre-commit hook) to run `papermill` on visualization notebooks with dummy data to prevent regressions.
