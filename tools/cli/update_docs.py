@@ -6,12 +6,13 @@ to create a static reference document for report generation.
 
 import sys
 import os
-import re
 from pathlib import Path
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Add project root to sys.path
-project_root = Path(__file__).resolve().parent.parent.parent
-sys.path.append(str(project_root))
+sys.path.append(str(Path(__file__).parent.parent.parent))
 
 from benchmarks.benchmark_candidates import CANDIDATE_GENERATORS
 from benchmarks.answer_generators.gemini_cli_docker import GeminiCliPodmanAnswerGenerator

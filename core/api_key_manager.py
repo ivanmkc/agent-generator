@@ -19,10 +19,7 @@ from pathlib import Path
 from enum import Enum
 from typing import Optional, Dict, List, Any
 from dataclasses import dataclass, field, asdict
-from colorama import init, Fore, Style
-
-# Initialize colorama
-init()
+from core.logging_utils import logger
 
 
 class KeyType(Enum):
@@ -67,6 +64,7 @@ class ApiKeyManager:
         quota_cooldown_base: float = 5.0,
         quota_cooldown_max: float = 300.0,
         generic_cooldown: float = 5.0,
+        pool_only: bool = True,
     ):
         """
         Initializes the ApiKeyManager and loads all configured API key pools.
@@ -75,10 +73,13 @@ class ApiKeyManager:
             quota_cooldown_base: Base seconds for quota error backoff.
             quota_cooldown_max: Maximum seconds for quota error backoff.
             generic_cooldown: Seconds for generic error cooldown.
+            pool_only: If True, only loads keys from *_KEYS_POOL variables.
+                       Fails (returns no keys) if pool is missing, even if single key var exists.
         """
         self.quota_cooldown_base = quota_cooldown_base
         self.quota_cooldown_max = quota_cooldown_max
         self.generic_cooldown = generic_cooldown
+        self.pool_only = pool_only
 
         self._key_stats: Dict[KeyType, Dict[str, KeyStats]] = {}
         # We keep a simple cycle iterator as a fallback/baseline for round-robin
@@ -143,10 +144,16 @@ class ApiKeyManager:
         if pool_str:
             keys = [k.strip() for k in pool_str.split(",") if k.strip()]
 
-        if not keys:
+        if not keys and not self.pool_only:
             single_key = os.environ.get(single_var)
             if single_key:
                 keys = [single_key]
+
+        # TODO: This shouldn't be restricted to GEMINI_API only.
+        if self.pool_only and not keys and key_type == KeyType.GEMINI_API:
+            raise ValueError(
+                f"Environment variable '{pool_var}' is not set or empty, but pool_only=True is configured."
+            )
 
         # Initialize stats for each key
         self._key_stats[key_type] = {}
@@ -193,9 +200,7 @@ class ApiKeyManager:
                                 "consecutive_failures", 0
                             )
         except Exception as e:
-            print(
-                f"{Fore.RED}[ApiKeyManager] Failed to load stats: {e}{Style.RESET_ALL}"
-            )
+            logger.error(f"[ApiKeyManager] Failed to load stats: {e}")
 
     def _save_stats(self):
         """Persists current stats to JSON file."""
@@ -213,9 +218,7 @@ class ApiKeyManager:
             with open(self._stats_file, "w") as f:
                 json.dump(data, f, indent=2)
         except Exception as e:
-            print(
-                f"{Fore.RED}[ApiKeyManager] Failed to save stats: {e}{Style.RESET_ALL}"
-            )
+            logger.error(f"[ApiKeyManager] Failed to save stats: {e}")
 
     async def get_next_key_with_id(
         self, key_type: KeyType = KeyType.GEMINI_API
@@ -236,8 +239,8 @@ class ApiKeyManager:
             viable = [k for k in candidates if k.status != KeyStatus.DEAD]
             if not viable and candidates:
                 # All dead? Reset them all to ACTIVE to try again (emergency reset)
-                print(
-                    f"{Fore.RED}[ApiKeyManager] All keys for {key_type.value} are DEAD. Resetting all to ACTIVE.{Style.RESET_ALL}"
+                logger.error(
+                    f"[ApiKeyManager] All keys for {key_type.value} are DEAD. Resetting all to ACTIVE."
                 )
                 for k in candidates:
                     k.status = KeyStatus.ACTIVE
@@ -275,8 +278,8 @@ class ApiKeyManager:
             if cooldowns:
                 best_key = min(cooldowns, key=lambda k: k.cooldown_until)
                 wait_time = max(0, best_key.cooldown_until - now)
-                print(
-                    f"{Fore.YELLOW}[ApiKeyManager] All keys on cooldown. Using key {best_key.id} (wait {wait_time:.1f}s recommended).{Style.RESET_ALL}"
+                logger.warning(
+                    f"[ApiKeyManager] All keys on cooldown. Using key {best_key.id} (wait {wait_time:.1f}s recommended)."
                 )
                 best_key.last_used = now
                 self._save_stats()
@@ -320,8 +323,8 @@ class ApiKeyManager:
 
                 if is_auth:
                     key_stat.status = KeyStatus.DEAD
-                    print(
-                        f"{Fore.RED}[ApiKeyManager] Key {key_id} marked DEAD (Auth error).{Style.RESET_ALL}"
+                    logger.error(
+                        f"[ApiKeyManager] Key {key_id} marked DEAD (Auth error)."
                     )
                 elif is_quota:
                     # Exponential backoff: base, base*2, base*4...
@@ -331,16 +334,16 @@ class ApiKeyManager:
                     penalty = min(penalty, self.quota_cooldown_max)
                     key_stat.status = KeyStatus.COOLDOWN
                     key_stat.cooldown_until = now + penalty
-                    print(
-                        f"{Fore.YELLOW}[ApiKeyManager] Key {key_id} cooldown for {penalty}s (Quota).{Style.RESET_ALL}"
+                    logger.warning(
+                        f"[ApiKeyManager] Key {key_id} cooldown for {penalty}s (Quota)."
                     )
                 else:
                     # Generic error (timeout, 500)
                     # Short cooldown
                     key_stat.status = KeyStatus.COOLDOWN
                     key_stat.cooldown_until = now + self.generic_cooldown
-                    print(
-                        f"{Fore.YELLOW}[ApiKeyManager] Key {key_id} short cooldown (Generic Error): {error_message}{Style.RESET_ALL}"
+                    logger.warning(
+                        f"[ApiKeyManager] Key {key_id} short cooldown (Generic Error): {error_message}"
                     )
 
             self._save_stats()

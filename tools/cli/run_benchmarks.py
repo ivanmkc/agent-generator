@@ -14,20 +14,22 @@
 
 """Script to run benchmarks and analyze results."""
 
-import asyncio
 import argparse
-import sys
-import json
-import logging
-import shutil
+import asyncio
 import os
-from pathlib import Path
+import sys
+import time
+import json
+import shutil
 from datetime import datetime
-from typing import List, Optional
+from pathlib import Path
+from typing import List, Optional, Dict, Any, Tuple
+from dotenv import load_dotenv
 
-# Add root to sys.path if not there
-if str(Path.cwd()) not in sys.path:
-    sys.path.append(str(Path.cwd()))
+load_dotenv()
+
+# Add project root to sys.path
+sys.path.append(str(Path(__file__).parent.parent.parent))
 
 import pydantic
 import pandas as pd

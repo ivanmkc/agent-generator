@@ -1,0 +1,49 @@
+generators:
+  ADK_HYBRID_V47:
+    description: '**No code or configuration was provided.**
+
+
+      The "Code/Config" section of your prompt is marked as `None`. To provide a technical
+      analysis of the Agent Strategy, Tools, Memory, and Special Features, please
+      paste the relevant Python code or architecture configuration.'
+    checksum: 6adf97f83acf6453d4a6a4b1070f3754
+  'GeminiCliPodman: gemini-cli:adk-docs-ext':
+    description: '**Please provide the Python code or configuration you wish to have
+      analyzed.**
+
+
+      Since the input provided was **"None"**, I cannot perform an architectural analysis,
+      determine the agent strategy (e.g., ReAct, Plan-and-Solve), identify tools,
+      or evaluate memory management.
+
+
+      Once you paste the code, I will provide a technical summary focusing on:
+
+      1.  **Agent Strategy**
+
+      2.  **Tool Usage**
+
+      3.  **State Management**
+
+      4.  **Special Architectural Features**'
+    checksum: 6adf97f83acf6453d4a6a4b1070f3754
+  'GeminiCliPodman: gemini-cli:mcp_adk_agent_runner_ranked_knowledge':
+    description: "**Architecture Summary:**\n\nThis configuration defines a **Containerized\
+      \ RAG Agent** that orchestrates Google's Gemini model within a Podman container.\
+      \ The architecture encapsulates the execution logic in a CLI-based runner (`GeminiCliPodmanAnswerGenerator`).\n\
+      \n1.  **Agent Strategy:** The system utilizes a **Retrieval-Augmented Generation\
+      \ (RAG)** loop. The `agent_runner` component implies an autonomous cycle (likely\
+      \ ReAct or sequential retrieval) that queries an external knowledge base before\
+      \ generating responses.\n2.  **Tools:** The primary tool is a **Vector Search**\
+      \ engine, explicitly configured via `ADK_SEARCH_PROVIDER: vector`. The image\
+      \ tag `mcp` suggests adherence to the **Model Context Protocol** for standardized\
+      \ tool/data interfacing.\n3.  **Memory/State:** Context is managed via **Ranked\
+      \ Retrieval**. The `ranked_knowledge` image tag indicates that retrieved vector\
+      \ embeddings are not just appended but presumably re-ranked (e.g., via cross-encoders)\
+      \ to prioritize relevance within the context window.\n4.  **Special Features:**\n\
+      \    *   **Podman Isolation:** The agent operates in an isolated environment\
+      \ (`gemini-cli`), ensuring dependency consistency and security.\n    *   **Re-ranking\
+      \ Pipeline:** The specific image build (`ranked_knowledge`) points to a specialized\
+      \ post-retrieval verification or sorting step to reduce hallucinations compared\
+      \ to standard vector similarity."
+    checksum: a6fa1d4b609f25cf93b7fd30de199474

@@ -35,6 +35,9 @@ import sys
 import re
 import asyncio
 import inspect
+from dotenv import load_dotenv
+
+load_dotenv()
 import textwrap
 import logging
 import subprocess

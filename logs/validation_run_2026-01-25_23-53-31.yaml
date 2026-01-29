@@ -1,0 +1,2348 @@
+---
+timestamp: 1769403211.499848
+event: validation_start
+mode: adaptive
+case_count: 1
+---
+timestamp: 1769403215.830146
+event: pool_generated
+case_id: configure_adk_features_mc:which_is_the_correct_import_statement_for_the_runn
+pool_size: 34
+---
+timestamp: 1769403217.239979
+event: trial_complete
+case_id: configure_adk_features_mc:which_is_the_correct_import_statement_for_the_runn
+trial_index: 0
+subset_size: 22
+subset_fqns:
+- google.adk.runners.Runner
+- google.adk.runners.Runner.execute
+- google.adk.runners.Runner.run
+- google.adk.code_executors.built_in_code_executor
+- google.adk.runners.Runner.run_async
+- google.adk.code_executors.base_code_executor
+- google.adk.plugins.logging_plugin.LoggingPlugin.on_event_callback
+- google.adk.a2a.converters.request_converter.AgentRunRequest
+- google.adk.agents.llm_agent_config.LlmAgentConfig
+- google.adk.tools.retrieval.files_retrieval.FilesRetrieval
+- google.adk.tools.bigtable.bigtable_toolset.BigtableToolset
+- google.genai.types.DeleteCachedContentResponseDict
+- google.genai.types.HarmCategory
+- vertexai.preview.reasoning_engines.templates.langgraph.LanggraphAgent.register_operations
+- google.adk.evaluation.eval_rubrics.Rubric
+- google.genai.types.DeleteDocumentConfig
+- google.adk.cli.adk_web_server.CreateEvalSetRequest
+- google.adk.plugins.logging_plugin.LoggingPlugin
+- google.genai.types.Interval
+- google.genai.types.UploadToFileSearchStoreOperation.from_api_response
+- google.adk.evaluation.in_memory_eval_sets_manager.InMemoryEvalSetsManager.create_eval_set
+- google.genai.types.Scale
+is_correct: true
+---
+timestamp: 1769403217.242348
+event: convergence_check
+case_id: configure_adk_features_mc:which_is_the_correct_import_statement_for_the_runn
+trial_index: 0
+max_se_diff: 1.0
+se_map:
+  google.adk.runners: 1.0
+  google.adk.runners.Runner: 1.0
+  google.adk.runners.Runner.execute: 1.0
+  google.adk.runners.Runner.close: 1.0
+  google.adk.runners.InMemoryRunner: 1.0
+  google.adk.a2a.utils.agent_to_a2a.create_runner: 1.0
+  google.adk.runners.Runner.run: 1.0
+  google.adk.cli.adk_web_server.AdkWebServer.get_runner_async: 1.0
+  google.adk.agents.run_config.RunConfig: 1.0
+  google.adk.code_executors.built_in_code_executor: 1.0
+  google.adk.runners.Runner.run_async: 1.0
+  google.adk.code_executors.base_code_executor: 1.0
+  google.adk.plugins.logging_plugin.LoggingPlugin.on_event_callback: 1.0
+  google.adk.a2a.converters.request_converter.AgentRunRequest: 1.0
+  google.genai.types.FunctionResponsePart: 1.0
+  google.adk.agents.invocation_context.InvocationContext.set_agent_state: 1.0
+  google.adk.cli.conformance.cli_test.run_conformance_test: 1.0
+  google.adk.agents.llm_agent_config.LlmAgentConfig: 1.0
+  google.adk.tools.retrieval.files_retrieval.FilesRetrieval: 1.0
+  google.adk.tools.bigtable.bigtable_toolset.BigtableToolset: 1.0
+  google.genai.types.DeleteCachedContentResponseDict: 1.0
+  google.genai.types.HarmCategory: 1.0
+  vertexai.preview.reasoning_engines.templates.langgraph.LanggraphAgent.register_operations: 1.0
+  google.adk.evaluation.eval_rubrics.Rubric: 1.0
+  google.genai.types.DeleteDocumentConfig: 1.0
+  google.adk.cli.adk_web_server.CreateEvalSetRequest: 1.0
+  google.adk.plugins.logging_plugin.LoggingPlugin: 1.0
+  google.genai.types.Interval: 1.0
+  google.genai.types.UploadToFileSearchStoreOperation.from_api_response: 1.0
+  google.adk.cli.agent_graph.build_graph: 1.0
+  google.adk.tools.retrieval.base_retrieval_tool.BaseRetrievalTool: 1.0
+  google.adk.evaluation.in_memory_eval_sets_manager.InMemoryEvalSetsManager.create_eval_set: 1.0
+  google.adk.tools.load_artifacts_tool.LoadArtifactsTool.run_async: 1.0
+  google.genai.types.Scale: 1.0
+threshold: 0.1
+---
+timestamp: 1769403219.2848792
+event: trial_complete
+case_id: configure_adk_features_mc:which_is_the_correct_import_statement_for_the_runn
+trial_index: 1
+subset_size: 16
+subset_fqns:
+- google.adk.runners
+- google.adk.runners.InMemoryRunner
+- google.adk.runners.Runner.run
+- google.adk.cli.adk_web_server.AdkWebServer.get_runner_async
+- google.adk.code_executors.built_in_code_executor
+- google.adk.a2a.converters.request_converter.AgentRunRequest
+- google.adk.agents.invocation_context.InvocationContext.set_agent_state
+- google.adk.agents.llm_agent_config.LlmAgentConfig
+- google.adk.tools.bigtable.bigtable_toolset.BigtableToolset
+- google.genai.types.DeleteCachedContentResponseDict
+- vertexai.preview.reasoning_engines.templates.langgraph.LanggraphAgent.register_operations
+- google.adk.evaluation.eval_rubrics.Rubric
+- google.genai.types.DeleteDocumentConfig
+- google.adk.cli.adk_web_server.CreateEvalSetRequest
+- google.genai.types.UploadToFileSearchStoreOperation.from_api_response
+- google.adk.evaluation.in_memory_eval_sets_manager.InMemoryEvalSetsManager.create_eval_set
+is_correct: true
+---
+timestamp: 1769403219.286033
+event: convergence_check
+case_id: configure_adk_features_mc:which_is_the_correct_import_statement_for_the_runn
+trial_index: 1
+max_se_diff: 1.4142135623730951
+se_map:
+  google.adk.runners: 1.4142
+  google.adk.runners.Runner: 1.4142
+  google.adk.runners.Runner.execute: 1.4142
+  google.adk.runners.Runner.close: 1.0
+  google.adk.runners.InMemoryRunner: 1.4142
+  google.adk.a2a.utils.agent_to_a2a.create_runner: 1.0
+  google.adk.runners.Runner.run: 1.0
+  google.adk.cli.adk_web_server.AdkWebServer.get_runner_async: 1.4142
+  google.adk.agents.run_config.RunConfig: 1.0
+  google.adk.code_executors.built_in_code_executor: 1.0
+  google.adk.runners.Runner.run_async: 1.4142
+  google.adk.code_executors.base_code_executor: 1.4142
+  google.adk.plugins.logging_plugin.LoggingPlugin.on_event_callback: 1.4142
+  google.adk.a2a.converters.request_converter.AgentRunRequest: 1.0
+  google.genai.types.FunctionResponsePart: 1.0
+  google.adk.agents.invocation_context.InvocationContext.set_agent_state: 1.4142
+  google.adk.cli.conformance.cli_test.run_conformance_test: 1.0
+  google.adk.agents.llm_agent_config.LlmAgentConfig: 1.0
+  google.adk.tools.retrieval.files_retrieval.FilesRetrieval: 1.4142
+  google.adk.tools.bigtable.bigtable_toolset.BigtableToolset: 1.0
+  google.genai.types.DeleteCachedContentResponseDict: 1.0
+  google.genai.types.HarmCategory: 1.4142
+  vertexai.preview.reasoning_engines.templates.langgraph.LanggraphAgent.register_operations: 1.0
+  google.adk.evaluation.eval_rubrics.Rubric: 1.0
+  google.genai.types.DeleteDocumentConfig: 1.0
+  google.adk.cli.adk_web_server.CreateEvalSetRequest: 1.0
+  google.adk.plugins.logging_plugin.LoggingPlugin: 1.4142
+  google.genai.types.Interval: 1.4142
+  google.genai.types.UploadToFileSearchStoreOperation.from_api_response: 1.0
+  google.adk.cli.agent_graph.build_graph: 1.0
+  google.adk.tools.retrieval.base_retrieval_tool.BaseRetrievalTool: 1.0
+  google.adk.evaluation.in_memory_eval_sets_manager.InMemoryEvalSetsManager.create_eval_set: 1.0
+  google.adk.tools.load_artifacts_tool.LoadArtifactsTool.run_async: 1.0
+  google.genai.types.Scale: 1.4142
+threshold: 0.1
+---
+timestamp: 1769403221.197271
+event: trial_complete
+case_id: configure_adk_features_mc:which_is_the_correct_import_statement_for_the_runn
+trial_index: 2
+subset_size: 15
+subset_fqns:
+- google.adk.runners.Runner.execute
+- google.adk.runners.Runner.close
+- google.adk.code_executors.built_in_code_executor
+- google.adk.runners.Runner.run_async
+- google.adk.code_executors.base_code_executor
+- google.adk.plugins.logging_plugin.LoggingPlugin.on_event_callback
+- google.adk.cli.conformance.cli_test.run_conformance_test
+- google.adk.tools.retrieval.files_retrieval.FilesRetrieval
+- google.adk.evaluation.eval_rubrics.Rubric
+- google.genai.types.DeleteDocumentConfig
+- google.adk.cli.adk_web_server.CreateEvalSetRequest
+- google.genai.types.Interval
+- google.genai.types.UploadToFileSearchStoreOperation.from_api_response
+- google.adk.evaluation.in_memory_eval_sets_manager.InMemoryEvalSetsManager.create_eval_set
+- google.genai.types.Scale
+is_correct: true
+---
+timestamp: 1769403221.1984608
+event: convergence_check
+case_id: configure_adk_features_mc:which_is_the_correct_import_statement_for_the_runn
+trial_index: 2
+max_se_diff: 1.118033988749895
+se_map:
+  google.adk.runners: 1.118
+  google.adk.runners.Runner: 1.118
+  google.adk.runners.Runner.execute: 1.118
+  google.adk.runners.Runner.close: 1.118
+  google.adk.runners.InMemoryRunner: 1.118
+  google.adk.a2a.utils.agent_to_a2a.create_runner: 1.0
+  google.adk.runners.Runner.run: 1.118
+  google.adk.cli.adk_web_server.AdkWebServer.get_runner_async: 1.118
+  google.adk.agents.run_config.RunConfig: 1.0
+  google.adk.code_executors.built_in_code_executor: 1.0
+  google.adk.runners.Runner.run_async: 1.118
+  google.adk.code_executors.base_code_executor: 1.118
+  google.adk.plugins.logging_plugin.LoggingPlugin.on_event_callback: 1.118
+  google.adk.a2a.converters.request_converter.AgentRunRequest: 1.118
+  google.genai.types.FunctionResponsePart: 1.0
+  google.adk.agents.invocation_context.InvocationContext.set_agent_state: 1.118
+  google.adk.cli.conformance.cli_test.run_conformance_test: 1.118
+  google.adk.agents.llm_agent_config.LlmAgentConfig: 1.118
+  google.adk.tools.retrieval.files_retrieval.FilesRetrieval: 1.118
+  google.adk.tools.bigtable.bigtable_toolset.BigtableToolset: 1.118
+  google.genai.types.DeleteCachedContentResponseDict: 1.118
+  google.genai.types.HarmCategory: 1.118
+  vertexai.preview.reasoning_engines.templates.langgraph.LanggraphAgent.register_operations: 1.118
+  google.adk.evaluation.eval_rubrics.Rubric: 1.0
+  google.genai.types.DeleteDocumentConfig: 1.0
+  google.adk.cli.adk_web_server.CreateEvalSetRequest: 1.0
+  google.adk.plugins.logging_plugin.LoggingPlugin: 1.118
+  google.genai.types.Interval: 1.118
+  google.genai.types.UploadToFileSearchStoreOperation.from_api_response: 1.0
+  google.adk.cli.agent_graph.build_graph: 1.0
+  google.adk.tools.retrieval.base_retrieval_tool.BaseRetrievalTool: 1.0
+  google.adk.evaluation.in_memory_eval_sets_manager.InMemoryEvalSetsManager.create_eval_set: 1.0
+  google.adk.tools.load_artifacts_tool.LoadArtifactsTool.run_async: 1.0
+  google.genai.types.Scale: 1.118
+threshold: 0.1
+---
+timestamp: 1769403222.933321
+event: trial_complete
+case_id: configure_adk_features_mc:which_is_the_correct_import_statement_for_the_runn
+trial_index: 3
+subset_size: 17
+subset_fqns:
+- google.adk.runners.Runner.close
+- google.adk.runners.InMemoryRunner
+- google.adk.runners.Runner.run
+- google.adk.agents.run_config.RunConfig
+- google.adk.runners.Runner.run_async
+- google.adk.plugins.logging_plugin.LoggingPlugin.on_event_callback
+- google.adk.a2a.converters.request_converter.AgentRunRequest
+- google.genai.types.FunctionResponsePart
+- google.adk.agents.invocation_context.InvocationContext.set_agent_state
+- google.adk.tools.bigtable.bigtable_toolset.BigtableToolset
+- google.genai.types.HarmCategory
+- google.adk.evaluation.eval_rubrics.Rubric
+- google.genai.types.DeleteDocumentConfig
+- google.genai.types.Interval
+- google.genai.types.UploadToFileSearchStoreOperation.from_api_response
+- google.adk.tools.load_artifacts_tool.LoadArtifactsTool.run_async
+- google.genai.types.Scale
+is_correct: true
+---
+timestamp: 1769403222.935018
+event: convergence_check
+case_id: configure_adk_features_mc:which_is_the_correct_import_statement_for_the_runn
+trial_index: 3
+max_se_diff: 1.0540925533894598
+se_map:
+  google.adk.runners: 1.0541
+  google.adk.runners.Runner: 1.0541
+  google.adk.runners.Runner.execute: 0.7071
+  google.adk.runners.Runner.close: 0.7071
+  google.adk.runners.InMemoryRunner: 0.7071
+  google.adk.a2a.utils.agent_to_a2a.create_runner: 1.0
+  google.adk.runners.Runner.run: 1.0541
+  google.adk.cli.adk_web_server.AdkWebServer.get_runner_async: 1.0541
+  google.adk.agents.run_config.RunConfig: 1.0541
+  google.adk.code_executors.built_in_code_executor: 1.0541
+  google.adk.runners.Runner.run_async: 1.0541
+  google.adk.code_executors.base_code_executor: 0.7071
+  google.adk.plugins.logging_plugin.LoggingPlugin.on_event_callback: 1.0541
+  google.adk.a2a.converters.request_converter.AgentRunRequest: 1.0541
+  google.genai.types.FunctionResponsePart: 1.0541
+  google.adk.agents.invocation_context.InvocationContext.set_agent_state: 0.7071
+  google.adk.cli.conformance.cli_test.run_conformance_test: 1.0541
+  google.adk.agents.llm_agent_config.LlmAgentConfig: 0.7071
+  google.adk.tools.retrieval.files_retrieval.FilesRetrieval: 0.7071
+  google.adk.tools.bigtable.bigtable_toolset.BigtableToolset: 1.0541
+  google.genai.types.DeleteCachedContentResponseDict: 0.7071
+  google.genai.types.HarmCategory: 0.7071
+  vertexai.preview.reasoning_engines.templates.langgraph.LanggraphAgent.register_operations: 0.7071
+  google.adk.evaluation.eval_rubrics.Rubric: 1.0
+  google.genai.types.DeleteDocumentConfig: 1.0
+  google.adk.cli.adk_web_server.CreateEvalSetRequest: 1.0541
+  google.adk.plugins.logging_plugin.LoggingPlugin: 1.0541
+  google.genai.types.Interval: 1.0541
+  google.genai.types.UploadToFileSearchStoreOperation.from_api_response: 1.0
+  google.adk.cli.agent_graph.build_graph: 1.0
+  google.adk.tools.retrieval.base_retrieval_tool.BaseRetrievalTool: 1.0
+  google.adk.evaluation.in_memory_eval_sets_manager.InMemoryEvalSetsManager.create_eval_set: 1.0541
+  google.adk.tools.load_artifacts_tool.LoadArtifactsTool.run_async: 1.0541
+  google.genai.types.Scale: 1.0541
+threshold: 0.1
+---
+timestamp: 1769403226.0260532
+event: trial_complete
+case_id: configure_adk_features_mc:which_is_the_correct_import_statement_for_the_runn
+trial_index: 4
+subset_size: 16
+subset_fqns:
+- google.adk.runners.InMemoryRunner
+- google.adk.agents.run_config.RunConfig
+- google.adk.runners.Runner.run_async
+- google.adk.code_executors.base_code_executor
+- google.adk.plugins.logging_plugin.LoggingPlugin.on_event_callback
+- google.adk.a2a.converters.request_converter.AgentRunRequest
+- google.genai.types.FunctionResponsePart
+- google.adk.agents.invocation_context.InvocationContext.set_agent_state
+- google.adk.agents.llm_agent_config.LlmAgentConfig
+- google.adk.tools.retrieval.files_retrieval.FilesRetrieval
+- vertexai.preview.reasoning_engines.templates.langgraph.LanggraphAgent.register_operations
+- google.adk.evaluation.eval_rubrics.Rubric
+- google.adk.plugins.logging_plugin.LoggingPlugin
+- google.genai.types.UploadToFileSearchStoreOperation.from_api_response
+- google.adk.tools.retrieval.base_retrieval_tool.BaseRetrievalTool
+- google.adk.tools.load_artifacts_tool.LoadArtifactsTool.run_async
+is_correct: true
+---
+timestamp: 1769403226.028149
+event: convergence_check
+case_id: configure_adk_features_mc:which_is_the_correct_import_statement_for_the_runn
+trial_index: 4
+max_se_diff: 1.0307764064044151
+se_map:
+  google.adk.runners: 1.0308
+  google.adk.runners.Runner: 1.0308
+  google.adk.runners.Runner.execute: 0.6009
+  google.adk.runners.Runner.close: 0.6009
+  google.adk.runners.InMemoryRunner: 0.6009
+  google.adk.a2a.utils.agent_to_a2a.create_runner: 1.0
+  google.adk.runners.Runner.run: 0.6009
+  google.adk.cli.adk_web_server.AdkWebServer.get_runner_async: 1.0308
+  google.adk.agents.run_config.RunConfig: 0.6009
+  google.adk.code_executors.built_in_code_executor: 0.6009
+  google.adk.runners.Runner.run_async: 1.0308
+  google.adk.code_executors.base_code_executor: 0.6009
+  google.adk.plugins.logging_plugin.LoggingPlugin.on_event_callback: 1.0308
+  google.adk.a2a.converters.request_converter.AgentRunRequest: 1.0308
+  google.genai.types.FunctionResponsePart: 0.6009
+  google.adk.agents.invocation_context.InvocationContext.set_agent_state: 0.6009
+  google.adk.cli.conformance.cli_test.run_conformance_test: 1.0308
+  google.adk.agents.llm_agent_config.LlmAgentConfig: 0.6009
+  google.adk.tools.retrieval.files_retrieval.FilesRetrieval: 0.6009
+  google.adk.tools.bigtable.bigtable_toolset.BigtableToolset: 0.6009
+  google.genai.types.DeleteCachedContentResponseDict: 0.6009
+  google.genai.types.HarmCategory: 0.6009
+  vertexai.preview.reasoning_engines.templates.langgraph.LanggraphAgent.register_operations: 0.6009
+  google.adk.evaluation.eval_rubrics.Rubric: 1.0
+  google.genai.types.DeleteDocumentConfig: 1.0308
+  google.adk.cli.adk_web_server.CreateEvalSetRequest: 0.6009
+  google.adk.plugins.logging_plugin.LoggingPlugin: 0.6009
+  google.genai.types.Interval: 0.6009
+  google.genai.types.UploadToFileSearchStoreOperation.from_api_response: 1.0
+  google.adk.cli.agent_graph.build_graph: 1.0
+  google.adk.tools.retrieval.base_retrieval_tool.BaseRetrievalTool: 1.0308
+  google.adk.evaluation.in_memory_eval_sets_manager.InMemoryEvalSetsManager.create_eval_set: 0.6009
+  google.adk.tools.load_artifacts_tool.LoadArtifactsTool.run_async: 0.6009
+  google.genai.types.Scale: 0.6009
+threshold: 0.1
+---
+timestamp: 1769403228.193828
+event: trial_complete
+case_id: configure_adk_features_mc:which_is_the_correct_import_statement_for_the_runn
+trial_index: 5
+subset_size: 17
+subset_fqns:
+- google.adk.runners
+- google.adk.runners.Runner.execute
+- google.adk.runners.InMemoryRunner
+- google.adk.a2a.utils.agent_to_a2a.create_runner
+- google.adk.agents.run_config.RunConfig
+- google.adk.code_executors.built_in_code_executor
+- google.adk.runners.Runner.run_async
+- google.adk.plugins.logging_plugin.LoggingPlugin.on_event_callback
+- google.adk.cli.conformance.cli_test.run_conformance_test
+- google.adk.agents.llm_agent_config.LlmAgentConfig
+- google.adk.tools.bigtable.bigtable_toolset.BigtableToolset
+- google.genai.types.HarmCategory
+- vertexai.preview.reasoning_engines.templates.langgraph.LanggraphAgent.register_operations
+- google.adk.cli.adk_web_server.CreateEvalSetRequest
+- google.adk.plugins.logging_plugin.LoggingPlugin
+- google.genai.types.Interval
+- google.adk.tools.retrieval.base_retrieval_tool.BaseRetrievalTool
+is_correct: true
+---
+timestamp: 1769403228.1960268
+event: convergence_check
+case_id: configure_adk_features_mc:which_is_the_correct_import_statement_for_the_runn
+trial_index: 5
+max_se_diff: 1.0
+se_map:
+  google.adk.runners: 0.559
+  google.adk.runners.Runner: 1.0198
+  google.adk.runners.Runner.execute: 0.4714
+  google.adk.runners.Runner.close: 0.559
+  google.adk.runners.InMemoryRunner: 0.559
+  google.adk.a2a.utils.agent_to_a2a.create_runner: 1.0198
+  google.adk.runners.Runner.run: 0.4714
+  google.adk.cli.adk_web_server.AdkWebServer.get_runner_async: 1.0198
+  google.adk.agents.run_config.RunConfig: 0.4714
+  google.adk.code_executors.built_in_code_executor: 0.559
+  google.adk.runners.Runner.run_async: 1.0198
+  google.adk.code_executors.base_code_executor: 0.4714
+  google.adk.plugins.logging_plugin.LoggingPlugin.on_event_callback: 1.0198
+  google.adk.a2a.converters.request_converter.AgentRunRequest: 0.559
+  google.genai.types.FunctionResponsePart: 0.559
+  google.adk.agents.invocation_context.InvocationContext.set_agent_state: 0.4714
+  google.adk.cli.conformance.cli_test.run_conformance_test: 0.559
+  google.adk.agents.llm_agent_config.LlmAgentConfig: 0.559
+  google.adk.tools.retrieval.files_retrieval.FilesRetrieval: 0.4714
+  google.adk.tools.bigtable.bigtable_toolset.BigtableToolset: 0.559
+  google.genai.types.DeleteCachedContentResponseDict: 0.559
+  google.genai.types.HarmCategory: 0.4714
+  vertexai.preview.reasoning_engines.templates.langgraph.LanggraphAgent.register_operations: 0.559
+  google.adk.evaluation.eval_rubrics.Rubric: 1.0198
+  google.genai.types.DeleteDocumentConfig: 0.559
+  google.adk.cli.adk_web_server.CreateEvalSetRequest: 0.559
+  google.adk.plugins.logging_plugin.LoggingPlugin: 0.4714
+  google.genai.types.Interval: 0.559
+  google.genai.types.UploadToFileSearchStoreOperation.from_api_response: 1.0198
+  google.adk.cli.agent_graph.build_graph: 1.0
+  google.adk.tools.retrieval.base_retrieval_tool.BaseRetrievalTool: 0.559
+  google.adk.evaluation.in_memory_eval_sets_manager.InMemoryEvalSetsManager.create_eval_set: 0.4714
+  google.adk.tools.load_artifacts_tool.LoadArtifactsTool.run_async: 0.559
+  google.genai.types.Scale: 0.4714
+threshold: 0.1
+---
+timestamp: 1769403235.2568588
+event: trial_complete
+case_id: configure_adk_features_mc:which_is_the_correct_import_statement_for_the_runn
+trial_index: 6
+subset_size: 11
+subset_fqns:
+- google.adk.runners
+- google.adk.runners.Runner
+- google.adk.a2a.utils.agent_to_a2a.create_runner
+- google.adk.cli.adk_web_server.AdkWebServer.get_runner_async
+- google.adk.agents.run_config.RunConfig
+- google.adk.code_executors.built_in_code_executor
+- google.adk.a2a.converters.request_converter.AgentRunRequest
+- google.genai.types.HarmCategory
+- google.adk.evaluation.eval_rubrics.Rubric
+- google.adk.cli.adk_web_server.CreateEvalSetRequest
+- google.adk.plugins.logging_plugin.LoggingPlugin
+is_correct: true
+---
+timestamp: 1769403235.2581382
+event: convergence_check
+case_id: configure_adk_features_mc:which_is_the_correct_import_statement_for_the_runn
+trial_index: 6
+max_se_diff: 1.0
+se_map:
+  google.adk.runners: 0.4167
+  google.adk.runners.Runner: 0.5385
+  google.adk.runners.Runner.execute: 0.4167
+  google.adk.runners.Runner.close: 0.5385
+  google.adk.runners.InMemoryRunner: 0.4167
+  google.adk.a2a.utils.agent_to_a2a.create_runner: 0.5385
+  google.adk.runners.Runner.run: 0.4167
+  google.adk.cli.adk_web_server.AdkWebServer.get_runner_async: 0.5385
+  google.adk.agents.run_config.RunConfig: 0.4167
+  google.adk.code_executors.built_in_code_executor: 0.5385
+  google.adk.runners.Runner.run_async: 0.5385
+  google.adk.code_executors.base_code_executor: 0.4167
+  google.adk.plugins.logging_plugin.LoggingPlugin.on_event_callback: 0.5385
+  google.adk.a2a.converters.request_converter.AgentRunRequest: 0.5385
+  google.genai.types.FunctionResponsePart: 0.5385
+  google.adk.agents.invocation_context.InvocationContext.set_agent_state: 0.4167
+  google.adk.cli.conformance.cli_test.run_conformance_test: 0.5385
+  google.adk.agents.llm_agent_config.LlmAgentConfig: 0.4167
+  google.adk.tools.retrieval.files_retrieval.FilesRetrieval: 0.4167
+  google.adk.tools.bigtable.bigtable_toolset.BigtableToolset: 0.4167
+  google.genai.types.DeleteCachedContentResponseDict: 0.5385
+  google.genai.types.HarmCategory: 0.4167
+  vertexai.preview.reasoning_engines.templates.langgraph.LanggraphAgent.register_operations: 0.4167
+  google.adk.evaluation.eval_rubrics.Rubric: 1.0138
+  google.genai.types.DeleteDocumentConfig: 0.4167
+  google.adk.cli.adk_web_server.CreateEvalSetRequest: 0.5385
+  google.adk.plugins.logging_plugin.LoggingPlugin: 0.4167
+  google.genai.types.Interval: 0.4167
+  google.genai.types.UploadToFileSearchStoreOperation.from_api_response: 0.5385
+  google.adk.cli.agent_graph.build_graph: 1.0
+  google.adk.tools.retrieval.base_retrieval_tool.BaseRetrievalTool: 0.5385
+  google.adk.evaluation.in_memory_eval_sets_manager.InMemoryEvalSetsManager.create_eval_set: 0.4167
+  google.adk.tools.load_artifacts_tool.LoadArtifactsTool.run_async: 0.5385
+  google.genai.types.Scale: 0.4167
+threshold: 0.1
+---
+timestamp: 1769403236.808015
+event: trial_complete
+case_id: configure_adk_features_mc:which_is_the_correct_import_statement_for_the_runn
+trial_index: 7
+subset_size: 20
+subset_fqns:
+- google.adk.runners.Runner
+- google.adk.runners.Runner.close
+- google.adk.runners.InMemoryRunner
+- google.adk.cli.adk_web_server.AdkWebServer.get_runner_async
+- google.adk.agents.run_config.RunConfig
+- google.adk.code_executors.built_in_code_executor
+- google.adk.runners.Runner.run_async
+- google.adk.code_executors.base_code_executor
+- google.adk.plugins.logging_plugin.LoggingPlugin.on_event_callback
+- google.genai.types.FunctionResponsePart
+- google.adk.agents.invocation_context.InvocationContext.set_agent_state
+- google.adk.cli.conformance.cli_test.run_conformance_test
+- google.adk.tools.bigtable.bigtable_toolset.BigtableToolset
+- google.genai.types.HarmCategory
+- vertexai.preview.reasoning_engines.templates.langgraph.LanggraphAgent.register_operations
+- google.adk.evaluation.eval_rubrics.Rubric
+- google.genai.types.DeleteDocumentConfig
+- google.adk.cli.adk_web_server.CreateEvalSetRequest
+- google.adk.plugins.logging_plugin.LoggingPlugin
+- google.adk.tools.retrieval.base_retrieval_tool.BaseRetrievalTool
+is_correct: true
+---
+timestamp: 1769403236.809877
+event: convergence_check
+case_id: configure_adk_features_mc:which_is_the_correct_import_statement_for_the_runn
+trial_index: 7
+max_se_diff: 1.0
+se_map:
+  google.adk.runners: 0.3887
+  google.adk.runners.Runner: 0.3887
+  google.adk.runners.Runner.execute: 0.3887
+  google.adk.runners.Runner.close: 0.3887
+  google.adk.runners.InMemoryRunner: 0.3887
+  google.adk.a2a.utils.agent_to_a2a.create_runner: 0.527
+  google.adk.runners.Runner.run: 0.3887
+  google.adk.cli.adk_web_server.AdkWebServer.get_runner_async: 0.3887
+  google.adk.agents.run_config.RunConfig: 0.3887
+  google.adk.code_executors.built_in_code_executor: 0.527
+  google.adk.runners.Runner.run_async: 0.527
+  google.adk.code_executors.base_code_executor: 0.3536
+  google.adk.plugins.logging_plugin.LoggingPlugin.on_event_callback: 0.527
+  google.adk.a2a.converters.request_converter.AgentRunRequest: 0.3887
+  google.genai.types.FunctionResponsePart: 0.3887
+  google.adk.agents.invocation_context.InvocationContext.set_agent_state: 0.3536
+  google.adk.cli.conformance.cli_test.run_conformance_test: 0.3887
+  google.adk.agents.llm_agent_config.LlmAgentConfig: 0.3536
+  google.adk.tools.retrieval.files_retrieval.FilesRetrieval: 0.3887
+  google.adk.tools.bigtable.bigtable_toolset.BigtableToolset: 0.3887
+  google.genai.types.DeleteCachedContentResponseDict: 0.527
+  google.genai.types.HarmCategory: 0.3887
+  vertexai.preview.reasoning_engines.templates.langgraph.LanggraphAgent.register_operations: 0.3887
+  google.adk.evaluation.eval_rubrics.Rubric: 1.0102
+  google.genai.types.DeleteDocumentConfig: 0.3887
+  google.adk.cli.adk_web_server.CreateEvalSetRequest: 0.527
+  google.adk.plugins.logging_plugin.LoggingPlugin: 0.3887
+  google.genai.types.Interval: 0.3536
+  google.genai.types.UploadToFileSearchStoreOperation.from_api_response: 0.3887
+  google.adk.cli.agent_graph.build_graph: 1.0
+  google.adk.tools.retrieval.base_retrieval_tool.BaseRetrievalTool: 0.3887
+  google.adk.evaluation.in_memory_eval_sets_manager.InMemoryEvalSetsManager.create_eval_set: 0.3887
+  google.adk.tools.load_artifacts_tool.LoadArtifactsTool.run_async: 0.527
+  google.genai.types.Scale: 0.3887
+threshold: 0.1
+---
+timestamp: 1769403238.432128
+event: trial_complete
+case_id: configure_adk_features_mc:which_is_the_correct_import_statement_for_the_runn
+trial_index: 8
+subset_size: 19
+subset_fqns:
+- google.adk.runners.Runner
+- google.adk.runners.Runner.close
+- google.adk.a2a.utils.agent_to_a2a.create_runner
+- google.adk.runners.Runner.run
+- google.adk.cli.adk_web_server.AdkWebServer.get_runner_async
+- google.adk.agents.run_config.RunConfig
+- google.adk.code_executors.built_in_code_executor
+- google.adk.code_executors.base_code_executor
+- google.genai.types.FunctionResponsePart
+- google.adk.cli.conformance.cli_test.run_conformance_test
+- google.adk.tools.bigtable.bigtable_toolset.BigtableToolset
+- google.genai.types.DeleteCachedContentResponseDict
+- google.adk.evaluation.eval_rubrics.Rubric
+- google.genai.types.DeleteDocumentConfig
+- google.adk.cli.adk_web_server.CreateEvalSetRequest
+- google.adk.plugins.logging_plugin.LoggingPlugin
+- google.adk.cli.agent_graph.build_graph
+- google.adk.evaluation.in_memory_eval_sets_manager.InMemoryEvalSetsManager.create_eval_set
+- google.genai.types.Scale
+is_correct: true
+---
+timestamp: 1769403238.433821
+event: convergence_check
+case_id: configure_adk_features_mc:which_is_the_correct_import_statement_for_the_runn
+trial_index: 8
+max_se_diff: 1.0077822185373186
+se_map:
+  google.adk.runners: 0.3727
+  google.adk.runners.Runner: 0.3202
+  google.adk.runners.Runner.execute: 0.3727
+  google.adk.runners.Runner.close: 0.3202
+  google.adk.runners.InMemoryRunner: 0.3202
+  google.adk.a2a.utils.agent_to_a2a.create_runner: 0.3727
+  google.adk.runners.Runner.run: 0.3202
+  google.adk.cli.adk_web_server.AdkWebServer.get_runner_async: 0.3202
+  google.adk.agents.run_config.RunConfig: 0.3727
+  google.adk.code_executors.built_in_code_executor: 0.52
+  google.adk.runners.Runner.run_async: 0.3727
+  google.adk.code_executors.base_code_executor: 0.3202
+  google.adk.plugins.logging_plugin.LoggingPlugin.on_event_callback: 0.3727
+  google.adk.a2a.converters.request_converter.AgentRunRequest: 0.3202
+  google.genai.types.FunctionResponsePart: 0.3202
+  google.adk.agents.invocation_context.InvocationContext.set_agent_state: 0.3202
+  google.adk.cli.conformance.cli_test.run_conformance_test: 0.3202
+  google.adk.agents.llm_agent_config.LlmAgentConfig: 0.3202
+  google.adk.tools.retrieval.files_retrieval.FilesRetrieval: 0.3727
+  google.adk.tools.bigtable.bigtable_toolset.BigtableToolset: 0.3727
+  google.genai.types.DeleteCachedContentResponseDict: 0.3727
+  google.genai.types.HarmCategory: 0.3202
+  vertexai.preview.reasoning_engines.templates.langgraph.LanggraphAgent.register_operations: 0.3202
+  google.adk.evaluation.eval_rubrics.Rubric: 1.0078
+  google.genai.types.DeleteDocumentConfig: 0.3727
+  google.adk.cli.adk_web_server.CreateEvalSetRequest: 0.52
+  google.adk.plugins.logging_plugin.LoggingPlugin: 0.3727
+  google.genai.types.Interval: 0.3202
+  google.genai.types.UploadToFileSearchStoreOperation.from_api_response: 0.3202
+  google.adk.cli.agent_graph.build_graph: 1.0078
+  google.adk.tools.retrieval.base_retrieval_tool.BaseRetrievalTool: 0.3727
+  google.adk.evaluation.in_memory_eval_sets_manager.InMemoryEvalSetsManager.create_eval_set: 0.3202
+  google.adk.tools.load_artifacts_tool.LoadArtifactsTool.run_async: 0.52
+  google.genai.types.Scale: 0.3202
+threshold: 0.1
+---
+timestamp: 1769403240.477793
+event: trial_complete
+case_id: configure_adk_features_mc:which_is_the_correct_import_statement_for_the_runn
+trial_index: 9
+subset_size: 18
+subset_fqns:
+- google.adk.runners
+- google.adk.runners.Runner
+- google.adk.runners.Runner.execute
+- google.adk.runners.Runner.close
+- google.adk.runners.InMemoryRunner
+- google.adk.a2a.utils.agent_to_a2a.create_runner
+- google.adk.code_executors.base_code_executor
+- google.adk.plugins.logging_plugin.LoggingPlugin.on_event_callback
+- google.adk.cli.conformance.cli_test.run_conformance_test
+- google.adk.agents.llm_agent_config.LlmAgentConfig
+- google.adk.tools.retrieval.files_retrieval.FilesRetrieval
+- google.genai.types.DeleteCachedContentResponseDict
+- google.adk.evaluation.eval_rubrics.Rubric
+- google.genai.types.DeleteDocumentConfig
+- google.adk.cli.adk_web_server.CreateEvalSetRequest
+- google.genai.types.Interval
+- google.adk.cli.agent_graph.build_graph
+- google.adk.tools.load_artifacts_tool.LoadArtifactsTool.run_async
+is_correct: true
+---
+timestamp: 1769403240.4784389
+event: convergence_check
+case_id: configure_adk_features_mc:which_is_the_correct_import_statement_for_the_runn
+trial_index: 9
+max_se_diff: 1.0061539042374907
+se_map:
+  google.adk.runners: 0.3005
+  google.adk.runners.Runner: 0.2828
+  google.adk.runners.Runner.execute: 0.3005
+  google.adk.runners.Runner.close: 0.2828
+  google.adk.runners.InMemoryRunner: 0.3005
+  google.adk.a2a.utils.agent_to_a2a.create_runner: 0.3005
+  google.adk.runners.Runner.run: 0.3005
+  google.adk.cli.adk_web_server.AdkWebServer.get_runner_async: 0.3005
+  google.adk.agents.run_config.RunConfig: 0.3005
+  google.adk.code_executors.built_in_code_executor: 0.3627
+  google.adk.runners.Runner.run_async: 0.3005
+  google.adk.code_executors.base_code_executor: 0.3005
+  google.adk.plugins.logging_plugin.LoggingPlugin.on_event_callback: 0.3627
+  google.adk.a2a.converters.request_converter.AgentRunRequest: 0.2828
+  google.genai.types.FunctionResponsePart: 0.3005
+  google.adk.agents.invocation_context.InvocationContext.set_agent_state: 0.3005
+  google.adk.cli.conformance.cli_test.run_conformance_test: 0.2828
+  google.adk.agents.llm_agent_config.LlmAgentConfig: 0.2828
+  google.adk.tools.retrieval.files_retrieval.FilesRetrieval: 0.3005
+  google.adk.tools.bigtable.bigtable_toolset.BigtableToolset: 0.3005
+  google.genai.types.DeleteCachedContentResponseDict: 0.3005
+  google.genai.types.HarmCategory: 0.2828
+  vertexai.preview.reasoning_engines.templates.langgraph.LanggraphAgent.register_operations: 0.2828
+  google.adk.evaluation.eval_rubrics.Rubric: 1.0062
+  google.genai.types.DeleteDocumentConfig: 0.3627
+  google.adk.cli.adk_web_server.CreateEvalSetRequest: 0.5154
+  google.adk.plugins.logging_plugin.LoggingPlugin: 0.3005
+  google.genai.types.Interval: 0.2828
+  google.genai.types.UploadToFileSearchStoreOperation.from_api_response: 0.2828
+  google.adk.cli.agent_graph.build_graph: 0.5154
+  google.adk.tools.retrieval.base_retrieval_tool.BaseRetrievalTool: 0.3627
+  google.adk.evaluation.in_memory_eval_sets_manager.InMemoryEvalSetsManager.create_eval_set: 0.3005
+  google.adk.tools.load_artifacts_tool.LoadArtifactsTool.run_async: 0.3627
+  google.genai.types.Scale: 0.3005
+threshold: 0.1
+---
+timestamp: 1769403242.221934
+event: trial_complete
+case_id: configure_adk_features_mc:which_is_the_correct_import_statement_for_the_runn
+trial_index: 10
+subset_size: 16
+subset_fqns:
+- google.adk.runners
+- google.adk.runners.Runner
+- google.adk.runners.Runner.close
+- google.adk.cli.adk_web_server.AdkWebServer.get_runner_async
+- google.adk.code_executors.base_code_executor
+- google.adk.plugins.logging_plugin.LoggingPlugin.on_event_callback
+- google.genai.types.FunctionResponsePart
+- google.adk.cli.conformance.cli_test.run_conformance_test
+- google.adk.agents.llm_agent_config.LlmAgentConfig
+- google.adk.tools.bigtable.bigtable_toolset.BigtableToolset
+- google.genai.types.HarmCategory
+- vertexai.preview.reasoning_engines.templates.langgraph.LanggraphAgent.register_operations
+- google.adk.plugins.logging_plugin.LoggingPlugin
+- google.adk.cli.agent_graph.build_graph
+- google.adk.tools.retrieval.base_retrieval_tool.BaseRetrievalTool
+- google.adk.evaluation.in_memory_eval_sets_manager.InMemoryEvalSetsManager.create_eval_set
+is_correct: true
+---
+timestamp: 1769403242.224184
+event: convergence_check
+case_id: configure_adk_features_mc:which_is_the_correct_import_statement_for_the_runn
+trial_index: 10
+max_se_diff: 0.5121969142940493
+se_map:
+  google.adk.runners: 0.2603
+  google.adk.runners.Runner: 0.2603
+  google.adk.runners.Runner.execute: 0.2879
+  google.adk.runners.Runner.close: 0.2603
+  google.adk.runners.InMemoryRunner: 0.2603
+  google.adk.a2a.utils.agent_to_a2a.create_runner: 0.2879
+  google.adk.runners.Runner.run: 0.2879
+  google.adk.cli.adk_web_server.AdkWebServer.get_runner_async: 0.2603
+  google.adk.agents.run_config.RunConfig: 0.2603
+  google.adk.code_executors.built_in_code_executor: 0.2879
+  google.adk.runners.Runner.run_async: 0.2603
+  google.adk.code_executors.base_code_executor: 0.2879
+  google.adk.plugins.logging_plugin.LoggingPlugin.on_event_callback: 0.356
+  google.adk.a2a.converters.request_converter.AgentRunRequest: 0.2603
+  google.genai.types.FunctionResponsePart: 0.2603
+  google.adk.agents.invocation_context.InvocationContext.set_agent_state: 0.2879
+  google.adk.cli.conformance.cli_test.run_conformance_test: 0.2603
+  google.adk.agents.llm_agent_config.LlmAgentConfig: 0.2603
+  google.adk.tools.retrieval.files_retrieval.FilesRetrieval: 0.2879
+  google.adk.tools.bigtable.bigtable_toolset.BigtableToolset: 0.2879
+  google.genai.types.DeleteCachedContentResponseDict: 0.2879
+  google.genai.types.HarmCategory: 0.2603
+  vertexai.preview.reasoning_engines.templates.langgraph.LanggraphAgent.register_operations: 0.2603
+  google.adk.evaluation.eval_rubrics.Rubric: 0.5122
+  google.genai.types.DeleteDocumentConfig: 0.2879
+  google.adk.cli.adk_web_server.CreateEvalSetRequest: 0.356
+  google.adk.plugins.logging_plugin.LoggingPlugin: 0.2879
+  google.genai.types.Interval: 0.2603
+  google.genai.types.UploadToFileSearchStoreOperation.from_api_response: 0.2603
+  google.adk.cli.agent_graph.build_graph: 0.356
+  google.adk.tools.retrieval.base_retrieval_tool.BaseRetrievalTool: 0.2879
+  google.adk.evaluation.in_memory_eval_sets_manager.InMemoryEvalSetsManager.create_eval_set: 0.2603
+  google.adk.tools.load_artifacts_tool.LoadArtifactsTool.run_async: 0.356
+  google.genai.types.Scale: 0.2879
+threshold: 0.1
+---
+timestamp: 1769403243.618015
+event: trial_complete
+case_id: configure_adk_features_mc:which_is_the_correct_import_statement_for_the_runn
+trial_index: 11
+subset_size: 15
+subset_fqns:
+- google.adk.runners.Runner
+- google.adk.runners.Runner.run
+- google.adk.cli.adk_web_server.AdkWebServer.get_runner_async
+- google.adk.agents.run_config.RunConfig
+- google.adk.runners.Runner.run_async
+- google.adk.code_executors.base_code_executor
+- google.adk.a2a.converters.request_converter.AgentRunRequest
+- google.genai.types.DeleteCachedContentResponseDict
+- google.genai.types.HarmCategory
+- vertexai.preview.reasoning_engines.templates.langgraph.LanggraphAgent.register_operations
+- google.adk.plugins.logging_plugin.LoggingPlugin
+- google.genai.types.Interval
+- google.adk.tools.retrieval.base_retrieval_tool.BaseRetrievalTool
+- google.adk.evaluation.in_memory_eval_sets_manager.InMemoryEvalSetsManager.create_eval_set
+- google.genai.types.Scale
+is_correct: true
+---
+timestamp: 1769403243.620162
+event: convergence_check
+case_id: configure_adk_features_mc:which_is_the_correct_import_statement_for_the_runn
+trial_index: 11
+max_se_diff: 0.35136418446315326
+se_map:
+  google.adk.runners: 0.2458
+  google.adk.runners.Runner: 0.2458
+  google.adk.runners.Runner.execute: 0.2795
+  google.adk.runners.Runner.close: 0.2357
+  google.adk.runners.InMemoryRunner: 0.2357
+  google.adk.a2a.utils.agent_to_a2a.create_runner: 0.2795
+  google.adk.runners.Runner.run: 0.2458
+  google.adk.cli.adk_web_server.AdkWebServer.get_runner_async: 0.2357
+  google.adk.agents.run_config.RunConfig: 0.2458
+  google.adk.code_executors.built_in_code_executor: 0.2458
+  google.adk.runners.Runner.run_async: 0.2458
+  google.adk.code_executors.base_code_executor: 0.2795
+  google.adk.plugins.logging_plugin.LoggingPlugin.on_event_callback: 0.2795
+  google.adk.a2a.converters.request_converter.AgentRunRequest: 0.2357
+  google.genai.types.FunctionResponsePart: 0.2458
+  google.adk.agents.invocation_context.InvocationContext.set_agent_state: 0.2795
+  google.adk.cli.conformance.cli_test.run_conformance_test: 0.2357
+  google.adk.agents.llm_agent_config.LlmAgentConfig: 0.2357
+  google.adk.tools.retrieval.files_retrieval.FilesRetrieval: 0.2795
+  google.adk.tools.bigtable.bigtable_toolset.BigtableToolset: 0.2458
+  google.genai.types.DeleteCachedContentResponseDict: 0.2458
+  google.genai.types.HarmCategory: 0.2458
+  vertexai.preview.reasoning_engines.templates.langgraph.LanggraphAgent.register_operations: 0.2458
+  google.adk.evaluation.eval_rubrics.Rubric: 0.3514
+  google.genai.types.DeleteDocumentConfig: 0.2458
+  google.adk.cli.adk_web_server.CreateEvalSetRequest: 0.2795
+  google.adk.plugins.logging_plugin.LoggingPlugin: 0.2795
+  google.genai.types.Interval: 0.2357
+  google.genai.types.UploadToFileSearchStoreOperation.from_api_response: 0.2458
+  google.adk.cli.agent_graph.build_graph: 0.3514
+  google.adk.tools.retrieval.base_retrieval_tool.BaseRetrievalTool: 0.2458
+  google.adk.evaluation.in_memory_eval_sets_manager.InMemoryEvalSetsManager.create_eval_set: 0.2357
+  google.adk.tools.load_artifacts_tool.LoadArtifactsTool.run_async: 0.3514
+  google.genai.types.Scale: 0.2458
+threshold: 0.1
+---
+timestamp: 1769403245.548887
+event: trial_complete
+case_id: configure_adk_features_mc:which_is_the_correct_import_statement_for_the_runn
+trial_index: 12
+subset_size: 15
+subset_fqns:
+- google.adk.runners
+- google.adk.runners.Runner.execute
+- google.adk.runners.InMemoryRunner
+- google.adk.cli.adk_web_server.AdkWebServer.get_runner_async
+- google.adk.code_executors.base_code_executor
+- google.genai.types.FunctionResponsePart
+- google.adk.tools.retrieval.files_retrieval.FilesRetrieval
+- google.adk.tools.bigtable.bigtable_toolset.BigtableToolset
+- google.genai.types.DeleteCachedContentResponseDict
+- google.genai.types.HarmCategory
+- vertexai.preview.reasoning_engines.templates.langgraph.LanggraphAgent.register_operations
+- google.genai.types.DeleteDocumentConfig
+- google.adk.plugins.logging_plugin.LoggingPlugin
+- google.adk.cli.agent_graph.build_graph
+- google.adk.tools.load_artifacts_tool.LoadArtifactsTool.run_async
+is_correct: true
+---
+timestamp: 1769403245.550237
+event: convergence_check
+case_id: configure_adk_features_mc:which_is_the_correct_import_statement_for_the_runn
+trial_index: 12
+max_se_diff: 0.2735793833832251
+se_map:
+  google.adk.runners: 0.2195
+  google.adk.runners.Runner: 0.2195
+  google.adk.runners.Runner.execute: 0.2358
+  google.adk.runners.Runner.close: 0.2195
+  google.adk.runners.InMemoryRunner: 0.2195
+  google.adk.a2a.utils.agent_to_a2a.create_runner: 0.2736
+  google.adk.runners.Runner.run: 0.2358
+  google.adk.cli.adk_web_server.AdkWebServer.get_runner_async: 0.2195
+  google.adk.agents.run_config.RunConfig: 0.2195
+  google.adk.code_executors.built_in_code_executor: 0.2195
+  google.adk.runners.Runner.run_async: 0.2195
+  google.adk.code_executors.base_code_executor: 0.2736
+  google.adk.plugins.logging_plugin.LoggingPlugin.on_event_callback: 0.2358
+  google.adk.a2a.converters.request_converter.AgentRunRequest: 0.2195
+  google.genai.types.FunctionResponsePart: 0.2195
+  google.adk.agents.invocation_context.InvocationContext.set_agent_state: 0.2736
+  google.adk.cli.conformance.cli_test.run_conformance_test: 0.2195
+  google.adk.agents.llm_agent_config.LlmAgentConfig: 0.2195
+  google.adk.tools.retrieval.files_retrieval.FilesRetrieval: 0.2358
+  google.adk.tools.bigtable.bigtable_toolset.BigtableToolset: 0.2358
+  google.genai.types.DeleteCachedContentResponseDict: 0.2195
+  google.genai.types.HarmCategory: 0.2358
+  vertexai.preview.reasoning_engines.templates.langgraph.LanggraphAgent.register_operations: 0.2358
+  google.adk.evaluation.eval_rubrics.Rubric: 0.2736
+  google.genai.types.DeleteDocumentConfig: 0.2358
+  google.adk.cli.adk_web_server.CreateEvalSetRequest: 0.2358
+  google.adk.plugins.logging_plugin.LoggingPlugin: 0.2736
+  google.genai.types.Interval: 0.2195
+  google.genai.types.UploadToFileSearchStoreOperation.from_api_response: 0.2358
+  google.adk.cli.agent_graph.build_graph: 0.2736
+  google.adk.tools.retrieval.base_retrieval_tool.BaseRetrievalTool: 0.2358
+  google.adk.evaluation.in_memory_eval_sets_manager.InMemoryEvalSetsManager.create_eval_set: 0.2195
+  google.adk.tools.load_artifacts_tool.LoadArtifactsTool.run_async: 0.2736
+  google.genai.types.Scale: 0.2358
+threshold: 0.1
+---
+timestamp: 1769403247.028994
+event: trial_complete
+case_id: configure_adk_features_mc:which_is_the_correct_import_statement_for_the_runn
+trial_index: 13
+subset_size: 18
+subset_fqns:
+- google.adk.runners
+- google.adk.runners.Runner
+- google.adk.runners.Runner.execute
+- google.adk.runners.Runner.close
+- google.adk.runners.InMemoryRunner
+- google.adk.runners.Runner.run
+- google.adk.cli.adk_web_server.AdkWebServer.get_runner_async
+- google.adk.runners.Runner.run_async
+- google.adk.code_executors.base_code_executor
+- google.adk.plugins.logging_plugin.LoggingPlugin.on_event_callback
+- google.adk.a2a.converters.request_converter.AgentRunRequest
+- google.adk.agents.llm_agent_config.LlmAgentConfig
+- google.adk.tools.retrieval.files_retrieval.FilesRetrieval
+- google.adk.tools.bigtable.bigtable_toolset.BigtableToolset
+- google.genai.types.DeleteDocumentConfig
+- google.adk.cli.adk_web_server.CreateEvalSetRequest
+- google.adk.evaluation.in_memory_eval_sets_manager.InMemoryEvalSetsManager.create_eval_set
+- google.adk.tools.load_artifacts_tool.LoadArtifactsTool.run_async
+is_correct: true
+---
+timestamp: 1769403247.030464
+event: convergence_check
+case_id: configure_adk_features_mc:which_is_the_correct_import_statement_for_the_runn
+trial_index: 13
+max_se_diff: 0.26925824035672524
+se_map:
+  google.adk.runners: 0.202
+  google.adk.runners.Runner: 0.2083
+  google.adk.runners.Runner.execute: 0.2083
+  google.adk.runners.Runner.close: 0.202
+  google.adk.runners.InMemoryRunner: 0.2083
+  google.adk.a2a.utils.agent_to_a2a.create_runner: 0.2693
+  google.adk.runners.Runner.run: 0.2083
+  google.adk.cli.adk_web_server.AdkWebServer.get_runner_async: 0.2083
+  google.adk.agents.run_config.RunConfig: 0.202
+  google.adk.code_executors.built_in_code_executor: 0.202
+  google.adk.runners.Runner.run_async: 0.2083
+  google.adk.code_executors.base_code_executor: 0.2693
+  google.adk.plugins.logging_plugin.LoggingPlugin.on_event_callback: 0.2288
+  google.adk.a2a.converters.request_converter.AgentRunRequest: 0.202
+  google.genai.types.FunctionResponsePart: 0.2083
+  google.adk.agents.invocation_context.InvocationContext.set_agent_state: 0.2693
+  google.adk.cli.conformance.cli_test.run_conformance_test: 0.2083
+  google.adk.agents.llm_agent_config.LlmAgentConfig: 0.202
+  google.adk.tools.retrieval.files_retrieval.FilesRetrieval: 0.2083
+  google.adk.tools.bigtable.bigtable_toolset.BigtableToolset: 0.2288
+  google.genai.types.DeleteCachedContentResponseDict: 0.2083
+  google.genai.types.HarmCategory: 0.2083
+  vertexai.preview.reasoning_engines.templates.langgraph.LanggraphAgent.register_operations: 0.2083
+  google.adk.evaluation.eval_rubrics.Rubric: 0.2288
+  google.genai.types.DeleteDocumentConfig: 0.2288
+  google.adk.cli.adk_web_server.CreateEvalSetRequest: 0.2288
+  google.adk.plugins.logging_plugin.LoggingPlugin: 0.2288
+  google.genai.types.Interval: 0.2083
+  google.genai.types.UploadToFileSearchStoreOperation.from_api_response: 0.2288
+  google.adk.cli.agent_graph.build_graph: 0.2693
+  google.adk.tools.retrieval.base_retrieval_tool.BaseRetrievalTool: 0.2288
+  google.adk.evaluation.in_memory_eval_sets_manager.InMemoryEvalSetsManager.create_eval_set: 0.202
+  google.adk.tools.load_artifacts_tool.LoadArtifactsTool.run_async: 0.2288
+  google.genai.types.Scale: 0.2288
+threshold: 0.1
+---
+timestamp: 1769403249.048528
+event: trial_complete
+case_id: configure_adk_features_mc:which_is_the_correct_import_statement_for_the_runn
+trial_index: 14
+subset_size: 14
+subset_fqns:
+- google.adk.runners.Runner.execute
+- google.adk.runners.Runner.close
+- google.adk.runners.Runner.run
+- google.adk.cli.adk_web_server.AdkWebServer.get_runner_async
+- google.adk.agents.run_config.RunConfig
+- google.adk.code_executors.built_in_code_executor
+- google.adk.runners.Runner.run_async
+- google.adk.plugins.logging_plugin.LoggingPlugin.on_event_callback
+- google.adk.cli.conformance.cli_test.run_conformance_test
+- google.adk.agents.llm_agent_config.LlmAgentConfig
+- google.adk.tools.bigtable.bigtable_toolset.BigtableToolset
+- google.genai.types.DeleteCachedContentResponseDict
+- google.genai.types.HarmCategory
+- google.genai.types.UploadToFileSearchStoreOperation.from_api_response
+is_correct: true
+---
+timestamp: 1769403249.0503669
+event: convergence_check
+case_id: configure_adk_features_mc:which_is_the_correct_import_statement_for_the_runn
+trial_index: 14
+max_se_diff: 0.26601590706180966
+se_map:
+  google.adk.runners: 0.1898
+  google.adk.runners.Runner: 0.1898
+  google.adk.runners.Runner.execute: 0.1898
+  google.adk.runners.Runner.close: 0.1898
+  google.adk.runners.InMemoryRunner: 0.1898
+  google.adk.a2a.utils.agent_to_a2a.create_runner: 0.266
+  google.adk.runners.Runner.run: 0.1898
+  google.adk.cli.adk_web_server.AdkWebServer.get_runner_async: 0.2003
+  google.adk.agents.run_config.RunConfig: 0.1898
+  google.adk.code_executors.built_in_code_executor: 0.1898
+  google.adk.runners.Runner.run_async: 0.2003
+  google.adk.code_executors.base_code_executor: 0.2236
+  google.adk.plugins.logging_plugin.LoggingPlugin.on_event_callback: 0.2236
+  google.adk.a2a.converters.request_converter.AgentRunRequest: 0.1898
+  google.genai.types.FunctionResponsePart: 0.2003
+  google.adk.agents.invocation_context.InvocationContext.set_agent_state: 0.266
+  google.adk.cli.conformance.cli_test.run_conformance_test: 0.1898
+  google.adk.agents.llm_agent_config.LlmAgentConfig: 0.1898
+  google.adk.tools.retrieval.files_retrieval.FilesRetrieval: 0.2003
+  google.adk.tools.bigtable.bigtable_toolset.BigtableToolset: 0.2236
+  google.genai.types.DeleteCachedContentResponseDict: 0.1898
+  google.genai.types.HarmCategory: 0.2003
+  vertexai.preview.reasoning_engines.templates.langgraph.LanggraphAgent.register_operations: 0.1898
+  google.adk.evaluation.eval_rubrics.Rubric: 0.2003
+  google.genai.types.DeleteDocumentConfig: 0.2003
+  google.adk.cli.adk_web_server.CreateEvalSetRequest: 0.2003
+  google.adk.plugins.logging_plugin.LoggingPlugin: 0.2003
+  google.genai.types.Interval: 0.2003
+  google.genai.types.UploadToFileSearchStoreOperation.from_api_response: 0.2003
+  google.adk.cli.agent_graph.build_graph: 0.266
+  google.adk.tools.retrieval.base_retrieval_tool.BaseRetrievalTool: 0.2236
+  google.adk.evaluation.in_memory_eval_sets_manager.InMemoryEvalSetsManager.create_eval_set: 0.1898
+  google.adk.tools.load_artifacts_tool.LoadArtifactsTool.run_async: 0.2236
+  google.genai.types.Scale: 0.2236
+threshold: 0.1
+---
+timestamp: 1769403251.374013
+event: trial_complete
+case_id: configure_adk_features_mc:which_is_the_correct_import_statement_for_the_runn
+trial_index: 15
+subset_size: 21
+subset_fqns:
+- google.adk.runners
+- google.adk.runners.Runner.execute
+- google.adk.runners.Runner.close
+- google.adk.a2a.utils.agent_to_a2a.create_runner
+- google.adk.runners.Runner.run
+- google.adk.cli.conformance.cli_test.run_conformance_test
+- google.adk.agents.llm_agent_config.LlmAgentConfig
+- google.adk.tools.retrieval.files_retrieval.FilesRetrieval
+- google.adk.tools.bigtable.bigtable_toolset.BigtableToolset
+- google.genai.types.DeleteCachedContentResponseDict
+- google.genai.types.HarmCategory
+- google.adk.evaluation.eval_rubrics.Rubric
+- google.adk.cli.adk_web_server.CreateEvalSetRequest
+- google.adk.plugins.logging_plugin.LoggingPlugin
+- google.genai.types.Interval
+- google.genai.types.UploadToFileSearchStoreOperation.from_api_response
+- google.adk.cli.agent_graph.build_graph
+- google.adk.tools.retrieval.base_retrieval_tool.BaseRetrievalTool
+- google.adk.evaluation.in_memory_eval_sets_manager.InMemoryEvalSetsManager.create_eval_set
+- google.adk.tools.load_artifacts_tool.LoadArtifactsTool.run_async
+- google.genai.types.Scale
+is_correct: true
+---
+timestamp: 1769403251.375007
+event: convergence_check
+case_id: configure_adk_features_mc:which_is_the_correct_import_statement_for_the_runn
+trial_index: 15
+max_se_diff: 0.26352313834736496
+se_map:
+  google.adk.runners: 0.1768
+  google.adk.runners.Runner: 0.1768
+  google.adk.runners.Runner.execute: 0.1768
+  google.adk.runners.Runner.close: 0.181
+  google.adk.runners.InMemoryRunner: 0.1768
+  google.adk.a2a.utils.agent_to_a2a.create_runner: 0.2197
+  google.adk.runners.Runner.run: 0.1768
+  google.adk.cli.adk_web_server.AdkWebServer.get_runner_async: 0.181
+  google.adk.agents.run_config.RunConfig: 0.1768
+  google.adk.code_executors.built_in_code_executor: 0.1768
+  google.adk.runners.Runner.run_async: 0.181
+  google.adk.code_executors.base_code_executor: 0.1944
+  google.adk.plugins.logging_plugin.LoggingPlugin.on_event_callback: 0.1944
+  google.adk.a2a.converters.request_converter.AgentRunRequest: 0.181
+  google.genai.types.FunctionResponsePart: 0.1944
+  google.adk.agents.invocation_context.InvocationContext.set_agent_state: 0.2635
+  google.adk.cli.conformance.cli_test.run_conformance_test: 0.1768
+  google.adk.agents.llm_agent_config.LlmAgentConfig: 0.181
+  google.adk.tools.retrieval.files_retrieval.FilesRetrieval: 0.181
+  google.adk.tools.bigtable.bigtable_toolset.BigtableToolset: 0.2197
+  google.genai.types.DeleteCachedContentResponseDict: 0.1768
+  google.genai.types.HarmCategory: 0.1944
+  vertexai.preview.reasoning_engines.templates.langgraph.LanggraphAgent.register_operations: 0.1768
+  google.adk.evaluation.eval_rubrics.Rubric: 0.1944
+  google.genai.types.DeleteDocumentConfig: 0.181
+  google.adk.cli.adk_web_server.CreateEvalSetRequest: 0.1944
+  google.adk.plugins.logging_plugin.LoggingPlugin: 0.1944
+  google.genai.types.Interval: 0.181
+  google.genai.types.UploadToFileSearchStoreOperation.from_api_response: 0.181
+  google.adk.cli.agent_graph.build_graph: 0.2197
+  google.adk.tools.retrieval.base_retrieval_tool.BaseRetrievalTool: 0.1944
+  google.adk.evaluation.in_memory_eval_sets_manager.InMemoryEvalSetsManager.create_eval_set: 0.1768
+  google.adk.tools.load_artifacts_tool.LoadArtifactsTool.run_async: 0.1944
+  google.genai.types.Scale: 0.1944
+threshold: 0.1
+---
+timestamp: 1769403253.1136608
+event: trial_complete
+case_id: configure_adk_features_mc:which_is_the_correct_import_statement_for_the_runn
+trial_index: 16
+subset_size: 14
+subset_fqns:
+- google.adk.runners.Runner.close
+- google.adk.runners.InMemoryRunner
+- google.adk.agents.run_config.RunConfig
+- google.adk.runners.Runner.run_async
+- google.adk.plugins.logging_plugin.LoggingPlugin.on_event_callback
+- google.adk.a2a.converters.request_converter.AgentRunRequest
+- google.genai.types.FunctionResponsePart
+- google.adk.cli.conformance.cli_test.run_conformance_test
+- google.adk.tools.bigtable.bigtable_toolset.BigtableToolset
+- google.genai.types.DeleteCachedContentResponseDict
+- vertexai.preview.reasoning_engines.templates.langgraph.LanggraphAgent.register_operations
+- google.adk.evaluation.eval_rubrics.Rubric
+- google.genai.types.UploadToFileSearchStoreOperation.from_api_response
+- google.adk.tools.load_artifacts_tool.LoadArtifactsTool.run_async
+is_correct: true
+---
+timestamp: 1769403253.115561
+event: convergence_check
+case_id: configure_adk_features_mc:which_is_the_correct_import_statement_for_the_runn
+trial_index: 16
+max_se_diff: 0.2615667405526047
+se_map:
+  google.adk.runners: 0.1672
+  google.adk.runners.Runner: 0.1672
+  google.adk.runners.Runner.execute: 0.1672
+  google.adk.runners.Runner.close: 0.1744
+  google.adk.runners.InMemoryRunner: 0.1672
+  google.adk.a2a.utils.agent_to_a2a.create_runner: 0.2167
+  google.adk.runners.Runner.run: 0.1672
+  google.adk.cli.adk_web_server.AdkWebServer.get_runner_async: 0.1672
+  google.adk.agents.run_config.RunConfig: 0.1672
+  google.adk.code_executors.built_in_code_executor: 0.1672
+  google.adk.runners.Runner.run_async: 0.1744
+  google.adk.code_executors.base_code_executor: 0.1744
+  google.adk.plugins.logging_plugin.LoggingPlugin.on_event_callback: 0.1898
+  google.adk.a2a.converters.request_converter.AgentRunRequest: 0.1672
+  google.genai.types.FunctionResponsePart: 0.1744
+  google.adk.agents.invocation_context.InvocationContext.set_agent_state: 0.2616
+  google.adk.cli.conformance.cli_test.run_conformance_test: 0.1672
+  google.adk.agents.llm_agent_config.LlmAgentConfig: 0.1672
+  google.adk.tools.retrieval.files_retrieval.FilesRetrieval: 0.1744
+  google.adk.tools.bigtable.bigtable_toolset.BigtableToolset: 0.2167
+  google.genai.types.DeleteCachedContentResponseDict: 0.1672
+  google.genai.types.HarmCategory: 0.1744
+  vertexai.preview.reasoning_engines.templates.langgraph.LanggraphAgent.register_operations: 0.1672
+  google.adk.evaluation.eval_rubrics.Rubric: 0.1898
+  google.genai.types.DeleteDocumentConfig: 0.1672
+  google.adk.cli.adk_web_server.CreateEvalSetRequest: 0.1744
+  google.adk.plugins.logging_plugin.LoggingPlugin: 0.1744
+  google.genai.types.Interval: 0.1744
+  google.genai.types.UploadToFileSearchStoreOperation.from_api_response: 0.1672
+  google.adk.cli.agent_graph.build_graph: 0.2167
+  google.adk.tools.retrieval.base_retrieval_tool.BaseRetrievalTool: 0.1898
+  google.adk.evaluation.in_memory_eval_sets_manager.InMemoryEvalSetsManager.create_eval_set: 0.1672
+  google.adk.tools.load_artifacts_tool.LoadArtifactsTool.run_async: 0.1744
+  google.genai.types.Scale: 0.1898
+threshold: 0.1
+---
+timestamp: 1769403255.947304
+event: trial_complete
+case_id: configure_adk_features_mc:which_is_the_correct_import_statement_for_the_runn
+trial_index: 17
+subset_size: 18
+subset_fqns:
+- google.adk.runners
+- google.adk.runners.InMemoryRunner
+- google.adk.a2a.utils.agent_to_a2a.create_runner
+- google.adk.plugins.logging_plugin.LoggingPlugin.on_event_callback
+- google.adk.a2a.converters.request_converter.AgentRunRequest
+- google.genai.types.FunctionResponsePart
+- google.adk.agents.invocation_context.InvocationContext.set_agent_state
+- google.adk.cli.conformance.cli_test.run_conformance_test
+- google.adk.tools.bigtable.bigtable_toolset.BigtableToolset
+- google.genai.types.HarmCategory
+- vertexai.preview.reasoning_engines.templates.langgraph.LanggraphAgent.register_operations
+- google.adk.evaluation.eval_rubrics.Rubric
+- google.adk.cli.adk_web_server.CreateEvalSetRequest
+- google.adk.plugins.logging_plugin.LoggingPlugin
+- google.genai.types.UploadToFileSearchStoreOperation.from_api_response
+- google.adk.cli.agent_graph.build_graph
+- google.adk.tools.retrieval.base_retrieval_tool.BaseRetrievalTool
+- google.adk.tools.load_artifacts_tool.LoadArtifactsTool.run_async
+is_correct: true
+---
+timestamp: 1769403255.949247
+event: convergence_check
+case_id: configure_adk_features_mc:which_is_the_correct_import_statement_for_the_runn
+trial_index: 17
+max_se_diff: 0.2142828965720634
+se_map:
+  google.adk.runners: 0.1571
+  google.adk.runners.Runner: 0.1601
+  google.adk.runners.Runner.execute: 0.1601
+  google.adk.runners.Runner.close: 0.1601
+  google.adk.runners.InMemoryRunner: 0.1601
+  google.adk.a2a.utils.agent_to_a2a.create_runner: 0.1863
+  google.adk.runners.Runner.run: 0.1601
+  google.adk.cli.adk_web_server.AdkWebServer.get_runner_async: 0.1571
+  google.adk.agents.run_config.RunConfig: 0.1571
+  google.adk.code_executors.built_in_code_executor: 0.1601
+  google.adk.runners.Runner.run_async: 0.1601
+  google.adk.code_executors.base_code_executor: 0.1601
+  google.adk.plugins.logging_plugin.LoggingPlugin.on_event_callback: 0.1863
+  google.adk.a2a.converters.request_converter.AgentRunRequest: 0.1571
+  google.genai.types.FunctionResponsePart: 0.1601
+  google.adk.agents.invocation_context.InvocationContext.set_agent_state: 0.2143
+  google.adk.cli.conformance.cli_test.run_conformance_test: 0.1601
+  google.adk.agents.llm_agent_config.LlmAgentConfig: 0.1571
+  google.adk.tools.retrieval.files_retrieval.FilesRetrieval: 0.1693
+  google.adk.tools.bigtable.bigtable_toolset.BigtableToolset: 0.2143
+  google.genai.types.DeleteCachedContentResponseDict: 0.1571
+  google.genai.types.HarmCategory: 0.1693
+  vertexai.preview.reasoning_engines.templates.langgraph.LanggraphAgent.register_operations: 0.1601
+  google.adk.evaluation.eval_rubrics.Rubric: 0.1863
+  google.genai.types.DeleteDocumentConfig: 0.1571
+  google.adk.cli.adk_web_server.CreateEvalSetRequest: 0.1693
+  google.adk.plugins.logging_plugin.LoggingPlugin: 0.1693
+  google.genai.types.Interval: 0.1693
+  google.genai.types.UploadToFileSearchStoreOperation.from_api_response: 0.1571
+  google.adk.cli.agent_graph.build_graph: 0.1863
+  google.adk.tools.retrieval.base_retrieval_tool.BaseRetrievalTool: 0.1693
+  google.adk.evaluation.in_memory_eval_sets_manager.InMemoryEvalSetsManager.create_eval_set: 0.1601
+  google.adk.tools.load_artifacts_tool.LoadArtifactsTool.run_async: 0.1601
+  google.genai.types.Scale: 0.1863
+threshold: 0.1
+---
+timestamp: 1769403260.549406
+event: trial_complete
+case_id: configure_adk_features_mc:which_is_the_correct_import_statement_for_the_runn
+trial_index: 18
+subset_size: 14
+subset_fqns:
+- google.adk.runners.InMemoryRunner
+- google.adk.a2a.utils.agent_to_a2a.create_runner
+- google.adk.cli.adk_web_server.AdkWebServer.get_runner_async
+- google.adk.agents.run_config.RunConfig
+- google.adk.plugins.logging_plugin.LoggingPlugin.on_event_callback
+- google.adk.a2a.converters.request_converter.AgentRunRequest
+- google.genai.types.FunctionResponsePart
+- google.adk.agents.invocation_context.InvocationContext.set_agent_state
+- google.adk.tools.retrieval.files_retrieval.FilesRetrieval
+- google.genai.types.HarmCategory
+- vertexai.preview.reasoning_engines.templates.langgraph.LanggraphAgent.register_operations
+- google.genai.types.DeleteDocumentConfig
+- google.adk.plugins.logging_plugin.LoggingPlugin
+- google.adk.tools.load_artifacts_tool.LoadArtifactsTool.run_async
+is_correct: true
+---
+timestamp: 1769403260.551095
+event: convergence_check
+case_id: configure_adk_features_mc:which_is_the_correct_import_statement_for_the_runn
+trial_index: 18
+max_se_diff: 0.18356180850354298
+se_map:
+  google.adk.runners: 0.1495
+  google.adk.runners.Runner: 0.1546
+  google.adk.runners.Runner.execute: 0.1546
+  google.adk.runners.Runner.close: 0.1495
+  google.adk.runners.InMemoryRunner: 0.1546
+  google.adk.a2a.utils.agent_to_a2a.create_runner: 0.1654
+  google.adk.runners.Runner.run: 0.1546
+  google.adk.cli.adk_web_server.AdkWebServer.get_runner_async: 0.1495
+  google.adk.agents.run_config.RunConfig: 0.1495
+  google.adk.code_executors.built_in_code_executor: 0.1546
+  google.adk.runners.Runner.run_async: 0.1495
+  google.adk.code_executors.base_code_executor: 0.1495
+  google.adk.plugins.logging_plugin.LoggingPlugin.on_event_callback: 0.1836
+  google.adk.a2a.converters.request_converter.AgentRunRequest: 0.1495
+  google.genai.types.FunctionResponsePart: 0.1495
+  google.adk.agents.invocation_context.InvocationContext.set_agent_state: 0.1836
+  google.adk.cli.conformance.cli_test.run_conformance_test: 0.1495
+  google.adk.agents.llm_agent_config.LlmAgentConfig: 0.1495
+  google.adk.tools.retrieval.files_retrieval.FilesRetrieval: 0.1546
+  google.adk.tools.bigtable.bigtable_toolset.BigtableToolset: 0.1836
+  google.genai.types.DeleteCachedContentResponseDict: 0.1495
+  google.genai.types.HarmCategory: 0.1654
+  vertexai.preview.reasoning_engines.templates.langgraph.LanggraphAgent.register_operations: 0.1546
+  google.adk.evaluation.eval_rubrics.Rubric: 0.1654
+  google.genai.types.DeleteDocumentConfig: 0.1495
+  google.adk.cli.adk_web_server.CreateEvalSetRequest: 0.1546
+  google.adk.plugins.logging_plugin.LoggingPlugin: 0.1654
+  google.genai.types.Interval: 0.1654
+  google.genai.types.UploadToFileSearchStoreOperation.from_api_response: 0.1495
+  google.adk.cli.agent_graph.build_graph: 0.1836
+  google.adk.tools.retrieval.base_retrieval_tool.BaseRetrievalTool: 0.1654
+  google.adk.evaluation.in_memory_eval_sets_manager.InMemoryEvalSetsManager.create_eval_set: 0.1546
+  google.adk.tools.load_artifacts_tool.LoadArtifactsTool.run_async: 0.1495
+  google.genai.types.Scale: 0.1836
+threshold: 0.1
+---
+timestamp: 1769403262.1348422
+event: trial_complete
+case_id: configure_adk_features_mc:which_is_the_correct_import_statement_for_the_runn
+trial_index: 19
+subset_size: 20
+subset_fqns:
+- google.adk.runners
+- google.adk.runners.Runner.close
+- google.adk.a2a.utils.agent_to_a2a.create_runner
+- google.adk.runners.Runner.run
+- google.adk.cli.adk_web_server.AdkWebServer.get_runner_async
+- google.adk.runners.Runner.run_async
+- google.adk.code_executors.base_code_executor
+- google.adk.plugins.logging_plugin.LoggingPlugin.on_event_callback
+- google.adk.a2a.converters.request_converter.AgentRunRequest
+- google.genai.types.FunctionResponsePart
+- google.adk.agents.invocation_context.InvocationContext.set_agent_state
+- google.adk.cli.conformance.cli_test.run_conformance_test
+- google.adk.agents.llm_agent_config.LlmAgentConfig
+- google.genai.types.DeleteCachedContentResponseDict
+- google.genai.types.HarmCategory
+- vertexai.preview.reasoning_engines.templates.langgraph.LanggraphAgent.register_operations
+- google.genai.types.DeleteDocumentConfig
+- google.genai.types.Interval
+- google.genai.types.UploadToFileSearchStoreOperation.from_api_response
+- google.adk.evaluation.in_memory_eval_sets_manager.InMemoryEvalSetsManager.create_eval_set
+is_correct: true
+---
+timestamp: 1769403262.136848
+event: convergence_check
+case_id: configure_adk_features_mc:which_is_the_correct_import_statement_for_the_runn
+trial_index: 19
+max_se_diff: 0.1813279310919978
+se_map:
+  google.adk.runners: 0.1414
+  google.adk.runners.Runner: 0.1502
+  google.adk.runners.Runner.execute: 0.1502
+  google.adk.runners.Runner.close: 0.1436
+  google.adk.runners.InMemoryRunner: 0.1436
+  google.adk.a2a.utils.agent_to_a2a.create_runner: 0.1502
+  google.adk.runners.Runner.run: 0.1436
+  google.adk.cli.adk_web_server.AdkWebServer.get_runner_async: 0.1436
+  google.adk.agents.run_config.RunConfig: 0.1414
+  google.adk.code_executors.built_in_code_executor: 0.1502
+  google.adk.runners.Runner.run_async: 0.1436
+  google.adk.code_executors.base_code_executor: 0.1436
+  google.adk.plugins.logging_plugin.LoggingPlugin.on_event_callback: 0.1813
+  google.adk.a2a.converters.request_converter.AgentRunRequest: 0.1436
+  google.genai.types.FunctionResponsePart: 0.1414
+  google.adk.agents.invocation_context.InvocationContext.set_agent_state: 0.1623
+  google.adk.cli.conformance.cli_test.run_conformance_test: 0.1436
+  google.adk.agents.llm_agent_config.LlmAgentConfig: 0.1414
+  google.adk.tools.retrieval.files_retrieval.FilesRetrieval: 0.1502
+  google.adk.tools.bigtable.bigtable_toolset.BigtableToolset: 0.1623
+  google.genai.types.DeleteCachedContentResponseDict: 0.1414
+  google.genai.types.HarmCategory: 0.1623
+  vertexai.preview.reasoning_engines.templates.langgraph.LanggraphAgent.register_operations: 0.1502
+  google.adk.evaluation.eval_rubrics.Rubric: 0.1502
+  google.genai.types.DeleteDocumentConfig: 0.1436
+  google.adk.cli.adk_web_server.CreateEvalSetRequest: 0.1436
+  google.adk.plugins.logging_plugin.LoggingPlugin: 0.1502
+  google.genai.types.Interval: 0.1502
+  google.genai.types.UploadToFileSearchStoreOperation.from_api_response: 0.1414
+  google.adk.cli.agent_graph.build_graph: 0.1813
+  google.adk.tools.retrieval.base_retrieval_tool.BaseRetrievalTool: 0.1623
+  google.adk.evaluation.in_memory_eval_sets_manager.InMemoryEvalSetsManager.create_eval_set: 0.1436
+  google.adk.tools.load_artifacts_tool.LoadArtifactsTool.run_async: 0.1436
+  google.genai.types.Scale: 0.1813
+threshold: 0.1
+---
+timestamp: 1769403263.833432
+event: trial_complete
+case_id: configure_adk_features_mc:which_is_the_correct_import_statement_for_the_runn
+trial_index: 20
+subset_size: 11
+subset_fqns:
+- google.adk.runners.Runner.run
+- google.adk.cli.adk_web_server.AdkWebServer.get_runner_async
+- google.adk.runners.Runner.run_async
+- google.adk.code_executors.base_code_executor
+- google.adk.plugins.logging_plugin.LoggingPlugin.on_event_callback
+- google.genai.types.FunctionResponsePart
+- google.adk.agents.invocation_context.InvocationContext.set_agent_state
+- google.genai.types.DeleteCachedContentResponseDict
+- vertexai.preview.reasoning_engines.templates.langgraph.LanggraphAgent.register_operations
+- google.adk.cli.agent_graph.build_graph
+- google.adk.tools.retrieval.base_retrieval_tool.BaseRetrievalTool
+is_correct: true
+---
+timestamp: 1769403263.8348129
+event: convergence_check
+case_id: configure_adk_features_mc:which_is_the_correct_import_statement_for_the_runn
+trial_index: 20
+max_se_diff: 0.17950549357115014
+se_map:
+  google.adk.runners: 0.1351
+  google.adk.runners.Runner: 0.1468
+  google.adk.runners.Runner.execute: 0.1468
+  google.adk.runners.Runner.close: 0.1351
+  google.adk.runners.InMemoryRunner: 0.1351
+  google.adk.a2a.utils.agent_to_a2a.create_runner: 0.1468
+  google.adk.runners.Runner.run: 0.1351
+  google.adk.cli.adk_web_server.AdkWebServer.get_runner_async: 0.1389
+  google.adk.agents.run_config.RunConfig: 0.1351
+  google.adk.code_executors.built_in_code_executor: 0.1468
+  google.adk.runners.Runner.run_async: 0.1389
+  google.adk.code_executors.base_code_executor: 0.1389
+  google.adk.plugins.logging_plugin.LoggingPlugin.on_event_callback: 0.1795
+  google.adk.a2a.converters.request_converter.AgentRunRequest: 0.1351
+  google.genai.types.FunctionResponsePart: 0.1351
+  google.adk.agents.invocation_context.InvocationContext.set_agent_state: 0.1468
+  google.adk.cli.conformance.cli_test.run_conformance_test: 0.1351
+  google.adk.agents.llm_agent_config.LlmAgentConfig: 0.1351
+  google.adk.tools.retrieval.files_retrieval.FilesRetrieval: 0.1468
+  google.adk.tools.bigtable.bigtable_toolset.BigtableToolset: 0.1468
+  google.genai.types.DeleteCachedContentResponseDict: 0.1351
+  google.genai.types.HarmCategory: 0.1468
+  vertexai.preview.reasoning_engines.templates.langgraph.LanggraphAgent.register_operations: 0.1468
+  google.adk.evaluation.eval_rubrics.Rubric: 0.1389
+  google.genai.types.DeleteDocumentConfig: 0.1351
+  google.adk.cli.adk_web_server.CreateEvalSetRequest: 0.1351
+  google.adk.plugins.logging_plugin.LoggingPlugin: 0.1389
+  google.genai.types.Interval: 0.1468
+  google.genai.types.UploadToFileSearchStoreOperation.from_api_response: 0.1351
+  google.adk.cli.agent_graph.build_graph: 0.1597
+  google.adk.tools.retrieval.base_retrieval_tool.BaseRetrievalTool: 0.1468
+  google.adk.evaluation.in_memory_eval_sets_manager.InMemoryEvalSetsManager.create_eval_set: 0.1389
+  google.adk.tools.load_artifacts_tool.LoadArtifactsTool.run_async: 0.1389
+  google.genai.types.Scale: 0.1795
+threshold: 0.1
+---
+timestamp: 1769403265.732685
+event: trial_complete
+case_id: configure_adk_features_mc:which_is_the_correct_import_statement_for_the_runn
+trial_index: 21
+subset_size: 16
+subset_fqns:
+- google.adk.runners
+- google.adk.runners.Runner
+- google.adk.runners.Runner.execute
+- google.adk.runners.InMemoryRunner
+- google.adk.a2a.utils.agent_to_a2a.create_runner
+- google.adk.code_executors.built_in_code_executor
+- google.adk.runners.Runner.run_async
+- google.adk.plugins.logging_plugin.LoggingPlugin.on_event_callback
+- google.genai.types.FunctionResponsePart
+- google.adk.agents.invocation_context.InvocationContext.set_agent_state
+- google.adk.agents.llm_agent_config.LlmAgentConfig
+- google.adk.tools.retrieval.files_retrieval.FilesRetrieval
+- google.adk.tools.bigtable.bigtable_toolset.BigtableToolset
+- google.genai.types.DeleteCachedContentResponseDict
+- google.genai.types.UploadToFileSearchStoreOperation.from_api_response
+- google.genai.types.Scale
+is_correct: true
+---
+timestamp: 1769403265.734692
+event: convergence_check
+case_id: configure_adk_features_mc:which_is_the_correct_import_statement_for_the_runn
+trial_index: 21
+max_se_diff: 0.17800007802744855
+se_map:
+  google.adk.runners: 0.1286
+  google.adk.runners.Runner: 0.1351
+  google.adk.runners.Runner.execute: 0.1351
+  google.adk.runners.Runner.close: 0.1286
+  google.adk.runners.InMemoryRunner: 0.1302
+  google.adk.a2a.utils.agent_to_a2a.create_runner: 0.1351
+  google.adk.runners.Runner.run: 0.1302
+  google.adk.cli.adk_web_server.AdkWebServer.get_runner_async: 0.1302
+  google.adk.agents.run_config.RunConfig: 0.1302
+  google.adk.code_executors.built_in_code_executor: 0.1351
+  google.adk.runners.Runner.run_async: 0.1351
+  google.adk.code_executors.base_code_executor: 0.1302
+  google.adk.plugins.logging_plugin.LoggingPlugin.on_event_callback: 0.178
+  google.adk.a2a.converters.request_converter.AgentRunRequest: 0.1286
+  google.genai.types.FunctionResponsePart: 0.1302
+  google.adk.agents.invocation_context.InvocationContext.set_agent_state: 0.1351
+  google.adk.cli.conformance.cli_test.run_conformance_test: 0.1286
+  google.adk.agents.llm_agent_config.LlmAgentConfig: 0.1286
+  google.adk.tools.retrieval.files_retrieval.FilesRetrieval: 0.1351
+  google.adk.tools.bigtable.bigtable_toolset.BigtableToolset: 0.144
+  google.genai.types.DeleteCachedContentResponseDict: 0.1302
+  google.genai.types.HarmCategory: 0.1351
+  vertexai.preview.reasoning_engines.templates.langgraph.LanggraphAgent.register_operations: 0.1351
+  google.adk.evaluation.eval_rubrics.Rubric: 0.1302
+  google.genai.types.DeleteDocumentConfig: 0.1286
+  google.adk.cli.adk_web_server.CreateEvalSetRequest: 0.1286
+  google.adk.plugins.logging_plugin.LoggingPlugin: 0.1302
+  google.genai.types.Interval: 0.144
+  google.genai.types.UploadToFileSearchStoreOperation.from_api_response: 0.1286
+  google.adk.cli.agent_graph.build_graph: 0.1576
+  google.adk.tools.retrieval.base_retrieval_tool.BaseRetrievalTool: 0.144
+  google.adk.evaluation.in_memory_eval_sets_manager.InMemoryEvalSetsManager.create_eval_set: 0.1351
+  google.adk.tools.load_artifacts_tool.LoadArtifactsTool.run_async: 0.1351
+  google.genai.types.Scale: 0.1576
+threshold: 0.1
+---
+timestamp: 1769403267.298153
+event: trial_complete
+case_id: configure_adk_features_mc:which_is_the_correct_import_statement_for_the_runn
+trial_index: 22
+subset_size: 15
+subset_fqns:
+- google.adk.runners
+- google.adk.runners.Runner.execute
+- google.adk.runners.Runner.run
+- google.adk.agents.run_config.RunConfig
+- google.adk.code_executors.built_in_code_executor
+- google.adk.code_executors.base_code_executor
+- google.genai.types.FunctionResponsePart
+- google.adk.tools.retrieval.files_retrieval.FilesRetrieval
+- google.adk.tools.bigtable.bigtable_toolset.BigtableToolset
+- google.genai.types.DeleteCachedContentResponseDict
+- google.adk.evaluation.eval_rubrics.Rubric
+- google.genai.types.DeleteDocumentConfig
+- google.adk.cli.adk_web_server.CreateEvalSetRequest
+- google.genai.types.UploadToFileSearchStoreOperation.from_api_response
+- google.adk.evaluation.in_memory_eval_sets_manager.InMemoryEvalSetsManager.create_eval_set
+is_correct: true
+---
+timestamp: 1769403267.299676
+event: convergence_check
+case_id: configure_adk_features_mc:which_is_the_correct_import_statement_for_the_runn
+trial_index: 22
+max_se_diff: 0.15593079639797303
+se_map:
+  google.adk.runners: 0.1233
+  google.adk.runners.Runner: 0.1321
+  google.adk.runners.Runner.execute: 0.1262
+  google.adk.runners.Runner.close: 0.1233
+  google.adk.runners.InMemoryRunner: 0.1233
+  google.adk.a2a.utils.agent_to_a2a.create_runner: 0.1321
+  google.adk.runners.Runner.run: 0.1233
+  google.adk.cli.adk_web_server.AdkWebServer.get_runner_async: 0.1233
+  google.adk.agents.run_config.RunConfig: 0.1233
+  google.adk.code_executors.built_in_code_executor: 0.1262
+  google.adk.runners.Runner.run_async: 0.1262
+  google.adk.code_executors.base_code_executor: 0.1262
+  google.adk.plugins.logging_plugin.LoggingPlugin.on_event_callback: 0.1559
+  google.adk.a2a.converters.request_converter.AgentRunRequest: 0.1233
+  google.genai.types.FunctionResponsePart: 0.1262
+  google.adk.agents.invocation_context.InvocationContext.set_agent_state: 0.1321
+  google.adk.cli.conformance.cli_test.run_conformance_test: 0.1233
+  google.adk.agents.llm_agent_config.LlmAgentConfig: 0.1233
+  google.adk.tools.retrieval.files_retrieval.FilesRetrieval: 0.1262
+  google.adk.tools.bigtable.bigtable_toolset.BigtableToolset: 0.1417
+  google.genai.types.DeleteCachedContentResponseDict: 0.1262
+  google.genai.types.HarmCategory: 0.1262
+  vertexai.preview.reasoning_engines.templates.langgraph.LanggraphAgent.register_operations: 0.1262
+  google.adk.evaluation.eval_rubrics.Rubric: 0.1262
+  google.genai.types.DeleteDocumentConfig: 0.1233
+  google.adk.cli.adk_web_server.CreateEvalSetRequest: 0.1233
+  google.adk.plugins.logging_plugin.LoggingPlugin: 0.1233
+  google.genai.types.Interval: 0.1417
+  google.genai.types.UploadToFileSearchStoreOperation.from_api_response: 0.1233
+  google.adk.cli.agent_graph.build_graph: 0.1559
+  google.adk.tools.retrieval.base_retrieval_tool.BaseRetrievalTool: 0.1417
+  google.adk.evaluation.in_memory_eval_sets_manager.InMemoryEvalSetsManager.create_eval_set: 0.1262
+  google.adk.tools.load_artifacts_tool.LoadArtifactsTool.run_async: 0.1321
+  google.genai.types.Scale: 0.1559
+threshold: 0.1
+---
+timestamp: 1769403270.740151
+event: trial_complete
+case_id: configure_adk_features_mc:which_is_the_correct_import_statement_for_the_runn
+trial_index: 23
+subset_size: 16
+subset_fqns:
+- google.adk.runners.Runner.execute
+- google.adk.runners.Runner.close
+- google.adk.a2a.utils.agent_to_a2a.create_runner
+- google.adk.runners.Runner.run
+- google.adk.cli.adk_web_server.AdkWebServer.get_runner_async
+- google.adk.code_executors.built_in_code_executor
+- google.adk.runners.Runner.run_async
+- google.adk.plugins.logging_plugin.LoggingPlugin.on_event_callback
+- google.adk.a2a.converters.request_converter.AgentRunRequest
+- google.adk.tools.bigtable.bigtable_toolset.BigtableToolset
+- google.genai.types.DeleteCachedContentResponseDict
+- google.adk.evaluation.eval_rubrics.Rubric
+- google.genai.types.DeleteDocumentConfig
+- google.adk.cli.adk_web_server.CreateEvalSetRequest
+- google.adk.cli.agent_graph.build_graph
+- google.adk.evaluation.in_memory_eval_sets_manager.InMemoryEvalSetsManager.create_eval_set
+is_correct: true
+---
+timestamp: 1769403270.741954
+event: convergence_check
+case_id: configure_adk_features_mc:which_is_the_correct_import_statement_for_the_runn
+trial_index: 23
+max_se_diff: 0.15449391857857342
+se_map:
+  google.adk.runners: 0.1179
+  google.adk.runners.Runner: 0.1296
+  google.adk.runners.Runner.execute: 0.1191
+  google.adk.runners.Runner.close: 0.1179
+  google.adk.runners.InMemoryRunner: 0.1179
+  google.adk.a2a.utils.agent_to_a2a.create_runner: 0.1229
+  google.adk.runners.Runner.run: 0.1179
+  google.adk.cli.adk_web_server.AdkWebServer.get_runner_async: 0.1191
+  google.adk.agents.run_config.RunConfig: 0.1191
+  google.adk.code_executors.built_in_code_executor: 0.1191
+  google.adk.runners.Runner.run_async: 0.1229
+  google.adk.code_executors.base_code_executor: 0.1191
+  google.adk.plugins.logging_plugin.LoggingPlugin.on_event_callback: 0.1545
+  google.adk.a2a.converters.request_converter.AgentRunRequest: 0.1179
+  google.genai.types.FunctionResponsePart: 0.1191
+  google.adk.agents.invocation_context.InvocationContext.set_agent_state: 0.1296
+  google.adk.cli.conformance.cli_test.run_conformance_test: 0.1191
+  google.adk.agents.llm_agent_config.LlmAgentConfig: 0.1191
+  google.adk.tools.retrieval.files_retrieval.FilesRetrieval: 0.1229
+  google.adk.tools.bigtable.bigtable_toolset.BigtableToolset: 0.1398
+  google.genai.types.DeleteCachedContentResponseDict: 0.1229
+  google.genai.types.HarmCategory: 0.1191
+  vertexai.preview.reasoning_engines.templates.langgraph.LanggraphAgent.register_operations: 0.1191
+  google.adk.evaluation.eval_rubrics.Rubric: 0.1229
+  google.genai.types.DeleteDocumentConfig: 0.1191
+  google.adk.cli.adk_web_server.CreateEvalSetRequest: 0.1191
+  google.adk.plugins.logging_plugin.LoggingPlugin: 0.1179
+  google.genai.types.Interval: 0.1398
+  google.genai.types.UploadToFileSearchStoreOperation.from_api_response: 0.1179
+  google.adk.cli.agent_graph.build_graph: 0.1398
+  google.adk.tools.retrieval.base_retrieval_tool.BaseRetrievalTool: 0.1398
+  google.adk.evaluation.in_memory_eval_sets_manager.InMemoryEvalSetsManager.create_eval_set: 0.1191
+  google.adk.tools.load_artifacts_tool.LoadArtifactsTool.run_async: 0.1296
+  google.genai.types.Scale: 0.1545
+threshold: 0.1
+---
+timestamp: 1769403272.9161758
+event: trial_complete
+case_id: configure_adk_features_mc:which_is_the_correct_import_statement_for_the_runn
+trial_index: 24
+subset_size: 18
+subset_fqns:
+- google.adk.runners
+- google.adk.runners.Runner
+- google.adk.runners.Runner.execute
+- google.adk.runners.Runner.close
+- google.adk.a2a.utils.agent_to_a2a.create_runner
+- google.adk.runners.Runner.run
+- google.adk.runners.Runner.run_async
+- google.adk.code_executors.base_code_executor
+- google.adk.plugins.logging_plugin.LoggingPlugin.on_event_callback
+- google.genai.types.FunctionResponsePart
+- google.adk.cli.conformance.cli_test.run_conformance_test
+- google.adk.tools.retrieval.files_retrieval.FilesRetrieval
+- vertexai.preview.reasoning_engines.templates.langgraph.LanggraphAgent.register_operations
+- google.genai.types.DeleteDocumentConfig
+- google.adk.plugins.logging_plugin.LoggingPlugin
+- google.adk.cli.agent_graph.build_graph
+- google.adk.tools.retrieval.base_retrieval_tool.BaseRetrievalTool
+- google.adk.tools.load_artifacts_tool.LoadArtifactsTool.run_async
+is_correct: true
+---
+timestamp: 1769403272.918358
+event: convergence_check
+case_id: configure_adk_features_mc:which_is_the_correct_import_statement_for_the_runn
+trial_index: 24
+max_se_diff: 0.15327942790339655
+se_map:
+  google.adk.runners: 0.1134
+  google.adk.runners.Runner: 0.1202
+  google.adk.runners.Runner.execute: 0.1134
+  google.adk.runners.Runner.close: 0.1134
+  google.adk.runners.InMemoryRunner: 0.1134
+  google.adk.a2a.utils.agent_to_a2a.create_runner: 0.1156
+  google.adk.runners.Runner.run: 0.1134
+  google.adk.cli.adk_web_server.AdkWebServer.get_runner_async: 0.1134
+  google.adk.agents.run_config.RunConfig: 0.1156
+  google.adk.code_executors.built_in_code_executor: 0.1156
+  google.adk.runners.Runner.run_async: 0.1202
+  google.adk.code_executors.base_code_executor: 0.1156
+  google.adk.plugins.logging_plugin.LoggingPlugin.on_event_callback: 0.1533
+  google.adk.a2a.converters.request_converter.AgentRunRequest: 0.1134
+  google.genai.types.FunctionResponsePart: 0.1156
+  google.adk.agents.invocation_context.InvocationContext.set_agent_state: 0.1275
+  google.adk.cli.conformance.cli_test.run_conformance_test: 0.1134
+  google.adk.agents.llm_agent_config.LlmAgentConfig: 0.1156
+  google.adk.tools.retrieval.files_retrieval.FilesRetrieval: 0.1156
+  google.adk.tools.bigtable.bigtable_toolset.BigtableToolset: 0.1275
+  google.genai.types.DeleteCachedContentResponseDict: 0.1156
+  google.genai.types.HarmCategory: 0.1134
+  vertexai.preview.reasoning_engines.templates.langgraph.LanggraphAgent.register_operations: 0.1156
+  google.adk.evaluation.eval_rubrics.Rubric: 0.1156
+  google.genai.types.DeleteDocumentConfig: 0.1156
+  google.adk.cli.adk_web_server.CreateEvalSetRequest: 0.1134
+  google.adk.plugins.logging_plugin.LoggingPlugin: 0.1134
+  google.genai.types.Interval: 0.1381
+  google.genai.types.UploadToFileSearchStoreOperation.from_api_response: 0.1134
+  google.adk.cli.agent_graph.build_graph: 0.1275
+  google.adk.tools.retrieval.base_retrieval_tool.BaseRetrievalTool: 0.1275
+  google.adk.evaluation.in_memory_eval_sets_manager.InMemoryEvalSetsManager.create_eval_set: 0.1156
+  google.adk.tools.load_artifacts_tool.LoadArtifactsTool.run_async: 0.1202
+  google.genai.types.Scale: 0.1533
+threshold: 0.1
+---
+timestamp: 1769403274.779893
+event: trial_complete
+case_id: configure_adk_features_mc:which_is_the_correct_import_statement_for_the_runn
+trial_index: 25
+subset_size: 21
+subset_fqns:
+- google.adk.runners.Runner.execute
+- google.adk.runners.Runner.close
+- google.adk.runners.InMemoryRunner
+- google.adk.runners.Runner.run
+- google.adk.agents.run_config.RunConfig
+- google.adk.runners.Runner.run_async
+- google.adk.code_executors.base_code_executor
+- google.genai.types.FunctionResponsePart
+- google.adk.cli.conformance.cli_test.run_conformance_test
+- google.adk.tools.bigtable.bigtable_toolset.BigtableToolset
+- google.genai.types.DeleteCachedContentResponseDict
+- google.genai.types.HarmCategory
+- vertexai.preview.reasoning_engines.templates.langgraph.LanggraphAgent.register_operations
+- google.genai.types.DeleteDocumentConfig
+- google.adk.cli.adk_web_server.CreateEvalSetRequest
+- google.adk.plugins.logging_plugin.LoggingPlugin
+- google.genai.types.UploadToFileSearchStoreOperation.from_api_response
+- google.adk.cli.agent_graph.build_graph
+- google.adk.tools.retrieval.base_retrieval_tool.BaseRetrievalTool
+- google.adk.evaluation.in_memory_eval_sets_manager.InMemoryEvalSetsManager.create_eval_set
+- google.genai.types.Scale
+is_correct: true
+---
+timestamp: 1769403274.7819788
+event: convergence_check
+case_id: configure_adk_features_mc:which_is_the_correct_import_statement_for_the_runn
+trial_index: 25
+max_se_diff: 0.13678969169161256
+se_map:
+  google.adk.runners: 0.1088
+  google.adk.runners.Runner: 0.1179
+  google.adk.runners.Runner.execute: 0.1088
+  google.adk.runners.Runner.close: 0.1098
+  google.adk.runners.InMemoryRunner: 0.1088
+  google.adk.a2a.utils.agent_to_a2a.create_runner: 0.1127
+  google.adk.runners.Runner.run: 0.1098
+  google.adk.cli.adk_web_server.AdkWebServer.get_runner_async: 0.1088
+  google.adk.agents.run_config.RunConfig: 0.1098
+  google.adk.code_executors.built_in_code_executor: 0.1127
+  google.adk.runners.Runner.run_async: 0.1179
+  google.adk.code_executors.base_code_executor: 0.1127
+  google.adk.plugins.logging_plugin.LoggingPlugin.on_event_callback: 0.1368
+  google.adk.a2a.converters.request_converter.AgentRunRequest: 0.1098
+  google.genai.types.FunctionResponsePart: 0.1127
+  google.adk.agents.invocation_context.InvocationContext.set_agent_state: 0.1257
+  google.adk.cli.conformance.cli_test.run_conformance_test: 0.1088
+  google.adk.agents.llm_agent_config.LlmAgentConfig: 0.1127
+  google.adk.tools.retrieval.files_retrieval.FilesRetrieval: 0.1127
+  google.adk.tools.bigtable.bigtable_toolset.BigtableToolset: 0.1257
+  google.genai.types.DeleteCachedContentResponseDict: 0.1127
+  google.genai.types.HarmCategory: 0.1098
+  vertexai.preview.reasoning_engines.templates.langgraph.LanggraphAgent.register_operations: 0.1127
+  google.adk.evaluation.eval_rubrics.Rubric: 0.1098
+  google.genai.types.DeleteDocumentConfig: 0.1127
+  google.adk.cli.adk_web_server.CreateEvalSetRequest: 0.1098
+  google.adk.plugins.logging_plugin.LoggingPlugin: 0.1098
+  google.genai.types.Interval: 0.1368
+  google.genai.types.UploadToFileSearchStoreOperation.from_api_response: 0.1088
+  google.adk.cli.agent_graph.build_graph: 0.1179
+  google.adk.tools.retrieval.base_retrieval_tool.BaseRetrievalTool: 0.1179
+  google.adk.evaluation.in_memory_eval_sets_manager.InMemoryEvalSetsManager.create_eval_set: 0.1098
+  google.adk.tools.load_artifacts_tool.LoadArtifactsTool.run_async: 0.1179
+  google.genai.types.Scale: 0.1368
+threshold: 0.1
+---
+timestamp: 1769403277.580966
+event: trial_complete
+case_id: configure_adk_features_mc:which_is_the_correct_import_statement_for_the_runn
+trial_index: 26
+subset_size: 17
+subset_fqns:
+- google.adk.runners.Runner.execute
+- google.adk.runners.InMemoryRunner
+- google.adk.a2a.utils.agent_to_a2a.create_runner
+- google.adk.a2a.converters.request_converter.AgentRunRequest
+- google.genai.types.FunctionResponsePart
+- google.adk.cli.conformance.cli_test.run_conformance_test
+- google.adk.agents.llm_agent_config.LlmAgentConfig
+- google.adk.tools.retrieval.files_retrieval.FilesRetrieval
+- google.adk.tools.bigtable.bigtable_toolset.BigtableToolset
+- google.genai.types.DeleteCachedContentResponseDict
+- google.genai.types.HarmCategory
+- vertexai.preview.reasoning_engines.templates.langgraph.LanggraphAgent.register_operations
+- google.adk.evaluation.eval_rubrics.Rubric
+- google.adk.plugins.logging_plugin.LoggingPlugin
+- google.genai.types.Interval
+- google.adk.evaluation.in_memory_eval_sets_manager.InMemoryEvalSetsManager.create_eval_set
+- google.genai.types.Scale
+is_correct: true
+---
+timestamp: 1769403277.582782
+event: convergence_check
+case_id: configure_adk_features_mc:which_is_the_correct_import_statement_for_the_runn
+trial_index: 26
+max_se_diff: 0.12422599874998831
+se_map:
+  google.adk.runners: 0.105
+  google.adk.runners.Runner: 0.116
+  google.adk.runners.Runner.execute: 0.105
+  google.adk.runners.Runner.close: 0.105
+  google.adk.runners.InMemoryRunner: 0.105
+  google.adk.a2a.utils.agent_to_a2a.create_runner: 0.1067
+  google.adk.runners.Runner.run: 0.105
+  google.adk.cli.adk_web_server.AdkWebServer.get_runner_async: 0.105
+  google.adk.agents.run_config.RunConfig: 0.1067
+  google.adk.code_executors.built_in_code_executor: 0.1103
+  google.adk.runners.Runner.run_async: 0.1103
+  google.adk.code_executors.base_code_executor: 0.1067
+  google.adk.plugins.logging_plugin.LoggingPlugin.on_event_callback: 0.1242
+  google.adk.a2a.converters.request_converter.AgentRunRequest: 0.105
+  google.genai.types.FunctionResponsePart: 0.1103
+  google.adk.agents.invocation_context.InvocationContext.set_agent_state: 0.1242
+  google.adk.cli.conformance.cli_test.run_conformance_test: 0.105
+  google.adk.agents.llm_agent_config.LlmAgentConfig: 0.1067
+  google.adk.tools.retrieval.files_retrieval.FilesRetrieval: 0.1067
+  google.adk.tools.bigtable.bigtable_toolset.BigtableToolset: 0.1242
+  google.genai.types.DeleteCachedContentResponseDict: 0.1103
+  google.genai.types.HarmCategory: 0.1067
+  vertexai.preview.reasoning_engines.templates.langgraph.LanggraphAgent.register_operations: 0.1103
+  google.adk.evaluation.eval_rubrics.Rubric: 0.1067
+  google.genai.types.DeleteDocumentConfig: 0.1067
+  google.adk.cli.adk_web_server.CreateEvalSetRequest: 0.105
+  google.adk.plugins.logging_plugin.LoggingPlugin: 0.1067
+  google.genai.types.Interval: 0.1242
+  google.genai.types.UploadToFileSearchStoreOperation.from_api_response: 0.105
+  google.adk.cli.agent_graph.build_graph: 0.116
+  google.adk.tools.retrieval.base_retrieval_tool.BaseRetrievalTool: 0.116
+  google.adk.evaluation.in_memory_eval_sets_manager.InMemoryEvalSetsManager.create_eval_set: 0.105
+  google.adk.tools.load_artifacts_tool.LoadArtifactsTool.run_async: 0.116
+  google.genai.types.Scale: 0.1242
+threshold: 0.1
+---
+timestamp: 1769403279.390628
+event: trial_complete
+case_id: configure_adk_features_mc:which_is_the_correct_import_statement_for_the_runn
+trial_index: 27
+subset_size: 19
+subset_fqns:
+- google.adk.runners.Runner.execute
+- google.adk.runners.Runner.close
+- google.adk.runners.InMemoryRunner
+- google.adk.cli.adk_web_server.AdkWebServer.get_runner_async
+- google.adk.agents.run_config.RunConfig
+- google.adk.code_executors.built_in_code_executor
+- google.adk.runners.Runner.run_async
+- google.adk.code_executors.base_code_executor
+- google.adk.plugins.logging_plugin.LoggingPlugin.on_event_callback
+- google.genai.types.FunctionResponsePart
+- google.adk.agents.invocation_context.InvocationContext.set_agent_state
+- google.adk.agents.llm_agent_config.LlmAgentConfig
+- google.adk.tools.bigtable.bigtable_toolset.BigtableToolset
+- google.genai.types.HarmCategory
+- vertexai.preview.reasoning_engines.templates.langgraph.LanggraphAgent.register_operations
+- google.adk.cli.adk_web_server.CreateEvalSetRequest
+- google.adk.plugins.logging_plugin.LoggingPlugin
+- google.genai.types.Interval
+- google.genai.types.UploadToFileSearchStoreOperation.from_api_response
+is_correct: true
+---
+timestamp: 1769403279.391626
+event: convergence_check
+case_id: configure_adk_features_mc:which_is_the_correct_import_statement_for_the_runn
+trial_index: 27
+max_se_diff: 0.12294617568203882
+se_map:
+  google.adk.runners: 0.1018
+  google.adk.runners.Runner: 0.1144
+  google.adk.runners.Runner.execute: 0.1018
+  google.adk.runners.Runner.close: 0.1018
+  google.adk.runners.InMemoryRunner: 0.1018
+  google.adk.a2a.utils.agent_to_a2a.create_runner: 0.1042
+  google.adk.runners.Runner.run: 0.101
+  google.adk.cli.adk_web_server.AdkWebServer.get_runner_async: 0.101
+  google.adk.agents.run_config.RunConfig: 0.1018
+  google.adk.code_executors.built_in_code_executor: 0.1042
+  google.adk.runners.Runner.run_async: 0.1083
+  google.adk.code_executors.base_code_executor: 0.1042
+  google.adk.plugins.logging_plugin.LoggingPlugin.on_event_callback: 0.1229
+  google.adk.a2a.converters.request_converter.AgentRunRequest: 0.1018
+  google.genai.types.FunctionResponsePart: 0.1083
+  google.adk.agents.invocation_context.InvocationContext.set_agent_state: 0.1144
+  google.adk.cli.conformance.cli_test.run_conformance_test: 0.101
+  google.adk.agents.llm_agent_config.LlmAgentConfig: 0.1018
+  google.adk.tools.retrieval.files_retrieval.FilesRetrieval: 0.1042
+  google.adk.tools.bigtable.bigtable_toolset.BigtableToolset: 0.1229
+  google.genai.types.DeleteCachedContentResponseDict: 0.1042
+  google.genai.types.HarmCategory: 0.1042
+  vertexai.preview.reasoning_engines.templates.langgraph.LanggraphAgent.register_operations: 0.1083
+  google.adk.evaluation.eval_rubrics.Rubric: 0.1018
+  google.genai.types.DeleteDocumentConfig: 0.1018
+  google.adk.cli.adk_web_server.CreateEvalSetRequest: 0.1018
+  google.adk.plugins.logging_plugin.LoggingPlugin: 0.1042
+  google.genai.types.Interval: 0.1144
+  google.genai.types.UploadToFileSearchStoreOperation.from_api_response: 0.101
+  google.adk.cli.agent_graph.build_graph: 0.1144
+  google.adk.tools.retrieval.base_retrieval_tool.BaseRetrievalTool: 0.1144
+  google.adk.evaluation.in_memory_eval_sets_manager.InMemoryEvalSetsManager.create_eval_set: 0.1018
+  google.adk.tools.load_artifacts_tool.LoadArtifactsTool.run_async: 0.1144
+  google.genai.types.Scale: 0.1229
+threshold: 0.1
+---
+timestamp: 1769403281.380911
+event: trial_complete
+case_id: configure_adk_features_mc:which_is_the_correct_import_statement_for_the_runn
+trial_index: 28
+subset_size: 20
+subset_fqns:
+- google.adk.runners
+- google.adk.runners.Runner.execute
+- google.adk.runners.Runner.close
+- google.adk.runners.InMemoryRunner
+- google.adk.a2a.utils.agent_to_a2a.create_runner
+- google.adk.agents.run_config.RunConfig
+- google.adk.code_executors.built_in_code_executor
+- google.adk.runners.Runner.run_async
+- google.adk.plugins.logging_plugin.LoggingPlugin.on_event_callback
+- google.adk.a2a.converters.request_converter.AgentRunRequest
+- google.genai.types.FunctionResponsePart
+- google.adk.cli.conformance.cli_test.run_conformance_test
+- google.genai.types.DeleteCachedContentResponseDict
+- vertexai.preview.reasoning_engines.templates.langgraph.LanggraphAgent.register_operations
+- google.adk.evaluation.eval_rubrics.Rubric
+- google.adk.plugins.logging_plugin.LoggingPlugin
+- google.genai.types.Interval
+- google.genai.types.UploadToFileSearchStoreOperation.from_api_response
+- google.adk.cli.agent_graph.build_graph
+- google.adk.tools.retrieval.base_retrieval_tool.BaseRetrievalTool
+is_correct: true
+---
+timestamp: 1769403281.382255
+event: convergence_check
+case_id: configure_adk_features_mc:which_is_the_correct_import_statement_for_the_runn
+trial_index: 28
+max_se_diff: 0.12184284555256282
+se_map:
+  google.adk.runners: 0.0977
+  google.adk.runners.Runner: 0.113
+  google.adk.runners.Runner.execute: 0.0991
+  google.adk.runners.Runner.close: 0.0991
+  google.adk.runners.InMemoryRunner: 0.0991
+  google.adk.a2a.utils.agent_to_a2a.create_runner: 0.0991
+  google.adk.runners.Runner.run: 0.0977
+  google.adk.cli.adk_web_server.AdkWebServer.get_runner_async: 0.0977
+  google.adk.agents.run_config.RunConfig: 0.0977
+  google.adk.code_executors.built_in_code_executor: 0.0991
+  google.adk.runners.Runner.run_async: 0.1065
+  google.adk.code_executors.base_code_executor: 0.0991
+  google.adk.plugins.logging_plugin.LoggingPlugin.on_event_callback: 0.1218
+  google.adk.a2a.converters.request_converter.AgentRunRequest: 0.0977
+  google.genai.types.FunctionResponsePart: 0.1065
+  google.adk.agents.invocation_context.InvocationContext.set_agent_state: 0.113
+  google.adk.cli.conformance.cli_test.run_conformance_test: 0.0977
+  google.adk.agents.llm_agent_config.LlmAgentConfig: 0.0991
+  google.adk.tools.retrieval.files_retrieval.FilesRetrieval: 0.102
+  google.adk.tools.bigtable.bigtable_toolset.BigtableToolset: 0.113
+  google.genai.types.DeleteCachedContentResponseDict: 0.102
+  google.genai.types.HarmCategory: 0.0991
+  vertexai.preview.reasoning_engines.templates.langgraph.LanggraphAgent.register_operations: 0.1065
+  google.adk.evaluation.eval_rubrics.Rubric: 0.0991
+  google.genai.types.DeleteDocumentConfig: 0.0977
+  google.adk.cli.adk_web_server.CreateEvalSetRequest: 0.0977
+  google.adk.plugins.logging_plugin.LoggingPlugin: 0.102
+  google.genai.types.Interval: 0.1065
+  google.genai.types.UploadToFileSearchStoreOperation.from_api_response: 0.0977
+  google.adk.cli.agent_graph.build_graph: 0.1065
+  google.adk.tools.retrieval.base_retrieval_tool.BaseRetrievalTool: 0.1065
+  google.adk.evaluation.in_memory_eval_sets_manager.InMemoryEvalSetsManager.create_eval_set: 0.0991
+  google.adk.tools.load_artifacts_tool.LoadArtifactsTool.run_async: 0.113
+  google.genai.types.Scale: 0.1218
+threshold: 0.1
+---
+timestamp: 1769403284.306377
+event: trial_complete
+case_id: configure_adk_features_mc:which_is_the_correct_import_statement_for_the_runn
+trial_index: 29
+subset_size: 18
+subset_fqns:
+- google.adk.runners
+- google.adk.runners.Runner.close
+- google.adk.agents.run_config.RunConfig
+- google.adk.code_executors.built_in_code_executor
+- google.adk.runners.Runner.run_async
+- google.adk.a2a.converters.request_converter.AgentRunRequest
+- google.genai.types.FunctionResponsePart
+- google.adk.cli.conformance.cli_test.run_conformance_test
+- google.adk.agents.llm_agent_config.LlmAgentConfig
+- google.genai.types.HarmCategory
+- google.genai.types.DeleteDocumentConfig
+- google.adk.plugins.logging_plugin.LoggingPlugin
+- google.genai.types.Interval
+- google.genai.types.UploadToFileSearchStoreOperation.from_api_response
+- google.adk.cli.agent_graph.build_graph
+- google.adk.tools.retrieval.base_retrieval_tool.BaseRetrievalTool
+- google.adk.tools.load_artifacts_tool.LoadArtifactsTool.run_async
+- google.genai.types.Scale
+is_correct: true
+---
+timestamp: 1769403284.3074439
+event: convergence_check
+case_id: configure_adk_features_mc:which_is_the_correct_import_statement_for_the_runn
+trial_index: 29
+max_se_diff: 0.1118033988749895
+se_map:
+  google.adk.runners: 0.0943
+  google.adk.runners.Runner: 0.1118
+  google.adk.runners.Runner.execute: 0.0949
+  google.adk.runners.Runner.close: 0.0968
+  google.adk.runners.InMemoryRunner: 0.0949
+  google.adk.a2a.utils.agent_to_a2a.create_runner: 0.0968
+  google.adk.runners.Runner.run: 0.0949
+  google.adk.cli.adk_web_server.AdkWebServer.get_runner_async: 0.0949
+  google.adk.agents.run_config.RunConfig: 0.0943
+  google.adk.code_executors.built_in_code_executor: 0.0949
+  google.adk.runners.Runner.run_async: 0.105
+  google.adk.code_executors.base_code_executor: 0.0949
+  google.adk.plugins.logging_plugin.LoggingPlugin.on_event_callback: 0.1118
+  google.adk.a2a.converters.request_converter.AgentRunRequest: 0.0943
+  google.genai.types.FunctionResponsePart: 0.105
+  google.adk.agents.invocation_context.InvocationContext.set_agent_state: 0.1118
+  google.adk.cli.conformance.cli_test.run_conformance_test: 0.0949
+  google.adk.agents.llm_agent_config.LlmAgentConfig: 0.0949
+  google.adk.tools.retrieval.files_retrieval.FilesRetrieval: 0.1002
+  google.adk.tools.bigtable.bigtable_toolset.BigtableToolset: 0.105
+  google.genai.types.DeleteCachedContentResponseDict: 0.0968
+  google.genai.types.HarmCategory: 0.0968
+  vertexai.preview.reasoning_engines.templates.langgraph.LanggraphAgent.register_operations: 0.1002
+  google.adk.evaluation.eval_rubrics.Rubric: 0.0949
+  google.genai.types.DeleteDocumentConfig: 0.0949
+  google.adk.cli.adk_web_server.CreateEvalSetRequest: 0.0943
+  google.adk.plugins.logging_plugin.LoggingPlugin: 0.1002
+  google.genai.types.Interval: 0.1002
+  google.genai.types.UploadToFileSearchStoreOperation.from_api_response: 0.0949
+  google.adk.cli.agent_graph.build_graph: 0.1002
+  google.adk.tools.retrieval.base_retrieval_tool.BaseRetrievalTool: 0.1002
+  google.adk.evaluation.in_memory_eval_sets_manager.InMemoryEvalSetsManager.create_eval_set: 0.0968
+  google.adk.tools.load_artifacts_tool.LoadArtifactsTool.run_async: 0.105
+  google.genai.types.Scale: 0.1118
+threshold: 0.1
+---
+timestamp: 1769403285.849029
+event: trial_complete
+case_id: configure_adk_features_mc:which_is_the_correct_import_statement_for_the_runn
+trial_index: 30
+subset_size: 17
+subset_fqns:
+- google.adk.runners.InMemoryRunner
+- google.adk.a2a.utils.agent_to_a2a.create_runner
+- google.adk.runners.Runner.run
+- google.adk.runners.Runner.run_async
+- google.adk.a2a.converters.request_converter.AgentRunRequest
+- google.genai.types.FunctionResponsePart
+- google.adk.agents.invocation_context.InvocationContext.set_agent_state
+- google.adk.tools.bigtable.bigtable_toolset.BigtableToolset
+- google.genai.types.DeleteCachedContentResponseDict
+- google.genai.types.HarmCategory
+- vertexai.preview.reasoning_engines.templates.langgraph.LanggraphAgent.register_operations
+- google.adk.cli.adk_web_server.CreateEvalSetRequest
+- google.genai.types.UploadToFileSearchStoreOperation.from_api_response
+- google.adk.tools.retrieval.base_retrieval_tool.BaseRetrievalTool
+- google.adk.evaluation.in_memory_eval_sets_manager.InMemoryEvalSetsManager.create_eval_set
+- google.adk.tools.load_artifacts_tool.LoadArtifactsTool.run_async
+- google.genai.types.Scale
+is_correct: true
+---
+timestamp: 1769403285.851011
+event: convergence_check
+case_id: configure_adk_features_mc:which_is_the_correct_import_statement_for_the_runn
+trial_index: 30
+max_se_diff: 0.11075907952012388
+se_map:
+  google.adk.runners: 0.0914
+  google.adk.runners.Runner: 0.1108
+  google.adk.runners.Runner.execute: 0.0914
+  google.adk.runners.Runner.close: 0.0925
+  google.adk.runners.InMemoryRunner: 0.0925
+  google.adk.a2a.utils.agent_to_a2a.create_runner: 0.0925
+  google.adk.runners.Runner.run: 0.0914
+  google.adk.cli.adk_web_server.AdkWebServer.get_runner_async: 0.0925
+  google.adk.agents.run_config.RunConfig: 0.0914
+  google.adk.code_executors.built_in_code_executor: 0.0925
+  google.adk.runners.Runner.run_async: 0.1038
+  google.adk.code_executors.base_code_executor: 0.0914
+  google.adk.plugins.logging_plugin.LoggingPlugin.on_event_callback: 0.1038
+  google.adk.a2a.converters.request_converter.AgentRunRequest: 0.0914
+  google.genai.types.FunctionResponsePart: 0.1038
+  google.adk.agents.invocation_context.InvocationContext.set_agent_state: 0.1038
+  google.adk.cli.conformance.cli_test.run_conformance_test: 0.0914
+  google.adk.agents.llm_agent_config.LlmAgentConfig: 0.0925
+  google.adk.tools.retrieval.files_retrieval.FilesRetrieval: 0.0986
+  google.adk.tools.bigtable.bigtable_toolset.BigtableToolset: 0.1038
+  google.genai.types.DeleteCachedContentResponseDict: 0.0949
+  google.genai.types.HarmCategory: 0.0949
+  vertexai.preview.reasoning_engines.templates.langgraph.LanggraphAgent.register_operations: 0.0986
+  google.adk.evaluation.eval_rubrics.Rubric: 0.0914
+  google.genai.types.DeleteDocumentConfig: 0.0914
+  google.adk.cli.adk_web_server.CreateEvalSetRequest: 0.0914
+  google.adk.plugins.logging_plugin.LoggingPlugin: 0.0949
+  google.genai.types.Interval: 0.0986
+  google.genai.types.UploadToFileSearchStoreOperation.from_api_response: 0.0925
+  google.adk.cli.agent_graph.build_graph: 0.0986
+  google.adk.tools.retrieval.base_retrieval_tool.BaseRetrievalTool: 0.0949
+  google.adk.evaluation.in_memory_eval_sets_manager.InMemoryEvalSetsManager.create_eval_set: 0.0925
+  google.adk.tools.load_artifacts_tool.LoadArtifactsTool.run_async: 0.0986
+  google.genai.types.Scale: 0.1038
+threshold: 0.1
+---
+timestamp: 1769403288.2712908
+event: trial_complete
+case_id: configure_adk_features_mc:which_is_the_correct_import_statement_for_the_runn
+trial_index: 31
+subset_size: 13
+subset_fqns:
+- google.adk.runners
+- google.adk.runners.Runner.close
+- google.adk.runners.InMemoryRunner
+- google.adk.a2a.utils.agent_to_a2a.create_runner
+- google.adk.code_executors.built_in_code_executor
+- google.adk.runners.Runner.run_async
+- google.adk.plugins.logging_plugin.LoggingPlugin.on_event_callback
+- google.adk.cli.conformance.cli_test.run_conformance_test
+- google.adk.evaluation.eval_rubrics.Rubric
+- google.genai.types.Interval
+- google.genai.types.UploadToFileSearchStoreOperation.from_api_response
+- google.adk.tools.retrieval.base_retrieval_tool.BaseRetrievalTool
+- google.adk.evaluation.in_memory_eval_sets_manager.InMemoryEvalSetsManager.create_eval_set
+is_correct: true
+---
+timestamp: 1769403288.272871
+event: convergence_check
+case_id: configure_adk_features_mc:which_is_the_correct_import_statement_for_the_runn
+trial_index: 31
+max_se_diff: 0.1098458724872234
+se_map:
+  google.adk.runners: 0.0884
+  google.adk.runners.Runner: 0.1098
+  google.adk.runners.Runner.execute: 0.0884
+  google.adk.runners.Runner.close: 0.0905
+  google.adk.runners.InMemoryRunner: 0.0905
+  google.adk.a2a.utils.agent_to_a2a.create_runner: 0.0889
+  google.adk.runners.Runner.run: 0.0889
+  google.adk.cli.adk_web_server.AdkWebServer.get_runner_async: 0.0905
+  google.adk.agents.run_config.RunConfig: 0.0889
+  google.adk.code_executors.built_in_code_executor: 0.0889
+  google.adk.runners.Runner.run_async: 0.1026
+  google.adk.code_executors.base_code_executor: 0.0884
+  google.adk.plugins.logging_plugin.LoggingPlugin.on_event_callback: 0.1026
+  google.adk.a2a.converters.request_converter.AgentRunRequest: 0.0884
+  google.genai.types.FunctionResponsePart: 0.0972
+  google.adk.agents.invocation_context.InvocationContext.set_agent_state: 0.1026
+  google.adk.cli.conformance.cli_test.run_conformance_test: 0.0889
+  google.adk.agents.llm_agent_config.LlmAgentConfig: 0.0905
+  google.adk.tools.retrieval.files_retrieval.FilesRetrieval: 0.0972
+  google.adk.tools.bigtable.bigtable_toolset.BigtableToolset: 0.0972
+  google.genai.types.DeleteCachedContentResponseDict: 0.0905
+  google.genai.types.HarmCategory: 0.0905
+  vertexai.preview.reasoning_engines.templates.langgraph.LanggraphAgent.register_operations: 0.0932
+  google.adk.evaluation.eval_rubrics.Rubric: 0.0889
+  google.genai.types.DeleteDocumentConfig: 0.0884
+  google.adk.cli.adk_web_server.CreateEvalSetRequest: 0.0884
+  google.adk.plugins.logging_plugin.LoggingPlugin: 0.0905
+  google.genai.types.Interval: 0.0932
+  google.genai.types.UploadToFileSearchStoreOperation.from_api_response: 0.0905
+  google.adk.cli.agent_graph.build_graph: 0.0972
+  google.adk.tools.retrieval.base_retrieval_tool.BaseRetrievalTool: 0.0905
+  google.adk.evaluation.in_memory_eval_sets_manager.InMemoryEvalSetsManager.create_eval_set: 0.0889
+  google.adk.tools.load_artifacts_tool.LoadArtifactsTool.run_async: 0.0972
+  google.genai.types.Scale: 0.1026
+threshold: 0.1
+---
+timestamp: 1769403290.0942159
+event: trial_complete
+case_id: configure_adk_features_mc:which_is_the_correct_import_statement_for_the_runn
+trial_index: 32
+subset_size: 21
+subset_fqns:
+- google.adk.runners
+- google.adk.runners.Runner.execute
+- google.adk.runners.Runner.close
+- google.adk.runners.InMemoryRunner
+- google.adk.a2a.utils.agent_to_a2a.create_runner
+- google.adk.cli.adk_web_server.AdkWebServer.get_runner_async
+- google.adk.agents.run_config.RunConfig
+- google.adk.code_executors.built_in_code_executor
+- google.adk.code_executors.base_code_executor
+- google.adk.a2a.converters.request_converter.AgentRunRequest
+- google.genai.types.FunctionResponsePart
+- google.adk.cli.conformance.cli_test.run_conformance_test
+- google.adk.agents.llm_agent_config.LlmAgentConfig
+- google.genai.types.DeleteCachedContentResponseDict
+- vertexai.preview.reasoning_engines.templates.langgraph.LanggraphAgent.register_operations
+- google.adk.evaluation.eval_rubrics.Rubric
+- google.genai.types.DeleteDocumentConfig
+- google.adk.cli.adk_web_server.CreateEvalSetRequest
+- google.adk.tools.retrieval.base_retrieval_tool.BaseRetrievalTool
+- google.adk.evaluation.in_memory_eval_sets_manager.InMemoryEvalSetsManager.create_eval_set
+- google.adk.tools.load_artifacts_tool.LoadArtifactsTool.run_async
+is_correct: true
+---
+timestamp: 1769403290.096152
+event: convergence_check
+case_id: configure_adk_features_mc:which_is_the_correct_import_statement_for_the_runn
+trial_index: 32
+max_se_diff: 0.1090429235129083
+se_map:
+  google.adk.runners: 0.0858
+  google.adk.runners.Runner: 0.109
+  google.adk.runners.Runner.execute: 0.0858
+  google.adk.runners.Runner.close: 0.0887
+  google.adk.runners.InMemoryRunner: 0.0887
+  google.adk.a2a.utils.agent_to_a2a.create_runner: 0.0858
+  google.adk.runners.Runner.run: 0.0868
+  google.adk.cli.adk_web_server.AdkWebServer.get_runner_async: 0.0868
+  google.adk.agents.run_config.RunConfig: 0.0858
+  google.adk.code_executors.built_in_code_executor: 0.0858
+  google.adk.runners.Runner.run_async: 0.096
+  google.adk.code_executors.base_code_executor: 0.0858
+  google.adk.plugins.logging_plugin.LoggingPlugin.on_event_callback: 0.096
+  google.adk.a2a.converters.request_converter.AgentRunRequest: 0.0858
+  google.genai.types.FunctionResponsePart: 0.096
+  google.adk.agents.invocation_context.InvocationContext.set_agent_state: 0.1016
+  google.adk.cli.conformance.cli_test.run_conformance_test: 0.0868
+  google.adk.agents.llm_agent_config.LlmAgentConfig: 0.0868
+  google.adk.tools.retrieval.files_retrieval.FilesRetrieval: 0.096
+  google.adk.tools.bigtable.bigtable_toolset.BigtableToolset: 0.0917
+  google.genai.types.DeleteCachedContentResponseDict: 0.0887
+  google.genai.types.HarmCategory: 0.0868
+  vertexai.preview.reasoning_engines.templates.langgraph.LanggraphAgent.register_operations: 0.0917
+  google.adk.evaluation.eval_rubrics.Rubric: 0.0868
+  google.genai.types.DeleteDocumentConfig: 0.0858
+  google.adk.cli.adk_web_server.CreateEvalSetRequest: 0.0858
+  google.adk.plugins.logging_plugin.LoggingPlugin: 0.0868
+  google.genai.types.Interval: 0.0917
+  google.genai.types.UploadToFileSearchStoreOperation.from_api_response: 0.0868
+  google.adk.cli.agent_graph.build_graph: 0.096
+  google.adk.tools.retrieval.base_retrieval_tool.BaseRetrievalTool: 0.0868
+  google.adk.evaluation.in_memory_eval_sets_manager.InMemoryEvalSetsManager.create_eval_set: 0.0858
+  google.adk.tools.load_artifacts_tool.LoadArtifactsTool.run_async: 0.0917
+  google.genai.types.Scale: 0.1016
+threshold: 0.1
+---
+timestamp: 1769403291.978771
+event: trial_complete
+case_id: configure_adk_features_mc:which_is_the_correct_import_statement_for_the_runn
+trial_index: 33
+subset_size: 14
+subset_fqns:
+- google.adk.runners.Runner
+- google.adk.runners.Runner.run
+- google.adk.cli.adk_web_server.AdkWebServer.get_runner_async
+- google.adk.agents.run_config.RunConfig
+- google.adk.runners.Runner.run_async
+- google.adk.code_executors.base_code_executor
+- google.adk.agents.invocation_context.InvocationContext.set_agent_state
+- google.adk.tools.retrieval.files_retrieval.FilesRetrieval
+- google.genai.types.HarmCategory
+- google.genai.types.DeleteDocumentConfig
+- google.genai.types.UploadToFileSearchStoreOperation.from_api_response
+- google.adk.tools.retrieval.base_retrieval_tool.BaseRetrievalTool
+- google.adk.evaluation.in_memory_eval_sets_manager.InMemoryEvalSetsManager.create_eval_set
+- google.genai.types.Scale
+is_correct: true
+---
+timestamp: 1769403291.980224
+event: convergence_check
+case_id: configure_adk_features_mc:which_is_the_correct_import_statement_for_the_runn
+trial_index: 33
+max_se_diff: 0.10077113663226848
+se_map:
+  google.adk.runners: 0.0832
+  google.adk.runners.Runner: 0.1008
+  google.adk.runners.Runner.execute: 0.0832
+  google.adk.runners.Runner.close: 0.0849
+  google.adk.runners.InMemoryRunner: 0.0849
+  google.adk.a2a.utils.agent_to_a2a.create_runner: 0.0836
+  google.adk.runners.Runner.run: 0.0836
+  google.adk.cli.adk_web_server.AdkWebServer.get_runner_async: 0.0836
+  google.adk.agents.run_config.RunConfig: 0.0832
+  google.adk.code_executors.built_in_code_executor: 0.0836
+  google.adk.runners.Runner.run_async: 0.0949
+  google.adk.code_executors.base_code_executor: 0.0836
+  google.adk.plugins.logging_plugin.LoggingPlugin.on_event_callback: 0.0905
+  google.adk.a2a.converters.request_converter.AgentRunRequest: 0.0832
+  google.genai.types.FunctionResponsePart: 0.0905
+  google.adk.agents.invocation_context.InvocationContext.set_agent_state: 0.0949
+  google.adk.cli.conformance.cli_test.run_conformance_test: 0.0836
+  google.adk.agents.llm_agent_config.LlmAgentConfig: 0.0849
+  google.adk.tools.retrieval.files_retrieval.FilesRetrieval: 0.0905
+  google.adk.tools.bigtable.bigtable_toolset.BigtableToolset: 0.0872
+  google.genai.types.DeleteCachedContentResponseDict: 0.0849
+  google.genai.types.HarmCategory: 0.0849
+  vertexai.preview.reasoning_engines.templates.langgraph.LanggraphAgent.register_operations: 0.0872
+  google.adk.evaluation.eval_rubrics.Rubric: 0.0836
+  google.genai.types.DeleteDocumentConfig: 0.0836
+  google.adk.cli.adk_web_server.CreateEvalSetRequest: 0.0832
+  google.adk.plugins.logging_plugin.LoggingPlugin: 0.0836
+  google.genai.types.Interval: 0.0905
+  google.genai.types.UploadToFileSearchStoreOperation.from_api_response: 0.0849
+  google.adk.cli.agent_graph.build_graph: 0.0949
+  google.adk.tools.retrieval.base_retrieval_tool.BaseRetrievalTool: 0.0836
+  google.adk.evaluation.in_memory_eval_sets_manager.InMemoryEvalSetsManager.create_eval_set: 0.0832
+  google.adk.tools.load_artifacts_tool.LoadArtifactsTool.run_async: 0.0905
+  google.genai.types.Scale: 0.0949
+threshold: 0.1
+---
+timestamp: 1769403293.6647658
+event: trial_complete
+case_id: configure_adk_features_mc:which_is_the_correct_import_statement_for_the_runn
+trial_index: 34
+subset_size: 16
+subset_fqns:
+- google.adk.runners
+- google.adk.runners.Runner
+- google.adk.code_executors.base_code_executor
+- google.genai.types.FunctionResponsePart
+- google.adk.cli.conformance.cli_test.run_conformance_test
+- google.adk.agents.llm_agent_config.LlmAgentConfig
+- google.adk.tools.retrieval.files_retrieval.FilesRetrieval
+- google.adk.tools.bigtable.bigtable_toolset.BigtableToolset
+- google.genai.types.HarmCategory
+- google.adk.plugins.logging_plugin.LoggingPlugin
+- google.genai.types.Interval
+- google.adk.cli.agent_graph.build_graph
+- google.adk.tools.retrieval.base_retrieval_tool.BaseRetrievalTool
+- google.adk.evaluation.in_memory_eval_sets_manager.InMemoryEvalSetsManager.create_eval_set
+- google.adk.tools.load_artifacts_tool.LoadArtifactsTool.run_async
+- google.genai.types.Scale
+is_correct: true
+---
+timestamp: 1769403293.666238
+event: convergence_check
+case_id: configure_adk_features_mc:which_is_the_correct_import_statement_for_the_runn
+trial_index: 34
+max_se_diff: 0.09399363602226701
+se_map:
+  google.adk.runners: 0.0809
+  google.adk.runners.Runner: 0.094
+  google.adk.runners.Runner.execute: 0.0809
+  google.adk.runners.Runner.close: 0.0817
+  google.adk.runners.InMemoryRunner: 0.0817
+  google.adk.a2a.utils.agent_to_a2a.create_runner: 0.0817
+  google.adk.runners.Runner.run: 0.0817
+  google.adk.cli.adk_web_server.AdkWebServer.get_runner_async: 0.0817
+  google.adk.agents.run_config.RunConfig: 0.0809
+  google.adk.code_executors.built_in_code_executor: 0.0817
+  google.adk.runners.Runner.run_async: 0.0893
+  google.adk.code_executors.base_code_executor: 0.0817
+  google.adk.plugins.logging_plugin.LoggingPlugin.on_event_callback: 0.0858
+  google.adk.a2a.converters.request_converter.AgentRunRequest: 0.0809
+  google.genai.types.FunctionResponsePart: 0.0893
+  google.adk.agents.invocation_context.InvocationContext.set_agent_state: 0.094
+  google.adk.cli.conformance.cli_test.run_conformance_test: 0.0817
+  google.adk.agents.llm_agent_config.LlmAgentConfig: 0.0817
+  google.adk.tools.retrieval.files_retrieval.FilesRetrieval: 0.0858
+  google.adk.tools.bigtable.bigtable_toolset.BigtableToolset: 0.0858
+  google.genai.types.DeleteCachedContentResponseDict: 0.0817
+  google.genai.types.HarmCategory: 0.0833
+  vertexai.preview.reasoning_engines.templates.langgraph.LanggraphAgent.register_operations: 0.0833
+  google.adk.evaluation.eval_rubrics.Rubric: 0.0809
+  google.genai.types.DeleteDocumentConfig: 0.0809
+  google.adk.cli.adk_web_server.CreateEvalSetRequest: 0.0809
+  google.adk.plugins.logging_plugin.LoggingPlugin: 0.0817
+  google.genai.types.Interval: 0.0858
+  google.genai.types.UploadToFileSearchStoreOperation.from_api_response: 0.0817
+  google.adk.cli.agent_graph.build_graph: 0.0893
+  google.adk.tools.retrieval.base_retrieval_tool.BaseRetrievalTool: 0.0809
+  google.adk.evaluation.in_memory_eval_sets_manager.InMemoryEvalSetsManager.create_eval_set: 0.0809
+  google.adk.tools.load_artifacts_tool.LoadArtifactsTool.run_async: 0.0858
+  google.genai.types.Scale: 0.0893
+threshold: 0.1

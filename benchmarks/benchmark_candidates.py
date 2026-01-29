@@ -42,8 +42,8 @@ _selected_images = [
     "gemini-cli:adk-python",
     "gemini-cli:adk-docs-ext",
     "gemini-cli:mcp_context7",
-    "gemini-cli:mcp_adk_agent_runner_basic",
-    "gemini-cli:mcp_adk_agent_runner_smart_search",
+    # "gemini-cli:mcp_adk_agent_runner_basic",
+    # "gemini-cli:mcp_adk_agent_runner_smart_search",
     "gemini-cli:adk_skill",
 ]
 
@@ -58,27 +58,27 @@ CANDIDATE_GENERATORS.extend(list(permute(
     api_key_manager=[api_key_manager]
 )))
 
-# Add Workflow ADK-based generators
-CANDIDATE_GENERATORS.extend([
-    create_workflow_adk_generator(
-        model_name=ModelName.GEMINI_2_5_FLASH,
-        api_key_manager=api_key_manager
-    ),
-    create_structured_workflow_adk_generator(
-        model_name=ModelName.GEMINI_2_5_FLASH,
-        api_key_manager=api_key_manager
-    ),
-    # Variant with history disabled
-    create_structured_workflow_adk_generator(
-        model_name=ModelName.GEMINI_2_5_FLASH,
-        api_key_manager=api_key_manager,
-        use_loop_history=False
-    ),
-    create_baseline_workflow_adk_generator(
-        model_name=ModelName.GEMINI_2_5_FLASH,
-        api_key_manager=api_key_manager
-    )
-])
+# # Add Workflow ADK-based generators
+# CANDIDATE_GENERATORS.extend([
+#     create_workflow_adk_generator(
+#         model_name=ModelName.GEMINI_2_5_FLASH,
+#         api_key_manager=api_key_manager
+#     ),
+#     create_structured_workflow_adk_generator(
+#         model_name=ModelName.GEMINI_2_5_FLASH,
+#         api_key_manager=api_key_manager
+#     ),
+#     # Variant with history disabled
+#     create_structured_workflow_adk_generator(
+#         model_name=ModelName.GEMINI_2_5_FLASH,
+#         api_key_manager=api_key_manager,
+#         use_loop_history=False
+#     ),
+#     create_baseline_workflow_adk_generator(
+#         model_name=ModelName.GEMINI_2_5_FLASH,
+#         api_key_manager=api_key_manager
+#     )
+# ])
 
 # Add locally active generator (from HEAD)
 CANDIDATE_GENERATORS.append(

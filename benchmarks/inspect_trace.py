@@ -10,6 +10,9 @@ import glob
 import os
 from datetime import datetime
 from pathlib import Path
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 def find_latest_trace_file(base_dir="benchmark_runs"):

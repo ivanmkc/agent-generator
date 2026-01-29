@@ -13,6 +13,9 @@ import json
 import yaml
 from pathlib import Path
 from typing import List, Dict, Any, Optional
+from dotenv import load_dotenv
+
+load_dotenv()
 
 import pandas as pd
 import pydantic

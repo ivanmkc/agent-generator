@@ -13,3 +13,4 @@ colorama
 PyYAML
 google-cloud-storage
 rank-bm25
+python-dotenv

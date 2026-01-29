@@ -1,0 +1,87 @@
+modules:
+  - path: google.adk.agents.llm_agent
+    exports: 
+      - LlmAgent
+      - Agent
+    description: The core class for LLM-powered agents. Supports instructions, tools, and output schemas.
+
+  - path: google.adk.agents.sequential_agent
+    exports:
+      - SequentialAgent
+    description: Orchestrates a linear sequence of sub-agents.
+
+  - path: google.adk.agents.loop_agent
+    exports:
+      - LoopAgent
+    description: Orchestrates a loop of sub-agents until a termination condition is met.
+
+  - path: google.adk.agents.parallel_agent
+    exports:
+      - ParallelAgent
+    description: Orchestrates multiple sub-agents running in parallel.
+
+  - path: google.adk.agents.base_agent
+    exports:
+      - BaseAgent
+    description: The abstract base class for all agents.
+
+  - path: google.adk.agents.invocation_context
+    exports:
+      - InvocationContext
+    description: Holds the context for the current agent run, including session state and history.
+
+  - path: google.adk.tools.function_tool
+    exports:
+      - FunctionTool
+    description: Wraps a Python function as a tool usable by an agent.
+
+  - path: google.adk.tools.base_tool
+    exports:
+      - BaseTool
+    description: Base class for creating custom tools.
+
+  - path: google.adk.models
+    exports:
+      - Gemini
+      - BaseLlm
+    description: Interface for LLM models.
+
+  - path: google.adk.runners
+    exports:
+      - InMemoryRunner
+    description: The runtime that executes an Agent or App.
+
+  - path: google.adk.apps
+    exports:
+      - App
+    description: The container for an agent application.
+
+  - path: google.adk.events
+    exports:
+      - Event
+    description: The unit of communication between agents (messages, tool calls, etc.).
+
+  - path: google.adk.planners
+    exports:
+      - BasePlanner
+    description: Base class for agent planners.
+
+  - path: google.adk.code_executors
+    exports:
+      - BaseCodeExecutor
+    description: Base class for executing generated code.
+
+  - path: google.adk.tools.tool_context
+    exports:
+      - ToolContext
+    description: Context passed to tool functions (access to session state).
+
+  - path: google.adk.agents.run_config
+    exports:
+      - RunConfig
+    description: Configuration for running an agent.
+
+  - path: google.adk.agents.callback_context
+    exports:
+      - CallbackContext
+    description: Context passed to agent callbacks.

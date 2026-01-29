@@ -41,7 +41,7 @@ def setup_logger(name: str, level: int = logging.INFO) -> logging.Logger:
     # Avoid adding multiple handlers if already setup
     if not logger.handlers:
         console_handler = logging.StreamHandler(sys.stdout)
-        console_handler.setFormatter(ColoredFormatter("%Y-%m-%d %H:%M:%S"))
+        console_handler.setFormatter(ColoredFormatter(datefmt="%Y-%m-%d %H:%M:%S"))
         logger.addHandler(console_handler)
     
     return logger

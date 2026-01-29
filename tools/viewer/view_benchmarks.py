@@ -18,6 +18,12 @@ from pathlib import Path
 import difflib
 import re
 from typing import List
+from dotenv import load_dotenv
+
+load_dotenv()
+
+# Add project root to sys.path
+sys.path.append(str(Path(__file__).parent.parent.parent))
 from pydantic import TypeAdapter
 from benchmarks.data_models import BenchmarkRunResult, BenchmarkResultType, ForensicData, CaseSummary, ForensicInsight, TraceLogEvent
 from benchmarks.benchmark_candidates import CANDIDATE_GENERATORS
