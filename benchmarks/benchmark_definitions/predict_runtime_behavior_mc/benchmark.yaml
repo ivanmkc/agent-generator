@@ -134,11 +134,11 @@ benchmarks:
   options:
     A: It throws an error because `session_id` is not in the user prompt.
     B: It only injects if the type hint is `SessionId`.
-    C: It requires `tool_context` to be accessed manually inside the tool.
+    C: It is not injected directly; the tool must accept 'tool_context' to access the session.
     D: It automatically injects `session_id` if the argument name matches.
     E: None of the above
-  correct_answer: E
-  explanation: ADK injects context via `ToolContext`.
+  correct_answer: C
+  explanation: ADK does not automatically inject `session_id`. Instead, the tool must accept a `tool_context` argument and access the session ID from it.
   benchmark_type: multiple_choice
 - id: predict_runtime_behavior_mc:agent_name_mutability
   question: Is the `name` attribute mutable?

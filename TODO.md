@@ -18,7 +18,7 @@
 - [ ] **Predict Runtime Behavior Review:** `predict_runtime_behaviour` cases with `code_snippet_ref` need manual review for validity.
 - [x] **Duplicate Name Check:** Verified `predict_runtime_behavior_mc:duplicate_agent_name` matches `validate_sub_agents_unique_names` behavior (warning logged, no error raised).
 - [x] **Event Extra Fields:** Verified `predict_runtime_behavior_mc:event_extra_fields_error` matches code (Pydantic forbids extra fields).
-- [ ] **Tool Injection Ambiguity:** Improve `predict_runtime_behavior_mc:tool_session_id_injection`.
+- [x] **Tool Injection Ambiguity:** Improved `predict_runtime_behavior_mc:tool_session_id_injection` by clarifying options and explanation.
 - [ ] **Custom Agent Sub-agents:** Check if `fix_errors:08_custom_agent` needs `sub_agents` passed to `CustomConditionalAgent`.
 
 ## Codebase Maintenance
