@@ -1004,10 +1004,9 @@ class LogAnalyzer:
         print(f"\n{Bcolors.HEADER}Running forensic analysis...{Bcolors.ENDC}")
         forensic_context = ""
         try:
-            run_analysis = analyze_benchmark_run(run_dir.name)
-
+            run_analysis = analyze_benchmark_run(run_dir.name, run_dir.parent)
+            
             # --- AI ANALYSIS PHASE (Map-Reduce) ---
-
             def is_infrastructure_error(case):
                 err = str(case.final_validation_error).lower()
                 return "429" in err or "resourceexhausted" in err or "quota" in err
