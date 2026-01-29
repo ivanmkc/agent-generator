@@ -105,4 +105,11 @@ IMAGE_DEFINITIONS: Dict[str, ImageDefinition] = {
         dependencies=[f"{IMAGE_PREFIX}:base"],
         build_args={"BASE_IMAGE": f"{IMAGE_PREFIX}:base"},
     ),
+    f"{IMAGE_PREFIX}:adk_skill": ImageDefinition(
+        source_dir="adk_skill",
+        dockerfile="adk_skill/Dockerfile",
+        description="Environment with Gemini CLI and the ADK Skill pre-loaded.",
+        dependencies=[f"{IMAGE_PREFIX}:base"],
+        build_args={"BASE_IMAGE": f"{IMAGE_PREFIX}:base"},
+    ),
 }

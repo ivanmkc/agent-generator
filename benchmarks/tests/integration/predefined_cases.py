@@ -199,3 +199,18 @@ STRUCTURED_WORKFLOW_CASE = FixErrorBenchmarkCase(
         "The agent name is 'simple_agent'.",
     ],
 )
+
+# A case for verifying the ADK Skill knowledge base
+ADK_SKILL_KNOWLEDGE_CASE = MultipleChoiceBenchmarkCase(
+    id="test:adk_skill_knowledge",
+    question="According to the ADK 'Key Features', what does 'Code-First Development' allow you to define directly in Python?",
+    options={
+        "A": "Only the agent's system instructions.",
+        "B": "Agent logic, tools, and orchestration.",
+        "C": "The underlying LLM architecture.",
+        "D": "Visual drag-and-drop workflows.",
+    },
+    correct_answer="B",
+    benchmark_type=BenchmarkType.MULTIPLE_CHOICE,
+    explanation="Key Features document states: 'Code-First Development: Define agent logic, tools, and orchestration directly in Python'.",
+)

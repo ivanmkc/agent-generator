@@ -9,6 +9,7 @@ for each candidate. It also defines the ModelName enum for consistent model refe
 import enum
 from pathlib import Path
 from core.api_key_manager import ApiKeyManager
+from benchmarks.utils import permute
 from benchmarks.answer_generators.adk_agents import (
     create_default_adk_agent,
     create_workflow_adk_generator,
@@ -32,51 +33,55 @@ from core.models import ModelName
 
 api_key_manager = ApiKeyManager()
 
-# Define the candidate generators list synchronously.
-# This structure is compatible with the current run_benchmarks.py orchestrator
-# which expects a list of AnswerGenerator objects and handles async setup() calls explicitly.
-CANDIDATE_GENERATORS = [
-    # GeminiCliPodmanAnswerGenerator(
-    #     image_definitions=IMAGE_DEFINITIONS,
-    #     image_name="gemini-cli:mcp_adk_agent_runner_basic",
-    #     model_name=ModelName.GEMINI_2_5_FLASH,
-    #     api_key_manager=api_key_manager,
-    #     experiment_id="basic"
-    # ),
-    # create_hybrid_generator_v47(
-    #     model_name=ModelName.GEMINI_2_5_FLASH,
-    #     api_key_manager=api_key_manager,
-    # ),
-    # GeminiCliPodmanAnswerGenerator(
-    #     image_definitions=IMAGE_DEFINITIONS,
-    #     image_name="gemini-cli:base",
-    #     model_name=ModelName.GEMINI_2_5_FLASH,
-    #     api_key_manager=api_key_manager,
-    # ),
-    # GeminiCliPodmanAnswerGenerator(
-    #     image_definitions=IMAGE_DEFINITIONS,
-    #     image_name="gemini-cli:adk-docs-ext",
-    #     model_name=ModelName.GEMINI_2_5_FLASH,
-    #     api_key_manager=api_key_manager,
-    # ),
-    # GeminiCliPodmanAnswerGenerator(
-    #     image_definitions=IMAGE_DEFINITIONS,
-    #     image_name="gemini-cli:adk-docs-ext-starter",
-    #     model_name=ModelName.GEMINI_2_5_FLASH,
-    #     api_key_manager=api_key_manager,
-    # ),
-    # GeminiCliPodmanAnswerGenerator(
-    #     image_definitions=IMAGE_DEFINITIONS,
-    #     image_name="gemini-cli:adk-docs-ext-llms",
-    #     model_name=ModelName.GEMINI_2_5_FLASH,
-    #     api_key_manager=api_key_manager,
-    # ),
-    # GeminiCliPodmanAnswerGenerator(
-    #     image_definitions=IMAGE_DEFINITIONS,
-    #     image_name="gemini-cli:adk-docs-ext-llms-full",
-    #     model_name=ModelName.GEMINI_2_5_FLASH,
-    #     api_key_manager=api_key_manager,
-    # ),
+# Create pre-configured agent instances for AdkAnswerGenerator
+agent_flash = create_default_adk_agent(model_name=ModelName.GEMINI_2_5_FLASH)
+agent_pro = create_default_adk_agent(model_name=ModelName.GEMINI_2_5_PRO)
+
+_selected_images = [
+    "gemini-cli:base",
+    "gemini-cli:adk-python",
+    "gemini-cli:adk-docs-ext",
+    "gemini-cli:mcp_context7",
+    "gemini-cli:mcp_adk_agent_runner_basic",
+    "gemini-cli:mcp_adk_agent_runner_smart_search",
+    "gemini-cli:adk_skill",
+]
+
+CANDIDATE_GENERATORS = []
+
+# Add Gemini CLI Podman-based generators
+CANDIDATE_GENERATORS.extend(list(permute(
+    GeminiCliPodmanAnswerGenerator,
+    model_name=[ModelName.GEMINI_2_5_FLASH], #, ModelName.GEMINI_2_5_PRO],
+    image_name=_selected_images,
+    image_definitions=[IMAGE_DEFINITIONS],
+    api_key_manager=[api_key_manager]
+)))
+
+# Add Workflow ADK-based generators
+CANDIDATE_GENERATORS.extend([
+    create_workflow_adk_generator(
+        model_name=ModelName.GEMINI_2_5_FLASH,
+        api_key_manager=api_key_manager
+    ),
+    create_structured_workflow_adk_generator(
+        model_name=ModelName.GEMINI_2_5_FLASH,
+        api_key_manager=api_key_manager
+    ),
+    # Variant with history disabled
+    create_structured_workflow_adk_generator(
+        model_name=ModelName.GEMINI_2_5_FLASH,
+        api_key_manager=api_key_manager,
+        use_loop_history=False
+    ),
+    create_baseline_workflow_adk_generator(
+        model_name=ModelName.GEMINI_2_5_FLASH,
+        api_key_manager=api_key_manager
+    )
+])
+
+# Add locally active generator (from HEAD)
+CANDIDATE_GENERATORS.append(
     GeminiCliPodmanAnswerGenerator(
         image_definitions=IMAGE_DEFINITIONS,
         image_name="gemini-cli:mcp_adk_agent_runner_ranked_knowledge",
@@ -84,13 +89,5 @@ CANDIDATE_GENERATORS = [
         api_key_manager=api_key_manager,
         extra_env={"ADK_SEARCH_PROVIDER": "vector"},
         experiment_id="ranked_knowledge_vector",
-    ),
-    # GeminiCliPodmanAnswerGenerator(
-    #     image_definitions=IMAGE_DEFINITIONS,
-    #     image_name="gemini-cli:mcp_adk_agent_runner_ranked_knowledge",
-    #     model_name=ModelName.GEMINI_2_5_FLASH,
-    #     api_key_manager=api_key_manager,
-    #     extra_env={"ADK_SEARCH_PROVIDER": "keyword"},
-    #     experiment_id="ranked_knowledge_keyword"
-    # ),
-]
+    )
+)

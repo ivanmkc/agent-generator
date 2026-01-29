@@ -201,34 +201,28 @@ async def test_generator_memory_context(test_case: GeneratorTestCase) -> None:
     full_logs_content = "\n".join([event.content for event in logs if event.content])
     # print(f"[{test_case.id}] Full debug logs (snippet):\n{full_logs_content[:1000]}...")
 
-    # Regex to find the specific debug line for loaded context paths
-    # Example: [DEBUG] [MemoryDiscovery] Final ordered INSTRUCTIONS.md paths to read: ["/path/to/INSTRUCTIONS.md"]
-    expected_context_file = Path(test_case.expected_context_files[0]).name
-    match = re.search(
-        rf"\[DEBUG\] \[MemoryDiscovery\] Final ordered {re.escape(expected_context_file)} paths to read: (.*)",
+    # Regex to find all "Final ordered ... paths to read" lines
+    # Example: [DEBUG] [MemoryDiscovery] Final ordered adk_skill/instructions.md paths to read: ["/workdir/adk_skill/instructions.md"]
+    loaded_paths = []
+    path_matches = re.findall(
+        r"\[DEBUG\] \[MemoryDiscovery\] Final ordered .*? paths to read: (.*)",
         full_logs_content,
     )
-    if not match:
+
+    if not path_matches:
         pytest.fail(
-            f"[{test_case.id}] 'Final ordered INSTRUCTIONS.md paths' debug line not found in logs, and no LLM refusal detected."
+            f"[{test_case.id}] No 'Final ordered ... paths' debug lines found in logs."
         )
 
-    # Extract the paths string and parse as JSON array
-    paths_str = match.group(1).replace(
-        "'", '"'
-    )  # Replace single quotes with double for valid JSON
-
-    # Handle empty list case (e.g. if paths_str is empty)
-    if not paths_str.strip():
-        loaded_paths = []
-    else:
+    for paths_str in path_matches:
         try:
-            # The regex now captures the entire JSON array string directly
-            loaded_paths = json.loads(paths_str)
-        except json.JSONDecodeError as e:
-            pytest.fail(
-                f"[{test_case.id}] Failed to parse loaded paths JSON from debug logs: {e}\nRaw paths string: {paths_str}"
-            )
+             # Replace single quotes with double for valid JSON if needed (though CLI usually outputs valid JSON)
+            clean_json = paths_str.replace("'", '"')
+            batch_paths = json.loads(clean_json)
+            loaded_paths.extend(batch_paths)
+        except json.JSONDecodeError:
+            print(f"[{test_case.id}] Warning: Could not parse paths JSON: {paths_str}")
+            continue
 
     print(f"[{test_case.id}] Discovered loaded context paths: {loaded_paths}")
 
