@@ -1,4 +1,5 @@
 # Todo List
+- In "fix_errors:24_incorrect_api_usage", the test assertion for "helpful assistant" has nothing to do with the requirements. rethink how to improve this question.
 
 # Immediate Priorities (Refactoring Phase 2)
 
@@ -9,6 +10,7 @@
 - [x] **Remove `utils.py` Anti-Pattern:** Decompose `core/utils.py` (if/when created) into semantic modules like `core/filesystem.py`, `core/strings.py`, etc.
 - [x] **Refactor Answer Generators:** Moved `experiment_66/67` back to `experiments/` and fixed imports in `benchmarks/` to restore modularity.
 - [x] **Vibeshare Independence:** Ensure `vibeshare/` treats the main repo as a proper library dependency rather than using cross-imports. Audit `vibeshare/src/cache.py` vs `core/config.py` usage.
+- [x] **FunctionTool Signature:** Fixed `ranked_targets.yaml` generation to include `FunctionTool` constructor signature (regenerated file).
 
 # Ongoing Maintenance
 
