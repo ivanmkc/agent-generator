@@ -23,6 +23,7 @@ from benchmarks.tests.integration.predefined_cases import (
     ADK_BASE_AGENT_QUESTION_CASE_INTERMEDIATE,
     MCP_ADK_RUNNER_CASE,
     STRUCTURED_WORKFLOW_CASE,
+    ADK_SKILL_KNOWLEDGE_CASE,
 )
 from benchmarks.tests.integration.config_models import (
     AnyGeneratorConfig,
@@ -135,6 +136,17 @@ GENERATOR_METADATA: Dict[str, AnyGeneratorConfig] = {
         expected_mcp_servers=["adk-knowledge"],
         custom_case=MCP_ADK_RUNNER_CASE,
         expected_tool_uses=["list_adk_modules", "inspect_adk_symbol", "run_adk_agent"],
+    ),
+    "podman_adk_skill_test_case": PodmanGeneratorConfig(
+        id="podman_adk_skill_test_case",
+        dockerfile_dir=Path(
+            "benchmarks/answer_generators/gemini_cli_docker/adk_skill"
+        ),
+        image_name="gemini-cli:adk_skill",
+        # Verify that the agent can answer questions based on the injected documentation
+        custom_case=ADK_SKILL_KNOWLEDGE_CASE,
+        expected_tool_uses=[], # No tools expected, just pure RAG/Context usage
+        expected_context_files=["/workdir/adk_skill/instructions.md"],
     ),
 }
 

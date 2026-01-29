@@ -7,8 +7,12 @@ RUN mkdir -p /workdir
 # Copy the adk_skill directory into the image
 COPY . /workdir/adk_skill
 
-# Copy the settings.json into the adk_skill directory in the image
-COPY settings.json /workdir/adk_skill/settings.json
+# Initialize git to ensure project root detection (like adk-python)
+RUN cd /workdir && git init
+
+# Create the .gemini directory and copy settings.json
+RUN mkdir -p /workdir/.gemini
+COPY settings.json /workdir/.gemini/settings.json
 
 # Write version.txt from build argument
 ARG VERSION=unknown

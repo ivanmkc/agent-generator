@@ -161,3 +161,71 @@ graph TD
     Solver --(Raw Text)--> PostProc[Post-Processor]
     PostProc --(JSON)--> Final[Final Answer]
 ```
+## gemini-cli:adk_skill
+
+### Concise Summary
+- **Core Philosophy:** Encapsulated execution of the Gemini CLI within an isolated Podman container to ensure reproducible environments and secure tool interaction.
+- **Topology:** Containerized Sandbox Wrapper / Service Proxy
+- **Key Tool Chain:** `Python 3.x`, `Podman (Container Runtime)`, `gemini-cli (Target Application)`, `aiohttp (Network Communication)`, `Docker/Container Images`
+
+---
+
+### Extensive Architectural Breakdown
+
+> **1. Architecture Overview**
+> The system implements a bridge pattern where the Python AnswerGenerator orchestrates a Podman container. The architecture isolates the execution of the external 'gemini-cli' tool within a defined container environment. It handles lifecycle management (setup/teardown), environment variable injection (for API keys and configuration), and I/O marshaling. The system can operate in two modes: direct command execution within the container or acting as a proxy to an HTTP service running inside the container.
+>
+> **2. Tool Chain Analysis**
+> - **`GeminiCliPodmanAnswerGenerator`**: Main orchestration class acting as the interface between the host application and the containerized tool. (e.g., *Instantiated with image definitions to run specific model versions.*)
+> - **`PodmanContainer`**: Abstraction layer for managing the Podman lifecycle (start, stop, execute). (e.g., *Used in self.setup() to launch the container before commands are sent.*)
+> - **`gemini-cli`**: The command-line interface tool being executed to generate AI responses. (e.g., *Called with --model and --output-format arguments inside the container.*)
+> - **`aiohttp`**: Asynchronous HTTP client for proxy mode communication. (e.g., *Used to POST JSON payloads to self._base_url when _is_proxy is True.*)
+> 
+>
+> **3. Call Hierarchy & Flow**
+> ```
+> Client/Test Runner
+>       |
+>       v
+> GeminiCliPodmanAnswerGenerator.run_cli_command()
+>       | (Lazy Setup Check)
+>       +---> .setup() --> PodmanContainer.start()
+>       |
+>       +---[Mode Switch]---------------------+
+>       |                                     |
+>       v (Direct Mode)                       v (Proxy Mode)
+> PodmanContainer.send_command()        aiohttp.post(base_url)
+>       |                                     |
+>       v                                     v
+> [Podman Container / Execution Environment]
+>       |
+>       +---> gemini-cli --model ... (Process)
+>                 |
+>       <---------+ (stdout/stderr)
+>       |
+>       v
+> TraceLogEvent Construction & Error Parsing
+>       |
+>       v
+> Return (Response Dict, Logs)
+> ```
+>
+> **4. Detailed Call Flow Example**
+> 1. User calls `run_cli_command(['explain', 'quantum physics'])`.
+> 2. Generator checks `_setup_completed`. If False, calls `setup()` to spin up the Podman container.
+> 3. Generator merges `extra_env` with API keys.
+> 4. Arguments are formatted (prepending context instructions if present).
+> 5. Command is sent to the container (via socket or HTTP proxy).
+> 6. The `gemini-cli` tool runs inside the container; stdout contains JSON, stderr contains logs.
+> 7. Generator parses stderr for specific error patterns (e.g., 'Error when talking to Gemini API').
+> 8. Output is parsed (potentially using `parse_cli_stream_json_output`).
+> 9. A structured dictionary with 'stdout', 'stderr', and 'response' is returned along with execution logs.
+>
+> **5. Key Components**
+> - **`GeminiCliPodmanAnswerGenerator`**: Primary class handling initialization, environment configuration, and public API methods for generating answers.
+> - **`setup`**: Idempotent async method that ensures the backend Podman container is built (if required) and running before execution.
+> - **`run_cli_command`**: Core logic that marshals arguments, injects environment variables, executes the command remotely, and processes the raw output.
+> - **`TraceLogEvent`**: Data structure used to capture detailed execution telemetry (stderr, raw stdout, internal errors) for debugging.
+> - **`parse_cli_stream_json_output`**: Helper function (external) to convert raw CLI streaming output into structured JSON objects.
+> 
+

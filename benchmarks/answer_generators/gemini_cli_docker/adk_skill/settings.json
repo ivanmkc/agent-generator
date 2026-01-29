@@ -4,7 +4,7 @@
   },
   "context": {
     "fileName": [
-      "instructions.md"
+      "adk_skill/instructions.md"
     ],
     "includeDirectories": [
       "./"
