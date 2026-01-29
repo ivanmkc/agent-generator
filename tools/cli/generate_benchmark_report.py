@@ -46,7 +46,7 @@ from tools.analysis.run_metrics import analyze_benchmark_run
 from tools.analysis.generate_architecture_docs import DOC_MANAGER
 from tools.analysis.summarize_cases import CASE_DOC_MANAGER
 from benchmarks.benchmark_candidates import CANDIDATE_GENERATORS
-from core.config import MOST_POWERFUL_MODEL
+from core.config import MOST_POWERFUL_MODEL, BENCHMARK_RUNS_DIR
 
 # Configure logging to suppress noisy libraries
 import logging
@@ -1290,7 +1290,7 @@ async def analyze_run_logs(run_dir: Path, model_name: str):
     """
     # Ensure full path
     if not run_dir.exists():
-        potential = Path("benchmark_runs") / run_dir
+        potential = BENCHMARK_RUNS_DIR / run_dir
         if potential.exists():
             run_dir = potential
 
@@ -1314,7 +1314,7 @@ async def analyze_run_logs(run_dir: Path, model_name: str):
 
 def get_latest_run():
     """Finds the most recently modified run directory."""
-    runs_dir = Path("benchmark_runs")
+    runs_dir = BENCHMARK_RUNS_DIR
     if not runs_dir.exists():
         return None
     runs = sorted(
