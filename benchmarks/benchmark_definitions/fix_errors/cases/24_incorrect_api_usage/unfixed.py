@@ -12,6 +12,7 @@ def create_agent(model_name: str) -> BaseAgent:
 
       Requirements:
       - The agent should be a valid LlmAgent instance.
+      - The agent must use "You are a helpful assistant." as its system instruction.
       - The agent should respond to the greeting 'Hello' with a response containing 'Hello'.
 
   Args:
