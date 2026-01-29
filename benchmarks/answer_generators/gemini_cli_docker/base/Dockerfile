@@ -31,8 +31,8 @@ RUN curl -LsSf https://astral.sh/uv/install.sh | sh \
 # Install Python dependencies for the server (FastAPI/Uvicorn)
 RUN pip install --no-cache-dir fastapi uvicorn
 
-# Install Gemini CLI
-RUN npm install -g @google/gemini-cli
+# Install Gemini CLI (pinned version)
+RUN npm install -g @google/gemini-cli@0.26.0
 
 # Create Gemini config directory and copy settings.json
 RUN mkdir -p /root/.gemini
