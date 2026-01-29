@@ -153,13 +153,6 @@ benchmarks:
     unfixed_file: benchmarks/benchmark_definitions/fix_errors/cases/23_missing_import/unfixed.py
     fixed_file: benchmarks/benchmark_definitions/fix_errors/cases/23_missing_import/fixed.py
     description: Add the missing import statement for `LlmAgent` to create a valid agent.
-  - id: fix_errors:24_incorrect_api_usage
-    name: '24: A minimal LlmAgent with an incorrect API usage.'
-    benchmark_type: fix_error
-    test_file: benchmarks/benchmark_definitions/fix_errors/cases/24_incorrect_api_usage/test_agent.py
-    unfixed_file: benchmarks/benchmark_definitions/fix_errors/cases/24_incorrect_api_usage/unfixed.py
-    fixed_file: benchmarks/benchmark_definitions/fix_errors/cases/24_incorrect_api_usage/fixed.py
-    description: Fix the incorrect API usage (parameter name) to create a valid LlmAgent.
   - id: fix_errors:25_multi_agent_interaction_error
     name: '25: A SequentialAgent with an interaction error.'
     benchmark_type: fix_error
