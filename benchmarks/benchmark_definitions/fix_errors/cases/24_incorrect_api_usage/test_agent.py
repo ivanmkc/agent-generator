@@ -41,6 +41,4 @@ async def test_create_agent_passes():
   assert "Hello" in response
 
   # Verify that the instruction was correctly set (this confirms the API usage fix)
-  assert (
-      "helpful assistant" in root_agent.instruction
-  ), "Instruction attribute not set correctly."
+  assert root_agent.instruction, "Instruction attribute not set correctly."

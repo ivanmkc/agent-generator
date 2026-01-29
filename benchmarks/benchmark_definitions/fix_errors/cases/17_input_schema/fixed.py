@@ -21,9 +21,10 @@ def create_agent(model_name: str) -> BaseAgent:
       Then, create a root "agent" that uses the worker as a tool to process user info.
 
       Requirements:
-      - The agent should be initialized with an `input_schema` of `UserInfo`.
-      - The agent should be able to process a JSON string conforming to the `UserInfo` schema.
-      - The agent's response should include the user's name and age from the input.
+      - The worker agent should be initialized with an `input_schema` of `UserInfo`.
+      - The worker agent should be able to process a JSON string conforming to the `UserInfo` schema.
+      - The worker agent's response should include the user's name and age from the input.
+      - The worker agent's name should be "worker".
 
   Args:
       model_name: The name of the LLM model to use.
