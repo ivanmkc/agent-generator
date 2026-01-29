@@ -134,22 +134,51 @@ async def run_comparison(
         filters = [f.strip() for f in filter_str.split(",") if f.strip()]
         return any(f in target for f in filters)
 
-    if selected_suite == "debug":
-        benchmark_suites = [debug_suite]
-    else:
-        # Default: Run all standard suites (exclude debug)
-        all_suites = standard_suites + [debug_suite]
-        # Apply filter if present
-        if selected_suite:
+    # 1. Gather all potential suites
+    all_available_suites = standard_suites + [debug_suite, debug_single]
+
+    # 2. Apply initial selection based on filter match or default
+    if selected_suite:
+        # If filter is exactly "debug", we prioritize the main debug suite for convenience
+        if selected_suite == "debug":
+            benchmark_suites = [debug_suite]
+        else:
             benchmark_suites = [
-                s for s in all_suites if matches_filter(s, selected_suite)
+                s for s in all_available_suites if matches_filter(s, selected_suite)
             ]
             if not benchmark_suites:
                 raise ValueError(
                     f"Specified suite filter '{selected_suite}' matched no suites."
                 )
-        else:
-            benchmark_suites = standard_suites
+    else:
+        # Default: Run standard suites
+        benchmark_suites = standard_suites
+
+    # 3. Apply "Skip debug unless explicitly requested" rule
+    final_suites = []
+    skipped_debug = []
+
+    for s in benchmark_suites:
+        suite_path_obj = Path(s)
+        # Check if directory name starts with debug_
+        is_debug_dir = suite_path_obj.parent.name.startswith("debug_")
+        
+        # Check if filter explicitly includes "debug"
+        filter_has_debug = selected_suite and "debug" in selected_suite
+
+        if is_debug_dir and not filter_has_debug:
+            skipped_debug.append(s)
+            continue
+        
+        final_suites.append(s)
+
+    if skipped_debug:
+        skipped_names = [Path(s).parent.name for s in skipped_debug]
+        logger.log_message(
+            f"Info: Skipped debug suites {skipped_names} because filter did not explicitly include 'debug'."
+        )
+
+    benchmark_suites = final_suites
 
     # Filter generators
     answer_generators: list[AnswerGenerator] = []
