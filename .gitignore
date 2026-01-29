@@ -8,6 +8,10 @@
 *.json
 !/.vscode/tasks.json
 
+# Output directories
+logs/
+retrieval_evals/
+
 # Jupyter Notebook stuff
 .ipynb_checkpoints/
 benchmark_runs/

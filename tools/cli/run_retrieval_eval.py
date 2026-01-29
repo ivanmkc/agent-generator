@@ -3,7 +3,7 @@ CLI tool to execute the RAG retrieval evaluation suite.
 
 This script runs the defined retrievers (BM25, Embedding, etc.) against the
 `retrieval_dataset` and computes quantitative metrics (Recall, MRR).
-Results are saved to `retrieval_evals/`.
+Results are saved to `tmp/retrieval_evals/`.
 """
 
 import asyncio

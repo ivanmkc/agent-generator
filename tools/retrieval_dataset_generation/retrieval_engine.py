@@ -52,7 +52,7 @@ class ValidatorConfig(BaseModel):
         description="Probability of including a specific candidate in a trial context.",
     )
     log_file: str = Field(
-        "logs/validation_events.yaml", description="Path to the structured event log."
+        "tmp/logs/validation_events.yaml", description="Path to the structured event log."
     )
 
 

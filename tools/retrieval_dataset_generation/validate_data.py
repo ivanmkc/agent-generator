@@ -838,7 +838,7 @@ if __name__ == "__main__":
     # We can look for the most recent run directory.
 
     latest_run = None
-    runs = sorted(Path("retrieval_evals").glob("run_*"))
+    runs = sorted(Path("tmp/retrieval_evals").glob("run_*"))
     if runs:
         latest_run = runs[-1]
 
@@ -859,7 +859,7 @@ if __name__ == "__main__":
         run_dir = latest_run
         print(f"{Fore.GREEN}Resuming run from: {run_dir}{Style.RESET_ALL}")
     else:
-        run_dir = Path(f"retrieval_evals/run_{timestamp}")
+        run_dir = Path(f"tmp/retrieval_evals/run_{timestamp}")
         run_dir.mkdir(parents=True, exist_ok=True)
         print(f"{Fore.CYAN}Starting NEW Validation Run in: {run_dir}{Style.RESET_ALL}")
 

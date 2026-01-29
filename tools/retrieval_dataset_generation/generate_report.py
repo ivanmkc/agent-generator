@@ -18,7 +18,7 @@ from tools.retrieval_dataset_generation.retrieval_engine import RetrievalDataset
 
 
 def get_latest_log():
-    log_files = glob.glob("logs/validation_run_*.yaml")
+    log_files = glob.glob("tmp/logs/validation_run_*.yaml")
     if not log_files:
         return None
     return max(log_files, key=os.path.getctime)
