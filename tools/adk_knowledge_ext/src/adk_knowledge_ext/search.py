@@ -300,9 +300,14 @@ class CompositeSearchProvider(SearchProvider):
         self, query: str, page: int = 1, page_size: int = 10
     ) -> List[Tuple[float, Dict[str, Any]]]:
         for provider in self._providers:
+            provider_name = provider.__class__.__name__
             if await provider.has_matches(query):
+                logger.info(f"Search provider '{provider_name}' matched for query: '{query}'")
                 return await provider.search(query, page, page_size)
+            else:
+                logger.info(f"Search provider '{provider_name}' had no matches for query: '{query}'. Falling back...")
 
+        logger.warning(f"No search providers matched for query: '{query}'")
         # If no provider matches, return empty from the last one (or empty list)
         return []
 

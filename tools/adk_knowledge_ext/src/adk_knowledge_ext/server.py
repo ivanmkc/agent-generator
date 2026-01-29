@@ -57,7 +57,7 @@ def list_adk_modules(page: int = 1, page_size: int = 20) -> str:
 
 
 @mcp.tool()
-def search_adk_knowledge(queries: Union[str, List[str]], limit: int = 10) -> str:
+async def search_adk_knowledge(queries: Union[str, List[str]], limit: int = 10) -> str:
     """
     Searches the ADK knowledge base for relevant classes, functions, or concepts.
     Accepts multiple queries to retrieve diverse information in a single call.
@@ -77,7 +77,7 @@ def search_adk_knowledge(queries: Union[str, List[str]], limit: int = 10) -> str
     all_matches_map = {} # fqn -> (score, item)    
     for query in queries:
         # Search for each query
-        matches = get_index().search(query, limit)
+        matches = await get_index().search(query, limit)
         for score, item in matches:
             fqn = item.get("id") or item.get("fqn") or item.get("name") or "unknown"
             
