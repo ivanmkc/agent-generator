@@ -22,6 +22,7 @@ import random
 import traceback
 import uuid
 import datetime
+import json
 from typing import List
 from typing import Optional
 
@@ -166,7 +167,18 @@ async def _run_single_benchmark(
                 is_validation_error = isinstance(
                     original_exception, (pydantic.ValidationError, ValueError)
                 )
-                if is_validation_error and not retry_on_validation_error:
+
+                # Special case: If it's a JSON error (syntax), we should retry it like a generation error.
+                # Only strictly schema-based ValidationErrors should be subject to retry_on_validation_error=False.
+                is_json_error = isinstance(original_exception, json.JSONDecodeError)
+                if not is_json_error and isinstance(original_exception, pydantic.ValidationError):
+                    # Check if Pydantic wrapped a JSON error
+                    for err in original_exception.errors():
+                        if err.get("type") == "json_invalid":
+                            is_json_error = True
+                            break
+
+                if is_validation_error and not is_json_error and not retry_on_validation_error:
                     should_retry = False
 
                 if should_retry:
