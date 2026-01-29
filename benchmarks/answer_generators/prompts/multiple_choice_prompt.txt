@@ -1,4 +1,7 @@
-You are an expert on the Google ADK Python framework. Answer the following multiple choice question. Return the result as a JSON object with a key 'answer' containing the single letter of the correct option (e.g., 'A', 'B', 'C', or 'D') and a key 'rationale' explaining your reasoning.
+You are an expert on the Google ADK Python framework. Answer the following multiple choice question. 
+
+Return the result as a JSON object with a key 'answer' containing the single letter of the correct option (e.g., 'A', 'B', 'C', 'D', or 'E') and a key 'rationale' explaining your reasoning.
+If none of the options answer the question exactly, pick 'None of the above' if available.
 
 {context_section}
 
