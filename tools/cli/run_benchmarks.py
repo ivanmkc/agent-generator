@@ -124,7 +124,6 @@ async def run_comparison(
         "benchmarks/benchmark_definitions/diagnose_setup_errors_mc/benchmark.yaml",
         "benchmarks/benchmark_definitions/configure_adk_features_mc/benchmark.yaml",
         "benchmarks/benchmark_definitions/predict_runtime_behavior_mc/benchmark.yaml",
-        debug_single,
     ]
 
     # Helper for multi-value filtering
