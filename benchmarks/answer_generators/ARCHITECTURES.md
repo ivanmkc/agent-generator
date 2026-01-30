@@ -85,6 +85,9 @@ graph TD
 ### Core Philosophy
 A documentation-centric environment designed to assist developers by providing access to ADK documentation tools.
 
+### Topology
+Passive Context Injection
+
 ### Architecture Overview
 This image installs the standard `adk-docs-ext` extension. It likely provides tools or context injection related to the ADK documentation, serving as a baseline for the documentation-enhanced variants.
 
@@ -94,6 +97,9 @@ This image installs the standard `adk-docs-ext` extension. It likely provides to
 
 ### Core Philosophy
 A minimalist "Starter Pack" configuration.
+
+### Topology
+Passive Context Injection
 
 ### Architecture Overview
 This variant is built from the `agent-starter-pack` branch. It likely represents a stripped-down or essential set of documentation tools, testing the model's performance with a lighter context load compared to the full documentation suite.
@@ -105,6 +111,9 @@ This variant is built from the `agent-starter-pack` branch. It likely represents
 ### Core Philosophy
 Optimized for Large Language Models using the `llms.txt` standard.
 
+### Topology
+Passive Context Injection
+
 ### Architecture Overview
 This image includes the `llms.txt` file (or tools to read it), which is a standardized format for providing condensed, LLM-friendly documentation context. This variant tests the effectiveness of providing a curated, token-efficient context summary to the model.
 
@@ -115,8 +124,45 @@ This image includes the `llms.txt` file (or tools to read it), which is a standa
 ### Core Philosophy
 Maximum context injection.
 
+### Topology
+Passive Context Injection
+
 ### Architecture Overview
 This variant uses the `llms-full.txt` branch, implying a comprehensive, detailed dump of the ADK documentation in the `llms.txt` format. It tests the model's ability to handle and utilize a large context window populated with extensive domain knowledge, potentially at the cost of higher latency or "lost in the middle" effects.
+
+## gemini-cli:mcp_adk_agent_runner_basic
+
+**Source Image:** `gemini-cli:mcp_adk_agent_runner_basic`
+
+### Core Philosophy
+A baseline execution environment designed to test the model's intrinsic knowledge and coding capability without external assistance.
+
+### Topology
+Single Agent (Execution Only)
+
+### Key Tool Chain
+- `run_adk_agent`: Runs Python code in a sandbox.
+
+### Architecture Overview
+This agent acts as a simple code executor. It lacks any retrieval or inspection tools (`search`, `read_file`, etc.). It must rely entirely on its pre-trained knowledge to generate the correct ADK agent code, which is then executed via `run_adk_agent`. This serves as a control group for measuring the impact of retrieval tools.
+
+## gemini-cli:mcp_adk_agent_runner_smart_search
+
+**Source Image:** `gemini-cli:mcp_adk_agent_runner_smart_search`
+
+### Core Philosophy
+An active research agent equipped with standard, un-ranked discovery tools. It models a developer who knows how to search for documentation and read source code but does not have a curated "Golden Index".
+
+### Topology
+Single Agent with Standard Discovery Tools (ReAct)
+
+### Key Tool Chain
+- `pydoc_search`: Searches Python documentation strings.
+- `source_browser`: Navigates and reads source files from the library.
+- `run_adk_agent`: Executes generated code.
+
+### Architecture Overview
+Unlike the "Ranked Knowledge" runner, this agent uses generic discovery tools. It can search pydocs and browse source files, but it does not have access to the optimized `ranked_targets.yaml` index. This tests the model's ability to perform "wild" exploration of a codebase versus guided exploration.
 
 ## ADK_HYBRID_V47
 
