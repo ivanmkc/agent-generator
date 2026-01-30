@@ -53,31 +53,21 @@ Evaluates the agent's ability to **implement features from a technical specifica
 
 **Example:**
 > **Task:** `fix_errors:01_minimal_llm_agent`
-> **Spec:** "Create a minimal LlmAgent named 'single_agent'."
-> **Input State:** `unfixed.py` might contain `agent = LlmAgent(name="my agent")` (invalid name) or just `pass`.
-> **Goal:** Generate a valid `create_agent` function that returns a correctly configured `LlmAgent` instance, passing the `test_agent.py` validation checks.
+> **Input State (`unfixed.py`):**
+> ```python
+> def create_agent(model_name: str) -> BaseAgent:
+>   # Spec: Create a helpful LlmAgent named "single_agent"
+>   raise NotImplementedError("Agent implementation incomplete.")
+> ```
+> **Expected Output (`fixed.py`):**
+> ```python
+> def create_agent(model_name: str) -> BaseAgent:
+>   root_agent = LlmAgent(
+>       name="single_agent",
+>       model=model_name,
+>       instruction="You are a helpful assistant.",
+>   )
+>   return root_agent
+> ```
 
 ## 5. Predict Runtime Behavior (`predict_runtime_behavior_mc`)
-
-**Description:**
-Evaluates the agent's understanding of the ADK's **Runtime Execution Model**. Unlike "Diagnose Setup Errors" which focuses on static configuration validity, this suite presents scenarios involving valid (or subtle) code and asks the agent to predict **dynamic behavior**, such as execution order, state mutability, default logic, and side effects.
-
-**Motivation:**
-To verify that the agent possesses a deep mental model of *how* the ADK runs code, not just how to instantiate classes. This is critical for debugging race conditions, unexpected state changes, or logic errors that don't raise immediate exceptions (e.g., understanding that `SequentialAgent` passes state between steps, or the exact firing order of lifecycle hooks).
-
-**Example:**
-> **Question:** In what order will the callbacks and agent output be printed?
-> **Scenario:** An agent is configured with `before_agent_callback`, `after_agent_callback`, and a main instruction.
-> **Answer:** `before_agent_callback` -> (Agent Execution) -> `after_agent_callback`
-
-## 6. Search Relevance (`search_relevance`)
-
-**Description:**
-Evaluates the semantic retrieval capabilities of the agent (or the underlying RAG system). Questions are phrased in natural language describing a *goal* or *concept*, and the agent must identify the specific class or component that fulfills that need.
-
-**Motivation:**
-Users often know *what* they want to do ("retry failed steps") but not the class name (`ReflectAndRetryToolPlugin`). This suite measures the "Semantic Recall" of the knowledge system.
-
-**Example:**
-> **Question:** What class should I use if I want my agent to automatically reflect on its mistakes and retry failed turns?
-> **Answer:** `ReflectAndRetryToolPlugin`
