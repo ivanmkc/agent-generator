@@ -7,34 +7,49 @@ This file documents the architectural designs of the Answer Generators used in t
 **Source Image:** `gemini-cli:mcp_adk_agent_runner_ranked_knowledge`
 
 ### Core Philosophy
-A metric-driven, hybrid multi-agent architecture that utilizes a central Router to dispatch tasks to specialized experts (Coding vs. Knowledge) backed by a high-fidelity, MCP-integrated ranked knowledge index.
+A specialized "Research-then-Implement" single-agent architecture. It enforces a strict protocol where the agent must browse and inspect a high-fidelity **Ranked Knowledge Index** before attempting to generate or execute code. This grounds the model in the actual API surface, minimizing hallucinations.
 
 ### Topology
-Hierarchical Router-Gateway with Specialized Expert Agents
+Single Agent with Specialized Knowledge Tools (ReAct-like Workflow)
 
 ### Key Tool Chain
-- `search_adk_knowledge` (Semantic/BM25 search against Ranked Knowledge Index)
-- `inspect_adk_symbol` (Precise lookup of code symbols)
-- `list_adk_modules` (Ranked browsing of API surface)
-- PodmanModel (Container lifecycle)
+- `list_adk_modules`: **Browsing**. Returns a paginated, ranked list of ADK modules/classes (sorted by importance/usage).
+- `search_adk_knowledge`: **Search**. Hybrid Semantic/BM25 search against the index. Supports multiple queries in parallel.
+- `inspect_adk_symbol`: **Deep Dive**. Retrieves the exact structured specification (signatures, docstrings) for a symbol from the index.
+- `read_adk_source_code`: **Ground Truth**. Reads the raw source code from disk if the index is insufficient.
+- `run_adk_agent`: **Execution**. Runs the generated agent code in a sandbox.
 
 ### Architecture Overview
-The system operates as a containerized Agent Generator. It employs a Router-Gateway pattern where an incoming request is first analyzed by a 'Router' agent. Based on intent, the request is dispatched to one of two primary sub-agent chains: the 'Implementation Planner' (Coding Expert) or the 'Single Step Solver' (Knowledge Expert). These experts leverage a custom Model Context Protocol (MCP) server to access a 'Ranked Knowledge Index' via specific tools. The entire lifecycle is wrapped in a rigorous benchmarking framework that executes agents in isolated containers.
+The system operates as a containerized agent governed by a comprehensive system prompt (`INSTRUCTIONS_MCP_RUNNER.md`). Unlike hierarchical multi-agent systems, this architecture relies on a single, highly-instructed LLM to orchestrate its own research and implementation phases.
+1.  **Research Phase:** The agent is mandated to "Browse First" (`list_adk_modules`) to discover relevant entry points without guessing names. It then drills down using `inspect_adk_symbol` or `search_adk_knowledge` (Vector/BM25) to retrieve precise signatures.
+2.  **Implementation Phase:** Once grounded, the agent generates code and executes it via `run_adk_agent`.
+3.  **MCP Integration:** All knowledge retrieval is mediated by a custom Model Context Protocol (MCP) server (`adk-knowledge`) that wraps the `ranked_targets.yaml` index and the local git repository.
 
 ### Variants
-- **bm25 (Default):** Uses BM25/Hybrid search.
-- **keyword:** Uses pure Keyword search (baseline).
+- **vector (Default):** Enables embedding-based semantic search in `search_adk_knowledge`.
+- **bm25:** Uses strictly keyword-based retrieval.
 
 ### Call Hierarchy
 ```mermaid
 graph TD
-    User[User Request] --> Router[Router Agent]
-    Router -->|Coding Intent| Planner[Implementation Planner]
-    Router -->|Knowledge Intent| Solver[Single Step Solver]
-    Planner --> Worker[Retrieval Worker]
-    Solver --> Worker
-    Worker -->|MCP Tool| MCP[search_adk_knowledge / inspect_adk_symbol]
-    MCP --> Response[Response Generation]
+    User[User Request] --> Agent[Gemini Agent]
+    
+    subgraph Research Phase
+    Agent -->|1. Browse| List[Tool: list_adk_modules]
+    Agent -->|2. Search| Search[Tool: search_adk_knowledge]
+    Agent -->|3. Inspect| Inspect[Tool: inspect_adk_symbol]
+    Agent -->|4. Read Source| Read[Tool: read_adk_source_code]
+    
+    List --> Index[Ranked Knowledge Index]
+    Search --> Index
+    Inspect --> Index
+    Read --> Disk[Local adk-python Repo]
+    end
+    
+    subgraph Implementation Phase
+    Agent -->|5. Execute| Run[Tool: run_adk_agent]
+    Run --> Sandbox[Python Sandbox]
+    end
 ```
 
 ## gemini-cli:base
