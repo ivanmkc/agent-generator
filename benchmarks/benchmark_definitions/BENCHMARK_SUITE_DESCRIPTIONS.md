@@ -39,9 +39,16 @@ Presents code snippets containing subtle setup or configuration errors (e.g., in
 Real-world usage often involves debugging broken configuration. This suite tests the agent's ability to act as a linter/debugger, spotting issues before execution.
 
 **Example:**
-> **Question:** You define an agent with an invalid name 'my-agent'. What validation error is raised?
-> **Code Snippet:** `agent = LlmAgent(name="my-agent", ...)`
-> **Answer:** `ValueError: Agent name must be a valid identifier.`
+> **Code Snippet:**
+> ```python
+> def snippet_agent_creation_issue_1(**kwargs):
+>     # LlmAgent instantiation missing 'model' argument
+>     root_agent = LlmAgent(
+>         name="my_agent", instruction="You are a helpful assistant.", **kwargs
+>     )
+> ```
+> **Question:** What is the primary reason this `LlmAgent` instantiation fails?
+> **Answer:** The `LlmAgent` class is missing the required `model` argument.
 
 ## 4. Fix Errors (Implementation from Spec)
 
