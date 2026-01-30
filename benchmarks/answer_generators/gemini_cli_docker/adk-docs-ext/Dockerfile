@@ -25,6 +25,13 @@ RUN ln -s /usr/local/bin/uv /root/.local/bin/uv
 # Install mcpdoc permanently to avoid uvx startup latency
 RUN /root/.local/bin/uv tool install mcpdoc
 
+# Add uv tools to path
+ENV PATH="/root/.local/bin:$PATH"
+
+# Create alias for hallucinated command 'adk-docs-mcp' pointing to mcpdoc
+# This fixes "bash: adk-docs-mcp: command not found" when the model tries to use the server name as a CLI tool.
+RUN ln -s /root/.local/bin/mcpdoc /usr/local/bin/adk-docs-mcp
+
 # Update gemini-extension.json to use the installed mcpdoc and absolute paths
 COPY patch_config.py /tmp/patch_config.py
 RUN python3 /tmp/patch_config.py
