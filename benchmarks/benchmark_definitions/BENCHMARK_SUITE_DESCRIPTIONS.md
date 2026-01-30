@@ -60,14 +60,15 @@ Evaluates the agent's ability to **implement features from a technical specifica
 ## 5. Predict Runtime Behavior (`predict_runtime_behavior_mc`)
 
 **Description:**
-Similar to "Diagnose Setup Errors", but focuses on *behavioral* predictions rather than just initialization crashes. Questions involve execution order (callbacks), state mutations, and tool interactions.
+Evaluates the agent's understanding of the ADK's **Runtime Execution Model**. Unlike "Diagnose Setup Errors" which focuses on static configuration validity, this suite presents scenarios involving valid (or subtle) code and asks the agent to predict **dynamic behavior**, such as execution order, state mutability, default logic, and side effects.
 
 **Motivation:**
-Tests the agent's deep understanding of the ADK's execution model (e.g., knowing that `before_tool_callback` runs *before* the tool, or how `SequentialAgent` passes state).
+To verify that the agent possesses a deep mental model of *how* the ADK runs code, not just how to instantiate classes. This is critical for debugging race conditions, unexpected state changes, or logic errors that don't raise immediate exceptions (e.g., understanding that `SequentialAgent` passes state between steps, or the exact firing order of lifecycle hooks).
 
 **Example:**
-> **Question:** Is `session.state` mutable?
-> **Answer:** Yes, it is a mutable dictionary-like object.
+> **Question:** In what order will the callbacks and agent output be printed?
+> **Scenario:** An agent is configured with `before_agent_callback`, `after_agent_callback`, and a main instruction.
+> **Answer:** `before_agent_callback` -> (Agent Execution) -> `after_agent_callback`
 
 ## 6. Search Relevance (`search_relevance`)
 
