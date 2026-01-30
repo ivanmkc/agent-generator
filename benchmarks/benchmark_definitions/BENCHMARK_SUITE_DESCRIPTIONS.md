@@ -33,22 +33,27 @@ ADK features are often controlled by complex configuration objects. This suite v
 ## 3. Diagnose Setup Errors (`diagnose_setup_errors_mc`)
 
 **Description:**
-Presents code snippets containing subtle setup or configuration errors (e.g., invalid names, mutually exclusive arguments, type mismatches) and asks the agent to identify the specific error that would be raised at runtime.
+A **Multiple-Choice** suite that presents code snippets containing subtle setup or configuration errors (e.g., invalid names, mutually exclusive arguments, type mismatches). The agent must select the correct option that explains the specific error raised at runtime.
 
 **Motivation:**
 Real-world usage often involves debugging broken configuration. This suite tests the agent's ability to act as a linter/debugger, spotting issues before execution.
 
 **Example:**
+> **Question:** What is the primary reason this `LlmAgent` instantiation fails?
 > **Code Snippet:**
 > ```python
 > def snippet_agent_creation_issue_1(**kwargs):
->     # LlmAgent instantiation missing 'model' argument
 >     root_agent = LlmAgent(
 >         name="my_agent", instruction="You are a helpful assistant.", **kwargs
 >     )
 > ```
-> **Question:** What is the primary reason this `LlmAgent` instantiation fails?
-> **Answer:** The `LlmAgent` class is missing the required `model` argument.
+> **Options:**
+> - A: The `instruction` argument must be a list of strings.
+> - B: The `LlmAgent` class is missing the required `model` argument.
+> - C: The `name` argument must be unique across the entire project.
+> - D: You must always provide a `tools` list, even if empty.
+> - E: None of the above
+> **Answer:** B
 
 ## 4. Fix Errors (Implementation from Spec)
 
@@ -80,7 +85,7 @@ Evaluates the agent's ability to **implement features from a technical specifica
 ## 5. Predict Runtime Behavior (`predict_runtime_behavior_mc`)
 
 **Description:**
-Evaluates the agent's understanding of the ADK's **Runtime Execution Model**. Unlike "Diagnose Setup Errors" which focuses on static configuration validity, this suite presents scenarios involving valid (or subtle) code and asks the agent to predict **dynamic behavior**, such as execution order, state mutability, default logic, and side effects.
+A **Multiple-Choice** suite evaluating the agent's understanding of the ADK's **Runtime Execution Model**. Unlike "Diagnose Setup Errors" which focuses on static configuration validity, this suite presents scenarios involving valid (or subtle) code and asks the agent to predict **dynamic behavior**, such as execution order, state mutability, default logic, and side effects.
 
 **Motivation:**
 To verify that the agent possesses a deep mental model of *how* the ADK runs code, not just how to instantiate classes. This is critical for debugging race conditions, unexpected state changes, or logic errors that don't raise immediate exceptions.
@@ -88,4 +93,10 @@ To verify that the agent possesses a deep mental model of *how* the ADK runs cod
 **Example:**
 > **Question:** In what order will the callbacks and agent output be printed?
 > **Scenario:** An agent is configured with `before_agent_callback`, `after_agent_callback`, and a main instruction.
-> **Answer:** `before_agent_callback` -> (Agent Execution) -> `after_agent_callback`
+> **Options:**
+> - A: Pre, Post, (Agent Output)
+> - B: (Agent Output), Pre, Post
+> - C: Post, Pre, (Agent Output)
+> - D: Pre, (Agent Output), Post
+> - E: None of the above
+> **Answer:** D
