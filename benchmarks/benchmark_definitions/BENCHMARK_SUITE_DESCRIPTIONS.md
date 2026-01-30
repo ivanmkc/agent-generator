@@ -43,18 +43,19 @@ Real-world usage often involves debugging broken configuration. This suite tests
 > **Code Snippet:** `agent = LlmAgent(name="my-agent", ...)`
 > **Answer:** `ValueError: Agent name must be a valid identifier.`
 
-## 4. Fix Errors (`fix_errors`)
+## 4. Fix Errors (Implementation from Spec)
 
 **Description:**
-The most rigorous "coding" suite. The agent is given a broken Python file (e.g., missing imports, syntax errors, incorrect API usage) and a corresponding test file. The agent must generate a corrected version of the code that passes the tests.
+Despite the name `fix_errors`, this suite is primarily an **Implementation Challenge**. The agent is provided with a "broken" or scaffolded Python file (which may contain syntax errors, missing imports, or empty function stubs) and a rigorous test file (the "Spec"). The agent's task is to write or correct the code to satisfy the requirements defined by the tests and the benchmark description.
 
 **Motivation:**
-Evaluates the agent's end-to-end coding capability: reading code, understanding error messages (implied or explicit), and synthesizing a valid solution that adheres to the framework's constraints.
+Evaluates the agent's ability to **implement features from a technical specification** (the tests). It tests end-to-end coding capability: interpreting requirements, resolving dependencies, and producing syntactically and semantically valid code that passes a test harness.
 
 **Example:**
-> **Task:** Fix `01_single_llm_agent/unfixed.py`.
-> **Issue:** The agent name contains spaces (`"my agent"`), causing a `ValueError`.
-> **Goal:** Generate a valid `create_agent` function where the name is corrected (e.g., `"my_agent"`).
+> **Task:** `fix_errors:01_minimal_llm_agent`
+> **Spec:** "Create a minimal LlmAgent named 'single_agent'."
+> **Input State:** `unfixed.py` might contain `agent = LlmAgent(name="my agent")` (invalid name) or just `pass`.
+> **Goal:** Generate a valid `create_agent` function that returns a correctly configured `LlmAgent` instance, passing the `test_agent.py` validation checks.
 
 ## 5. Predict Runtime Behavior (`predict_runtime_behavior_mc`)
 
