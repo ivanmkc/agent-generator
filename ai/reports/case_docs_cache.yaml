@@ -1,7 +1,8 @@
 cases:
   configure_adk_features_mc:how_do_you_enable_codeexecutiontool_via_configurat:
-    one_liner: How do you enable `CodeExecutionTool` via configuration?
-    checksum: 87f7971cdd6c49634cc0c72e74a0cdc6
+    one_liner: Answer a multiple choice question and provide the answer and rationale
+      in a JSON format.
+    checksum: 54945b0b43977728ebd71d62cc9d3c4b
   debug_suite:fix_error_logic_agent:
     one_liner: Fix or implement the provided Python file content using the ADK framework.
     checksum: da08d458e23830fb9cb9f6dc5ee762e6
@@ -12,8 +13,9 @@ cases:
     one_liner: What does `RunConfig.proactivity` control?
     checksum: f361298be3af174f38a9736c52fec972
   api_understanding:what_is_the_foundational_class_for_all_agents_in_t:
-    one_liner: What is the foundational class for all agents in the ADK?
-    checksum: f696c912a713c4752bf80ae4fbf15223
+    one_liner: Identify the precise and exact Python definition from the ADK API that
+      correctly answers the following question.
+    checksum: 285ec957305be878b88ee504642beae3
   api_understanding:what_is_the_mandatory_parameter_required_by_the_ba:
     one_liner: What is the mandatory parameter required by the `BaseAgent` constructor?
     checksum: 1dafcb9138a26e152f4ea2f77089b99d
@@ -30,8 +32,9 @@ cases:
       correctly answers a specific question.
     checksum: 285ec957305be878b88ee504642beae3
   api_understanding:which_parameter_limits_the_number_of_iterations_fo:
-    one_liner: Which parameter limits the number of iterations for a `LoopAgent`?
-    checksum: d543ce2b852bfa7a43c061ddea9c2836
+    one_liner: Identify the precise and exact Python definition from the ADK API that
+      correctly answers the following question.
+    checksum: 285ec957305be878b88ee504642beae3
   api_understanding:which_parameter_specifies_the_model_for_an_llmagen:
     one_liner: Which parameter specifies the model for an `LlmAgent`?
     checksum: c0a98522c82dcb4bbe820afeade925dd
@@ -99,8 +102,9 @@ cases:
       answers a specific question.
     checksum: 285ec957305be878b88ee504642beae3
   api_understanding:which_class_allows_a_tool_to_access_the_agent_s_st:
-    one_liner: Which class allows a tool to access the agent's state or other services?
-    checksum: 3ccecb3278a85c14d1fb2a43c01de3f8
+    one_liner: Identify the precise and exact Python definition from the ADK API that
+      correctly answers the following question.
+    checksum: 285ec957305be878b88ee504642beae3
   api_understanding:what_s_the_easiest_way_to_create_a_tool_from_a_pyt:
     one_liner: What's the easiest way to create a tool from a Python function?
     checksum: 83d06ca4e507e17e7adba16811b8cd79
@@ -109,9 +113,9 @@ cases:
       answers a specific question.
     checksum: 285ec957305be878b88ee504642beae3
   api_understanding:what_is_the_base_class_for_managing_and_dynamicall:
-    one_liner: What is the base class for managing and dynamically filtering a collection
-      of tools?
-    checksum: df368a9be7d889f8cbd6cdd5f7e860a8
+    one_liner: Identify the precise and exact Python definition from the ADK API that
+      correctly answers the following question.
+    checksum: 285ec957305be878b88ee504642beae3
   api_understanding:which_specific_tool_class_in_adk_leverages_google_:
     one_liner: Identify the precise Python definition from the Google ADK API that
       answers a specific question.
@@ -129,74 +133,70 @@ cases:
       ADK knowledge tools.
     checksum: 27211d1164ff19965debaf3ec49d17e0
   api_understanding:what_is_the_base_class_for_all_tools:
-    one_liner: What is the base class for all tools?
-    checksum: a99b4175f4c54d04c08d3bb0009bbb05
+    one_liner: Identify the precise and exact Python definition from the ADK API that
+      correctly answers the user's question.
+    checksum: 285ec957305be878b88ee504642beae3
   api_understanding:which_parameter_forces_an_llmagent_to_return_a_str:
-    one_liner: Which parameter forces an `LlmAgent` to return a structured JSON object?
-    checksum: c0ea6547c492c87c5515e149c033145c
+    one_liner: Identify the precise and exact Python definition from the ADK API that
+      correctly answers the user's question.
+    checksum: 285ec957305be878b88ee504642beae3
   api_understanding:which_llmagent_parameter_is_used_for_static_unchan:
     one_liner: Identify the precise Python definition from the ADK API that answers
       the question.
     checksum: 285ec957305be878b88ee504642beae3
   api_understanding:which_method_finds_a_specific_agent_within_a_multi:
-    one_liner: Which method finds a specific agent within a multi-agent hierarchy?
-    checksum: 9f4da68839535f941b6fd8fee60768a5
+    one_liner: Identify the precise and exact Python definition from the ADK API that
+      correctly answers the following question.
+    checksum: 285ec957305be878b88ee504642beae3
   diagnose_setup_errors_mc:missing_model_arg:
     one_liner: Answer a multiple choice question about the `snippet_agent_creation_issue_1`
       Python function.
     checksum: e4c886711d0d2346e08d0a17ecb718b4
   diagnose_setup_errors_mc:raw_function_tool:
-    one_liner: Determine why giving an agent access to the `calculate_tax` Python
-      function fails or behaves incorrectly.
-    checksum: fab729eeb6677a93467ecefefed388f2
+    one_liner: Answer a multiple choice question.
+    checksum: 54945b0b43977728ebd71d62cc9d3c4b
   diagnose_setup_errors_mc:sequential_agent_tools:
-    one_liner: How should sub-agents be passed to `SequentialAgent`?
-    checksum: 1c310b2f9a3bc51121731efcc1a8abab
+    one_liner: Answer a multiple choice question.
+    checksum: 54945b0b43977728ebd71d62cc9d3c4b
   diagnose_setup_errors_mc:code_executor_in_tools:
-    one_liner: How should the agent be configured to correctly enable the code executor?
-    checksum: 0c7886f6e25a76879a04a3fdea64ddd1
+    one_liner: Answer a multiple choice question.
+    checksum: 54945b0b43977728ebd71d62cc9d3c4b
   diagnose_setup_errors_mc:delegation_in_tools:
-    one_liner: Answer a multiple-choice question using the 'adk-knowledge' toolset.
-    checksum: 9b99eccd466c8dd0b28221e3b67b7ab7
+    one_liner: Answer a multiple choice question and provide a rationale in a JSON
+      format.
+    checksum: 54945b0b43977728ebd71d62cc9d3c4b
   diagnose_setup_errors_mc:input_schema_instance:
-    one_liner: Answer the multiple-choice question regarding the provided Python code
-      snippet involving the `snippet_input_schema_instance` function.
-    checksum: 0937912dc7d4f66aef4113e2e2fd5be6
+    one_liner: Answer the multiple choice question.
+    checksum: 54945b0b43977728ebd71d62cc9d3c4b
   diagnose_setup_errors_mc:you_encounter_a_nameerror_name_functiontool_is_not:
-    one_liner: 'Identify the correct import to resolve the `NameError: name ''FunctionTool''
-      is not defined`.'
-    checksum: 078aad88bff5ae6025acd27c2b23ea55
+    one_liner: Answer a multiple choice question.
+    checksum: 54945b0b43977728ebd71d62cc9d3c4b
   diagnose_setup_errors_mc:your_root_agent_has_a_specialist_agent_in_its_sub_:
     one_liner: What is the most likely missing component in the specialist agent's
       definition that prevents delegation?
     checksum: d8e80be125518caf5896abe6c4610ff0
   diagnose_setup_errors_mc:output_schema_params:
-    one_liner: Answer a multiple-choice question about the provided Python code snippet
-      defining the function `snippet_output_schema_params`.
-    checksum: a31f61142e9d0902fa722fb2cc77e795
+    one_liner: Answer a multiple choice question.
+    checksum: 54945b0b43977728ebd71d62cc9d3c4b
   diagnose_setup_errors_mc:invalid_agent_name_hyphen:
-    one_liner: Answer a multiple choice question based on the provided Python code
-      snippet involving LlmAgent.
-    checksum: 8456c951466f173a6b848777ff77b301
+    one_liner: Answer a multiple choice question.
+    checksum: 54945b0b43977728ebd71d62cc9d3c4b
   diagnose_setup_errors_mc:gen_config_sys_instr:
     one_liner: Answer a multiple choice question.
-    checksum: bb29c03cada4d8538f01e04ba8f9ab23
+    checksum: 54945b0b43977728ebd71d62cc9d3c4b
   diagnose_setup_errors_mc:gen_config_tools:
     one_liner: Answer a multiple-choice question regarding the provided Python code
       snippet containing the 'snippet_gen_config_tools' function.
     checksum: 931ce6fc46e9a4c595fa75eb33e70e1a
   diagnose_setup_errors_mc:gen_config_response_schema:
-    one_liner: Answer a multiple choice question about configuring the response schema
-      for an LlmAgent.
-    checksum: a9fc4ebfd4dd19f35146898605f6c62e
+    one_liner: Answer a multiple choice question.
+    checksum: 54945b0b43977728ebd71d62cc9d3c4b
   diagnose_setup_errors_mc:runner_app_and_agent:
-    one_liner: Answer a multiple-choice question regarding the behavior of the provided
-      `snippet_runner_app_and_agent` Python code snippet.
-    checksum: ff10cd5752e00db73885d5fd24829e3a
+    one_liner: Answer the multiple choice question.
+    checksum: 54945b0b43977728ebd71d62cc9d3c4b
   diagnose_setup_errors_mc:invalid_app_name:
-    one_liner: Answer a multiple-choice question based on the provided Python code
-      snippet `snippet_app_case_16` involving `LlmAgent`.
-    checksum: e32b93e834bee0bc7aff47a7c6c68c12
+    one_liner: Answer the multiple choice question.
+    checksum: 54945b0b43977728ebd71d62cc9d3c4b
   diagnose_setup_errors_mc:clone_parent_agent:
     one_liner: Answer a multiple choice question.
     checksum: 2a3526fc3e834610c85ed9a8d3e06d40
@@ -205,29 +205,25 @@ cases:
       'snippet_clone_unknown_field' Python code.
     checksum: 7b16cb5fccee03844388f2b2cc5a9d36
   diagnose_setup_errors_mc:sequential_empty_subagents:
-    one_liner: Answer a multiple-choice question regarding the `snippet_sequential_empty_subagents`
-      function involving `SequentialAgent`.
-    checksum: bed04983fb546550fb7664f203cd542e
+    one_liner: Answer the multiple choice question.
+    checksum: 54945b0b43977728ebd71d62cc9d3c4b
   diagnose_setup_errors_mc:shared_agent_ownership:
     one_liner: Answer a multiple-choice question about the provided `snippet_shared_agent_ownership`
       Python code snippet.
     checksum: 611f25341f29d326f2184b0d68b22d50
   diagnose_setup_errors_mc:gen_config_thinking:
-    one_liner: What error occurs when initializing an `LlmAgent` with a `thinking_config`
-      in `generate_content_config`?
-    checksum: 6471d80ed140f6f73f7e5584062e06f5
+    one_liner: Answer the multiple choice question.
+    checksum: 54945b0b43977728ebd71d62cc9d3c4b
   diagnose_setup_errors_mc:you_provide_an_invalid_tool_config_in_yaml_yaml_to:
-    one_liner: Answer a multiple-choice question regarding the outcome of providing
-      an invalid tool config in YAML.
-    checksum: df970e6bed5c61655482ce33e2f54da0
+    one_liner: Answer the multiple choice question.
+    checksum: 54945b0b43977728ebd71d62cc9d3c4b
   diagnose_setup_errors_mc:run_config_max_calls_overflow:
     one_liner: Answer a multiple-choice question regarding the `snippet_run_config_check_limit`
       Python function.
     checksum: 89049455b6e6b1c94f803127781eb07a
   diagnose_setup_errors_mc:loop_agent_missing_max_iter:
-    one_liner: Explain why instantiating a `LoopAgent` without `max_iterations` doesn't
-      raise a `ValidationError`.
-    checksum: 7f1bfa22de596206f13fa09e9b46a7e4
+    one_liner: Answer a multiple choice question.
+    checksum: 54945b0b43977728ebd71d62cc9d3c4b
   diagnose_setup_errors_mc:cache_ttl_string:
     one_liner: Answer a multiple-choice question involving the usage of a string TTL
       in `ContextCacheConfig`.
@@ -237,23 +233,20 @@ cases:
       snippet involving the LlmAgent class.
     checksum: 70891975aa46ac7d2955551e751146c4
   diagnose_setup_errors_mc:compaction_overlap_negative:
-    one_liner: Answer a multiple-choice question involving the configuration of `EventsCompactionConfig`
-      in the `snippet_compaction_overlap_negative` function.
-    checksum: 865656b05f0af7521d559761510b2df0
+    one_liner: Answer a multiple choice question.
+    checksum: 54945b0b43977728ebd71d62cc9d3c4b
   diagnose_setup_errors_mc:compaction_interval_zero:
-    one_liner: Answer a multiple-choice question regarding the Python function `snippet_compaction_interval_zero`.
-    checksum: 2b582917aed9cfdc73ba8083d12d2f1e
+    one_liner: Answer a multiple choice question.
+    checksum: 54945b0b43977728ebd71d62cc9d3c4b
   diagnose_setup_errors_mc:compaction_summarizer_string:
-    one_liner: Answer a multiple choice question regarding the 'snippet_compaction_summarizer_string'
-      function.
-    checksum: c6b1852b58ab8af53d7232bb36fb1d68
+    one_liner: Answer the multiple choice question.
+    checksum: 54945b0b43977728ebd71d62cc9d3c4b
   diagnose_setup_errors_mc:parallel_max_workers_string:
-    one_liner: Answer a multiple-choice question regarding the behavior of the `snippet_parallel_max_workers_string`
-      function using `ParallelAgent`.
-    checksum: c83cbffa11035e30f721a1384df02cb2
+    one_liner: Answer the multiple choice question.
+    checksum: 54945b0b43977728ebd71d62cc9d3c4b
   diagnose_setup_errors_mc:which_of_the_following_is_a_valid_agent_name_a_my_:
-    one_liner: Which of the following is a VALID agent name?
-    checksum: 8c41d52df2047feaddf1d5d324399d9b
+    one_liner: Answer a multiple choice question.
+    checksum: 54945b0b43977728ebd71d62cc9d3c4b
   fix_errors:01_minimal_llm_agent:
     one_liner: Use the 'adk-knowledge' toolset to explore the ADK API surface and
       source code.
@@ -271,9 +264,8 @@ cases:
     one_liner: Fix or implement the provided Python file content using the ADK framework.
     checksum: da08d458e23830fb9cb9f6dc5ee762e6
   fix_errors:07_agent_delegation:
-    one_liner: Use the 'adk-knowledge' toolset to explore the ADK API surface and
-      source code.
-    checksum: b831fced376aca32389cdf84d4a57937
+    one_liner: Fix or implement the provided Python file content.
+    checksum: da08d458e23830fb9cb9f6dc5ee762e6
   fix_errors:08_custom_agent:
     one_liner: Fix or implement the provided Python file content.
     checksum: da08d458e23830fb9cb9f6dc5ee762e6
@@ -323,15 +315,14 @@ cases:
     one_liner: Which is the correct import statement for the `Runner` class?
     checksum: 531bc33bdbd530026c41c572f2331031
   configure_adk_features_mc:you_need_to_inspect_an_event_object_which_import_a:
-    one_liner: Identify the correct import statement to reference an 'Event' object.
-    checksum: e77e5438ecec91f924b768c5a567c5e9
+    one_liner: Answer a multiple choice question.
+    checksum: 54945b0b43977728ebd71d62cc9d3c4b
   configure_adk_features_mc:when_calling_runner_run_async_which_parameter_is_u:
-    one_liner: Identify which parameter is used to pass user input when calling `runner.run_async()`.
-    checksum: 14cee69ef61f5336938e4f9f7bb3c425
+    one_liner: Answer a multiple choice question.
+    checksum: 54945b0b43977728ebd71d62cc9d3c4b
   configure_adk_features_mc:you_are_initializing_an_app_which_parameter_is_mut:
-    one_liner: Identify the parameter that is mutually exclusive with another during
-      `App` initialization.
-    checksum: cf73e19e5c82a557e951d3bf5f00a7d5
+    one_liner: Answer a multiple choice question.
+    checksum: 54945b0b43977728ebd71d62cc9d3c4b
   configure_adk_features_mc:which_google_genai_type_represents_the_fundamental:
     one_liner: Which Google GenAI type represents the fundamental unit of content
       within a message?
@@ -344,35 +335,33 @@ cases:
       base class to inherit from when defining a custom agent class.
     checksum: 0c82ae82c00812585c558407fddb9ae2
   configure_adk_features_mc:you_are_implementing_a_custom_tool_which_method_mu:
-    one_liner: Identify which method must be implemented when creating a custom tool.
-    checksum: bdd582c3e161d45f967e246998cb5fe4
+    one_liner: Answer the multiple choice question.
+    checksum: 54945b0b43977728ebd71d62cc9d3c4b
   configure_adk_features_mc:in_a_baseplugin_what_is_the_correct_signature_for_:
-    one_liner: Determine the correct signature for 'run_on_event_call' in a 'PluginManager'.
-    checksum: 12c01a2fe56133377605ae354d3cb708
+    one_liner: Answer a multiple choice question and provide a rationale in a JSON
+      format.
+    checksum: 54945b0b43977728ebd71d62cc9d3c4b
   configure_adk_features_mc:what_is_the_primary_purpose_of_invocationcontext:
     one_liner: What is the primary purpose of `InvocationContext`?
     checksum: 22e466073f384a5c53af71b42cfd2180
   configure_adk_features_mc:you_want_to_create_a_custom_artifact_service_which:
-    one_liner: Identify the correct class for inheritance when creating a custom artifact
-      service.
-    checksum: a55f53174ba1304a93c59f58b95d9915
+    one_liner: Answer the multiple choice question.
+    checksum: 54945b0b43977728ebd71d62cc9d3c4b
   configure_adk_features_mc:how_do_you_configure_an_app_to_automatically_compa:
-    one_liner: How do you configure an `App` to automatically compact events in the
-      session history?
-    checksum: 3c5b8ebb84b0c2d3c048a5b622346d78
+    one_liner: Answer the multiple choice question.
+    checksum: 54945b0b43977728ebd71d62cc9d3c4b
   configure_adk_features_mc:when_using_inmemorysessionservice_how_is_session_d:
-    one_liner: How is session data persisted when using `InMemorySessionService`?
-    checksum: cb12b895a0e283e6dac9f174d1e5c08b
+    one_liner: Answer the multiple choice question.
+    checksum: 54945b0b43977728ebd71d62cc9d3c4b
   configure_adk_features_mc:what_is_the_purpose_of_the_state_delta_parameter_i:
     one_liner: What is the purpose of the `state_delta` parameter in `runner.run_async`?
     checksum: 8527a2ed2d3ed71f7a5fd51c3232d760
   configure_adk_features_mc:which_class_allows_you_to_define_a_tool_from_an_op:
-    one_liner: Which class allows you to define a tool from an OpenAPI specification?
-    checksum: c6dc33b93f24beb228d4b0c76f6a006d
+    one_liner: Answer the multiple choice question.
+    checksum: 54945b0b43977728ebd71d62cc9d3c4b
   configure_adk_features_mc:if_you_want_to_use_a_google_search_tool_that_retur:
-    one_liner: Answer a multiple-choice question about using a Google Search tool
-      that returns structured results.
-    checksum: c33f812e1953a703a920e8a3d2f29f24
+    one_liner: Answer a multiple choice question.
+    checksum: 54945b0b43977728ebd71d62cc9d3c4b
   configure_adk_features_mc:what_is_the_correct_way_to_access_the_session_id_f:
     one_liner: What is the correct way to access the `session_id` from within a tool's
       execution logic?
@@ -388,12 +377,11 @@ cases:
     one_liner: How do you specify that a function tool should not return its output?
     checksum: 806706289bc71f0471d6d7b346fc8a55
   configure_adk_features_mc:which_component_is_responsible_for_truncating_conv:
-    one_liner: Identify the component responsible for truncating conversation history.
-    checksum: c1accaf21715b7649cf9b16f0f48e0fa
+    one_liner: Answer a multiple choice question.
+    checksum: 54945b0b43977728ebd71d62cc9d3c4b
   configure_adk_features_mc:you_are_using_a_loopagent_and_want_to_prevent_it_f:
-    one_liner: Which parameter prevents a LoopAgent from running infinitely if sub-agents
-      never escalate?
-    checksum: 38caefc52cc76c62210f3cf5c4d15ef8
+    one_liner: Answer a multiple choice question.
+    checksum: 54945b0b43977728ebd71d62cc9d3c4b
   configure_adk_features_mc:which_runconfig_parameter_allows_you_to_limit_the_:
     one_liner: Which `RunConfig` parameter limits the total number of LLM calls in
       a single run?
@@ -407,56 +395,49 @@ cases:
       models that support native audio output.
     checksum: 85f1aac34610c994f733e619acdcac83
   configure_adk_features_mc:what_is_the_purpose_of_globalinstructionplugin:
-    one_liner: Answer the multiple-choice question regarding the purpose of `GlobalInstructionPlugin`.
-    checksum: ac2e77c202cd8234eacd90c6232e93ed
+    one_liner: Answer the multiple choice question.
+    checksum: 54945b0b43977728ebd71d62cc9d3c4b
   configure_adk_features_mc:how_does_contextfilterplugin_generally_operate:
     one_liner: Explain the general operation of the `ContextFilterPlugin`.
     checksum: cdf984cb277e85d7eb8473bf9838e8c3
   configure_adk_features_mc:which_class_allows_you_to_run_an_agent_loop_specif:
-    one_liner: Identify the class that allows running an agent loop specifically for
-      debugging.
-    checksum: d6f41cede68157c79bf5bf6cae1032db
+    one_liner: Answer a multiple choice question.
+    checksum: 54945b0b43977728ebd71d62cc9d3c4b
   configure_adk_features_mc:when_implementing_a_basetoolset_what_is_the_close_:
     one_liner: What is the responsibility of the `close()` method when implementing
       a `BaseToolset`?
     checksum: d2473512f1dfbbea873f0c8fddf80a72
   configure_adk_features_mc:which_configuration_object_is_used_to_enable_affec:
-    one_liner: Identify the configuration object used to enable 'affective dialog'
-      (emotion detection).
-    checksum: 171ba7f67cd33459ecd2e6e8a1d7e7aa
+    one_liner: Answer a multiple choice question.
+    checksum: 54945b0b43977728ebd71d62cc9d3c4b
   configure_adk_features_mc:which_class_is_responsible_for_orchestrating_the_c:
-    one_liner: Answer the multiple-choice question regarding which class is responsible
-      for orchestrating the complete lifecycle of aut...
-    checksum: 7856a29a0dc41b5ae0f20851f0f82094
+    one_liner: Answer a multiple choice question.
+    checksum: 54945b0b43977728ebd71d62cc9d3c4b
   configure_adk_features_mc:how_do_you_enable_sending_opentelemetry_traces_to_:
-    one_liner: Answer a multiple-choice question about enabling OpenTelemetry traces
-      to Google Cloud Trace.
-    checksum: cb8af6a5cb5f5fbddd17aa365f6f453f
+    one_liner: Answer the multiple choice question.
+    checksum: 54945b0b43977728ebd71d62cc9d3c4b
   configure_adk_features_mc:which_uri_format_is_used_to_connect_to_spanner_for:
-    one_liner: Which URI format is used to connect to Spanner for session storage?
-    checksum: 7d14bfd99e673a05540390cd31418521
+    one_liner: Answer the multiple choice question.
+    checksum: 54945b0b43977728ebd71d62cc9d3c4b
   configure_adk_features_mc:when_deploying_to_cloud_run_using_adk_deploy_cloud:
-    one_liner: Answer the multiple choice question regarding which flag allows specific
-      functionality when deploying to Cloud Run using `adk deploy cloud_run`.
-    checksum: 81d12c134e0944aacc25010bf0520b69
+    one_liner: Answer a multiple choice question.
+    checksum: 54945b0b43977728ebd71d62cc9d3c4b
   configure_adk_features_mc:you_want_to_pass_an_image_to_an_llmagent_as_part_o:
     one_liner: How should I structure the content to pass an image to an `LlmAgent`
       as part of the user's message?
     checksum: 7798c5ee5a6ca15a6e472675e69f3c96
   configure_adk_features_mc:when_defining_an_evalcase_for_evaluation_which_of_:
-    one_liner: Determine which statement is true regarding the `conversation` and
-      `conversation_scenario` fields when defining an `EvalCase`.
-    checksum: 16e61ae06cc6b3e7eca89799b50b5b22
+    one_liner: Answer the multiple choice question.
+    checksum: 54945b0b43977728ebd71d62cc9d3c4b
   configure_adk_features_mc:in_the_context_of_adk_evaluation_what_does_the_int:
     one_liner: What does the `IntermediateData` object primarily capture?
     checksum: b47739f61b3ff50b569863604328a104
   configure_adk_features_mc:how_do_you_enable_context_caching_for_an_entire_ap:
-    one_liner: How do you enable context caching for an entire application?
-    checksum: f77b9d44f9f6a5d8b9daf693ffe6547c
+    one_liner: Answer the multiple choice question.
+    checksum: 54945b0b43977728ebd71d62cc9d3c4b
   configure_adk_features_mc:which_plugin_would_you_use_to_log_all_agent_intera:
-    one_liner: Which plugin would you use to log all agent interactions to an external
-      monitoring system?
-    checksum: 18718c0a64060d921527f07a8f7bf8de
+    one_liner: Answer a multiple choice question.
+    checksum: 54945b0b43977728ebd71d62cc9d3c4b
   configure_adk_features_mc:you_want_to_save_specific_agent_outputs_to_the_ses:
     one_liner: Answer the multiple-choice question about how to save specific agent
       outputs to the session state automatically.
@@ -466,41 +447,36 @@ cases:
       an `LlmAgent`?
     checksum: 5677d3d5034f79d515213dd0226234c0
   configure_adk_features_mc:what_is_the_correct_way_to_provide_a_static_system:
-    one_liner: What is the correct way to provide a static system instruction that
-      benefi...
-    checksum: 64d5f2e7990df2ebd35c4a7106539f92
+    one_liner: Answer a multiple choice question.
+    checksum: 54945b0b43977728ebd71d62cc9d3c4b
   configure_adk_features_mc:how_do_you_configure_an_app_to_support_pausing_and:
-    one_liner: How do you configure an app to support pausing and resuming execution?
-    checksum: 51ce90b0bbcd5e30bfb51240edc8e23a
+    one_liner: Answer a multiple choice question.
+    checksum: 54945b0b43977728ebd71d62cc9d3c4b
   configure_adk_features_mc:you_want_to_automatically_summarize_old_events_to_:
-    one_liner: Answer a multiple-choice question about automatically summarizing old
-      events to manage context window size.
-    checksum: dc23e20900c099d6cd7ccb8def548c8c
+    one_liner: Answer a multiple choice question.
+    checksum: 54945b0b43977728ebd71d62cc9d3c4b
   configure_adk_features_mc:what_is_the_primary_use_case_for_loggingplugin:
     one_liner: What is the primary use case for `LoggingPlugin`?
     checksum: 1abcfa607c2e02cdb453488d45644d40
   configure_adk_features_mc:what_is_the_primary_use_case_for_savefilesasartifa:
-    one_liner: What is the primary use case for `SaveFilesAsArtifactsPlugin`?
-    checksum: 3e6edab3189b61262f9f7b3e8bfac06e
+    one_liner: Answer the multiple choice question.
+    checksum: 54945b0b43977728ebd71d62cc9d3c4b
   configure_adk_features_mc:what_is_the_primary_use_case_for_reflectandretryto:
-    one_liner: What is the primary use case for `ReflectAndRetryToolPlugin`?
-    checksum: f0e3db2f3105e9d379e7e55ec44083fe
+    one_liner: Answer the multiple choice question.
+    checksum: 54945b0b43977728ebd71d62cc9d3c4b
   configure_adk_features_mc:which_llmagent_parameter_type_str_is_used_for_auto:
     one_liner: Which `LlmAgent` parameter is used for automatically saving agent output
       to session state?
     checksum: b8bd98906092449e643574059ba2d934
   configure_adk_features_mc:which_llmagent_parameter_type_content_is_used_for_:
-    one_liner: Answer the multiple choice question regarding which `LlmAgent` parameter
-      is used for optimizing context caching.
-    checksum: c5ddb7889e7e12d583a9e472251ef384
+    one_liner: Answer a multiple choice question.
+    checksum: 54945b0b43977728ebd71d62cc9d3c4b
   configure_adk_features_mc:llmagent_pydantic_schema_parameters:
-    one_liner: Identify the `LlmAgent` parameters that enforce structured JSON responses
-      and define the expected input schema for agent-as-tool usage.
-    checksum: 5b48cb87dc7c996d28c8fd1781e00134
+    one_liner: Answer a multiple choice question.
+    checksum: 54945b0b43977728ebd71d62cc9d3c4b
   configure_adk_features_mc:which_llmagent_parameter_type_baseplanner_is_used_:
-    one_liner: Which `LlmAgent` parameter of type `BasePlanner` enables chain-of-thought
-      or step-by-step planning?
-    checksum: 7637e9d0e69b2b84b5d78aa5eb2408e9
+    one_liner: Answer the multiple choice question.
+    checksum: 54945b0b43977728ebd71d62cc9d3c4b
   configure_adk_features_mc:which_llmagent_parameter_type_basecodeexecutor_is_:
     one_liner: Which `LlmAgent` parameter enables Python code execution?
     checksum: 6d4faaa4c81d2d4515dbf6ccea769748
@@ -512,17 +488,17 @@ cases:
       for delegation?
     checksum: 7ca73b20bc601de36983debb4aa80816
   configure_adk_features_mc:what_does_runconfig_max_llm_calls_control:
-    one_liner: What does `RunConfig.max_llm_calls` control?
-    checksum: 598608f553607b87f37ca08b1f94a800
+    one_liner: Answer a multiple choice question.
+    checksum: 54945b0b43977728ebd71d62cc9d3c4b
   configure_adk_features_mc:what_does_runconfig_streaming_mode_control:
-    one_liner: What does `RunConfig.streaming_mode` control?
-    checksum: 7739d1880d762f21d8bb275e81fc96c4
+    one_liner: Answer a multiple choice question.
+    checksum: 54945b0b43977728ebd71d62cc9d3c4b
   configure_adk_features_mc:what_does_runconfig_save_live_blob_control:
-    one_liner: What does RunConfig.save_live_blob control?
-    checksum: cf1a46a3fa089cc0b64e23afdd7c2233
+    one_liner: Answer the multiple choice question.
+    checksum: 54945b0b43977728ebd71d62cc9d3c4b
   configure_adk_features_mc:what_does_runconfig_speech_config_control:
-    one_liner: What does `RunConfig.speech_config` control?
-    checksum: 7978ebeeea2714b385878724f1b16a94
+    one_liner: Answer the multiple choice question.
+    checksum: 54945b0b43977728ebd71d62cc9d3c4b
   configure_adk_features_mc:which_llmagent_parameter_type_str_is_used_for_defi_2:
     one_liner: Which `LlmAgent` parameter is used for defining the agent's prompt?
     checksum: 4b0eef20463a3c243a729e3ff9b07c37
@@ -530,14 +506,14 @@ cases:
     one_liner: What does `RunConfig.response_modalities` control?
     checksum: 620134f1aaee4fbad7ab10e1a00596df
   configure_adk_features_mc:what_does_runconfig_support_cfc_control:
-    one_liner: What does `RunConfig.support_cfc` control?
-    checksum: e998ceeaf7cde101a06af224dfd2b9d5
+    one_liner: Answer the multiple choice question.
+    checksum: 54945b0b43977728ebd71d62cc9d3c4b
   configure_adk_features_mc:what_does_runconfig_enable_affective_dialog_contro:
-    one_liner: What does `RunConfig.enable_affective_dialog` control?
-    checksum: a767804cc7896a7a1ffbffa595ee9ccb
+    one_liner: Answer the multiple choice question.
+    checksum: 54945b0b43977728ebd71d62cc9d3c4b
   configure_adk_features_mc:what_does_runconfig_proactivity_control:
-    one_liner: What does `RunConfig.proactivity` control?
-    checksum: d246d4a9eaf02f9277836584664b9610
+    one_liner: Answer a multiple choice question.
+    checksum: 54945b0b43977728ebd71d62cc9d3c4b
   configure_adk_features_mc:what_is_inmemoryrunner_primarily_used_for:
     one_liner: What is `InMemoryRunner` primarily used for?
     checksum: 64e50d0144796e086049c0193d239553
@@ -549,17 +525,17 @@ cases:
       component.
     checksum: 7ab178208d15a6f6c4ad2800aca93139
   configure_adk_features_mc:what_does_contextcacheconfig_ttl_control:
-    one_liner: What does `ContextCacheConfig.ttl` control?
-    checksum: 9cb4dbe64d022211755cb3b0003163a6
+    one_liner: Answer the multiple choice question.
+    checksum: 54945b0b43977728ebd71d62cc9d3c4b
   configure_adk_features_mc:what_does_contextcacheconfig_token_count_threshold:
-    one_liner: What does `ContextCacheConfig.token_count_threshold` control?
-    checksum: e5b40a1dffe8605d049f0f0824802b34
+    one_liner: Answer a multiple choice question.
+    checksum: 54945b0b43977728ebd71d62cc9d3c4b
   configure_adk_features_mc:what_is_eventscompactionconfig_compaction_interval:
-    one_liner: What is `EventsCompactionConfig.compaction_interval` used for?
-    checksum: 4e143d15acfba53e4ffa4435e9089541
+    one_liner: Answer the multiple choice question.
+    checksum: 54945b0b43977728ebd71d62cc9d3c4b
   configure_adk_features_mc:what_is_eventscompactionconfig_summarizer_used_for:
-    one_liner: What is `EventsCompactionConfig.summarizer` used for?
-    checksum: 5098e5af8c47826a9584c82cf87b6815
+    one_liner: Answer the multiple choice question.
+    checksum: 54945b0b43977728ebd71d62cc9d3c4b
   configure_adk_features_mc:what_does_resumabilityconfig_is_resumable_true_ena:
     one_liner: What does `ResumabilityConfig.is_resumable=True` enable?
     checksum: 37c6d1a243f025af3368f11c9306076d
@@ -573,19 +549,17 @@ cases:
     one_liner: How do you pass a specific set of tools to configure an `LlmAgent`?
     checksum: 26db209332cdf5a010d69450f8aeb018
   predict_runtime_behavior_mc:duplicate_agent_name:
-    one_liner: Answer a multiple-choice question based on the provided Python code
-      snippet involving `LlmAgent`.
-    checksum: 556dee1d691a0b4b17162e4bde64ed00
+    one_liner: Answer a multiple choice question.
+    checksum: 54945b0b43977728ebd71d62cc9d3c4b
   predict_runtime_behavior_mc:reserved_agent_name:
-    one_liner: Answer the multiple-choice question regarding the provided code snippet
-      involving LlmAgent.
-    checksum: df6fbd33aee16d296c018088941256b0
+    one_liner: Answer the multiple choice question.
+    checksum: 54945b0b43977728ebd71d62cc9d3c4b
   predict_runtime_behavior_mc:callback_execution_order:
     one_liner: Determine the order in which callbacks and agent output will be printed.
     checksum: 8c3748fc60862fea610b8059f7ce6cf7
   predict_runtime_behavior_mc:generate_content_config_tools_error:
-    one_liner: Answer a multiple-choice question about the provided Python code snippet.
-    checksum: 2ab6a9ab1bd57ada34329aaa9540d2e7
+    one_liner: Answer a multiple choice question.
+    checksum: 54945b0b43977728ebd71d62cc9d3c4b
   predict_runtime_behavior_mc:response_schema_invalid_arg:
     one_liner: Answer a multiple-choice question about the behavior of a Python code
       snippet involving a Pydantic model.
@@ -597,24 +571,21 @@ cases:
     one_liner: Does this agent maintain long-term memory?
     checksum: 0f3daf8d41cf08a5dffd8dfb6b48be06
   predict_runtime_behavior_mc:loop_agent_empty_subagents:
-    one_liner: Answer a multiple-choice question regarding the provided LoopAgent
-      Python code snippet.
-    checksum: 8a4eba9bc803774e1de16eef84601659
+    one_liner: Answer a multiple choice question.
+    checksum: 54945b0b43977728ebd71d62cc9d3c4b
   predict_runtime_behavior_mc:tool_session_id_injection:
-    one_liner: Answer a multiple-choice question based on the provided Python code
-      snippet.
-    checksum: d4ce95da586cf134cac9cc811f0690d7
+    one_liner: Answer the multiple choice question.
+    checksum: 54945b0b43977728ebd71d62cc9d3c4b
   predict_runtime_behavior_mc:agent_name_mutability:
-    one_liner: Answer a multiple-choice question about the provided LlmAgent code
-      snippet.
-    checksum: 367c9c6b4815dc1a9b3d19a29e581874
+    one_liner: Answer a multiple-choice question.
+    checksum: 54945b0b43977728ebd71d62cc9d3c4b
   predict_runtime_behavior_mc:agent_clone_invalid_field:
     one_liner: Answer a multiple-choice question regarding a Python code snippet involving
       an LlmAgent initialization.
     checksum: e8e9e32c8ef9bf1bc593294402b70683
   predict_runtime_behavior_mc:event_repr_output:
-    one_liner: What validation errors occur when initializing this Event?
-    checksum: 70b3cea67460642772eb46ff493c902e
+    one_liner: Answer a multiple choice question.
+    checksum: 54945b0b43977728ebd71d62cc9d3c4b
   predict_runtime_behavior_mc:function_tool_async_run:
     one_liner: Predict the standard output of the given Python code.
     checksum: 5c5ec0f15e6f1503a2ca06cdceffac9f
@@ -630,17 +601,14 @@ cases:
     one_liner: What does `RunConfig.proactivity` control?
     checksum: f361298be3af174f38a9736c52fec972
   configure_adk_features_mc:if_a_tool_execution_fails_and_you_want_to_handle_t:
-    one_liner: Answer a multiple-choice question about handling exceptions when a
-      tool execution fails.
-    checksum: da0419dc708f34d4f1adfebe138561ed
+    one_liner: Answer a multiple choice question.
+    checksum: 54945b0b43977728ebd71d62cc9d3c4b
   configure_adk_features_mc:you_need_to_retry_a_tool_execution_automatically_i:
-    one_liner: Answer the multiple-choice question about automatically retrying a
-      tool execution when a specific exception is raised.
-    checksum: be972d5c5b1d5cd5feb52e27e80d4b06
+    one_liner: Answer a multiple choice question.
+    checksum: 54945b0b43977728ebd71d62cc9d3c4b
   diagnose_setup_errors_mc:set_parent_agent_init:
-    one_liner: Answer a multiple-choice question about the provided `snippet_set_parent_agent_init`
-      code snippet.
-    checksum: 3183faf5da39b931d4a08cf82afdb7fa
+    one_liner: Answer the multiple choice question.
+    checksum: 54945b0b43977728ebd71d62cc9d3c4b
   fix_errors:14_agent_with_litellm_openai:
     one_liner: Use ADK knowledge tools to explore the API, find functionality, and
       inspect source code.
@@ -649,8 +617,8 @@ cases:
     one_liner: Fix or implement the provided Python file content using the ADK framework.
     checksum: da08d458e23830fb9cb9f6dc5ee762e6
   configure_adk_features_mc:what_is_the_correct_signature_for_a_before_tool_ca:
-    one_liner: What is the correct signature for a `before_tool_callback` function?
-    checksum: 81797db42c27fcf8c3e391c81ce31b07
+    one_liner: Answer the multiple choice question.
+    checksum: 54945b0b43977728ebd71d62cc9d3c4b
   fix_errors:03_agent_with_output_schema:
     one_liner: Fix or implement the provided Python file content using the ADK framework.
     checksum: da08d458e23830fb9cb9f6dc5ee762e6
@@ -682,5 +650,21 @@ cases:
       Python code.
     checksum: 299352e7fcd5b91890c428fef2200366
   configure_adk_features_mc:what_is_the_primary_use_case_for_contextfilterplug:
-    one_liner: What is the primary use case for ContextFilterPlugin?
-    checksum: 47f4bc9f7b1e66518be8ec00de9464ff
+    one_liner: Answer the multiple choice question.
+    checksum: 54945b0b43977728ebd71d62cc9d3c4b
+  api_understanding:which_abstract_base_class_allows_for_implementing_:
+    one_liner: Identify the precise and exact Python definition from the ADK API that
+      correctly answers the user's question.
+    checksum: 285ec957305be878b88ee504642beae3
+  api_understanding:which_runner_subclass_comes_pre_configured_with_in:
+    one_liner: Identify the precise and exact Python definition from the ADK API that
+      correctly answers the question.
+    checksum: 285ec957305be878b88ee504642beae3
+  api_understanding:where_does_the_adk_define_the_data_model_for_a_ses:
+    one_liner: Identify the precise and exact Python definition from the ADK API that
+      correctly answers the question.
+    checksum: 285ec957305be878b88ee504642beae3
+  api_understanding:which_parameter_on_baseagent_defines_a_callback_th:
+    one_liner: Identify the precise and exact Python definition from the ADK API that
+      correctly answers the user's question.
+    checksum: 285ec957305be878b88ee504642beae3

@@ -1,5 +1,5 @@
 # Todo List
-- It still doesn't seem like keys are being rotated in benchmark runs...
+- Seems like ranked targets doesn't include detailed info about how to reference artifacts in instructions. This info might be missing from docstrings. Create a design doc for a pipeline to generate relevant docstrings that cover functional information not covered in the API reference.
 
 # Immediate Priorities (Refactoring Phase 2)
 
