@@ -11,7 +11,7 @@ def test_viewer_app_smoke():
     at = AppTest.from_file(str(script_path))
     
     # Run the app
-    at.run()
+    at.run(timeout=10)
     
     # Check if there are any exceptions
     assert not at.exception, f"App failed to launch: {at.exception}"

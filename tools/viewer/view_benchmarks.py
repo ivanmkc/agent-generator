@@ -402,7 +402,7 @@ def merge_consecutive_events(events: List[dict | TraceLogEvent]) -> List[dict]:
     return merged
 
 
-def render_logs(logs):
+def render_logs(logs, key=None):
     """Renders trace logs with grouped interactions and filtering."""
     if not logs:
         st.info("No trace logs available.")
@@ -551,8 +551,12 @@ def render_logs(logs):
     # Default selection: All available categories
     default_categories = available_categories
 
+    multiselect_key = f"filter_event_types_{key}" if key is not None else None
     selected_categories = st.multiselect(
-        "Filter Event Types", options=available_categories, default=default_categories
+        "Filter Event Types",
+        options=available_categories,
+        default=default_categories,
+        key=multiselect_key,
     )
 
     # --- Rendering ---
@@ -1472,7 +1476,7 @@ def main():
                     if not active_trace_logs:
                         st.warning("No trace logs available for this attempt.")
                     else:
-                        render_logs(active_trace_logs)
+                        render_logs(active_trace_logs, key=i)
 
                 # 3. CLI Output
                 with sub_tabs[2]:
