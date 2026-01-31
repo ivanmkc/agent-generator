@@ -16,7 +16,7 @@ RUN pip install /tmp/pkg
 # 2. SABOTAGE: Delete the bundled index
 RUN rm /usr/local/lib/python3.10/site-packages/adk_knowledge_ext/data/indices/index_v1.20.0.yaml
 
-# 3. Verification Script
-COPY tools/adk_knowledge_ext/tests/integration/method4/verify_missing_index.py /app/verify.py
+# 2. Verification Script
+COPY tools/adk_knowledge_ext/tests/integration/resilience_missing_index/verify_missing_index.py /app/verify.py
 
 CMD ["python", "/app/verify.py"]

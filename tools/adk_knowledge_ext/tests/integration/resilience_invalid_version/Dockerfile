@@ -14,6 +14,6 @@ COPY tools/adk_knowledge_ext /tmp/pkg
 RUN pip install /tmp/pkg
 
 # 2. Verification Script
-COPY tools/adk_knowledge_ext/tests/integration/method3/verify_resilience.py /app/verify.py
+COPY tools/adk_knowledge_ext/tests/integration/resilience_invalid_version/verify_resilience.py /app/verify.py
 
 CMD ["python", "/app/verify.py"]

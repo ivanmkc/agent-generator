@@ -1,7 +1,7 @@
 import os
 import shutil
 import subprocess
-import json
+import yaml
 from pathlib import Path
 from hatchling.builders.hooks.plugin.interface import BuildHookInterface
 
@@ -23,10 +23,10 @@ class CustomBuildHook(BuildHookInterface):
 
         # Resolve Index URL from Registry if not provided
         if not index_url:
-            registry_path = root / "src" / "adk_knowledge_ext" / "registry.json"
+            registry_path = root / "src" / "adk_knowledge_ext" / "registry.yaml"
             if registry_path.exists():
                 try:
-                    registry = json.loads(registry_path.read_text())
+                    registry = yaml.safe_load(registry_path.read_text())
                     repo_map = registry.get(target_repo_url, {})
                     # Try specific version, fall back to main/default if needed (optional logic)
                     index_url = repo_map.get(target_version)

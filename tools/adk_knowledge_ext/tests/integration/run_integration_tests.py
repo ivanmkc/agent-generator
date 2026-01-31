@@ -49,6 +49,16 @@ def main():
             "name": "Resilience: Missing API Key",
             "dockerfile": "tools/adk_knowledge_ext/tests/integration/resilience_no_api_key/Dockerfile",
             "tag": "adk-test-res-key"
+        },
+        {
+            "name": "Registry: Valid Lookup",
+            "dockerfile": "tools/adk_knowledge_ext/tests/integration/registry_lookup/Dockerfile",
+            "tag": "adk-test-registry-ok"
+        },
+        {
+            "name": "Registry: Unknown Repo",
+            "dockerfile": "tools/adk_knowledge_ext/tests/integration/registry_miss/Dockerfile",
+            "tag": "adk-test-registry-miss"
         }
     ]
     

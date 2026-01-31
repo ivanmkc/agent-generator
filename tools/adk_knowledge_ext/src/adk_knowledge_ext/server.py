@@ -57,10 +57,11 @@ def _ensure_index():
     # 2. Resolve Index URL (Env > Registry)
     index_url = TARGET_INDEX_URL
     if not index_url and TARGET_REPO_URL:
-        registry_path = Path(__file__).parent / "registry.json"
+        registry_path = Path(__file__).parent / "registry.yaml"
         if registry_path.exists():
+            import yaml
             try:
-                registry = json.loads(registry_path.read_text())
+                registry = yaml.safe_load(registry_path.read_text())
                 repo_map = registry.get(TARGET_REPO_URL, {})
                 index_url = repo_map.get(TARGET_VERSION)
                 if index_url:
