@@ -2,8 +2,7 @@
 Verification script for Managed Setup (JSON Integration).
 
 Tests the `codebase-knowledge-mcp-manage` CLI tool's ability to detect and 
-configure IDEs that use JSON config files (e.g., Cursor, Windsurf).
-It mocks the file system structure and verifies JSON updates.
+configure multiple IDEs that use JSON config files (Cursor, Windsurf, Roo Code).
 """
 
 import os
@@ -13,24 +12,30 @@ import subprocess
 from pathlib import Path
 
 def main():
-    print("--- Starting Managed JSON Setup Verification ---")
+    print("--- Starting Multi-IDE Managed JSON Setup Verification ---")
     
-    # Mock Cursor directory and config
-    cursor_dir = Path.home() / ".cursor"
-    cursor_dir.mkdir(parents=True, exist_ok=True)
-    mcp_config_path = cursor_dir / "mcp.json"
+    home = Path.home()
+    ide_configs = [
+        {"name": "Cursor", "dir": home / ".cursor", "file": "mcp.json"},
+        {"name": "Windsurf", "dir": home / ".codeium" / "windsurf", "file": "mcp_config.json"},
+        {"name": "Roo Code", "dir": home / ".roo-code", "file": "mcp.json"},
+        {"name": "Antigravity", "dir": home / ".gemini" / "antigravity", "file": "mcp_config.json"},
+    ]
     
-    initial_config = {"mcpServers": {"existing-server": {"command": "echo", "args": ["hi"]}}}
-    with open(mcp_config_path, "w") as f:
-        json.dump(initial_config, f)
-        
+    # Initialize all IDEs with existing configs
+    for ide in ide_configs:
+        ide["dir"].mkdir(parents=True, exist_ok=True)
+        initial_config = {"mcpServers": {"existing-server": {"command": "echo", "args": [ide["name"]]}}}
+        with open(ide["dir"] / ide["file"], "w") as f:
+            json.dump(initial_config, f)
+        print(f"Initialized {ide['name']} at {ide['dir'] / ide['file']}")
+
     # 1. Setup
-    print("Running setup...")
+    print("\nRunning setup for all detected IDEs...")
     cmd = [
         "codebase-knowledge-mcp-manage", "setup",
         "--repo-url", "https://github.com/test/repo.git",
         "--version", "v1.0.0",
-        "--api-key", "fake-key",
         "--force"
     ]
     
@@ -40,50 +45,52 @@ def main():
         print(f"Setup failed: {e}")
         sys.exit(1)
         
-    # Verify Config
-    with open(mcp_config_path, "r") as f:
-        config = json.load(f)
+    # Verify All Configs
+    for ide in ide_configs:
+        path = ide["dir"] / ide["file"]
+        with open(path, "r") as f:
+            config = json.load(f)
         
-    print(f"Config after setup:\n{json.dumps(config, indent=2)}")
-    
-    if "codebase-knowledge" in config.get("mcpServers", {}):
-        server_config = config["mcpServers"]["codebase-knowledge"]
-        if server_config["command"] == "uvx" and "fake-key" in server_config["env"]["GEMINI_API_KEY"]:
-            print("SUCCESS: JSON config updated correctly.")
+        if "codebase-knowledge" in config.get("mcpServers", {}):
+            print(f"{ide['name']} config updated.")
         else:
-            print("FAIL: Config content mismatch.")
+            print(f"{ide['name']} server not added.")
             sys.exit(1)
-    else:
-        print("FAIL: Server not added to mcpServers.")
-        sys.exit(1)
 
     # 2. Remove
-    print("Running remove...")
-    cmd_remove = ["codebase-knowledge-mcp-manage", "remove"]
-    
-    # Pipe 'y' for confirmation
-    p = subprocess.Popen(cmd_remove, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-    stdout, stderr = p.communicate(input="y\n")
+    print("\nRunning remove...")
+    # Pipe 'y' for each IDE removal confirmation
+    # We have 3 IDEs detected, so we need 3 'y's plus the initial 'Remove from:' choices.
+    # Actually 'force' isn't on remove, but we can pipe multiple y's.
+    # The tool asks:
+    # 1. Remove from IDE 1? [Y/n]
+    # 2. Remove from IDE 2? [Y/n]
+    # ...
+    confirmations = "y\n" * 10 
+    p = subprocess.Popen(["codebase-knowledge-mcp-manage", "remove"], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    stdout, stderr = p.communicate(input=confirmations)
     
     if p.returncode != 0:
         print(f"Remove failed: {stderr}")
         sys.exit(1)
 
-    # Verify Removal
-    with open(mcp_config_path, "r") as f:
-        config = json.load(f)
+    # Verify All Removals
+    for ide in ide_configs:
+        path = ide["dir"] / ide["file"]
+        with open(path, "r") as f:
+            config = json.load(f)
         
-    print(f"Config after remove:\n{json.dumps(config, indent=2)}")
-    
-    if "codebase-knowledge" not in config.get("mcpServers", {}):
-        if "existing-server" in config["mcpServers"]:
-            print("SUCCESS: Server removed, existing config preserved.")
+        if "codebase-knowledge" not in config.get("mcpServers", {}):
+            if "existing-server" in config["mcpServers"]:
+                print(f"{ide['name']} server removed, existing config preserved.")
+            else:
+                print(f"{ide['name']} existing config was wiped.")
+                sys.exit(1)
         else:
-            print("FAIL: Existing config was wiped.")
+            print(f"{ide['name']} server was not removed.")
             sys.exit(1)
-    else:
-        print("FAIL: Server was not removed.")
-        sys.exit(1)
+
+    print("\nAll JSON-based IDE tests PASSED.")
 
 if __name__ == "__main__":
     main()

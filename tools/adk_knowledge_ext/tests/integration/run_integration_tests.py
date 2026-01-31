@@ -83,6 +83,11 @@ def main():
             "name": "Managed Setup (JSON Integration)",
             "dockerfile": "tools/adk_knowledge_ext/tests/integration/managed_json_setup/Dockerfile",
             "tag": "adk-test-managed-json"
+        },
+        {
+            "name": "Managed Setup (Claude Code Mock)",
+            "dockerfile": "tools/adk_knowledge_ext/tests/integration/managed_claude/Dockerfile",
+            "tag": "adk-test-managed-claude"
         }
     ]
     

@@ -110,7 +110,7 @@ def setup(repo_url: Optional[str], version: str, api_key: Optional[str], force: 
         repo_url = Prompt.ask("Enter the Target Repository URL")
     
     # Optional API Key
-    if not api_key and not os.environ.get("GEMINI_API_KEY"):
+    if not force and not api_key and not os.environ.get("GEMINI_API_KEY"):
         if Confirm.ask("Do you have a Gemini API Key? (Required for semantic search)", default=False):
             api_key = Prompt.ask("Enter Gemini API Key", password=True)
 
