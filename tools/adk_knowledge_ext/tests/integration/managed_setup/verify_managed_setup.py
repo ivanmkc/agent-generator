@@ -74,8 +74,31 @@ def main():
         print("FAIL: --index-url missing from configuration.")
         sys.exit(1)
 
-    # 4. Remove
-    print("Step 5: Running remove...")
+    # 4. Test --knowledge-index-url (Re-setup)
+    print("Step 5: Re-running setup with --knowledge-index-url...")
+    cmd_k_index = [
+        "codebase-knowledge-mcp-manage", "setup",
+        "--repo-url", "https://github.com/test/repo.git",
+        "--version", "v1.0.0",
+        "--api-key", "fake-key",
+        "--knowledge-index-url", "https://example.com/index.yaml",
+        "--force"
+    ]
+    run_command(cmd_k_index)
+    
+    print("Step 6: Verifying TARGET_INDEX_URL in config...")
+    result = subprocess.run(list_cmd, capture_output=True, text=True)
+    output = result.stdout + result.stderr
+    print(f"Gemini Output:\n{output}")
+    
+    if "TARGET_INDEX_URL=https://example.com/index.yaml" in output:
+        print("SUCCESS: TARGET_INDEX_URL found in configuration.")
+    else:
+        print("FAIL: TARGET_INDEX_URL missing from configuration.")
+        sys.exit(1)
+
+    # 5. Remove
+    print("Step 7: Running remove...")
     cmd_remove = ["codebase-knowledge-mcp-manage", "remove"]
     
     # Pipe 'y' for confirmation
@@ -86,8 +109,8 @@ def main():
         print(f"Remove failed: {stderr}")
         sys.exit(1)
 
-    # 5. Verify Removal
-    print("Step 6: Verifying removal...")
+    # 6. Verify Removal
+    print("Step 8: Verifying removal...")
     result = subprocess.run(list_cmd, capture_output=True, text=True)
     output = result.stdout + result.stderr
     print(f"Gemini Output:\n{output}")

@@ -122,8 +122,9 @@ def cli():
 @click.option("--version", default="main", help="Target version/branch (default: main)")
 @click.option("--api-key", help="Gemini API Key (optional, for semantic search)")
 @click.option("--index-url", help="Custom PyPI index URL (e.g. https://pypi.org/simple) for uvx")
+@click.option("--knowledge-index-url", help="Direct URL or file path to the knowledge index YAML (overrides registry lookup)")
 @click.option("--force", is_flag=True, help="Skip confirmation prompts")
-def setup(repo_url: Optional[str], version: str, api_key: Optional[str], index_url: Optional[str], force: bool):
+def setup(repo_url: Optional[str], version: str, api_key: Optional[str], index_url: Optional[str], knowledge_index_url: Optional[str], force: bool):
     """Auto-configure this MCP server in your coding agents."""
     
     # Prompt for missing required args
@@ -211,7 +212,7 @@ def setup(repo_url: Optional[str], version: str, api_key: Optional[str], index_u
         return
 
     # Generate Config
-    mcp_config = _generate_mcp_config(repo_url, version, api_key, index_url)
+    mcp_config = _generate_mcp_config(repo_url, version, api_key, index_url, knowledge_index_url)
 
     # Configure
     console.print("\n[bold]Applying configuration...[/bold]")
@@ -262,7 +263,7 @@ def remove():
             console.print(f"[red]❌ {ide_name} failed: {e}[/red]")
 
 
-def _generate_mcp_config(repo_url: str, version: str, api_key: Optional[str], index_url: Optional[str] = None) -> dict:
+def _generate_mcp_config(repo_url: str, version: str, api_key: Optional[str], index_url: Optional[str] = None, knowledge_index_url: Optional[str] = None) -> dict:
     """Generate the MCP server configuration."""
     env = {
         "TARGET_REPO_URL": repo_url,
@@ -272,6 +273,9 @@ def _generate_mcp_config(repo_url: str, version: str, api_key: Optional[str], in
         env["GEMINI_API_KEY"] = api_key
     elif os.environ.get("GEMINI_API_KEY"):
         env["GEMINI_API_KEY"] = os.environ.get("GEMINI_API_KEY")
+
+    if knowledge_index_url:
+        env["TARGET_INDEX_URL"] = knowledge_index_url
 
     # Construct uvx command
     pkg_spec = "git+https://github.com/ivanmkc/agent-generator.git#subdirectory=tools/adk_knowledge_ext"

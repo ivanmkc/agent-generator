@@ -15,12 +15,36 @@ A repository-agnostic MCP server that gives AI coding agents (Claude Code, Curso
 
 The easiest way to configure this server in your preferred AI tool is using the built-in setup manager.
 
+**Standard Setup:**
 ```bash
 uvx --from "git+https://github.com/ivanmkc/agent-generator.git#subdirectory=tools/adk_knowledge_ext" codebase-knowledge-mcp-manage setup
 ```
 
+**Bypass Private Registry Auth (Common Fix):**
+If you encounter "Connection closed" or 401 Unauthorized errors during setup, use a public index:
+```bash
+uvx --from "git+https://github.com/ivanmkc/agent-generator.git#subdirectory=tools/adk_knowledge_ext" \
+  codebase-knowledge-mcp-manage setup \
+  --repo-url https://github.com/google/adk-python.git \
+  --index-url https://pypi.org/simple \
+  --force
+```
+
+**Restricted Environments (Manual Knowledge Index):**
+If the server fails to download the knowledge index (e.g., "URL missing or failed" or corporate firewall blocks GitHub Raw), you can manually specify the index URL or a local file path:
+
+1. Download the index YAML manually (contact repo owner for URL).
+2. Run setup pointing to the file:
+```bash
+uvx --from "git+https://github.com/ivanmkc/agent-generator.git#subdirectory=tools/adk_knowledge_ext" \
+  codebase-knowledge-mcp-manage setup \
+  --repo-url https://github.com/google/adk-python.git \
+  --knowledge-index-url file:///path/to/downloaded/index.yaml \
+  --force
+```
+
 The tool will:
-1. Detect installed agents (Claude, Gemini, Cursor, etc.).
+1. Detect installed agents (Claude Code, Gemini CLI, Cursor, Windsurf, Roo Code, etc.).
 2. Prompt for your **Target Repository URL** and **Version**.
 3. Automatically update the appropriate configuration files.
 
