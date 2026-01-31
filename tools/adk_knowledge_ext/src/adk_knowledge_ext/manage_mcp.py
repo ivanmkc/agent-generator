@@ -18,6 +18,7 @@ import json
 import subprocess
 import os
 import sys
+import shutil
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Optional, Dict, Any, List
@@ -30,6 +31,25 @@ from rich.prompt import Confirm, Prompt
 console = Console()
 
 MCP_SERVER_NAME = "codebase-knowledge"
+
+def _get_platform_config_path(app_name: str, config_file: str) -> Path:
+    """Helper to determine config path based on OS."""
+    if sys.platform == "darwin":
+        # macOS paths
+        if app_name == "Cursor":
+            # Cursor commonly uses ~/.cursor for MCP, but app data is in Library
+            return Path.home() / ".cursor" / config_file
+        elif app_name == "Windsurf":
+             return Path.home() / ".codeium" / "windsurf" / config_file
+    
+    # Default/Linux paths
+    if app_name == "Cursor":
+        return Path.home() / ".cursor" / config_file
+    elif app_name == "Windsurf":
+        return Path.home() / ".codeium" / "windsurf" / config_file
+        
+    return Path.home() / f".{app_name.lower().replace(' ', '-')}" / config_file
+
 
 # IDE configuration - how to detect, configure, and start each IDE
 IDE_CONFIGS = {
@@ -101,8 +121,9 @@ def cli():
 @click.option("--repo-url", help="Target repository URL (e.g. https://github.com/google/adk-python.git)")
 @click.option("--version", default="main", help="Target version/branch (default: main)")
 @click.option("--api-key", help="Gemini API Key (optional, for semantic search)")
+@click.option("--index-url", help="Custom PyPI index URL (e.g. https://pypi.org/simple) for uvx")
 @click.option("--force", is_flag=True, help="Skip confirmation prompts")
-def setup(repo_url: Optional[str], version: str, api_key: Optional[str], force: bool):
+def setup(repo_url: Optional[str], version: str, api_key: Optional[str], index_url: Optional[str], force: bool):
     """Auto-configure this MCP server in your coding agents."""
     
     # Prompt for missing required args
@@ -129,7 +150,23 @@ def setup(repo_url: Optional[str], version: str, api_key: Optional[str], force: 
     
     detected_ides = {}
     for ide_name, ide_info in IDE_CONFIGS.items():
-        if ide_info["detect_path"].exists():
+        is_installed = False
+        
+        # Check based on method
+        if ide_info["config_method"] == "cli":
+            # For CLI, verify binary is in PATH
+            if shutil.which(ide_info["cli_command"]):
+                is_installed = True
+            elif ide_info["detect_path"].exists():
+                 # Fallback: Folder exists but not in PATH
+                 # We mark as False to avoid 'No such file' error, but we'll show a warning
+                 is_installed = False
+        else:
+            # For JSON, just check dir existence
+            if ide_info["detect_path"].exists():
+                is_installed = True
+                
+        if is_installed:
             detected_ides[ide_name] = ide_info
 
     configured_status = {}
@@ -148,7 +185,11 @@ def setup(repo_url: Optional[str], version: str, api_key: Optional[str], force: 
             status = "[green](configured)[/green]" if configured_status.get(ide_name) else ""
             console.print(f"   ✓ {ide_name:<15} [dim]{detect_path}[/dim] {status}")
         else:
-            console.print(f"   [dim]✗ {ide_name:<15} (not installed)[/dim]")
+            # Check if it was a CLI tool that failed verification
+            if ide_info["config_method"] == "cli" and ide_info["detect_path"].exists():
+                console.print(f"   [yellow]! {ide_name:<15} (config found at {detect_path}, but '{ide_info['cli_command']}' not in PATH)[/yellow]")
+            else:
+                console.print(f"   [dim]✗ {ide_name:<15} (not installed)[/dim]")
 
     if not detected_ides:
         console.print("[yellow]No supported coding agents detected.[/yellow]")
@@ -170,7 +211,7 @@ def setup(repo_url: Optional[str], version: str, api_key: Optional[str], force: 
         return
 
     # Generate Config
-    mcp_config = _generate_mcp_config(repo_url, version, api_key)
+    mcp_config = _generate_mcp_config(repo_url, version, api_key, index_url)
 
     # Configure
     console.print("\n[bold]Applying configuration...[/bold]")
@@ -191,7 +232,12 @@ def remove():
 
     configured_ides = {}
     for ide_name, ide_info in IDE_CONFIGS.items():
-        if ide_info["detect_path"].exists() and _is_mcp_configured(ide_name, ide_info):
+        # For CLI tools, we need the binary to check config (mcp list)
+        is_runnable = True
+        if ide_info["config_method"] == "cli" and not shutil.which(ide_info["cli_command"]):
+            is_runnable = False
+            
+        if ide_info["detect_path"].exists() and is_runnable and _is_mcp_configured(ide_name, ide_info):
             configured_ides[ide_name] = ide_info
             console.print(f"   ✓ {ide_name:<15} [green]configured[/green]")
 
@@ -216,7 +262,7 @@ def remove():
             console.print(f"[red]❌ {ide_name} failed: {e}[/red]")
 
 
-def _generate_mcp_config(repo_url: str, version: str, api_key: Optional[str]) -> dict:
+def _generate_mcp_config(repo_url: str, version: str, api_key: Optional[str], index_url: Optional[str] = None) -> dict:
     """Generate the MCP server configuration."""
     env = {
         "TARGET_REPO_URL": repo_url,
@@ -228,24 +274,21 @@ def _generate_mcp_config(repo_url: str, version: str, api_key: Optional[str]) ->
         env["GEMINI_API_KEY"] = os.environ.get("GEMINI_API_KEY")
 
     # Construct uvx command
-    # Use the git URL of the current repo/package
-    # For now, hardcode the public repo URL or assume it's published.
-    # Since this is "adk_knowledge_ext", we can point to the repo.
-    # Ideally, if published to PyPI, just "codebase-knowledge-mcp".
-    # For now, let's use the git+https syntax as in the README.
-    
-    # We will use a generic package name if published, or the git url.
-    # Let's assume we want to use the git+https URL for robustness as per previous README.
-    
     pkg_spec = "git+https://github.com/ivanmkc/agent-generator.git#subdirectory=tools/adk_knowledge_ext"
+    
+    args = []
+    if index_url:
+        args.extend(["--index-url", index_url])
+        
+    args.extend([
+        "--from",
+        pkg_spec,
+        "codebase-knowledge-mcp"
+    ])
     
     return {
         "command": "uvx",
-        "args": [
-            "--from",
-            pkg_spec,
-            "codebase-knowledge-mcp"
-        ],
+        "args": args,
         "env": env
     }
 
@@ -304,27 +347,6 @@ def _configure_cli_based(ide_name: str, ide_info: dict, mcp_config: dict) -> Non
         cmd.extend([scope_flag, scope_value])
     cmd.append(MCP_SERVER_NAME)
 
-    # CLI args
-    # Construct the command string/list properly
-    # mcp_config['command'] is 'uvx'
-    # mcp_config['args'] is ['--from', ..., 'codebase-knowledge-mcp']
-    # mcp_config['env'] needs to be passed too?
-    # CLI tools usually support env vars via KEY=VALUE before the command or via --env flag?
-    # Gemini CLI: does it support env vars in `mcp add`?
-    # Checking `mcp add --help` (mental model): usually `mcp add name cmd -- args`.
-    # Env vars are tricky in CLI `mcp add`.
-    
-    # Adaptation: For CLI-based tools, we might need to inline env vars if supported, 
-    # or failover to explaining manual setup if complex env vars are needed.
-    
-    # Actually, `uvx` allows passing env vars? No, `uvx` is the command.
-    # `env TARGET_REPO_URL=... uvx ...`
-    
-    full_cmd_args = []
-    
-    # Prepend env vars to the command execution string if possible
-    # But `mcp add` usually takes an executable.
-    # "command": "env", "args": ["VAR=VAL", "uvx", ...]
     
     env_args = []
     if "env" in mcp_config:
