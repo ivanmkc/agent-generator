@@ -105,98 +105,26 @@ def main():
 
     # 5. Verify Tool Execution
     print("Step 7: Verifying Tool Execution...")
-    import json
-    settings_path = Path.home() / ".gemini" / "settings.json"
-    if not settings_path.exists():
-        print(f"FAIL: Settings file not found at {settings_path}")
+    
+    # We use the shared verification script (copied to /app/verify_tools.py)
+    # This ensures consistency with manual/extension tests.
+    # We set TEST_LOCAL_OVERRIDE=1 to force it to use the local binary instead of uvx.
+    verify_env = os.environ.copy()
+    verify_env["TEST_LOCAL_OVERRIDE"] = "1"
+    verify_env["TEST_SKIP_CLONE_CHECK"] = "1"
+    
+    verify_cmd = [sys.executable, "/app/verify_tools.py"]
+    print(f"Running verification script: {' '.join(verify_cmd)}")
+    
+    proc = subprocess.run(verify_cmd, env=verify_env, capture_output=True, text=True)
+    print(f"Verification Output:\n{proc.stdout}")
+    print(f"Verification Stderr:\n{proc.stderr}")
+    
+    if proc.returncode != 0:
+        print("FAIL: Tool execution verification failed.")
         sys.exit(1)
         
-    try:
-        settings = json.loads(settings_path.read_text())
-        server_config = settings.get("mcpServers", {}).get("codebase-knowledge")
-        if not server_config:
-            print("FAIL: Server config not found in JSON.")
-            sys.exit(1)
-            
-        full_cmd = [server_config["command"]] + server_config.get("args", [])
-        
-        # TEST FIX: In the test container, 'uvx' fails to clone from GitHub due to env/auth.
-        # However, we have already installed the package locally via pip in the Dockerfile.
-        # We override the command to run the locally installed server directly, 
-        # ensuring we verify the *logic* and *config* (env vars) without network dependencies.
-        if full_cmd[0] == "uvx":
-            print("Test Override: Replacing 'uvx' with local 'codebase-knowledge-mcp' binary.")
-            full_cmd = ["codebase-knowledge-mcp"]
-
-        env = os.environ.copy()
-        env.update(server_config.get("env", {}))
-        
-        print(f"Launching Server: {' '.join(full_cmd)}")
-        
-        # Start Server
-        proc = subprocess.Popen(
-            full_cmd,
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=sys.stderr,
-            env=env,
-            text=True,
-            bufsize=0
-        )
-        
-        # Send Initialize
-        init_req = {
-            "jsonrpc": "2.0",
-            "id": 1,
-            "method": "initialize",
-            "params": {
-                "protocolVersion": "2024-11-05",
-                "capabilities": {},
-                "clientInfo": {"name": "test-client", "version": "1.0"}
-            }
-        }
-        proc.stdin.write(json.dumps(init_req) + "\n")
-        proc.stdin.flush()
-        
-        # Read Initialize Response
-        resp_line = proc.stdout.readline()
-        print(f"Init Response: {resp_line}")
-        if "result" not in resp_line:
-             print("FAIL: Initialization failed.")
-             sys.exit(1)
-
-        # Send Initialized Notification
-        proc.stdin.write(json.dumps({"jsonrpc": "2.0", "method": "notifications/initialized"}) + "\n")
-        proc.stdin.flush()
-
-        # Send Tool Call
-        tool_req = {
-            "jsonrpc": "2.0",
-            "id": 2,
-            "method": "tools/call",
-            "params": {
-                "name": "list_modules",
-                "arguments": {}
-            }
-        }
-        proc.stdin.write(json.dumps(tool_req) + "\n")
-        proc.stdin.flush()
-        
-        # Read Tool Response
-        tool_resp_line = proc.stdout.readline()
-        print(f"Tool Response: {tool_resp_line}")
-        
-        if "test.module" in tool_resp_line:
-            print("SUCCESS: Tool execution verified (index loaded).")
-        else:
-            print(f"FAIL: Expected 'test.module' in response, got: {tool_resp_line}")
-            sys.exit(1)
-            
-        proc.terminate()
-        
-    except Exception as e:
-        print(f"FAIL: Execution error: {e}")
-        sys.exit(1)
+    print("SUCCESS: Tool execution passed via shared verifier.")
 
     # 6. Remove
     print("Step 8: Running remove...")

@@ -19,6 +19,7 @@ RUN pip install /tmp/pkg
 RUN chmod +x /usr/local/lib/python3.11/site-packages/adk_knowledge_ext/manage_mcp.py
 
 # 3. Verification Script
+COPY tools/adk_knowledge_ext/tests/integration/common/verify_mcp_config.py /app/verify_tools.py
 COPY tools/adk_knowledge_ext/tests/integration/managed_setup/verify_managed_setup.py /app/verify.py
 
 # Override base image CMD
