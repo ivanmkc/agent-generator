@@ -94,20 +94,23 @@ def main():
     failed = []
     
     for test in tests:
+        image_name = test["tag"]
+        dockerfile = repo_root / test["dockerfile"]
+
         # Build
-        print(f"\n=== Building {test['name']} ===")
+        print(f"--- Build {image_name} ---")
         build_cmd = [
             "podman", "build",
-            "-t", test["tag"],
-            "-f", test["dockerfile"],
+            "--no-cache",
+            "-t", image_name,
+            "-f", str(dockerfile),
             "."
         ]
-        if not run_command(build_cmd, cwd=repo_root, description=f"Build {test['tag']}"):
-            failed.append(test["name"] + " (Build)")
-            continue
-            
+        print("CMD:", " ".join(build_cmd))
+        subprocess.run(build_cmd, check=True)
+
         # Run Verification
-        print(f"\n=== Verifying {test['name']} ===")
+        print(f"--- Run {image_name} ---")
         run_cmd = [
             "podman", "run", "--rm",
             test["tag"]
