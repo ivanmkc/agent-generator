@@ -3,6 +3,7 @@
 import os
 import logging
 import subprocess
+import json
 from pathlib import Path
 from typing import Union, List
 from mcp.server.fastmcp import FastMCP
@@ -53,8 +54,22 @@ def _ensure_index():
         get_index().load(TARGET_INDEX_PATH)
         return
 
-    # 2. If not, try to download if URL is provided
-    if TARGET_INDEX_URL:
+    # 2. Resolve Index URL (Env > Registry)
+    index_url = TARGET_INDEX_URL
+    if not index_url and TARGET_REPO_URL:
+        registry_path = Path(__file__).parent / "registry.json"
+        if registry_path.exists():
+            try:
+                registry = json.loads(registry_path.read_text())
+                repo_map = registry.get(TARGET_REPO_URL, {})
+                index_url = repo_map.get(TARGET_VERSION)
+                if index_url:
+                    logger.info(f"Resolved index URL from registry: {index_url}")
+            except Exception as e:
+                logger.error(f"Failed to read registry: {e}")
+
+    # 3. If URL is found/provided, try to download
+    if index_url:
         # Save to a user-writable cache since bundled dir might be read-only in site-packages
         cache_dir = Path.home() / ".mcp_cache" / "indices"
         cache_dir.mkdir(parents=True, exist_ok=True)
@@ -64,16 +79,16 @@ def _ensure_index():
             get_index().load(cached_index)
             return
             
-        logger.info(f"Downloading index for {TARGET_VERSION} from {TARGET_INDEX_URL}...")
+        logger.info(f"Downloading index for {TARGET_VERSION} from {index_url}...")
         try:
-            subprocess.run(["curl", "-f", "-o", str(cached_index), TARGET_INDEX_URL], check=True)
+            subprocess.run(["curl", "-f", "-o", str(cached_index), index_url], check=True)
             get_index().load(cached_index)
             return
         except Exception as e:
             logger.error(f"Failed to download index: {e}")
             # Fallthrough to error
 
-    raise FileNotFoundError(f"Knowledge index not found at {TARGET_INDEX_PATH} and could not be downloaded.")
+    raise FileNotFoundError(f"Knowledge index not found at {TARGET_INDEX_PATH} and could not be downloaded (URL missing or failed).")
 
 
 @mcp.tool()

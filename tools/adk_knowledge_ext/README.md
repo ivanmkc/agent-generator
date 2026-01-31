@@ -10,7 +10,7 @@ A repository-agnostic MCP server that gives LLMs deep access to any codebase. It
 
 The standard way to use this server is via `uvx`. This method handles installation, environment isolation, and caching automatically.
 
-Add the following configuration to your `~/.gemini/settings.json` file. The server will automatically download the search index and clone the repository the first time it runs.
+Add the following configuration to your `~/.gemini/settings.json` file. The server will automatically download the search index (if available in the internal registry) and clone the repository the first time it runs.
 
 ```json
 {
@@ -25,7 +25,6 @@ Add the following configuration to your `~/.gemini/settings.json` file. The serv
       "env": {
         "TARGET_REPO_URL": "https://github.com/google/adk-python.git",
         "TARGET_VERSION": "v1.20.0",
-        "TARGET_INDEX_URL": "https://raw.githubusercontent.com/ivanmkc/agent-generator/main/benchmarks/generator/benchmark_generator/data/ranked_targets.yaml",
         "GEMINI_API_KEY": "YOUR_KEY_HERE" 
       }
     }
@@ -57,8 +56,8 @@ You can customize the server behavior by modifying the `env` block in your setti
 | Variable | Description | Default |
 | :--- | :--- | :--- |
 | `TARGET_REPO_URL` | **Required.** The Git URL of the codebase to clone. | None |
-| `TARGET_INDEX_URL` | **Required.** URL to the `ranked_targets.yaml` index file. Used for build-time bundling OR runtime downloading. | None |
 | `TARGET_VERSION` | The branch or tag to use. | `main` |
+| `TARGET_INDEX_URL` | URL to the `ranked_targets.yaml` index file. **Optional** if repo is in internal registry. | Registry Lookup |
 | `GEMINI_API_KEY` | API Key for semantic search features. | None |
 | `ADK_SEARCH_PROVIDER` | Search mode: `bm25` (local) or `hybrid` (semantic+local). | `bm25` |
 
@@ -70,7 +69,7 @@ If you prefer to manage your own Python environment or need offline capability b
 # 1. Set build-time variables (to bundle data and generate instructions)
 export TARGET_REPO_URL="https://github.com/google/adk-python.git"
 export TARGET_VERSION="v1.20.0"
-export TARGET_INDEX_URL="https://example.com/index.yaml"
+# TARGET_INDEX_URL is optional if repo is in the registry
 
 # 2. Install (hatch hook will bundle the index and instructions)
 pip install "git+https://github.com/ivanmkc/agent-generator.git#subdirectory=tools/adk_knowledge_ext"
