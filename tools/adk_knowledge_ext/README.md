@@ -46,6 +46,9 @@ To ensure your LLM knows exactly how to use these tools for the target repositor
 ```
 *(The server automatically updates this file with the correct repository and version metadata on every start.)*
 
+**Why is this needed?**
+The MCP protocol doesn't yet allow servers to automatically push system prompts to the client. The `GEMINI_SYSTEM_MD` variable bridges this gap by telling the Gemini CLI to read the context file that the MCP server maintains for you.
+
 ## Performance & Caching
 *   **Tools:** `uvx` caches the installed python environment, so subsequent runs start instantly.
 *   **Data:** The server caches the cloned repository and downloaded index in `~/.mcp_cache/`, ensuring network efficiency.
