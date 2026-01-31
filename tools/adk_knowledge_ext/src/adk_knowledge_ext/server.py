@@ -28,10 +28,23 @@ TARGET_REPO_PATH = Path(env_repo_path) if env_repo_path else None
 
 # --- Setup ---
 
+# Ensure log directory exists
+log_dir = Path.home() / ".mcp_cache" / "logs"
+log_dir.mkdir(parents=True, exist_ok=True)
+log_file = log_dir / "codebase-knowledge.log"
+
+from logging.handlers import RotatingFileHandler
+
 logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    level=logging.DEBUG,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    handlers=[
+        RotatingFileHandler(log_file, maxBytes=10*1024*1024, backupCount=5),
+        logging.StreamHandler()
+    ]
 )
 logger = logging.getLogger("codebase-knowledge-mcp")
+logger.info("Server starting up...")
 
 # Validation
 if not TARGET_REPO_URL:
@@ -49,8 +62,11 @@ reader = SourceReader(
 
 
 def _ensure_index():
+    logger.debug(f"Ensuring index for repo={TARGET_REPO_URL}, version={TARGET_VERSION}")
+    
     # 1. If index exists, load it
     if TARGET_INDEX_PATH.exists():
+        logger.debug(f"Found existing index at {TARGET_INDEX_PATH}")
         get_index().load(TARGET_INDEX_PATH)
         return
 
@@ -58,6 +74,7 @@ def _ensure_index():
     index_url = TARGET_INDEX_URL
     if not index_url and TARGET_REPO_URL:
         registry_path = Path(__file__).parent / "registry.yaml"
+        logger.debug(f"Checking registry at {registry_path}")
         if registry_path.exists():
             import yaml
             try:
@@ -66,8 +83,12 @@ def _ensure_index():
                 index_url = repo_map.get(TARGET_VERSION)
                 if index_url:
                     logger.info(f"Resolved index URL from registry: {index_url}")
+                else:
+                    logger.debug(f"Repo found in registry but version {TARGET_VERSION} missing. Available: {list(repo_map.keys())}")
             except Exception as e:
                 logger.error(f"Failed to read registry: {e}")
+        else:
+            logger.warning(f"Registry file not found at {registry_path}")
 
     # 3. If URL is found/provided, try to download
     if index_url:
@@ -77,17 +98,21 @@ def _ensure_index():
         cached_index = cache_dir / f"index_{TARGET_VERSION}.yaml"
         
         if cached_index.exists():
+            logger.debug(f"Found cached index download at {cached_index}")
             get_index().load(cached_index)
             return
             
         logger.info(f"Downloading index for {TARGET_VERSION} from {index_url}...")
         try:
             subprocess.run(["curl", "-f", "-o", str(cached_index), index_url], check=True)
+            logger.info("Download successful.")
             get_index().load(cached_index)
             return
         except Exception as e:
-            logger.error(f"Failed to download index: {e}")
+            logger.error(f"Failed to download index from {index_url}: {e}")
             # Fallthrough to error
+
+    logger.error("Index setup failed. No valid index path or URL found.")
 
     msg = (
         f"This repository ('{TARGET_REPO_URL}') is not supported by the Codebase Knowledge MCP server "
