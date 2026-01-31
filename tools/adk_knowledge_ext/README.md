@@ -52,6 +52,21 @@ The tool will:
 
 ---
 
+## Troubleshooting & FAQ
+
+### "This repository is not supported..." or "Knowledge index not found"
+**Q: Isn't the knowledge index bundled with the server?**
+**A:** Only if you build the package *specifically* for that repository from source.
+When you run the generic `uvx` setup command, the server is installed as a generic tool. It attempts to download the knowledge index for your target repo at runtime (from GitHub).
+If this download fails (e.g. corporate firewall, private repo, or no internet), you will see this error.
+
+**Fix:** Use the `--knowledge-index-url` flag to point to a local file or accessible URL.
+```bash
+uvx --from ... codebase-knowledge-mcp-manage setup ... --knowledge-index-url file:///path/to/local/index.yaml
+```
+
+---
+
 ## How to Use
 
 Once installed, the tools are available to your AI agent. You can trigger them using natural language.
