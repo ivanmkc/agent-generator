@@ -40,11 +40,29 @@ uvx --from "git+https://github.com/ivanmkc/agent-generator.git#subdirectory=tool
 
 ## Manual Configuration
 
-If you prefer to configure your client manually, use the following settings:
+Add the following to your MCP configuration file (e.g., `~/.gemini/settings.json`, `~/.cursor/mcp.json`, or Claude Desktop's `config.json`):
 
-**Command:** `uvx`
-**Args:** `["--from", "git+https://github.com/ivanmkc/agent-generator.git#subdirectory=tools/adk_knowledge_ext", "codebase-knowledge-mcp"]`
-**Environment Variables:**
+```json
+{
+  "mcpServers": {
+    "codebase-knowledge": {
+      "command": "uvx",
+      "args": [
+        "--from",
+        "git+https://github.com/ivanmkc/agent-generator.git#subdirectory=tools/adk_knowledge_ext",
+        "codebase-knowledge-mcp"
+      ],
+      "env": {
+        "TARGET_REPO_URL": "https://github.com/your-org/your-repo.git",
+        "TARGET_VERSION": "main",
+        "GEMINI_API_KEY": "YOUR_API_KEY_HERE"
+      }
+    }
+  }
+}
+```
+
+### Configuration Options
 
 | Variable | Description | Default |
 | :--- | :--- | :--- |
