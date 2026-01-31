@@ -1,0 +1,14 @@
+- id: google.adk.agents.llm_agent.LlmAgent
+  rank: 1
+  usage_score: 100
+  type: class
+  file_path: google/adk/agents/llm_agent.py
+  docstring: |
+    A Large Language Model (LLM) backed agent.
+- id: google.adk.tools.FunctionTool
+  rank: 2
+  usage_score: 90
+  type: class
+  file_path: google/adk/tools.py
+  docstring: |
+    A tool that wraps a python function.

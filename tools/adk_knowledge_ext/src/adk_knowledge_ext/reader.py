@@ -2,6 +2,8 @@
 
 import ast
 import logging
+import os
+import subprocess
 from pathlib import Path
 from typing import Optional
 
@@ -10,13 +12,52 @@ logger = logging.getLogger(__name__)
 
 class SourceReader:
 
-    def __init__(self, repo_root: Path):
+    def __init__(self, repo_root: Optional[Path] = None, version: str = "v1.20.0"):
         self.repo_root = repo_root
+        self.version = version
+        
+        # 1. If explicit root provided, use it
+        if self.repo_root:
+            if not self.repo_root.exists():
+                logger.warning(f"Provided repo_root {self.repo_root} does not exist.")
+            else:
+                logger.info(f"SourceReader initialized with explicit root: {self.repo_root}")
+                return
+
+        # 2. Dynamic Clone Strategy
+        # We clone to a version-specific directory to allow switching
+        base_dir = Path.home() / ".adk"
+        self.repo_root = base_dir / f"adk-python-{self.version}"
+        
+        if self.repo_root.exists():
+            logger.info(f"Found existing ADK clone for {self.version} at {self.repo_root}")
+        else:
+            repo_url = "https://github.com/google/adk-python.git"
+            logger.info(f"Cloning ADK ({self.version}) from {repo_url} to {self.repo_root}...")
+            try:
+                self.repo_root.parent.mkdir(parents=True, exist_ok=True)
+                subprocess.run(
+                    ["git", "clone", "--depth", "1", "--branch", self.version, repo_url, str(self.repo_root)],
+                    check=True,
+                    capture_output=True,
+                    text=True
+                )
+                logger.info("Clone successful.")
+            except subprocess.CalledProcessError as e:
+                logger.error(f"Failed to clone ADK repository: {e.stderr}")
+                # Fallback to None so read_source reports error gracefully
+                self.repo_root = None
+            except Exception as e:
+                logger.error(f"Unexpected error during clone: {e}")
+                self.repo_root = None
 
     def read_source(self, rel_path: str, target_fqn: str, suffix: str = "") -> str:
         """
         Reads source code from a file, attempting to isolate the specific symbol.
         """
+        if self.repo_root is None or not self.repo_root.exists():
+             return f"Error: ADK repository for version {self.version} not found or clone failed."
+
         if rel_path.startswith("env/"):
             # Fallback for Docker envs where env/ is at /workdir/env (heuristic)
             full_path = Path("/workdir") / rel_path

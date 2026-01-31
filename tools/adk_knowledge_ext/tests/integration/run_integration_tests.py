@@ -39,6 +39,11 @@ def main():
             "name": "Method 3: Resilience (Corrupt Data)",
             "dockerfile": "tools/adk_knowledge_ext/tests/integration/method3/Dockerfile",
             "tag": "adk-test-method3"
+        },
+        {
+            "name": "Method 4: Missing Index (Valid Version)",
+            "dockerfile": "tools/adk_knowledge_ext/tests/integration/method4/Dockerfile",
+            "tag": "adk-test-method4"
         }
     ]
     

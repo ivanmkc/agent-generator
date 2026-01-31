@@ -7,13 +7,12 @@ from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 
 async def main():
-    print("--- Starting Resilience Verification ---")
+    print("--- Starting Resilience Verification (Invalid Version) ---")
     
     # Minimal config setup for testing
     cmd = "adk-knowledge-mcp"
     env = {
-        "ADK_INDEX_PATH": "/data/corrupt_index.yaml",
-        "ADK_REPO_PATH": "/data/adk-python"
+        "ADK_VERSION": "v9.9.9", # Non-existent version
     }
     
     server_params = StdioServerParameters(
@@ -22,7 +21,7 @@ async def main():
         env=env
     )
     
-    print(f"Launching Server with corrupt index...")
+    print(f"Launching Server with invalid version...")
     
     try:
         async with stdio_client(server_params) as (read, write):
@@ -38,7 +37,7 @@ async def main():
                 print(f"Tool Output: {content}")
                 
                 if "No items found" in content:
-                    print("SUCCESS: Server handled corrupt index gracefully.")
+                    print("SUCCESS: Server handled missing index gracefully.")
                 else:
                     print(f"FAIL: Unexpected output: {content}")
                     sys.exit(1)

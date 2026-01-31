@@ -37,24 +37,10 @@ async def main():
     args = config.get("args", [])
     env = config.get("env", {})
     
-    # Expand env vars in environment definition
+    # Expand env vars
     expanded_env = os.environ.copy()
     for k, v in env.items():
         expanded_env[k] = os.path.expandvars(v)
-        
-    # Check if data paths exist (Sanity check)
-    idx_path = expanded_env.get("ADK_INDEX_PATH")
-    repo_path = expanded_env.get("ADK_REPO_PATH")
-    
-    print(f"Checking Data Paths:\n  Index: {idx_path}\n  Repo:  {repo_path}")
-    
-    if not idx_path or not Path(idx_path).exists():
-        print(f"FAIL: Index path does not exist: {idx_path}")
-        sys.exit(1)
-    # Repo path might just need to be a directory
-    if not repo_path or not Path(repo_path).exists():
-        print(f"FAIL: Repo path does not exist: {repo_path}")
-        sys.exit(1)
         
     server_params = StdioServerParameters(
         command=cmd,
@@ -62,35 +48,48 @@ async def main():
         env=expanded_env
     )
     
-    # 4. Connect and List Tools
+    # 4. Connect and Verify
     print(f"Launching Server: {cmd} {args}")
     
     try:
         async with stdio_client(server_params) as (read, write):
             async with ClientSession(read, write) as session:
                 await session.initialize()
-                
                 print("Server Initialized.")
                 
+                # Check Tools
                 tools_result = await session.list_tools()
                 tool_names = [t.name for t in tools_result.tools]
-                
                 print(f"Available Tools: {tool_names}")
                 
-                required_tools = [
-                    "list_adk_modules",
-                    "inspect_adk_symbol",
-                    "read_adk_source_code",
-                    "search_adk_knowledge"
-                ]
-                
-                missing = [t for t in required_tools if t not in tool_names]
-                
-                if missing:
-                    print(f"FAIL: Missing required tools: {missing}")
+                required_tools = ["list_adk_modules", "inspect_adk_symbol"]
+                if not all(t in tool_names for t in required_tools):
+                    print(f"FAIL: Missing tools. Found: {tool_names}")
                     sys.exit(1)
-                    
-                print("SUCCESS: All required tools found.")
+
+                # Functional Test: List Modules
+                # This confirms the index loaded correctly
+                print("Testing 'list_adk_modules'...")
+                result = await session.call_tool("list_adk_modules", arguments={"page": 1})
+                content = result.content[0].text
+                
+                if "--- Ranked Targets" in content:
+                    print("SUCCESS: Index loaded and tools working.")
+                else:
+                    print(f"FAIL: Unexpected tool output: {content[:200]}...")
+                    sys.exit(1)
+
+                # Functional Test: Source Reading (Triggers Cloning)
+                print("Testing 'read_adk_source_code' (Triggers Clone)...")
+                # Use a known class from the index
+                result = await session.call_tool("read_adk_source_code", arguments={"fqn": "google.adk.agents.llm_agent.LlmAgent"})
+                content = result.content[0].text
+                
+                if "class LlmAgent" in content:
+                    print("SUCCESS: Source code retrieved (Clone successful).")
+                else:
+                    print(f"FAIL: Could not read source: {content[:200]}...")
+                    sys.exit(1)
                 
     except Exception as e:
         print(f"FAIL: Error during MCP communication: {e}")

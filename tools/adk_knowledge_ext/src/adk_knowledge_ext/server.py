@@ -1,8 +1,7 @@
-"""Server module."""
+"Server module."
 
 import os
 import logging
-import yaml
 from pathlib import Path
 from typing import Union, List
 from mcp.server.fastmcp import FastMCP
@@ -10,11 +9,19 @@ from .index import get_index
 from .reader import SourceReader
 
 # Configuration
-DEFAULT_INDEX_PATH = "/app/data/ranked_targets.yaml"
-DEFAULT_REPO_PATH = "/app/adk-python"
+ADK_VERSION = os.environ.get("ADK_VERSION", "v1.20.0")
+
+# Index: Use bundled versioned index
+_BUNDLED_DATA = Path(__file__).parent / "data" / "indices"
+DEFAULT_INDEX_PATH = _BUNDLED_DATA / f"ranked_targets_{ADK_VERSION}.yaml"
+
+# Repo: Default to None to allow SourceReader to handle dynamic cloning
+DEFAULT_REPO_PATH = None
 
 ADK_INDEX_PATH = Path(os.environ.get("ADK_INDEX_PATH", DEFAULT_INDEX_PATH))
-ADK_REPO_PATH = Path(os.environ.get("ADK_REPO_PATH", DEFAULT_REPO_PATH))
+# If ADK_REPO_PATH is set by user, use it. Otherwise None.
+env_repo_path = os.environ.get("ADK_REPO_PATH")
+ADK_REPO_PATH = Path(env_repo_path) if env_repo_path else None
 
 # Setup Logging
 logging.basicConfig(
@@ -22,9 +29,12 @@ logging.basicConfig(
 )
 logger = logging.getLogger("adk_knowledge_ext")
 
+if not ADK_INDEX_PATH.exists():
+    logger.warning(f"Index file not found at {ADK_INDEX_PATH}. Ensure ADK_VERSION ({ADK_VERSION}) is supported.")
+
 # Initialize Server
 mcp = FastMCP("adk-knowledge")
-reader = SourceReader(ADK_REPO_PATH)
+reader = SourceReader(repo_root=ADK_REPO_PATH, version=ADK_VERSION)
 
 
 def _ensure_index():
