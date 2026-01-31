@@ -1,3 +1,17 @@
+"""
+Main integration test runner for the Codebase Knowledge MCP server.
+
+This script orchestrates multiple end-to-end test scenarios using Podman containers.
+It verifies:
+1. Manual installation and execution via uvx.
+2. Extension-style installation and configuration discovery.
+3. Resilience against invalid repository versions.
+4. Resilience against missing index files.
+5. Resilience against missing credentials (API keys) for high-performance search.
+6. Zero-config registry lookups (auto-resolving index URLs from internal metadata).
+7. Graceful failure when a repository is missing from the registry.
+"""
+
 import subprocess
 import sys
 import os

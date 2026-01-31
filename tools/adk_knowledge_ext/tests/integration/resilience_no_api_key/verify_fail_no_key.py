@@ -1,3 +1,11 @@
+"""
+Verification script for the Missing API Key scenario.
+
+This test ensures that if a user explicitly requests 'hybrid' or 'vector' search 
+but fails to provide GEMINI_API_KEY, the server fails fast with a specific 
+ValueError to prevent runtime errors during tool usage.
+"""
+
 import json
 import os
 import asyncio

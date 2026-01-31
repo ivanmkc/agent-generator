@@ -1,3 +1,11 @@
+"""
+Verification script for the Registry Miss scenario.
+
+This test verifies that if a user provides a repository URL that is NOT in the 
+registry and forgets to provide TARGET_INDEX_URL, the server provides a clear, 
+actionable error message instead of crashing.
+"""
+
 import json
 import os
 import asyncio

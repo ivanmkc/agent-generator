@@ -1,3 +1,11 @@
+"""
+Verification script for the Registry Lookup scenario.
+
+This test ensures that when TARGET_INDEX_URL is omitted, the server correctly 
+identifies the repository URL and version in its internal `registry.yaml` and 
+automatically downloads the correct index file.
+"""
+
 import json
 import os
 import asyncio

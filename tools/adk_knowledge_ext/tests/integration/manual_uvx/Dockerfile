@@ -1,3 +1,6 @@
+# Scenario: Manual Configuration via uvx
+# This test verifies that a 3rd party user can run the server directly from GitHub
+# using a standard ~/.gemini/settings.json configuration without any prior installation.
 FROM python:3.10-slim
 
 WORKDIR /app

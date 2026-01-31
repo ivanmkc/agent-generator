@@ -92,6 +92,36 @@ def _ensure_index():
     raise FileNotFoundError(f"Knowledge index not found at {TARGET_INDEX_PATH} and could not be downloaded (URL missing or failed).")
 
 
+def _ensure_instructions():
+    """
+    Ensures that the dynamic instructions file is available in a user-accessible 
+    cache directory, allowing clients like Gemini CLI to reference it.
+    """
+    bundled_instr = Path(__file__).parent / "data" / "INSTRUCTIONS.md"
+    if not bundled_instr.exists():
+        # If not bundled (e.g. editable install), try to generate from template
+        template = Path(__file__).parent.parent.parent / "INSTRUCTIONS.template.md"
+        if template.exists():
+            content = template.read_text()
+            content = content.replace("{{TARGET_REPO_URL}}", TARGET_REPO_URL or "Unknown")
+            content = content.replace("{{TARGET_VERSION}}", TARGET_VERSION)
+            bundled_instr.parent.mkdir(parents=True, exist_ok=True)
+            bundled_instr.write_text(content)
+        else:
+            return
+
+    # Copy to a predictable user-writable path
+    # We use the repo name to avoid collisions if multiple servers are running
+    repo_name = (TARGET_REPO_URL or "unknown").split("/")[-1].replace(".git", "")
+    cache_path = Path.home() / ".mcp_cache" / "instructions" / f"{repo_name}.md"
+    cache_path.parent.mkdir(parents=True, exist_ok=True)
+    
+    # Always refresh to ensure correct version metadata
+    content = bundled_instr.read_text()
+    cache_path.write_text(content)
+    logger.info(f"System instructions available at: {cache_path}")
+
+
 @mcp.tool()
 def list_modules(page: int = 1, page_size: int = 20) -> str:
     """
@@ -102,6 +132,7 @@ def list_modules(page: int = 1, page_size: int = 20) -> str:
         page_size: Number of items per page.
     """
     _ensure_index()
+    _ensure_instructions()
     items = get_index().list_items(page, page_size)
 
     if not items:
