@@ -37,6 +37,19 @@ Add the following configuration to your `~/.gemini/settings.json` file. The serv
 *   **Tools:** `uvx` caches the installed python environment, so subsequent runs start instantly.
 *   **Data:** The server caches the cloned repository and downloaded index in `~/.mcp_cache/`, ensuring network efficiency.
 
+## System Prompt
+
+To get the best results, you should provide the following system instruction to your LLM or agent:
+
+> You are an expert software engineer. You have access to a specialized "Codebase Knowledge" toolset.
+> 
+> **MANDATORY RESEARCH PHASE:**
+> 1. **BROWSE FIRST:** Always start by calling `list_modules(page=1)` to see the ranked list of available modules and classes.
+> 2. **INSPECT:** Use `inspect_symbol(fqn="...")` to retrieve signatures and docstrings.
+> 3. **READ:** Use `read_source_code(fqn="...")` to see implementation details.
+> 
+> **CRITICAL:** Do not hallucinate API signatures. Use the tools to verify everything.
+
 ## Configuration Options
 
 You can customize the server behavior by modifying the `env` block in your settings file.
@@ -44,7 +57,7 @@ You can customize the server behavior by modifying the `env` block in your setti
 | Variable | Description | Default |
 | :--- | :--- | :--- |
 | `TARGET_REPO_URL` | **Required.** The Git URL of the codebase to clone. | None |
-| `TARGET_INDEX_URL` | **Required.** URL to the `ranked_targets.yaml` index file. | None |
+| `TARGET_INDEX_URL` | **Required.** URL to the `ranked_targets.yaml` index file. Used for build-time bundling OR runtime downloading. | None |
 | `TARGET_VERSION` | The branch or tag to use. | `main` |
 | `GEMINI_API_KEY` | API Key for semantic search features. | None |
 | `ADK_SEARCH_PROVIDER` | Search mode: `bm25` (local) or `hybrid` (semantic+local). | `bm25` |
@@ -54,13 +67,15 @@ You can customize the server behavior by modifying the `env` block in your setti
 If you prefer to manage your own Python environment or need offline capability by bundling data at install time:
 
 ```bash
-# 1. Set build-time variables (optional, to bundle data)
+# 1. Set build-time variables (to bundle data and generate instructions)
+export TARGET_REPO_URL="https://github.com/google/adk-python.git"
+export TARGET_VERSION="v1.20.0"
 export TARGET_INDEX_URL="https://example.com/index.yaml"
 
-# 2. Install
+# 2. Install (hatch hook will bundle the index and instructions)
 pip install "git+https://github.com/ivanmkc/agent-generator.git#subdirectory=tools/adk_knowledge_ext"
 
 # 3. Run
-export TARGET_REPO_URL="..."
+export GEMINI_API_KEY="..."
 codebase-knowledge-mcp
 ```
