@@ -1,7 +1,7 @@
 [project]
-name = "adk-knowledge-ext"
+name = "codebase-knowledge-mcp"
 version = "0.1.0"
-description = "Gemini CLI extension for ADK knowledge retrieval and agent execution"
+description = "A repository-agnostic MCP server for deep codebase knowledge retrieval."
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
@@ -19,7 +19,7 @@ build-backend = "hatchling.build"
 packages = ["src/adk_knowledge_ext"]
 
 [project.scripts]
-adk-knowledge-mcp = "adk_knowledge_ext.server:main"
+codebase-knowledge-mcp = "adk_knowledge_ext.server:main"
 
 [tool.hatch.build.hooks.custom]
 path = "hatch_build.py"

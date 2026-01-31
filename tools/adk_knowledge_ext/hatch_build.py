@@ -15,25 +15,35 @@ class CustomBuildHook(BuildHookInterface):
             shutil.rmtree(data_dir)
         indices_dir.mkdir(parents=True, exist_ok=True)
 
-        # Map of version -> url
-        default_base_url = "https://raw.githubusercontent.com/ivanmkc/agent-generator/main/benchmarks/generator/benchmark_generator/data/ranked_targets.yaml"
-        # Allow override for testing/local dev
-        base_url = os.environ.get("ADK_INDEX_URL", default_base_url)
+        # Configuration via Environment Variables
+        target_version = os.environ.get("TARGET_VERSION", "main")
+        target_repo_url = os.environ.get("TARGET_REPO_URL", "Unknown Repository")
+        index_url = os.environ.get("TARGET_INDEX_URL")
 
-        versions = {
-            "v1.20.0": base_url
-        }
-
-        for ver, url in versions.items():
-            index_path = indices_dir / f"ranked_targets_{ver}.yaml"
-            print(f"Build Hook: Downloading index for {ver} to {index_path} using {url}...")
+        # 1. Download Index
+        if index_url:
+            index_path = indices_dir / f"index_{target_version}.yaml"
+            print(f"Build Hook: Downloading index for {target_version} to {index_path} using {index_url}...")
             try:
                 subprocess.run([
-                    "curl", "-f", "-o", str(index_path), url
+                    "curl", "-f", "-o", str(index_path), index_url
                 ], check=True)
+                print("Build Hook: Index bundling complete.")
             except Exception as e:
-                print(f"Error downloading index for {ver}: {e}")
-                # We might want to fail the build, or just warn
+                print(f"Error downloading index: {e}")
                 raise
-            
-        print("Build Hook: Indices bundling complete.")
+        else:
+            print("Build Hook Warning: TARGET_INDEX_URL not set. Package will be built without bundled index.")
+
+        # 2. Process Instructions Template
+        template_path = root / "INSTRUCTIONS.template.md"
+        output_path = data_dir / "INSTRUCTIONS.md"
+        if template_path.exists():
+            print(f"Build Hook: Generating INSTRUCTIONS.md for {target_repo_url}...")
+            content = template_path.read_text()
+            content = content.replace("{{TARGET_REPO_URL}}", target_repo_url)
+            content = content.replace("{{TARGET_VERSION}}", target_version)
+            output_path.write_text(content)
+            print("Build Hook: Instructions bundling complete.")
+        else:
+            print("Build Hook Warning: INSTRUCTIONS.template.md not found.")

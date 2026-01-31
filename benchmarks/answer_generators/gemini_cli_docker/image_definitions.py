@@ -112,4 +112,11 @@ IMAGE_DEFINITIONS: Dict[str, ImageDefinition] = {
         dependencies=[f"{IMAGE_PREFIX}:base"],
         build_args={"BASE_IMAGE": f"{IMAGE_PREFIX}:base"},
     ),
+    f"{IMAGE_PREFIX}:mcp_codebase_knowledge_runner": ImageDefinition(
+        source_dir="../../../",
+        dockerfile="mcp_codebase_knowledge_runner/Dockerfile",
+        description="**Generic Codebase Knowledge Runner:** Uses the repository-agnostic 'Codebase Knowledge' MCP server. It clones the target repository at runtime and provides deep inspection tools (`list_modules`, `read_source_code`).",
+        dependencies=[f"{IMAGE_PREFIX}:base"],
+        build_args={"BASE_IMAGE": f"{IMAGE_PREFIX}:base"},
+    ),
 }

@@ -26,24 +26,29 @@ def main():
 
     tests = [
         {
-            "name": "Method 1: Manual Settings",
-            "dockerfile": "tools/adk_knowledge_ext/tests/integration/method1/Dockerfile",
-            "tag": "adk-test-method1"
+            "name": "Manual Configuration (uvx)",
+            "dockerfile": "tools/adk_knowledge_ext/tests/integration/manual_uvx/Dockerfile",
+            "tag": "adk-test-manual"
         },
         {
-            "name": "Method 2: Extension Installation",
-            "dockerfile": "tools/adk_knowledge_ext/tests/integration/method2/Dockerfile",
-            "tag": "adk-test-method2"
+            "name": "Extension Installation (uvx)",
+            "dockerfile": "tools/adk_knowledge_ext/tests/integration/extension_uvx/Dockerfile",
+            "tag": "adk-test-extension"
         },
         {
-            "name": "Method 3: Resilience (Corrupt Data)",
-            "dockerfile": "tools/adk_knowledge_ext/tests/integration/method3/Dockerfile",
-            "tag": "adk-test-method3"
+            "name": "Resilience: Invalid Version",
+            "dockerfile": "tools/adk_knowledge_ext/tests/integration/resilience_invalid_version/Dockerfile",
+            "tag": "adk-test-res-version"
         },
         {
-            "name": "Method 4: Missing Index (Valid Version)",
-            "dockerfile": "tools/adk_knowledge_ext/tests/integration/method4/Dockerfile",
-            "tag": "adk-test-method4"
+            "name": "Resilience: Missing Index",
+            "dockerfile": "tools/adk_knowledge_ext/tests/integration/resilience_missing_index/Dockerfile",
+            "tag": "adk-test-res-index"
+        },
+        {
+            "name": "Resilience: Missing API Key",
+            "dockerfile": "tools/adk_knowledge_ext/tests/integration/resilience_no_api_key/Dockerfile",
+            "tag": "adk-test-res-key"
         }
     ]
     

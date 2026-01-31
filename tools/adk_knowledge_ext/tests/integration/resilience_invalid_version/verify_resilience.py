@@ -9,10 +9,10 @@ from mcp.client.stdio import stdio_client
 async def main():
     print("--- Starting Resilience Verification (Invalid Version) ---")
     
-    # Minimal config setup for testing
-    cmd = "adk-knowledge-mcp"
+    cmd = "codebase-knowledge-mcp"
     env = {
-        "ADK_VERSION": "v9.9.9", # Non-existent version
+        "TARGET_REPO_URL": "https://github.com/google/adk-python.git",
+        "TARGET_VERSION": "v9.9.9", 
     }
     
     server_params = StdioServerParameters(
@@ -21,22 +21,18 @@ async def main():
         env=env
     )
     
-    print(f"Launching Server with invalid version...")
-    
     try:
         async with stdio_client(server_params) as (read, write):
             async with ClientSession(read, write) as session:
                 await session.initialize()
-                print("Server Initialized (Survived startup).")
+                print("Server Initialized.")
                 
-                # Test Tool Behavior
-                print("Calling list_adk_modules...")
-                result = await session.call_tool("list_adk_modules", arguments={"page": 1})
+                print("Calling list_modules...")
+                result = await session.call_tool("list_modules", arguments={"page": 1})
                 content = result.content[0].text
                 
-                print(f"Tool Output: {content}")
-                
-                if "No items found" in content:
+                # Update: Server now raises explicit FileNotFoundError when index is missing
+                if "Knowledge index not found" in content or "No items found" in content:
                     print("SUCCESS: Server handled missing index gracefully.")
                 else:
                     print(f"FAIL: Unexpected output: {content}")

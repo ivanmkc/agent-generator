@@ -41,14 +41,41 @@ class KnowledgeIndex:
                     if fqn:
                         self._fqn_map[fqn] = item
 
-                # Build search index
-                provider_type = os.environ.get("ADK_SEARCH_PROVIDER", "bm25").lower()
+                # Determine search provider
+                api_key = os.environ.get("GEMINI_API_KEY")
+                requested_provider = os.environ.get("ADK_SEARCH_PROVIDER", "").lower()
+                
+                provider_type = "bm25" # Default baseline
+
+                if requested_provider:
+                    if requested_provider in ["vector", "hybrid"]:
+                        if not api_key:
+                            # FAIL FAST if explicitly requested but key is missing
+                            raise ValueError(
+                                f"ADK_SEARCH_PROVIDER is '{requested_provider}' but GEMINI_API_KEY is missing. "
+                                "API key is required for embedding-based search."
+                            )
+                        provider_type = requested_provider
+                    else:
+                        provider_type = requested_provider
+                else:
+                    # Auto-upgrade if key is present
+                    if api_key:
+                        provider_type = "hybrid"
+                        logger.info("GEMINI_API_KEY detected. Auto-upgrading search to 'hybrid'.")
+                    else:
+                        logger.info("No GEMINI_API_KEY detected. Using 'bm25' search.")
+
+                logger.info(f"Initializing search provider: {provider_type}")
                 self._provider = get_search_provider(provider_type)
                 self._provider.build_index(self._items)
 
             self._loaded = True
             logger.info(f"Loaded {len(self._items)} targets from index.")
         except Exception as e:
+            # Re-raise ValueErrors (our explicit config failures)
+            if isinstance(e, ValueError):
+                raise
             logger.error(f"Failed to load index: {e}")
 
     def resolve_target(self, fqn: str) -> Tuple[Optional[Dict[str, Any]], str]:

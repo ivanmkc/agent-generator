@@ -148,6 +148,16 @@ GENERATOR_METADATA: Dict[str, AnyGeneratorConfig] = {
         expected_tool_uses=[], # No tools expected, just pure RAG/Context usage
         expected_context_files=["/workdir/adk_skill/instructions.md"],
     ),
+    "podman_mcp_codebase_knowledge_runner_test_case": PodmanGeneratorConfig(
+        id="podman_mcp_codebase_knowledge_runner_test_case",
+        dockerfile_dir=Path(
+            "benchmarks/answer_generators/gemini_cli_docker/mcp_codebase_knowledge_runner"
+        ),
+        image_name="gemini-cli:mcp_codebase_knowledge_runner",
+        expected_mcp_servers=["codebase-knowledge"],
+        custom_case=MCP_ADK_RUNNER_CASE,
+        expected_tool_uses=["list_modules", "read_source_code"],
+    ),
 }
 
 # List of unmanaged (local) fixtures

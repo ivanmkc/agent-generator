@@ -1,50 +1,97 @@
-"Server module."
+"""Server module."""
 
 import os
 import logging
+import subprocess
 from pathlib import Path
 from typing import Union, List
 from mcp.server.fastmcp import FastMCP
 from .index import get_index
 from .reader import SourceReader
 
-# Configuration
-ADK_VERSION = os.environ.get("ADK_VERSION", "v1.20.0")
+# --- Configuration ---
 
-# Index: Use bundled versioned index
+# Required environment variables
+TARGET_REPO_URL = os.environ.get("TARGET_REPO_URL")
+TARGET_VERSION = os.environ.get("TARGET_VERSION", "main")
+TARGET_INDEX_URL = os.environ.get("TARGET_INDEX_URL")
+
+# Internal paths
 _BUNDLED_DATA = Path(__file__).parent / "data" / "indices"
-DEFAULT_INDEX_PATH = _BUNDLED_DATA / f"ranked_targets_{ADK_VERSION}.yaml"
+DEFAULT_INDEX_PATH = _BUNDLED_DATA / f"index_{TARGET_VERSION}.yaml"
+TARGET_INDEX_PATH = Path(os.environ.get("TARGET_INDEX_PATH", DEFAULT_INDEX_PATH))
 
-# Repo: Default to None to allow SourceReader to handle dynamic cloning
-DEFAULT_REPO_PATH = None
+# Optional override for local development
+env_repo_path = os.environ.get("TARGET_REPO_PATH")
+TARGET_REPO_PATH = Path(env_repo_path) if env_repo_path else None
 
-ADK_INDEX_PATH = Path(os.environ.get("ADK_INDEX_PATH", DEFAULT_INDEX_PATH))
-# If ADK_REPO_PATH is set by user, use it. Otherwise None.
-env_repo_path = os.environ.get("ADK_REPO_PATH")
-ADK_REPO_PATH = Path(env_repo_path) if env_repo_path else None
+# --- Setup ---
 
-# Setup Logging
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
-logger = logging.getLogger("adk_knowledge_ext")
+logger = logging.getLogger("codebase-knowledge-mcp")
 
-if not ADK_INDEX_PATH.exists():
-    logger.warning(f"Index file not found at {ADK_INDEX_PATH}. Ensure ADK_VERSION ({ADK_VERSION}) is supported.")
+# Validation
+if not TARGET_REPO_URL:
+    logger.error("TARGET_REPO_URL environment variable is not set. Cloning will be unavailable.")
 
 # Initialize Server
-mcp = FastMCP("adk-knowledge")
-reader = SourceReader(repo_root=ADK_REPO_PATH, version=ADK_VERSION)
+mcp = FastMCP("codebase-knowledge")
+
+# Global reader instance
+reader = SourceReader(
+    repo_url=TARGET_REPO_URL or "",
+    repo_root=TARGET_REPO_PATH, 
+    version=TARGET_VERSION
+)
 
 
 def _ensure_index():
-    get_index().load(ADK_INDEX_PATH)
+    # 1. If index exists, load it
+    if TARGET_INDEX_PATH.exists():
+        get_index().load(TARGET_INDEX_PATH)
+        return
+
+    # 2. If not, try to download if URL is provided
+    if TARGET_INDEX_URL:
+        # Save to a user-writable cache since bundled dir might be read-only in site-packages
+        cache_dir = Path.home() / ".mcp_cache" / "indices"
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        cached_index = cache_dir / f"index_{TARGET_VERSION}.yaml"
+        
+        if cached_index.exists():
+            get_index().load(cached_index)
+            return
+            
+        logger.info(f"Downloading index for {TARGET_VERSION} from {TARGET_INDEX_URL}...")
+        try:
+            subprocess.run(["curl", "-f", "-o", str(cached_index), TARGET_INDEX_URL], check=True)
+            get_index().load(cached_index)
+            return
+        except Exception as e:
+            logger.error(f"Failed to download index: {e}")
+            # Fallthrough to error
+
+    raise FileNotFoundError(f"Knowledge index not found at {TARGET_INDEX_PATH} and could not be downloaded.")
 
 
 @mcp.tool()
-def list_adk_modules(page: int = 1, page_size: int = 20) -> str:
+def get_instructions() -> str:
     """
-    Lists ranked ADK modules and classes. Use this to explore the API surface.
+    Returns the system instructions and metadata for this knowledge server.
+    Use this to understand which repository and version this server is providing context for.
+    """
+    instr_path = Path(__file__).parent / "data" / "INSTRUCTIONS.md"
+    if instr_path.exists():
+        return instr_path.read_text()
+    return "No specialized instructions available for this codebase."
+
+
+@mcp.tool()
+def list_modules(page: int = 1, page_size: int = 20) -> str:
+    """
+    Lists ranked modules and classes in the codebase.
 
     Args:
         page: Page number (1-based).
@@ -56,7 +103,7 @@ def list_adk_modules(page: int = 1, page_size: int = 20) -> str:
     if not items:
         return f"No items found for page {page}."
 
-    lines = [f"--- Ranked Targets (Page {page}) ---"]
+    lines = [f"--- Ranked Modules (Page {page}) ---"]
     for item in items:
         rank = item.get("rank", "?")
         fqn = item.get("id") or item.get("fqn") or item.get("name") or "unknown"
@@ -67,16 +114,13 @@ def list_adk_modules(page: int = 1, page_size: int = 20) -> str:
 
 
 @mcp.tool()
-async def search_adk_knowledge(queries: Union[str, List[str]], limit: int = 10) -> str:
+async def search_knowledge(queries: Union[str, List[str]], limit: int = 10) -> str:
     """
-    Searches the ADK knowledge base for relevant classes, functions, or concepts.
+    Searches the codebase knowledge base for relevant classes, functions, or concepts.
     Accepts multiple queries to retrieve diverse information in a single call.
     
     Args:
         queries: A single query string or a list of query strings.
-                 Examples:
-                 - "how to add tools"
-                 - ["LlmAgent configuration", "tool creation"]
         limit: Max total results to return (default: 10).
     """
     _ensure_index()
@@ -84,25 +128,18 @@ async def search_adk_knowledge(queries: Union[str, List[str]], limit: int = 10) 
     if isinstance(queries, str):
         queries = [queries]
         
-    all_matches_map = {} # fqn -> (score, item)    
+    all_matches_map = {} 
     for query in queries:
-        # Search for each query
         matches = await get_index().search(query, limit)
         for score, item in matches:
             fqn = item.get("id") or item.get("fqn") or item.get("name") or "unknown"
-            
-            # Deduplicate: Keep the match with the highest score
             if fqn not in all_matches_map or score > all_matches_map[fqn][0]:
                 all_matches_map[fqn] = (score, item)
     
     if not all_matches_map:
-        q_str = ", ".join([f"'{q}'" for q in queries])
-        return f"No matches found for queries: {q_str}."
+        return f"No matches found."
         
-    # Sort aggregated results by score descending
     sorted_matches = sorted(all_matches_map.values(), key=lambda x: x[0], reverse=True)
-    
-    # Apply global limit
     final_results = sorted_matches[:limit]
     
     lines = [f"--- Search Results for {len(queries)} queries ---"]
@@ -112,22 +149,18 @@ async def search_adk_knowledge(queries: Union[str, List[str]], limit: int = 10) 
         type_ = item.get("type")
         summary = item.get("docstring", "No summary.")
         summary_short = summary.split("\n")[0][:150]
-
-        lines.append(
-            f"[{rank}] {type_}: {fqn} (Score: {score:.2f})\n    {summary_short}..."
-        )
+        lines.append(f"[{rank}] {type_}: {fqn} (Score: {score:.2f})\n    {summary_short}...")
 
     return "\n".join(lines)
 
 
 @mcp.tool()
-def read_adk_source_code(fqn: str) -> str:
+def read_source_code(fqn: str) -> str:
     """
-    Reads the actual implementation source code for a specific ADK symbol from disk.
-    Use this only if the index information (via inspect_adk_symbol) is insufficient.
+    Reads the implementation source code for a specific symbol from disk.
 
     Args:
-        fqn: The Fully Qualified Name (e.g., 'google.adk.agents.llm_agent.LlmAgent').
+        fqn: The Fully Qualified Name of the symbol.
     """
     _ensure_index()
     target, suffix = get_index().resolve_target(fqn)
@@ -137,22 +170,21 @@ def read_adk_source_code(fqn: str) -> str:
 
     rel_path = target.get("file_path")
     if not rel_path:
-        return f"No file path recorded for {target.get('fqn', 'unknown')}."
+        return f"No file path recorded for {fqn}."
 
-    # We pass the full target FQN (e.g. google.adk.Agent) and the suffix (e.g. run)
     target_fqn = target.get("id") or target.get("fqn") or target.get("name")
     return reader.read_source(rel_path, target_fqn, suffix)
 
 
 @mcp.tool()
-def inspect_adk_symbol(fqn: str) -> str:
+def inspect_symbol(fqn: str) -> str:
     """
-    Returns the full structured specification (signatures, docstrings, properties) for a symbol from the ranked index.
-    This is the PREFERRED way to understand an API.
+    Returns the full structured specification (signatures, docstrings, properties) for a symbol.
 
     Args:
-        fqn: The Fully Qualified Name (e.g., 'google.adk.agents.llm_agent.LlmAgent').
+        fqn: The Fully Qualified Name.
     """
+    import yaml
     _ensure_index()
     target, suffix = get_index().resolve_target(fqn)
 
@@ -162,13 +194,11 @@ def inspect_adk_symbol(fqn: str) -> str:
     output = yaml.safe_dump(target, sort_keys=False)
 
     if suffix:
-        # Attempt to read source for the specific symbol to provide more context
         source_snippet = ""
         rel_path = target.get("file_path")
         if rel_path:
             target_fqn = target.get("id") or target.get("fqn") or target.get("name")
             try:
-                # Reuse the reader to get the specific method/property source
                 source_snippet = reader.read_source(rel_path, target_fqn, suffix)
             except Exception as e:
                 source_snippet = f"(Could not retrieve source: {e})"
@@ -176,16 +206,6 @@ def inspect_adk_symbol(fqn: str) -> str:
         return f"Note: Symbol '{fqn}' is not explicitly indexed. Showing parent symbol '{target.get('id') or target.get('fqn')}'.\n\n{output}\n\n{source_snippet}"
 
     return output
-
-
-# Optional Execution Tool
-try:
-    from adk_agent_tool import run_adk_agent
-
-    mcp.tool()(run_adk_agent)
-    logger.info("Enabled 'run_adk_agent' tool.")
-except ImportError:
-    logger.info("'adk_agent_tool' not found. Execution capabilities disabled.")
 
 
 def main():
