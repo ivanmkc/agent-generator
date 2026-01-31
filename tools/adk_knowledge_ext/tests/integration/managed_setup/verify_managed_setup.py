@@ -2,8 +2,7 @@
 Verification script for Managed Setup (CLI Integration).
 
 Tests the `codebase-knowledge-mcp-manage` CLI tool's ability to detect and 
-configure the 'Gemini CLI' tool by invoking the underlying `mcp` command.
-It mocks the `gemini` executable to verify arguments.
+configure the *real* 'Gemini CLI' tool.
 """
 
 import os
@@ -11,11 +10,19 @@ import sys
 import subprocess
 from pathlib import Path
 
+def run_command(cmd):
+    print(f"Running: ", ' '.join(cmd))
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    if result.returncode != 0:
+        print(f"Command failed: {result.stderr}")
+        sys.exit(1)
+    return result.stdout
+
 def main():
-    print("--- Starting Managed Setup Verification ---")
+    print("---" + " Starting Real Managed Setup Verification ---")
     
     # 1. Setup
-    print("Running setup...")
+    print("Step 1: Running setup...")
     cmd = [
         "codebase-knowledge-mcp-manage", "setup",
         "--repo-url", "https://github.com/test/repo.git",
@@ -24,54 +31,48 @@ def main():
         "--force"
     ]
     
-    # We need to simulate the 'gemini' config path existence so the tool detects it
-    # manage_mcp.py checks: Path.home() / ".gemini"
-    gemini_home = Path.home() / ".gemini"
-    gemini_home.mkdir(parents=True, exist_ok=True)
+    # Ensure .gemini directory exists (though CLI might create it)
+    Path.home().joinpath(".gemini").mkdir(exist_ok=True)
     
-    try:
-        subprocess.run(cmd, check=True)
-    except subprocess.CalledProcessError as e:
-        print(f"Setup failed: {e}")
-        sys.exit(1)
-        
-    # Verify Mock Log
-    log_path = Path("/tmp/gemini_mock.log")
-    if not log_path.exists():
-        print("FAIL: Mock gemini CLI was not called.")
-        sys.exit(1)
-        
-    log_content = log_path.read_text()
-    print(f"Mock Log:\n{log_content}")
+    run_command(cmd)
+
+    # 2. Verify with Gemini CLI
+    print("Step 2: Verifying with 'gemini mcp list'...")
+    # Note: gemini-cli often prints list to stderr or stdout depending on version.
+    # We'll check combined output.
+    list_cmd = ["gemini", "mcp", "list"]
+    result = subprocess.run(list_cmd, capture_output=True, text=True)
+    output = result.stdout + result.stderr
+    print(f"Gemini Output:\n{output}")
     
-    # Check if 'gemini mcp add' was called with correct args
-    # Expected: gemini mcp add user codebase-knowledge env -- TARGET_REPO_URL=... uvx ...
-    if "mcp add --scope user codebase-knowledge" in log_content and "uvx" in log_content:
-        print("SUCCESS: Setup called gemini correctly.")
+    if "codebase-knowledge" in output:
+        print("SUCCESS: Server found in Gemini config.")
     else:
-        print("FAIL: Setup command mismatch.")
+        print("FAIL: Server not found in Gemini config.")
         sys.exit(1)
 
-    # 2. Remove
-    print("Running remove...")
+    # 3. Remove
+    print("Step 3: Running remove...")
     cmd_remove = ["codebase-knowledge-mcp-manage", "remove"]
-    # Force confirmation (manage_mcp.py uses Confirm.ask which reads stdin)
-    # We need to pipe 'y' to it.
     
+    # Pipe 'y' for confirmation
     p = subprocess.Popen(cmd_remove, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     stdout, stderr = p.communicate(input="y\n")
     
     if p.returncode != 0:
         print(f"Remove failed: {stderr}")
         sys.exit(1)
-        
-    log_content = log_path.read_text()
-    print(f"Mock Log (Updated):\n{log_content}")
+
+    # 4. Verify Removal
+    print("Step 4: Verifying removal...")
+    result = subprocess.run(list_cmd, capture_output=True, text=True)
+    output = result.stdout + result.stderr
+    print(f"Gemini Output:\n{output}")
     
-    if "mcp remove codebase-knowledge --scope user" in log_content:
-        print("SUCCESS: Remove called gemini correctly.")
+    if "codebase-knowledge" not in output:
+        print("SUCCESS: Server correctly removed.")
     else:
-        print("FAIL: Remove command mismatch.")
+        print("FAIL: Server still present.")
         sys.exit(1)
 
 if __name__ == "__main__":
