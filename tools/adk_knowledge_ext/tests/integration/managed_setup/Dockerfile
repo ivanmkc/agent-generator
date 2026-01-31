@@ -1,6 +1,11 @@
 # Use the official Gemini CLI base image for realistic testing
 FROM gemini-cli:base
 
+# Install uv for uvx execution
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+ENV PATH="/root/.local/bin:$PATH"
+
 WORKDIR /app
 
 # The base image already has node, gemini-cli, and uv installed.

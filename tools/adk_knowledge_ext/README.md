@@ -52,6 +52,24 @@ The tool will:
 
 ---
 
+## How to Use
+
+Once installed, the tools are available to your AI agent. You can trigger them using natural language.
+
+### 1. Explore the Codebase
+> "List the top-level modules in this repo."
+> "Show me the classes in the `core` module."
+
+### 2. Search for Concepts
+> "Search for where we handle 'authentication' logic."
+> "Find code related to 'rate limiting'."
+
+### 3. Read & Analyze Code
+> "Read the source code for `auth.login` and explain how it works."
+> "Inspect the `User` class definition."
+
+---
+
 ## Uninstallation
 
 To remove the configuration from your tools:
