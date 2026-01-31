@@ -18,12 +18,10 @@ ENV TARGET_INDEX_URL="file:///tmp/index.yaml"
 COPY tools/adk_knowledge_ext /tmp/pkg
 RUN pip install /tmp/pkg
 
-# 3. Configure Gemini CLI to use the BUNDLED instructions
-# We find the path to the installed package's data directory
+# 3. Place Instructions in Workspace (Standard Pattern)
 RUN INSTR_PATH=$(python3 -c "import adk_knowledge_ext; from pathlib import Path; print(Path(adk_knowledge_ext.__file__).parent / 'data' / 'INSTRUCTIONS.md')") && \
-    ln -s "$INSTR_PATH" /workdir/INSTRUCTIONS.md
+    cp "$INSTR_PATH" /workdir/INSTRUCTIONS.md
 
-ENV GEMINI_SYSTEM_MD=/workdir/INSTRUCTIONS.md
 ENV GEMINI_API_KEY=dummy_for_build
 
 # 4. Gemini CLI Settings

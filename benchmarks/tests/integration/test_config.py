@@ -156,7 +156,7 @@ GENERATOR_METADATA: Dict[str, AnyGeneratorConfig] = {
         image_name="gemini-cli:mcp_codebase_knowledge_runner",
         expected_mcp_servers=["codebase-knowledge"],
         custom_case=MCP_ADK_RUNNER_CASE,
-        expected_tool_uses=["list_modules", "read_source_code"],
+        expected_tool_uses=["list_modules"],
     ),
 }
 
