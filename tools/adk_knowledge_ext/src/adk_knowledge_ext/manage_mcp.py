@@ -30,6 +30,12 @@ from rich.prompt import Confirm, Prompt
 
 console = Console()
 
+def ask_confirm(question: str, default: bool = True) -> bool:
+    """Case-insensitive confirmation prompt."""
+    choices = "[Y/n]" if default else "[y/N]"
+    resp = Prompt.ask(f"{question} {choices}", default="y" if default else "n", show_default=False)
+    return resp.lower().startswith("y")
+
 MCP_SERVER_NAME = "codebase-knowledge"
 
 def _get_platform_config_path(app_name: str, config_file: str) -> Path:
@@ -133,7 +139,7 @@ def setup(repo_url: Optional[str], version: str, api_key: Optional[str], index_u
     
     # Optional API Key
     if not force and not api_key and not os.environ.get("GEMINI_API_KEY"):
-        if Confirm.ask("Do you have a Gemini API Key? (Required for semantic search)", default=False):
+        if ask_confirm("Do you have a Gemini API Key? (Required for semantic search)", default=False):
             api_key = Prompt.ask("Enter Gemini API Key", password=True)
 
     console.print()
@@ -204,7 +210,7 @@ def setup(repo_url: Optional[str], version: str, api_key: Optional[str], index_u
         console.print("\n[bold]Configure MCP for:[/bold]")
         for ide_name in detected_ides:
             default_val = not configured_status.get(ide_name, False)
-            if Confirm.ask(f"   {ide_name}", default=default_val):
+            if ask_confirm(f"   {ide_name}", default=default_val):
                 selected_ides[ide_name] = detected_ides[ide_name]
 
     if not selected_ides:
@@ -249,7 +255,7 @@ def remove():
     selected_ides = {}
     console.print("\n[bold]Remove from:[/bold]")
     for ide_name in configured_ides:
-        if Confirm.ask(f"   {ide_name}", default=True):
+        if ask_confirm(f"   {ide_name}", default=True):
             selected_ides[ide_name] = configured_ides[ide_name]
 
     if not selected_ides:
