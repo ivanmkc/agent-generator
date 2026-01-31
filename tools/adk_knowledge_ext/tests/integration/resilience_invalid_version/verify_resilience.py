@@ -31,8 +31,7 @@ async def main():
                 result = await session.call_tool("list_modules", arguments={"page": 1})
                 content = result.content[0].text
                 
-                # Update: Server now raises explicit FileNotFoundError when index is missing
-                if "Knowledge index not found" in content or "No items found" in content:
+                if "not supported" in content:
                     print("SUCCESS: Server handled missing index gracefully.")
                 else:
                     print(f"FAIL: Unexpected output: {content}")

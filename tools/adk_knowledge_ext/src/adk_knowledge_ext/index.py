@@ -24,8 +24,7 @@ class KnowledgeIndex:
             return
 
         if not index_path.exists():
-            logger.error(f"Index not found at {index_path}")
-            return
+            raise FileNotFoundError(f"Index file not found: {index_path}")
 
         try:
             with open(index_path, "r", encoding="utf-8") as f:

@@ -89,7 +89,14 @@ def _ensure_index():
             logger.error(f"Failed to download index: {e}")
             # Fallthrough to error
 
-    raise FileNotFoundError(f"Knowledge index not found at {TARGET_INDEX_PATH} and could not be downloaded (URL missing or failed).")
+    msg = (
+        f"This repository ('{TARGET_REPO_URL}') is not supported by the Codebase Knowledge MCP server "
+        "because its knowledge index is not properly set up.\n\n"
+        "TO FIX THIS:\n"
+        "1. Run 'codebase-knowledge-mcp-manage setup' for this repository.\n"
+        "2. If you are in a restricted environment, use the --knowledge-index-url flag pointing to a local YAML file."
+    )
+    raise RuntimeError(msg)
 
 
 def _ensure_instructions():

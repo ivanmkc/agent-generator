@@ -43,7 +43,7 @@ async def main():
                     result = await session.call_tool("list_modules", arguments={"page": 1})
                     content = result.content[0].text
                     print(f"Tool Output: {content}")
-                    if "index not found" in content:
+                    if "not supported" in content:
                         print("SUCCESS: Correctly failed due to missing registry entry.")
                     else:
                         print(f"FAIL: Unexpected success or error message: {content}")

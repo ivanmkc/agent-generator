@@ -35,7 +35,7 @@ async def main():
                 content = result.content[0].text
                 print(f"Tool Output: {content}")
                 
-                if "Knowledge index not found" in content or "No items found" in content:
+                if "not supported" in content and "knowledge index is not properly set up" in content:
                     print("SUCCESS: Handled missing index gracefully.")
                 else:
                     print(f"FAIL: Unexpected output: {content}")
@@ -47,7 +47,7 @@ async def main():
                 content = result.content[0].text
                 print(f"Tool Output: {content}")
                 
-                if "not found in index" in content or "Knowledge index not found" in content:
+                if "not supported" in content:
                     print("SUCCESS: Correctly reported failure (due to missing index).")
                 else:
                     print(f"FAIL: Unexpected output: {content}")
