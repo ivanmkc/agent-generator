@@ -3,6 +3,16 @@
 
 # Immediate Priorities (Refactoring Phase 2)
 
+## 0. MCP Server Implementation (Ranked Knowledge)
+- [ ] **Implementation:**
+    - [ ] Formalize the `adk-knowledge-mcp` server used by `mcp_adk_agent_runner_ranked_knowledge`.
+    - [ ] Expose specialized tools: `list_adk_modules`, `inspect_adk_symbol`, `read_adk_source_code`, and `search_adk_knowledge`.
+    - [ ] Ensure the server uses the `ranked_targets.yaml` index and the `VectorSearchProvider` for high-relevance retrieval.
+    - [ ] Support `run_adk_agent` as a tool for sandboxed execution of candidate code.
+- [ ] **Verification:**
+    - [ ] Run `test_adk_knowledge_mcp.py` to verify tool-calling integrity within the container.
+    - [ ] Integrate these tools into the `AdkTools` class to unify host-side and container-side retrieval logic.
+
 ## 1. Codebase Improvements
 - [x] **Refactor ModelName:** Move the `ModelName` enum to `core/models.py` (or `core/constants.py`) so both `benchmarks` and `config` can import it without circular dependency.
 - [x] **Consolidate Data Paths:** Review `core/config.py` paths (`AGENTIC_SESSIONS_DB`, `VIBESHARE_RESULTS_FILE`, etc.). Simplify by moving all runtime state to a unified `data/` directory or a single SQLite database (`core.db`). Remove ad-hoc JSONL/YAML files where possible.
