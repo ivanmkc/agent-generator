@@ -6,16 +6,24 @@ A repository-agnostic MCP server that gives LLMs deep access to any codebase. It
 - **Read** source code directly from Git repositories.
 - **Search** the codebase using keywords or concepts.
 
-## Installation (Recommended)
+## Automated Installation (Recommended)
 
-The standard way to use this server is via `uvx`. This method handles installation, environment isolation, and caching automatically.
+You can automatically configure your coding agent (Gemini CLI, Claude Code, Cursor, etc.) using the management tool.
 
-Add the following configuration to your `~/.gemini/settings.json` file. The server will automatically download the search index (if available in the internal registry) and clone the repository the first time it runs.
+```bash
+uvx --from "git+https://github.com/ivanmkc/agent-generator.git#subdirectory=tools/adk_knowledge_ext" codebase-knowledge-mcp-manage setup
+```
+
+Follow the prompts to enter your repository URL and optional API key.
+
+## Manual Installation
+
+If you prefer to configure it manually, you can add the following to your MCP configuration (e.g., `~/.gemini/settings.json` or `~/.cursor/mcp.json`).
 
 ```json
 {
   "mcpServers": {
-    "adk-python": {
+    "my-codebase": {
       "command": "uvx",
       "args": [
         "--from",
@@ -64,7 +72,7 @@ The MCP protocol doesn't yet allow servers to automatically push system prompts 
 | `ADK_SEARCH_PROVIDER` | Search mode: `bm25` (local) or `hybrid` (semantic+local). | `bm25` |
 | `GEMINI_SYSTEM_MD` | (Gemini CLI only) Path to the system prompt file. | None |
 
-## Manual Installation (Advanced)
+## Advanced: Build-time Bundling
 
 If you prefer to manage your own Python environment or need offline capability by bundling data at install time:
 

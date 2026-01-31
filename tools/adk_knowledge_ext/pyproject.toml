@@ -9,6 +9,8 @@ dependencies = [
     "pyyaml",
     "rank-bm25",
     "fastmcp",
+    "rich",
+    "click",
 ]
 
 [build-system]
@@ -20,6 +22,7 @@ packages = ["src/adk_knowledge_ext"]
 
 [project.scripts]
 codebase-knowledge-mcp = "adk_knowledge_ext.server:main"
+codebase-knowledge-mcp-manage = "adk_knowledge_ext.manage_mcp:main"
 
 [tool.hatch.build.hooks.custom]
 path = "hatch_build.py"
