@@ -77,18 +77,6 @@ def _ensure_index():
 
 
 @mcp.tool()
-def get_instructions() -> str:
-    """
-    Returns the system instructions and metadata for this knowledge server.
-    Use this to understand which repository and version this server is providing context for.
-    """
-    instr_path = Path(__file__).parent / "data" / "INSTRUCTIONS.md"
-    if instr_path.exists():
-        return instr_path.read_text()
-    return "No specialized instructions available for this codebase."
-
-
-@mcp.tool()
 def list_modules(page: int = 1, page_size: int = 20) -> str:
     """
     Lists ranked modules and classes in the codebase.

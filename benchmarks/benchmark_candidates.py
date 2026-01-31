@@ -94,3 +94,13 @@ CANDIDATE_GENERATORS.append(
         experiment_id="ranked_knowledge_vector",
     )
 )
+
+CANDIDATE_GENERATORS.append(
+    GeminiCliPodmanAnswerGenerator(
+        image_definitions=IMAGE_DEFINITIONS,
+        image_name="gemini-cli:mcp_codebase_knowledge_runner",
+        model_name=ModelName.GEMINI_2_5_FLASH,
+        api_key_manager=api_key_manager,
+        experiment_id="codebase_knowledge_v1",
+    )
+)

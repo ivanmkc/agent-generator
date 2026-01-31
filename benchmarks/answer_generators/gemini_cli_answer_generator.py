@@ -274,8 +274,10 @@ class GeminiCliAnswerGenerator(GeminiAnswerGenerator):
 
         try:
             mcp_res, _ = await self.run_cli_command([self.cli_path, "mcp", "list"])
-            stdout = mcp_res.get("stdout", "")
-            for line in stdout.splitlines():
+            # The CLI sometimes prints to stderr (e.g. 0.26.0), so we check both
+            output = mcp_res.get("stdout", "") + "\n" + mcp_res.get("stderr", "")
+            
+            for line in output.splitlines():
                 # 1. Clean the line of ANSI codes immediately
                 clean_line = self._strip_ansi(line).strip()
 
