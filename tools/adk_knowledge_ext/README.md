@@ -68,6 +68,29 @@ Then the server attempts to download the index at runtime. If this download fail
 uvx --from ... codebase-knowledge-mcp-manage setup ... --knowledge-index-url file:///path/to/local/index.yaml
 ```
 
+### Technical FAQ
+
+**Q: How does the server locate the correct knowledge index?**
+**A:** The server employs a 3-tier lookup strategy:
+1.  **Bundled Manifest:** It first checks `manifest.json` (generated at build time) to see if a pre-downloaded index exists for the target repo/version in the `data/indices/` directory.
+2.  **Registry Lookup:** If not bundled, it checks `registry.yaml` to find a remote URL for the index.
+3.  **Direct URL:** Finally, it checks if `TARGET_INDEX_URL` was manually provided via environment variables.
+
+**Q: Where are repositories and indices stored?**
+**A:**
+- **Indices:** Bundled indices are in the package installation directory. Downloaded indices are cached in `~/.mcp_cache/indices/`.
+- **Source Code:** Repositories are cloned (shallowly) to `~/.mcp_cache/repo/{version}/`. The server performs a partial clone where possible to save space and bandwidth.
+
+**Q: How does `search_knowledge` work?**
+**A:** It defaults to **BM25 (sparse retrieval)** using the `rank_bm25` library, which is fast and requires no external API keys.
+If you provide `GEMINI_API_KEY`, it automatically upgrades to a **Hybrid Search** (BM25 + Vector Embedding) for better semantic understanding.
+
+**Q: Is it safe to use with private repositories?**
+**A:** Yes.
+- The server runs locally on your machine.
+- It uses your local `git` credentials to clone repositories (so if you have access, it has access).
+- No code is sent to any external server *unless* you enable semantic search (in which case, search queries are sent to the embedding API, but source code remains local).
+
 ---
 
 ## How to Use
