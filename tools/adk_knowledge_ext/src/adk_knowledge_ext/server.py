@@ -1,30 +1,19 @@
 """Server module."""
 
-import os
 import logging
 import subprocess
 import json
 from pathlib import Path
 from typing import Union, List
+from logging.handlers import RotatingFileHandler
 from mcp.server.fastmcp import FastMCP
 from .index import get_index
 from .reader import SourceReader
+from .config import config
 
 # --- Configuration ---
 
-# Required environment variables
-TARGET_REPO_URL = os.environ.get("TARGET_REPO_URL")
-TARGET_VERSION = os.environ.get("TARGET_VERSION", "main")
-TARGET_INDEX_URL = os.environ.get("TARGET_INDEX_URL")
-
-# Internal paths
-_BUNDLED_DATA = Path(__file__).parent / "data" / "indices"
-DEFAULT_INDEX_PATH = _BUNDLED_DATA / f"index_{TARGET_VERSION}.yaml"
-TARGET_INDEX_PATH = Path(os.environ.get("TARGET_INDEX_PATH", DEFAULT_INDEX_PATH))
-
-# Optional override for local development
-env_repo_path = os.environ.get("TARGET_REPO_PATH")
-TARGET_REPO_PATH = Path(env_repo_path) if env_repo_path else None
+_BUNDLED_DATA = Path(__file__).parent / "data"
 
 # --- Setup ---
 
@@ -32,8 +21,6 @@ TARGET_REPO_PATH = Path(env_repo_path) if env_repo_path else None
 log_dir = Path.home() / ".mcp_cache" / "logs"
 log_dir.mkdir(parents=True, exist_ok=True)
 log_file = log_dir / "codebase-knowledge.log"
-
-from logging.handlers import RotatingFileHandler
 
 logging.basicConfig(
     level=logging.DEBUG,
@@ -47,7 +34,7 @@ logger = logging.getLogger("codebase-knowledge-mcp")
 logger.info("Server starting up...")
 
 # Validation
-if not TARGET_REPO_URL:
+if not config.TARGET_REPO_URL:
     logger.error("TARGET_REPO_URL environment variable is not set. Cloning will be unavailable.")
 
 # Initialize Server
@@ -55,27 +42,26 @@ mcp = FastMCP("codebase-knowledge")
 
 # Global reader instance
 reader = SourceReader(
-    repo_url=TARGET_REPO_URL or "",
-    repo_root=TARGET_REPO_PATH, 
-    version=TARGET_VERSION
+    repo_url=config.TARGET_REPO_URL or "",
+    version=config.TARGET_VERSION
 )
 
 
 def _ensure_index():
-    logger.debug(f"Ensuring index for repo={TARGET_REPO_URL}, version={TARGET_VERSION}")
+    logger.debug(f"Ensuring index for repo={config.TARGET_REPO_URL}, version={config.TARGET_VERSION}")
     
     # 0. Check for explicit local override via env var (highest priority)
-    if TARGET_INDEX_PATH.exists() and os.environ.get("TARGET_INDEX_PATH"):
-        logger.debug(f"Found explicit index at {TARGET_INDEX_PATH}")
-        get_index().load(TARGET_INDEX_PATH)
+    if config.TARGET_INDEX_PATH and config.TARGET_INDEX_PATH.exists():
+        logger.debug(f"Found explicit index at {config.TARGET_INDEX_PATH}")
+        get_index().load(config.TARGET_INDEX_PATH)
         return
 
-    # 1. Check Bundled Manifest
-    manifest_path = _BUNDLED_DATA.parent / "manifest.json"
-    if manifest_path.exists() and TARGET_REPO_URL:
+    # 1. Check Bundled Manifest (Source of Truth)
+    manifest_path = _BUNDLED_DATA / "manifest.json"
+    if manifest_path.exists() and config.TARGET_REPO_URL:
         try:
             manifest = json.loads(manifest_path.read_text())
-            bundled_file = manifest.get(TARGET_REPO_URL, {}).get(TARGET_VERSION)
+            bundled_file = manifest.get(config.TARGET_REPO_URL, {}).get(config.TARGET_VERSION)
             if bundled_file:
                 bundled_path = _BUNDLED_DATA / bundled_file
                 if bundled_path.exists():
@@ -85,32 +71,14 @@ def _ensure_index():
         except Exception as e:
             logger.warning(f"Failed to read bundled manifest: {e}")
 
-    # 2. Resolve Index URL (Env > Registry)
-    index_url = TARGET_INDEX_URL
-    if not index_url and TARGET_REPO_URL:
-        registry_path = Path(__file__).parent / "registry.yaml"
-        logger.debug(f"Checking registry at {registry_path}")
-        if registry_path.exists():
-            import yaml
-            try:
-                registry = yaml.safe_load(registry_path.read_text())
-                repo_map = registry.get(TARGET_REPO_URL, {})
-                index_url = repo_map.get(TARGET_VERSION)
-                if index_url:
-                    logger.info(f"Resolved index URL from registry: {index_url}")
-                else:
-                    logger.debug(f"Repo found in registry but version {TARGET_VERSION} missing. Available: {list(repo_map.keys())}")
-            except Exception as e:
-                logger.error(f"Failed to read registry: {e}")
-        else:
-            logger.warning(f"Registry file not found at {registry_path}")
-
-    # 3. If URL is found/provided, try to download
+    # 2. Fallback: Manual URL Download (For custom/new repos)
+    # We NO LONGER check registry.yaml at runtime.
+    index_url = config.TARGET_INDEX_URL
     if index_url:
-        # Save to a user-writable cache since bundled dir might be read-only in site-packages
+        # Save to a user-writable cache
         cache_dir = Path.home() / ".mcp_cache" / "indices"
         cache_dir.mkdir(parents=True, exist_ok=True)
-        # Use a hash to prevent filename collisions if we download multiple
+        # Use a hash to prevent filename collisions
         import hashlib
         url_hash = hashlib.md5(index_url.encode()).hexdigest()[:8]
         cached_index = cache_dir / f"index_{url_hash}.yaml"
@@ -120,7 +88,7 @@ def _ensure_index():
             get_index().load(cached_index)
             return
             
-        logger.info(f"Downloading index for {TARGET_VERSION} from {index_url}...")
+        logger.info(f"Downloading index from {index_url}...")
         try:
             subprocess.run(["curl", "-f", "-L", "-o", str(cached_index), index_url], check=True)
             logger.info("Download successful.")
@@ -128,19 +96,10 @@ def _ensure_index():
             return
         except Exception as e:
             logger.error(f"Failed to download index from {index_url}: {e}")
-            # Fallthrough to error
 
+    # 3. Final Failure
     msg = (
-        f"This repository ('{TARGET_REPO_URL}') is not supported by the Codebase Knowledge MCP server "
-        "because its knowledge index is not properly set up.\n\n"
-        "TO FIX THIS:\n"
-        "1. Run 'codebase-knowledge-mcp-manage setup' for this repository.\n"
-        "2. If you are in a restricted environment, use the --knowledge-index-url flag pointing to a local YAML file."
-    )
-    raise RuntimeError(msg)
-
-    msg = (
-        f"This repository ('{TARGET_REPO_URL}') is not supported by the Codebase Knowledge MCP server "
+        f"This repository ('{config.TARGET_REPO_URL}') is not supported by the Codebase Knowledge MCP server "
         "because its knowledge index is not properly set up.\n\n"
         "TO FIX THIS:\n"
         "1. Run 'codebase-knowledge-mcp-manage setup' for this repository.\n"
@@ -152,29 +111,30 @@ def _ensure_index():
 def _ensure_instructions():
     """
     Ensures that the dynamic instructions file is available in a user-accessible 
-    cache directory, allowing clients like Gemini CLI to reference it.
+    cache directory.
     """
-    bundled_instr = Path(__file__).parent / "data" / "INSTRUCTIONS.md"
-    if not bundled_instr.exists():
-        # If not bundled (e.g. editable install), try to generate from template
-        template = Path(__file__).parent.parent.parent / "INSTRUCTIONS.template.md"
-        if template.exists():
-            content = template.read_text()
-            content = content.replace("{{TARGET_REPO_URL}}", TARGET_REPO_URL or "Unknown")
-            content = content.replace("{{TARGET_VERSION}}", TARGET_VERSION)
-            bundled_instr.parent.mkdir(parents=True, exist_ok=True)
-            bundled_instr.write_text(content)
-        else:
-            return
+    bundled_instr = _BUNDLED_DATA / "INSTRUCTIONS.md"
+    
+    # We always regenerate user-facing instructions to ensure correct metadata
+    # regardless of what was bundled.
+    template = Path(__file__).parent.parent.parent / "INSTRUCTIONS.template.md"
+    content = ""
+    
+    if template.exists():
+        content = template.read_text()
+    elif bundled_instr.exists():
+        content = bundled_instr.read_text()
+    else:
+        return
+
+    content = content.replace("{{TARGET_REPO_URL}}", config.TARGET_REPO_URL or "Unknown")
+    content = content.replace("{{TARGET_VERSION}}", config.TARGET_VERSION)
 
     # Copy to a predictable user-writable path
-    # We use the repo name to avoid collisions if multiple servers are running
-    repo_name = (TARGET_REPO_URL or "unknown").split("/")[-1].replace(".git", "")
+    repo_name = (config.TARGET_REPO_URL or "unknown").split("/")[-1].replace(".git", "")
     cache_path = Path.home() / ".mcp_cache" / "instructions" / f"{repo_name}.md"
     cache_path.parent.mkdir(parents=True, exist_ok=True)
     
-    # Always refresh to ensure correct version metadata
-    content = bundled_instr.read_text()
     cache_path.write_text(content)
     logger.info(f"System instructions available at: {cache_path}")
 
