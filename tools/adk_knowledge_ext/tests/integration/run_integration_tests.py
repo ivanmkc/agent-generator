@@ -88,6 +88,11 @@ def main():
             "name": "Managed Setup (Claude Code Mock)",
             "dockerfile": "tools/adk_knowledge_ext/tests/integration/managed_claude/Dockerfile",
             "tag": "adk-test-managed-claude"
+        },
+        {
+            "name": "Bundled Index (Build Time)",
+            "dockerfile": "tools/adk_knowledge_ext/tests/integration/bundled_index/Dockerfile",
+            "tag": "adk-test-bundled"
         }
     ]
     

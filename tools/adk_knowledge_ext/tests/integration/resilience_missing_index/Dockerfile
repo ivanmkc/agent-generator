@@ -11,12 +11,15 @@ ENV TARGET_VERSION=v1.20.0
 ENV TARGET_INDEX_URL=file:///tmp/local_index.yaml
 
 COPY tools/adk_knowledge_ext /tmp/pkg
+
+# Install (will try to download index if we don't block it, or we let it download and then delete)
 RUN pip install /tmp/pkg
 
-# 2. SABOTAGE: Delete the bundled index
-RUN rm /usr/local/lib/python3.10/site-packages/adk_knowledge_ext/data/indices/index_v1.20.0.yaml
+# Delete the index to simulate missing file scenario
+RUN rm -f /usr/local/lib/python3.10/site-packages/adk_knowledge_ext/data/indices/*.yaml
+RUN rm -f /usr/local/lib/python3.10/site-packages/adk_knowledge_ext/data/manifest.json
 
-# 2. Verification Script
+# Copy verification script
 COPY tools/adk_knowledge_ext/tests/integration/resilience_missing_index/verify_missing_index.py /app/verify.py
 
 CMD ["python", "/app/verify.py"]

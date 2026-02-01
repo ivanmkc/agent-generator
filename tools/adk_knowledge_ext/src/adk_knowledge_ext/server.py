@@ -64,11 +64,26 @@ reader = SourceReader(
 def _ensure_index():
     logger.debug(f"Ensuring index for repo={TARGET_REPO_URL}, version={TARGET_VERSION}")
     
-    # 1. If index exists, load it
-    if TARGET_INDEX_PATH.exists():
-        logger.debug(f"Found existing index at {TARGET_INDEX_PATH}")
+    # 0. Check for explicit local override via env var (highest priority)
+    if TARGET_INDEX_PATH.exists() and os.environ.get("TARGET_INDEX_PATH"):
+        logger.debug(f"Found explicit index at {TARGET_INDEX_PATH}")
         get_index().load(TARGET_INDEX_PATH)
         return
+
+    # 1. Check Bundled Manifest
+    manifest_path = _BUNDLED_DATA.parent / "manifest.json"
+    if manifest_path.exists() and TARGET_REPO_URL:
+        try:
+            manifest = json.loads(manifest_path.read_text())
+            bundled_file = manifest.get(TARGET_REPO_URL, {}).get(TARGET_VERSION)
+            if bundled_file:
+                bundled_path = _BUNDLED_DATA / bundled_file
+                if bundled_path.exists():
+                    logger.info(f"Using bundled index: {bundled_path}")
+                    get_index().load(bundled_path)
+                    return
+        except Exception as e:
+            logger.warning(f"Failed to read bundled manifest: {e}")
 
     # 2. Resolve Index URL (Env > Registry)
     index_url = TARGET_INDEX_URL
@@ -95,7 +110,10 @@ def _ensure_index():
         # Save to a user-writable cache since bundled dir might be read-only in site-packages
         cache_dir = Path.home() / ".mcp_cache" / "indices"
         cache_dir.mkdir(parents=True, exist_ok=True)
-        cached_index = cache_dir / f"index_{TARGET_VERSION}.yaml"
+        # Use a hash to prevent filename collisions if we download multiple
+        import hashlib
+        url_hash = hashlib.md5(index_url.encode()).hexdigest()[:8]
+        cached_index = cache_dir / f"index_{url_hash}.yaml"
         
         if cached_index.exists():
             logger.debug(f"Found cached index download at {cached_index}")
@@ -104,7 +122,7 @@ def _ensure_index():
             
         logger.info(f"Downloading index for {TARGET_VERSION} from {index_url}...")
         try:
-            subprocess.run(["curl", "-f", "-o", str(cached_index), index_url], check=True)
+            subprocess.run(["curl", "-f", "-L", "-o", str(cached_index), index_url], check=True)
             logger.info("Download successful.")
             get_index().load(cached_index)
             return
@@ -112,7 +130,14 @@ def _ensure_index():
             logger.error(f"Failed to download index from {index_url}: {e}")
             # Fallthrough to error
 
-    logger.error("Index setup failed. No valid index path or URL found.")
+    msg = (
+        f"This repository ('{TARGET_REPO_URL}') is not supported by the Codebase Knowledge MCP server "
+        "because its knowledge index is not properly set up.\n\n"
+        "TO FIX THIS:\n"
+        "1. Run 'codebase-knowledge-mcp-manage setup' for this repository.\n"
+        "2. If you are in a restricted environment, use the --knowledge-index-url flag pointing to a local YAML file."
+    )
+    raise RuntimeError(msg)
 
     msg = (
         f"This repository ('{TARGET_REPO_URL}') is not supported by the Codebase Knowledge MCP server "
