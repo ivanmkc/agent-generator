@@ -30,16 +30,16 @@ uvx --from "git+https://github.com/ivanmkc/agent-generator.git#subdirectory=tool
   --force
 ```
 
-**Restricted Environments (Manual Knowledge Index):**
-If the server fails to download the knowledge index (e.g., "URL missing or failed" or corporate firewall blocks GitHub Raw), you can manually specify the index URL or a local file path:
+**Custom Repositories & Restricted Environments:**
+Since the server only bundles indices for officially supported repositories, you must manually provide the index for **custom/private repositories** or if you are working offline with a non-bundled version:
 
-1. Download the index YAML manually (contact repo owner for URL).
+1. Generate or download the index YAML for your target repo.
 2. Run setup pointing to the file:
 ```bash
 uvx --from "git+https://github.com/ivanmkc/agent-generator.git#subdirectory=tools/adk_knowledge_ext" \
   codebase-knowledge-mcp-manage setup \
-  --repo-url https://github.com/google/adk-python.git \
-  --knowledge-index-url file:///path/to/downloaded/index.yaml \
+  --repo-url https://github.com/your-org/private-repo.git \
+  --knowledge-index-url file:///path/to/local/index.yaml \
   --force
 ```
 
