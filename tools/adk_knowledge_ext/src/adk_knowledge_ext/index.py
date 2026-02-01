@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 from typing import List, Dict, Any, Optional, Tuple
 from .search import SearchProvider, get_search_provider
+from .config import config
 
 logger = logging.getLogger(__name__)
 
@@ -41,8 +42,8 @@ class KnowledgeIndex:
                         self._fqn_map[fqn] = item
 
                 # Determine search provider
-                api_key = os.environ.get("GEMINI_API_KEY")
-                requested_provider = os.environ.get("ADK_SEARCH_PROVIDER", "").lower()
+                api_key = config.GEMINI_API_KEY
+                requested_provider = config.ADK_SEARCH_PROVIDER.lower()
                 
                 provider_type = "bm25" # Default baseline
 
@@ -76,6 +77,8 @@ class KnowledgeIndex:
             if isinstance(e, ValueError):
                 raise
             logger.error(f"Failed to load index: {e}")
+            # Ensure we don't proceed with partial/broken load
+            raise
 
     def resolve_target(self, fqn: str) -> Tuple[Optional[Dict[str, Any]], str]:
         """

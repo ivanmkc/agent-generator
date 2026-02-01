@@ -1,30 +1,36 @@
-from pydantic_settings import BaseSettings
 from pathlib import Path
 from typing import Optional
 import os
 
-class AppConfig(BaseSettings):
-    # Required for cloning/identification
-    TARGET_REPO_URL: Optional[str] = None
-    TARGET_VERSION: str = "main"
+class AppConfig:
+    @property
+    def TARGET_REPO_URL(self) -> Optional[str]:
+        return os.environ.get("TARGET_REPO_URL")
     
-    # Optional overrides
-    TARGET_INDEX_URL: Optional[str] = None
-    TARGET_INDEX_PATH: Optional[Path] = None
+    @property
+    def TARGET_VERSION(self) -> str:
+        return os.environ.get("TARGET_VERSION", "main")
     
-    # API Keys
-    GEMINI_API_KEY: Optional[str] = None
+    @property
+    def TARGET_INDEX_URL(self) -> Optional[str]:
+        return os.environ.get("TARGET_INDEX_URL")
     
-    # Feature Flags
-    ADK_SEARCH_PROVIDER: str = "bm25"  # bm25, vector, hybrid
+    @property
+    def TARGET_INDEX_PATH(self) -> Optional[Path]:
+        val = os.environ.get("TARGET_INDEX_PATH")
+        return Path(val) if val else None
+    
+    @property
+    def GEMINI_API_KEY(self) -> Optional[str]:
+        return os.environ.get("GEMINI_API_KEY")
+    
+    @property
+    def ADK_SEARCH_PROVIDER(self) -> str:
+        return os.environ.get("ADK_SEARCH_PROVIDER", "bm25")
 
     @property
     def is_local_dev(self) -> bool:
         return bool(os.environ.get("MCP_LOCAL_DEV"))
-
-    class Config:
-        env_file = ".env"
-        extra = "ignore"
 
 # Singleton
 config = AppConfig()

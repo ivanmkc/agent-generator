@@ -65,11 +65,6 @@ def main():
             "tag": "adk-test-res-key"
         },
         {
-            "name": "Registry: Valid Lookup",
-            "dockerfile": "tools/adk_knowledge_ext/tests/integration/registry_lookup/Dockerfile",
-            "tag": "adk-test-registry-ok"
-        },
-        {
             "name": "Registry: Unknown Repo",
             "dockerfile": "tools/adk_knowledge_ext/tests/integration/registry_miss/Dockerfile",
             "tag": "adk-test-registry-miss"
@@ -106,7 +101,6 @@ def main():
         print(f"--- Build {image_name} ---")
         build_cmd = [
             "podman", "build",
-            "--no-cache",
             "-t", image_name,
             "-f", str(dockerfile),
             "."

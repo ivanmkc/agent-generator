@@ -72,7 +72,6 @@ def _ensure_index():
             logger.warning(f"Failed to read bundled manifest: {e}")
 
     # 2. Fallback: Manual URL Download (For custom/new repos)
-    # We NO LONGER check registry.yaml at runtime.
     index_url = config.TARGET_INDEX_URL
     if index_url:
         # Save to a user-writable cache
@@ -92,10 +91,13 @@ def _ensure_index():
         try:
             subprocess.run(["curl", "-f", "-L", "-o", str(cached_index), index_url], check=True)
             logger.info("Download successful.")
-            get_index().load(cached_index)
-            return
         except Exception as e:
             logger.error(f"Failed to download index from {index_url}: {e}")
+            cached_index = None
+
+        if cached_index:
+            get_index().load(cached_index)
+            return
 
     # 3. Final Failure
     msg = (

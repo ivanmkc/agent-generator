@@ -281,6 +281,18 @@ def _generate_mcp_config(repo_url: str, version: str, api_key: Optional[str], in
     elif os.environ.get("GEMINI_API_KEY"):
         env["GEMINI_API_KEY"] = os.environ.get("GEMINI_API_KEY")
 
+    # Resolve index URL from registry if not provided explicitly
+    if not knowledge_index_url:
+        import yaml
+        registry_path = Path(__file__).parent / "registry.yaml"
+        if registry_path.exists():
+            try:
+                registry = yaml.safe_load(registry_path.read_text())
+                repo_map = registry.get(repo_url, {})
+                knowledge_index_url = repo_map.get(version)
+            except Exception:
+                pass
+
     if knowledge_index_url:
         env["TARGET_INDEX_URL"] = knowledge_index_url
 

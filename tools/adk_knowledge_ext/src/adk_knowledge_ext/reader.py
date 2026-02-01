@@ -7,6 +7,8 @@ import subprocess
 from pathlib import Path
 from typing import Optional
 
+from .config import config
+
 logger = logging.getLogger(__name__)
 
 
@@ -15,22 +17,15 @@ class SourceReader:
     def __init__(
         self, 
         repo_url: str,
-        repo_root: Optional[Path] = None, 
         version: str = "main"
     ):
-        self.repo_root = repo_root
-        self.version = version
         self.repo_url = repo_url
+        self.version = version
         
         # Derive a safe directory name from the repo URL
         self.repo_name = self.repo_url.split("/")[-1].replace(".git", "")
         
-        # 1. If explicit root provided and exists, use it
-        if self.repo_root and self.repo_root.exists():
-            logger.info(f"SourceReader initialized with explicit root: {self.repo_root}")
-            return
-
-        # 2. Dynamic Clone Strategy
+        # 1. Dynamic Clone Strategy
         # ~/.mcp_cache/{repo_name}/{version}
         base_dir = Path.home() / ".mcp_cache" / self.repo_name
         self.repo_root = base_dir / self.version

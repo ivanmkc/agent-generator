@@ -21,7 +21,9 @@ async def main():
     env = {
         "ADK_SEARCH_PROVIDER": "hybrid",
         "GEMINI_API_KEY": "", # Explicitly empty
-        "TARGET_VERSION": "v1.20.0" # Ensure index exists so we trigger the load() logic
+        "TARGET_REPO_URL": "https://github.com/google/adk-python.git",
+        "TARGET_VERSION": "v1.20.0",
+        "TARGET_INDEX_PATH": "/tmp/local_index.yaml"
     }
     
     server_params = StdioServerParameters(
