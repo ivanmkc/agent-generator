@@ -129,8 +129,9 @@ def cli():
 @click.option("--api-key", help="Gemini API Key (optional, for semantic search)")
 @click.option("--index-url", help="Custom PyPI index URL (e.g. https://pypi.org/simple) for uvx")
 @click.option("--knowledge-index-url", help="Direct URL or file path to the knowledge index YAML (overrides registry lookup)")
+@click.option("--local", is_flag=True, help="Use the local source directory for the MCP server (development mode)")
 @click.option("--force", is_flag=True, help="Skip confirmation prompts")
-def setup(repo_url: Optional[str], version: str, api_key: Optional[str], index_url: Optional[str], knowledge_index_url: Optional[str], force: bool):
+def setup(repo_url: Optional[str], version: str, api_key: Optional[str], index_url: Optional[str], knowledge_index_url: Optional[str], local: bool, force: bool):
     """Auto-configure this MCP server in your coding agents."""
     
     # Prompt for missing required args
@@ -218,7 +219,7 @@ def setup(repo_url: Optional[str], version: str, api_key: Optional[str], index_u
         return
 
     # Generate Config
-    mcp_config = _generate_mcp_config(repo_url, version, api_key, index_url, knowledge_index_url)
+    mcp_config = _generate_mcp_config(repo_url, version, api_key, index_url, knowledge_index_url, local)
 
     # Configure
     console.print("\n[bold]Applying configuration...[/bold]")
@@ -269,7 +270,7 @@ def remove():
             console.print(f"[red]❌ {ide_name} failed: {e}[/red]")
 
 
-def _generate_mcp_config(repo_url: str, version: str, api_key: Optional[str], index_url: Optional[str] = None, knowledge_index_url: Optional[str] = None) -> dict:
+def _generate_mcp_config(repo_url: str, version: str, api_key: Optional[str], index_url: Optional[str] = None, knowledge_index_url: Optional[str] = None, local: bool = False) -> dict:
     """Generate the MCP server configuration."""
     env = {
         "TARGET_REPO_URL": repo_url,
@@ -284,7 +285,24 @@ def _generate_mcp_config(repo_url: str, version: str, api_key: Optional[str], in
         env["TARGET_INDEX_URL"] = knowledge_index_url
 
     # Construct uvx command
-    pkg_spec = "git+https://github.com/ivanmkc/agent-generator.git#subdirectory=tools/adk_knowledge_ext"
+    if local:
+        # Resolve the absolute path to the package root (tools/adk_knowledge_ext)
+        # We assume this script is running from within the package or we use CWD if valid
+        # A safer bet for development is assuming the user runs it from the repo root or passing CWD
+        # Ideally, we find the path relative to THIS file if it's in the src tree
+        # manage_mcp.py is in src/adk_knowledge_ext/manage_mcp.py
+        # root is 3 levels up: src/adk_knowledge_ext/ -> src/ -> tools/adk_knowledge_ext
+        
+        # But this file might be installed in site-packages!
+        # If installed, we can't infer the source path easily.
+        # So we assume CWD is the project root if --local is passed.
+        pkg_spec = os.getcwd()
+        if not (Path(pkg_spec) / "pyproject.toml").exists():
+             # Try to find tools/adk_knowledge_ext
+             if (Path(pkg_spec) / "tools" / "adk_knowledge_ext").exists():
+                 pkg_spec = str(Path(pkg_spec) / "tools" / "adk_knowledge_ext")
+    else:
+        pkg_spec = "git+https://github.com/ivanmkc/agent-generator.git#subdirectory=tools/adk_knowledge_ext"
     
     args = []
     if index_url:
