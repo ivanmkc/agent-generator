@@ -55,10 +55,13 @@ The tool will:
 ## Troubleshooting & FAQ
 
 ### "This repository is not supported..." or "Knowledge index not found"
-**Q: Isn't the knowledge index bundled with the server?**
-**A:** Only if you build the package *specifically* for that repository from source.
-When you run the generic `uvx` setup command, the server is installed as a generic tool. It attempts to download the knowledge index for your target repo at runtime (from GitHub).
-If this download fails (e.g. corporate firewall, private repo, or no internet), you will see this error.
+**Q: I thought the knowledge index was bundled?**
+**A:** Yes, the server comes bundled with indices for all major supported repositories found in its `registry.yaml` at build time.
+However, if you are targeting:
+1.  A **custom/private repository** not in the official registry.
+2.  A **new version** of a supported repository that wasn't included in the last build.
+
+Then the server attempts to download the index at runtime. If this download fails (e.g. corporate firewall, offline), you will see this error.
 
 **Fix:** Use the `--knowledge-index-url` flag to point to a local file or accessible URL.
 ```bash
