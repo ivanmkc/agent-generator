@@ -1,10 +1,10 @@
 # Test Report: Codebase Knowledge MCP Server
 
-**Date:** 2026-02-01
+**Date:** 2026-01-31
 **Status:** ✅ ALL TESTS PASSED (100%)
 
 ## Summary
-The refactoring and simplification of the Codebase Knowledge MCP server are complete. All 9 integration scenarios passed successfully.
+The refactoring and simplification of the Codebase Knowledge MCP server are complete. All 11 integration scenarios passed successfully.
 
 ### Key Refactors Implemented:
 - **Centralized Config:** Added `config.py` using a property-based system for robust environment variable management.
@@ -27,6 +27,7 @@ The refactoring and simplification of the Codebase Knowledge MCP server are comp
 | `managed_setup` | CLI Setup (Gemini) | ✅ PASS | Verified registry-to-config resolution. |
 | `managed_json_setup` | JSON Setup (Cursor/etc.) | ✅ PASS | Verified `mcp.json` patching. |
 | `managed_claude` | Claude Setup | ✅ PASS | Verified separator-style argument passing. |
+| `full_lifecycle` | End-to-End | ✅ PASS | Verified Install -> Bundle -> Run -> Remove flow in real CLI environment. |
 
 ## Final Conclusion
 The system is now more maintainable, has better debuggability (via persistent logs), and provides a superior "zero-config" experience through build-time index bundling and sanitized, human-readable directory structures.

@@ -21,6 +21,9 @@ class KnowledgeIndex:
 
     def load(self, index_path: Path):
         """Loads the index from a YAML file."""
+        # TODO: Implement on-demand/lazy loading for large indices to reduce startup latency
+        # and memory footprint. Consider using a disk-backed store (e.g., SQLite) or 
+        # chunked loading.
         if self._loaded:
             return
 

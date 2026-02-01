@@ -57,10 +57,11 @@ def _ensure_index():
         return
 
     # 1. Check Bundled Manifest (Source of Truth)
-    manifest_path = _BUNDLED_DATA / "manifest.json"
+    manifest_path = _BUNDLED_DATA / "manifest.yaml"
     if manifest_path.exists() and config.TARGET_REPO_URL:
+        import yaml
         try:
-            manifest = json.loads(manifest_path.read_text())
+            manifest = yaml.safe_load(manifest_path.read_text())
             bundled_file = manifest.get(config.TARGET_REPO_URL, {}).get(config.TARGET_VERSION)
             if bundled_file:
                 bundled_path = _BUNDLED_DATA / bundled_file

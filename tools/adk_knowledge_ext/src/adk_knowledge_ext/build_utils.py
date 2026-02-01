@@ -70,6 +70,7 @@ def bundle_indices(src_dir: Path, data_dir: Path) -> None:
     except Exception as e:
         print(f"Build Hook Warning: Failed to process registry: {e}")
 
-    # Save Manifest
-    (data_dir / "manifest.json").write_text(json.dumps(manifest, indent=2))
+    # Save Manifest (YAML)
+    with (data_dir / "manifest.yaml").open("w") as f:
+        yaml.safe_dump(manifest, f, sort_keys=False)
     print("Build Hook: Bundling complete. Manifest saved.")

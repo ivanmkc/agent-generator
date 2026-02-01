@@ -38,14 +38,15 @@ except ImportError:
 # Try to import adk_knowledge_ext for advanced search
 try:
     # Add the extension path relative to this file
-    # benchmarks/answer_generators/adk_tools.py -> root -> tools/adk-knowledge-ext/src
-    ext_path = Path(__file__).resolve().parents[3] / "tools/adk-knowledge-ext/src"
+    # benchmarks/answer_generators/adk_tools.py -> root -> tools/adk_knowledge_ext/src
+    ext_path = Path(__file__).resolve().parents[3] / "tools/adk_knowledge_ext/src"
     if str(ext_path) not in sys.path:
         sys.path.append(str(ext_path))
     from adk_knowledge_ext.search import get_search_provider
 
     HAS_SEARCH_PROVIDER = True
-except ImportError:
+except ImportError as e:
+    print(f"DEBUG: Failed to import adk_knowledge_ext: {e}")
     HAS_SEARCH_PROVIDER = False
 
 
@@ -74,8 +75,13 @@ class AdkTools:
                     # Convert Pydantic models to dicts for the provider
                     items = [t.model_dump() for t in targets]
                     self._search_provider.build_index(items)
+                else:
+                    print("DEBUG: Targets or path missing for search provider")
             except Exception as e:
                 print(f"Failed to initialize search provider: {e}")
+        else:
+            print(f"DEBUG: Search Provider Skipped (HAS_SEARCH_PROVIDER={HAS_SEARCH_PROVIDER}, yaml={bool(yaml)})")
+
 
     def _load_stats_index(self):
         """Loads the pre-calculated API usage statistics from benchmarks/adk_stats.yaml."""

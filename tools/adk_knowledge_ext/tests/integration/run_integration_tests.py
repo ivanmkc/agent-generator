@@ -88,6 +88,11 @@ def main():
             "name": "Bundled Index (Build Time)",
             "dockerfile": "tools/adk_knowledge_ext/tests/integration/bundled_index/Dockerfile",
             "tag": "adk-test-bundled"
+        },
+        {
+            "name": "Full Lifecycle (Install/Bundle/Run/Remove)",
+            "dockerfile": "tools/adk_knowledge_ext/tests/integration/full_lifecycle/Dockerfile",
+            "tag": "adk-test-lifecycle"
         }
     ]
     

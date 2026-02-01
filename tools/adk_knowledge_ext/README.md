@@ -11,6 +11,34 @@ A repository-agnostic MCP server that gives AI coding agents (Claude Code, Curso
 
 ---
 
+## How It Works: The Install & Runtime Flow
+
+The server uses a unique **Build-Time Bundling** architecture to ensure zero-latency startup and offline capability.
+
+### 1. Build & Install (`pip install`)
+When you install the package (via `uvx` or `pip`), a custom build hook (`hatch_build.py`) executes automatically:
+1.  **Registry Scan:** Reads `registry.yaml` to identify officially supported repositories (e.g., `google/adk-python`).
+2.  **Download:** Fetches the pre-computed Knowledge Index (YAML) for each repo from the web.
+3.  **Bundle:** Saves these indices directly into the package's `data/indices/` directory.
+4.  **Manifest:** Generates a `manifest.json` map so the server can locate them instantly later.
+
+### 2. Setup (`manage setup`)
+When you run the setup command:
+1.  **Input:** You provide the Target Repository URL (e.g., `https://github.com/google/adk-python`).
+2.  **Resolution:** The manager checks its internal registry.
+    *   *If found:* It validates that the index is supported.
+    *   *If custom:* It allows you to provide a local file path or custom URL.
+3.  **Config:** It writes the necessary environment variables (like `TARGET_REPO_URL`) to your Agent's configuration file (e.g., `~/.gemini/settings.json`).
+
+### 3. Runtime (Server Start)
+When your AI Agent starts the server:
+1.  **Zero-Latency Load:** The server checks `manifest.json`.
+2.  **Offline Read:** It loads the massive Knowledge Index directly from the local package files (bundled in Step 1).
+    *   *Note:* **No API calls or downloads happen here** for supported repos, ensuring speed and stability.
+3.  **Ready:** The tools (`list_modules`, etc.) are immediately available to the agent.
+
+---
+
 ## Installation & Setup (Recommended)
 
 The easiest way to configure this server in your preferred AI tool is using the built-in setup manager.
@@ -80,6 +108,30 @@ uvx --from ... codebase-knowledge-mcp-manage setup ... --knowledge-index-url fil
 **A:**
 - **Indices:** Bundled indices are in the package installation directory. Downloaded indices are cached in `~/.mcp_cache/indices/`.
 - **Source Code:** Repositories are cloned (shallowly) to `~/.mcp_cache/repo/{version}/`. The server performs a partial clone where possible to save space and bandwidth.
+
+### Internal Data Structures
+
+The server uses two primary metadata files to manage the knowledge lifecycle.
+
+#### `registry.yaml` (Build-Time Input)
+This file defines the "official" repositories supported by the server. It is used by the build hook to download indices and by the setup manager to resolve default URLs.
+
+```yaml
+# src/adk_knowledge_ext/registry.yaml
+https://github.com/google/adk-python.git:
+  v1.20.0: https://example.com/indices/adk-python/v1.20.0.yaml
+  main: https://example.com/indices/adk-python/main.yaml
+```
+
+#### `manifest.json` (Build-Time Output)
+This file is generated during the installation process. It maps repository URLs to the **locally bundled** index files within the package.
+
+```yaml
+# src/adk_knowledge_ext/data/manifest.json (represented as YAML)
+https://github.com/google/adk-python.git:
+  v1.20.0: indices/github-com-google-adk-python/v1.20.0.yaml
+  main: indices/github-com-google-adk-python/main.yaml
+```
 
 **Q: How does `search_knowledge` work?**
 **A:** It defaults to **BM25 (sparse retrieval)** using the `rank_bm25` library, which is fast and requires no external API keys.
