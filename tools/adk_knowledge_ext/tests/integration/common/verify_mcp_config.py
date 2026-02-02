@@ -9,7 +9,7 @@ from mcp.client.stdio import stdio_client
 async def main():
     print("--- Starting MCP Verification ---")
     
-    settings_path = Path("/root/.gemini/settings.json")
+    settings_path = Path.home() / ".gemini/settings.json"
     if not settings_path.exists():
         print(f"FAIL: Settings file not found at {settings_path}")
         sys.exit(1)
@@ -83,12 +83,13 @@ async def main():
                     print(f"FAIL: Missing tools. Found: {tool_names}")
                     sys.exit(1)
 
-                print("Testing 'list_modules'...")
+                print("Testing 'list_modules' (using default KB)...")
+                # We rely on the server's smart defaulting (it picks the active env var repo)
                 result = await session.call_tool("list_modules", arguments={"page": 1})
                 content = result.content[0].text
                 
                 if "Ranked Modules" in content:
-                    print("SUCCESS: Index loaded and tools working.")
+                    print(f"SUCCESS: Index loaded and tools working. Output:\n{content[:150]}...")
                 else:
                     print(f"FAIL: Unexpected tool output: {content[:200]}...")
                     sys.exit(1)
@@ -98,7 +99,8 @@ async def main():
                     return
 
                 print("Testing 'read_source_code' (Triggers Clone)...")
-                # Use a known class from the dummy index
+                # Use a known class from the dummy index. 
+                # Note: 'read_source_code' also supports smart defaulting if kb_id is omitted.
                 result = await session.call_tool("read_source_code", arguments={"fqn": "google.adk.agents.llm_agent.LlmAgent"})
                 content = result.content[0].text
                 
@@ -107,6 +109,7 @@ async def main():
                 else:
                     print(f"FAIL: Could not read source: {content[:200]}...")
                     sys.exit(1)
+
                 
     except Exception as e:
         print(f"FAIL: Error during MCP communication: {e}")

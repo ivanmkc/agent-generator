@@ -112,9 +112,38 @@ class KnowledgeIndex:
         return self._items[start:end]
 
 
-# Singleton instance
-_global_index = KnowledgeIndex()
+# Singleton instances
+_registry = None
 
 
-def get_index() -> KnowledgeIndex:
-    return _global_index
+class KnowledgeRegistry:
+    def __init__(self):
+        self._indices: Dict[str, KnowledgeIndex] = {}
+
+    def get_index(self, kb_id: str) -> KnowledgeIndex:
+        """Returns the KnowledgeIndex for the given ID, creating it if needed."""
+        if kb_id not in self._indices:
+            self._indices[kb_id] = KnowledgeIndex()
+        return self._indices[kb_id]
+
+    def list_available_kb_ids(self) -> List[str]:
+        return list(self._indices.keys())
+
+
+def get_registry() -> KnowledgeRegistry:
+    global _registry
+    if _registry is None:
+        _registry = KnowledgeRegistry()
+    return _registry
+
+
+def get_index(kb_id: Optional[str] = None) -> KnowledgeIndex:
+    """
+    Deprecated: Use get_registry().get_index(kb_id) instead.
+    Provided for backward compatibility during transition.
+    """
+    if kb_id is None:
+        # Fallback to a default if not provided (for existing tools not yet updated)
+        kb_id = "default"
+    return get_registry().get_index(kb_id)
+

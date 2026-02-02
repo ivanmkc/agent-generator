@@ -44,6 +44,7 @@ async def main():
                 result = await session.call_tool("list_modules", arguments={"page": 1})
                 content = result.content[0].text
                 print(f"Tool Output: {content}")
+
                 
                 if "API key is required" in content:
                     print("SUCCESS: Server correctly failed tool call due to missing API key.")

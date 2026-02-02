@@ -38,10 +38,11 @@ async def main():
                 await session.initialize()
                 print("Server Initialized.")
                 
-                print("Calling list_modules (Expect Failure)...")
+                print("Calling list_modules for 'unknown-kb-id' (Expect Failure)...")
                 try:
-                    result = await session.call_tool("list_modules", arguments={"page": 1})
+                    result = await session.call_tool("list_modules", arguments={"kb_id": "unknown-kb-id", "page": 1})
                     content = result.content[0].text
+
                     print(f"Tool Output: {content}")
                     if "not supported" in content:
                         print("SUCCESS: Correctly failed due to missing registry entry.")

@@ -4,7 +4,7 @@ import logging
 import subprocess
 import json
 from pathlib import Path
-from typing import Union, List
+from typing import Union, List, Dict, Any
 from logging.handlers import RotatingFileHandler
 from mcp.server.fastmcp import FastMCP
 from .index import get_index
@@ -40,86 +40,177 @@ if not config.TARGET_REPO_URL:
 # Initialize Server
 mcp = FastMCP("codebase-knowledge")
 
-# Global reader instance
-reader = SourceReader(
-    repo_url=config.TARGET_REPO_URL or "",
-    version=config.TARGET_VERSION
-)
+# Global reader cache
+_readers: dict[str, SourceReader] = {}
+
+def _get_reader(repo_url: str, version: str) -> SourceReader:
+    key = f"{repo_url}@{version}"
+    if key not in _readers:
+        _readers[key] = SourceReader(repo_url=repo_url, version=version)
+    return _readers[key]
 
 
-def _ensure_index():
-    logger.debug(f"Ensuring index for repo={config.TARGET_REPO_URL}, version={config.TARGET_VERSION}")
+def _get_available_kbs() -> Dict[str, Dict[str, Any]]:
+    """
+    Returns a mapping of KB ID to metadata.
+    KB IDs are derived from the bundled manifest and registry.
+    """
+    kbs = {}
     
-    # 0. Check for explicit local override via env var (highest priority)
-    if config.TARGET_INDEX_PATH and config.TARGET_INDEX_PATH.exists():
-        logger.debug(f"Found explicit index at {config.TARGET_INDEX_PATH}")
-        get_index().load(config.TARGET_INDEX_PATH)
-        return
-
-    # 1. Check Bundled Manifest (Source of Truth)
+    # 1. Load Bundled Manifest
     manifest_path = _BUNDLED_DATA / "manifest.yaml"
-    if manifest_path.exists() and config.TARGET_REPO_URL:
+    if manifest_path.exists():
         import yaml
         try:
             manifest = yaml.safe_load(manifest_path.read_text())
-            bundled_file = manifest.get(config.TARGET_REPO_URL, {}).get(config.TARGET_VERSION)
+            for repo_url, versions in manifest.items():
+                repo_name = repo_url.split("/")[-1].replace(".git", "")
+                for ver in versions.keys():
+                    kb_id = f"{repo_name}-{ver}" if ver != "main" else repo_name
+                    kbs[kb_id] = {
+                        "id": kb_id,
+                        "repo_url": repo_url,
+                        "version": ver,
+                        "name": f"{repo_name} ({ver})",
+                        "description": f"Codebase knowledge for {repo_url} at version {ver}",
+                        "source": "bundled"
+                    }
+        except Exception as e:
+            logger.warning(f"Failed to read bundled manifest for discovery: {e}")
+
+    # 2. Add current active repo from env if not already there (fallback)
+    if config.TARGET_REPO_URL:
+        repo_name = config.TARGET_REPO_URL.split("/")[-1].replace(".git", "")
+        ver = config.TARGET_VERSION
+        kb_id = f"{repo_name}-{ver}" if ver != "main" else repo_name
+        if kb_id not in kbs:
+            kbs[kb_id] = {
+                "id": kb_id,
+                "repo_url": config.TARGET_REPO_URL,
+                "version": ver,
+                "name": f"{repo_name} ({ver}) [active]",
+                "description": f"Currently configured repository",
+                "source": "env"
+            }
+
+    return kbs
+
+
+def _validate_kb(kb_id: str | None) -> Dict[str, Any]:
+    """Validates kb_id and returns its metadata. Raises if invalid."""
+    kbs = _get_available_kbs()
+    
+    # Smart Defaulting
+    if not kb_id or kb_id in ("default", "adk", "active"):
+        # If explicitly requesting default, or omitting it, pick the active/env one first
+        # Search for one marked as source='env'
+        for k, v in kbs.items():
+            if v.get("source") == "env":
+                logger.debug(f"Resolved kb_id='{kb_id}' to default env KB: '{k}'")
+                return v
+        
+        # Fallback to the first one available
+        if kbs:
+            first_key = next(iter(kbs))
+            logger.debug(f"Resolved kb_id='{kb_id}' to first available KB: '{first_key}'")
+            return kbs[first_key]
+            
+        raise ValueError("No Knowledge Bases loaded. Cannot resolve default kb_id.")
+
+    if kb_id in kbs:
+        return kbs[kb_id]
+    
+    # Helpful rejection
+    import difflib
+    suggestions = difflib.get_close_matches(kb_id, kbs.keys(), n=3, cutoff=0.5)
+    
+    msg = f"Knowledge Base '{kb_id}' not found."
+    if suggestions:
+        msg += f"\n\nDid you mean:\n" + "\n".join([f"- '{s}'" for s in suggestions])
+    
+    raise ValueError(msg)
+
+
+def _ensure_index(kb_id: str | None) -> str:
+    """Ensures index is loaded and returns the resolved kb_id."""
+    kb_meta = _validate_kb(kb_id)
+    resolved_id = kb_meta["id"]
+    logger.debug(f"Ensuring index for resolved_id={resolved_id} (requested={kb_id})")
+    
+    repo_url = kb_meta["repo_url"]
+    version = kb_meta["version"]
+    
+    idx = get_index(resolved_id)
+    if idx._loaded:
+        return resolved_id
+
+    # 0. Check for explicit local override via env var (only if it matches the active one)
+    if config.TARGET_INDEX_PATH and config.TARGET_INDEX_PATH.exists():
+        # Only use local override if it matches the KB we are looking for
+        # (Usually local override is for the 'active' development repo)
+        if repo_url == config.TARGET_REPO_URL:
+            logger.debug(f"Found explicit index at {config.TARGET_INDEX_PATH}")
+            idx.load(config.TARGET_INDEX_PATH)
+            return resolved_id
+
+    # 1. Check Bundled Manifest
+    manifest_path = _BUNDLED_DATA / "manifest.yaml"
+    if manifest_path.exists():
+        import yaml
+        try:
+            manifest = yaml.safe_load(manifest_path.read_text())
+            bundled_file = manifest.get(repo_url, {}).get(version)
             if bundled_file:
                 bundled_path = _BUNDLED_DATA / bundled_file
                 if bundled_path.exists():
-                    logger.info(f"Using bundled index: {bundled_path}")
-                    get_index().load(bundled_path)
-                    return
+                    logger.info(f"Using bundled index for {resolved_id}: {bundled_path}")
+                    idx.load(bundled_path)
+                    return resolved_id
         except Exception as e:
             logger.warning(f"Failed to read bundled manifest: {e}")
 
     # 2. Fallback: Manual URL Download (For custom/new repos)
-    index_url = config.TARGET_INDEX_URL
-    if index_url:
-        # Save to a user-writable cache
+    # Use TARGET_INDEX_URL if it's the active one, or we might need a way to specify URLs per KB
+    # For now, we only support runtime download for the 'active' repo from config.
+    if repo_url == config.TARGET_REPO_URL and config.TARGET_INDEX_URL:
+        index_url = config.TARGET_INDEX_URL
+        # ... download logic ...
         cache_dir = Path.home() / ".mcp_cache" / "indices"
         cache_dir.mkdir(parents=True, exist_ok=True)
-        # Use a hash to prevent filename collisions
         import hashlib
         url_hash = hashlib.md5(index_url.encode()).hexdigest()[:8]
         cached_index = cache_dir / f"index_{url_hash}.yaml"
         
-        if cached_index.exists():
-            logger.debug(f"Found cached index download at {cached_index}")
-            get_index().load(cached_index)
-            return
-            
-        logger.info(f"Downloading index from {index_url}...")
-        try:
-            subprocess.run(["curl", "-f", "-L", "-o", str(cached_index), index_url], check=True)
-            logger.info("Download successful.")
-        except Exception as e:
-            logger.error(f"Failed to download index from {index_url}: {e}")
-            cached_index = None
+        if not cached_index.exists():
+            logger.info(f"Downloading index from {index_url}...")
+            try:
+                subprocess.run(["curl", "-f", "-L", "-o", str(cached_index), index_url], check=True)
+            except Exception as e:
+                logger.error(f"Failed to download index: {e}")
+                cached_index = None
 
         if cached_index:
-            get_index().load(cached_index)
-            return
+            idx.load(cached_index)
+            return resolved_id
 
     # 3. Final Failure
-    msg = (
-        f"This repository ('{config.TARGET_REPO_URL}') is not supported by the Codebase Knowledge MCP server "
-        "because its knowledge index is not properly set up.\n\n"
-        "TO FIX THIS:\n"
-        "1. Run 'codebase-knowledge-mcp-manage setup' for this repository.\n"
-        "2. If you are in a restricted environment, use the --knowledge-index-url flag pointing to a local YAML file."
-    )
-    raise RuntimeError(msg)
+    raise RuntimeError(f"Index for '{resolved_id}' ({repo_url}) not properly set up and no download URL available.")
 
 
-def _ensure_instructions():
+def _ensure_instructions(kb_id: str | None):
     """
-    Ensures that the dynamic instructions file is available in a user-accessible 
-    cache directory.
+    Ensures that the dynamic instructions file is available.
     """
-    bundled_instr = _BUNDLED_DATA / "INSTRUCTIONS.md"
+    kb_meta = _validate_kb(kb_id)
+    resolved_id = kb_meta["id"]
+    repo_url = kb_meta["repo_url"]
+    version = kb_meta["version"]
     
-    # We always regenerate user-facing instructions to ensure correct metadata
-    # regardless of what was bundled.
+    kbs = _get_available_kbs()
+    import yaml
+    registry_str = yaml.safe_dump(list(kbs.values()), sort_keys=False)
+    
+    bundled_instr = _BUNDLED_DATA / "INSTRUCTIONS.md"
     template = Path(__file__).parent.parent.parent / "INSTRUCTIONS.template.md"
     content = ""
     
@@ -130,35 +221,36 @@ def _ensure_instructions():
     else:
         return
 
-    content = content.replace("{{TARGET_REPO_URL}}", config.TARGET_REPO_URL or "Unknown")
-    content = content.replace("{{TARGET_VERSION}}", config.TARGET_VERSION)
+    content = content.replace("{{TARGET_REPO_URL}}", repo_url)
+    content = content.replace("{{TARGET_VERSION}}", version)
+    content = content.replace("{{KB_REGISTRY}}", registry_str)
+    content = content.replace("{{CURRENT_KB_ID}}", resolved_id)
 
-    # Copy to a predictable user-writable path
-    repo_name = (config.TARGET_REPO_URL or "unknown").split("/")[-1].replace(".git", "")
+    repo_name = repo_url.split("/")[-1].replace(".git", "")
     cache_path = Path.home() / ".mcp_cache" / "instructions" / f"{repo_name}.md"
     cache_path.parent.mkdir(parents=True, exist_ok=True)
     
     cache_path.write_text(content)
-    logger.info(f"System instructions available at: {cache_path}")
 
 
 @mcp.tool()
-def list_modules(page: int = 1, page_size: int = 20) -> str:
+def list_modules(kb_id: str = None, page: int = 1, page_size: int = 20) -> str:
     """
-    Lists ranked modules and classes in the codebase.
+    Lists ranked modules and classes in the specified codebase.
 
     Args:
+        kb_id: The ID of the knowledge base to query (optional).
         page: Page number (1-based).
         page_size: Number of items per page.
     """
-    _ensure_index()
-    _ensure_instructions()
-    items = get_index().list_items(page, page_size)
+    resolved_id = _ensure_index(kb_id)
+    _ensure_instructions(resolved_id)
+    items = get_index(resolved_id).list_items(page, page_size)
 
     if not items:
-        return f"No items found for page {page}."
+        return f"No items found for page {page} in '{resolved_id}'."
 
-    lines = [f"--- Ranked Modules (Page {page}) ---"]
+    lines = [f"--- Ranked Modules in '{resolved_id}' (Page {page}) ---"]
     for item in items:
         rank = item.get("rank", "?")
         fqn = item.get("id") or item.get("fqn") or item.get("name") or "unknown"
@@ -169,35 +261,39 @@ def list_modules(page: int = 1, page_size: int = 20) -> str:
 
 
 @mcp.tool()
-async def search_knowledge(queries: Union[str, List[str]], limit: int = 10) -> str:
+async def search_knowledge(kb_id: str = None, queries: Union[str, List[str]] = [], limit: int = 10) -> str:
     """
-    Searches the codebase knowledge base for relevant classes, functions, or concepts.
-    Accepts multiple queries to retrieve diverse information in a single call.
+    Searches the specified knowledge base for relevant classes, functions, or concepts.
     
     Args:
+        kb_id: The ID of the knowledge base to query (optional).
         queries: A single query string or a list of query strings.
         limit: Max total results to return (default: 10).
     """
-    _ensure_index()
+    if not queries:
+        return "Please provide at least one query string."
+
+    resolved_id = _ensure_index(kb_id)
     
     if isinstance(queries, str):
         queries = [queries]
         
+    idx = get_index(resolved_id)
     all_matches_map = {} 
     for query in queries:
-        matches = await get_index().search(query, limit)
+        matches = await idx.search(query, limit)
         for score, item in matches:
             fqn = item.get("id") or item.get("fqn") or item.get("name") or "unknown"
             if fqn not in all_matches_map or score > all_matches_map[fqn][0]:
                 all_matches_map[fqn] = (score, item)
     
     if not all_matches_map:
-        return f"No matches found."
+        return f"No matches found in '{resolved_id}'."
         
     sorted_matches = sorted(all_matches_map.values(), key=lambda x: x[0], reverse=True)
     final_results = sorted_matches[:limit]
     
-    lines = [f"--- Search Results for {len(queries)} queries ---"]
+    lines = [f"--- Search Results in '{resolved_id}' for {len(queries)} queries ---"]
     for score, item in final_results:
         rank = item.get("rank", "?")
         fqn = item.get("id") or item.get("fqn") or item.get("name") or "unknown"
@@ -210,41 +306,57 @@ async def search_knowledge(queries: Union[str, List[str]], limit: int = 10) -> s
 
 
 @mcp.tool()
-def read_source_code(fqn: str) -> str:
+def read_source_code(kb_id: str = None, fqn: str = "") -> str:
     """
-    Reads the implementation source code for a specific symbol from disk.
+    Reads the implementation source code for a specific symbol from the specified KB.
 
     Args:
+        kb_id: The ID of the knowledge base (optional).
         fqn: The Fully Qualified Name of the symbol.
     """
-    _ensure_index()
-    target, suffix = get_index().resolve_target(fqn)
+    if not fqn:
+        return "Please provide the Fully Qualified Name (fqn) of the symbol to read."
+
+    resolved_id = _ensure_index(kb_id)
+    kb_meta = _validate_kb(resolved_id)
+    
+    idx = get_index(resolved_id)
+    target, suffix = idx.resolve_target(fqn)
 
     if not target:
-        return f"Symbol '{fqn}' not found in index."
+        return f"Symbol '{fqn}' not found in index '{resolved_id}'."
 
     rel_path = target.get("file_path")
     if not rel_path:
-        return f"No file path recorded for {fqn}."
+        return f"No file path recorded for {fqn} in '{resolved_id}'."
 
     target_fqn = target.get("id") or target.get("fqn") or target.get("name")
+    
+    reader = _get_reader(kb_meta["repo_url"], kb_meta["version"])
     return reader.read_source(rel_path, target_fqn, suffix)
 
 
 @mcp.tool()
-def inspect_symbol(fqn: str) -> str:
+def inspect_symbol(kb_id: str = None, fqn: str = "") -> str:
     """
     Returns the full structured specification (signatures, docstrings, properties) for a symbol.
 
     Args:
+        kb_id: The ID of the knowledge base (optional).
         fqn: The Fully Qualified Name.
     """
+    if not fqn:
+        return "Please provide the Fully Qualified Name (fqn) of the symbol to inspect."
+
     import yaml
-    _ensure_index()
-    target, suffix = get_index().resolve_target(fqn)
+    resolved_id = _ensure_index(kb_id)
+    kb_meta = _validate_kb(resolved_id)
+    
+    idx = get_index(resolved_id)
+    target, suffix = idx.resolve_target(fqn)
 
     if not target:
-        return f"Symbol '{fqn}' not found in index."
+        return f"Symbol '{fqn}' not found in index '{resolved_id}'."
 
     output = yaml.safe_dump(target, sort_keys=False)
 
@@ -254,6 +366,7 @@ def inspect_symbol(fqn: str) -> str:
         if rel_path:
             target_fqn = target.get("id") or target.get("fqn") or target.get("name")
             try:
+                reader = _get_reader(kb_meta["repo_url"], kb_meta["version"])
                 source_snippet = reader.read_source(rel_path, target_fqn, suffix)
             except Exception as e:
                 source_snippet = f"(Could not retrieve source: {e})"
@@ -261,6 +374,7 @@ def inspect_symbol(fqn: str) -> str:
         return f"Note: Symbol '{fqn}' is not explicitly indexed. Showing parent symbol '{target.get('id') or target.get('fqn')}'.\n\n{output}\n\n{source_snippet}"
 
     return output
+
 
 
 def main():

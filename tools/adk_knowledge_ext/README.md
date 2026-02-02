@@ -15,6 +15,41 @@ A repository-agnostic MCP server that gives AI coding agents (Claude Code, Curso
 
 The server uses a unique **Build-Time Bundling** architecture to ensure zero-latency startup and offline capability.
 
+### Architecture Diagram
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant BuildSystem as Build (hatch/pip)
+    participant Registry as registry.yaml
+    participant Package as Python Package
+    participant Setup as Setup CLI
+    participant Config as ~/.gemini/settings.json
+    participant Server as MCP Server
+
+    Note over User, Package: 1. Installation Phase
+    User->>BuildSystem: pip install .
+    BuildSystem->>Registry: Read supported repos
+    BuildSystem->>BuildSystem: Download Indices (Web)
+    BuildSystem->>Package: Bundle Indices into /data/indices/
+    BuildSystem->>Package: Generate manifest.json
+
+    Note over User, Config: 2. Setup Phase
+    User->>Setup: manage setup --repo-url ...
+    Setup->>Registry: Resolve Index URL (if not bundled)
+    Setup->>Config: Write env: TARGET_REPO_URL, TARGET_INDEX_URL
+
+    Note over User, Server: 3. Runtime Phase (Offline)
+    User->>Server: Start Server
+    Server->>Package: Check manifest.json
+    alt Index Bundled?
+        Server->>Package: Load from /data/indices/ (FAST)
+    else Custom Repo
+        Server->>Server: Download from TARGET_INDEX_URL
+    end
+    Server->>User: Ready (Tools Available)
+```
+
 ### 1. Build & Install (`pip install`)
 When you install the package (via `uvx` or `pip`), a custom build hook (`hatch_build.py`) executes automatically:
 1.  **Registry Scan:** Reads `registry.yaml` to identify officially supported repositories (e.g., `google/adk-python`).

@@ -201,9 +201,9 @@ cases:
     one_liner: Answer a multiple choice question.
     checksum: 2a3526fc3e834610c85ed9a8d3e06d40
   diagnose_setup_errors_mc:clone_unknown_field:
-    one_liner: Answer a multiple-choice question regarding the behavior of the provided
-      'snippet_clone_unknown_field' Python code.
-    checksum: 7b16cb5fccee03844388f2b2cc5a9d36
+    one_liner: Answer a multiple-choice question and return the result as a JSON object
+      containing 'answer' and 'rationale' keys.
+    checksum: 54945b0b43977728ebd71d62cc9d3c4b
   diagnose_setup_errors_mc:sequential_empty_subagents:
     one_liner: Answer the multiple choice question.
     checksum: 54945b0b43977728ebd71d62cc9d3c4b
@@ -225,9 +225,9 @@ cases:
     one_liner: Answer a multiple choice question.
     checksum: 54945b0b43977728ebd71d62cc9d3c4b
   diagnose_setup_errors_mc:cache_ttl_string:
-    one_liner: Answer a multiple-choice question involving the usage of a string TTL
-      in `ContextCacheConfig`.
-    checksum: d2bbe8f1f40ed7c5e4539b8444afbfdb
+    one_liner: Return the result of a multiple choice question as a JSON object with
+      'answer' and 'rationale' keys.
+    checksum: 54945b0b43977728ebd71d62cc9d3c4b
   diagnose_setup_errors_mc:app_extra_args:
     one_liner: Answer a multiple choice question regarding the provided Python code
       snippet involving the LlmAgent class.
@@ -342,8 +342,9 @@ cases:
       format.
     checksum: 54945b0b43977728ebd71d62cc9d3c4b
   configure_adk_features_mc:what_is_the_primary_purpose_of_invocationcontext:
-    one_liner: What is the primary purpose of `InvocationContext`?
-    checksum: 22e466073f384a5c53af71b42cfd2180
+    one_liner: Answer a multiple choice question and return a JSON object containing
+      the answer key and rationale.
+    checksum: 54945b0b43977728ebd71d62cc9d3c4b
   configure_adk_features_mc:you_want_to_create_a_custom_artifact_service_which:
     one_liner: Answer the multiple choice question.
     checksum: 54945b0b43977728ebd71d62cc9d3c4b
@@ -387,9 +388,9 @@ cases:
       a single run?
     checksum: 1024fa6e7b0ceb2ab357219867ade6c8
   configure_adk_features_mc:you_want_to_automatically_save_any_file_blobs_imag:
-    one_liner: Answer the multiple-choice question about automatically saving file
-      blobs (images, audio).
-    checksum: 8b6d1536b860e04c1de0f9b11eecfe4c
+    one_liner: Answer a multiple-choice question and return the result as a JSON object
+      containing the answer key and rationale.
+    checksum: 54945b0b43977728ebd71d62cc9d3c4b
   configure_adk_features_mc:when_using_llmagent_with_a_model_that_supports_nat:
     one_liner: Answer the multiple-choice question regarding usage of `LlmAgent` with
       models that support native audio output.
@@ -456,8 +457,9 @@ cases:
     one_liner: Answer a multiple choice question.
     checksum: 54945b0b43977728ebd71d62cc9d3c4b
   configure_adk_features_mc:what_is_the_primary_use_case_for_loggingplugin:
-    one_liner: What is the primary use case for `LoggingPlugin`?
-    checksum: 1abcfa607c2e02cdb453488d45644d40
+    one_liner: Answer a multiple choice question and return the result as a JSON object
+      containing the answer and rationale.
+    checksum: 54945b0b43977728ebd71d62cc9d3c4b
   configure_adk_features_mc:what_is_the_primary_use_case_for_savefilesasartifa:
     one_liner: Answer the multiple choice question.
     checksum: 54945b0b43977728ebd71d62cc9d3c4b
@@ -540,8 +542,9 @@ cases:
     one_liner: What does `ResumabilityConfig.is_resumable=True` enable?
     checksum: 37c6d1a243f025af3368f11c9306076d
   configure_adk_features_mc:how_do_you_enable_googlesearchtool_via_configurati:
-    one_liner: How do you enable `GoogleSearchTool` via configuration?
-    checksum: 6c8128467bf72fc9e82cb4b540b1ac36
+    one_liner: Answer a multiple choice question and return the result as a JSON object
+      containing the answer key and rationale.
+    checksum: 54945b0b43977728ebd71d62cc9d3c4b
   configure_adk_features_mc:how_do_you_enable_vertexaisearchtool_via_configura:
     one_liner: How do you enable `VertexAISearchTool` via configuration?
     checksum: 7b8ee535fcc972ebef746f6c39475310
@@ -594,9 +597,9 @@ cases:
       code instantiation.
     checksum: 2e50442295f915bdfdd2334b1c1dfa4d
   predict_runtime_behavior_mc:event_extra_fields_error:
-    one_liner: Predict the result of instantiating an Event with an unknown keyword
-      argument.
-    checksum: 297f40e54798d39327ae3e99675b9e26
+    one_liner: Answer a multiple choice question and return the result as a JSON object
+      containing 'answer' and 'rationale' keys.
+    checksum: 54945b0b43977728ebd71d62cc9d3c4b
   debug_single:what_does_runconfig_proactivity_control:
     one_liner: What does `RunConfig.proactivity` control?
     checksum: f361298be3af174f38a9736c52fec972
@@ -639,9 +642,9 @@ cases:
       a text response.
     checksum: d8fbd59c42e9a1c94d8316028e0009dd
   diagnose_setup_errors_mc:runner_no_app_no_name:
-    one_liner: Answer a multiple choice question regarding the `snippet_runner_init_check_1`
-      Python function involving `LlmAgent`.
-    checksum: db375efe5577f98b84cc6fc06afc0e91
+    one_liner: Answer a multiple choice question and return the result as a JSON object
+      with the answer key and rationale.
+    checksum: 54945b0b43977728ebd71d62cc9d3c4b
   configure_adk_features_mc:what_is_the_primary_use_case_for_globalinstruction:
     one_liner: What is the primary use case for `GlobalInstructionPlugin`?
     checksum: eb27500dc1f094ad016e3b6ccb16bc93

@@ -1,8 +1,17 @@
 {
   "mcpServers": {
-    "adk-knowledge": {
-      "command": "adk-knowledge-mcp",
+    "codebase-knowledge": {
+      "command": "codebase-knowledge-mcp",
       "args": []
     }
+  },
+  "context": {
+    "fileName": [
+      "/root/.mcp_cache/instructions/adk-python.md"
+    ],
+    "includeDirectories": [
+      "/workdir"
+    ],
+    "loadMemoryFromIncludeDirectories": true
   }
 }

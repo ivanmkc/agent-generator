@@ -257,7 +257,7 @@ async def run_comparison(
                 #         )
 
                 # Adjust concurrency for heavy generators
-                concurrency = PODMAN_CONFIG.MAX_GLOBAL_CONCURRENCY
+                concurrency = 5 # Reduced from PODMAN_CONFIG.MAX_GLOBAL_CONCURRENCY for stability
 
                 # Note: run_benchmarks handles its own section logging for the execution
                 results = await benchmark_orchestrator.run_benchmarks(

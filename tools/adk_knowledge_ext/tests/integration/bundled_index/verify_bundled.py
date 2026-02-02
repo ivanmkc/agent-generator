@@ -22,7 +22,7 @@ async def main():
             
             # Check if list_modules works
             # If bundled index was used, it should return 'bundled.symbol'
-            print("Calling list_modules...")
+            print("Calling list_modules (using default)...")
             result = await session.call_tool("list_modules", arguments={"page": 1})
             content = result.content[0].text
             print(f"Tool Output: {content}")
@@ -32,6 +32,7 @@ async def main():
             else:
                 print(f"FAIL: Did not find expected symbol in output.")
                 sys.exit(1)
+
 
 if __name__ == "__main__":
     asyncio.run(main())

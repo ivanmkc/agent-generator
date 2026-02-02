@@ -64,10 +64,15 @@ async def verify_tool_execution(server_config):
             else:
                 raise RuntimeError(f"Tool output unexpected: {content}")
 
+
 def main():
     try:
-        src_dir = "/src/tools/adk_knowledge_ext"
-        
+        # Determine absolute path to the extension source
+        cwd = Path.cwd()
+        src_dir = str(cwd / "tools/adk_knowledge_ext")
+        if not (cwd / "tools/adk_knowledge_ext").exists():
+             src_dir = str(cwd.parent.parent.parent / "tools/adk_knowledge_ext")
+
         # 1. Setup
         print("\n=== Step 1: Setup ===")
         # We use --local to point to the source directory

@@ -23,7 +23,7 @@ from benchmarks.answer_generators.gemini_cli_docker.gemini_cli_podman_answer_gen
 from benchmarks.answer_generators.gemini_cli_docker.image_definitions import (
     IMAGE_DEFINITIONS,
 )
-
+from benchmarks.answer_generators.gemini_cli_docker.podman_utils import PodmanContainer
 
 from core.api_key_manager import API_KEY_MANAGER
 
@@ -34,11 +34,10 @@ async def main():
     # Filter targets from args if provided
     target_images = sys.argv[1:]
 
-    generator = await GeminiCliPodmanAnswerGenerator.create(
-        model_name="dummy",
-        api_key_manager=API_KEY_MANAGER,
-        image_definitions=IMAGE_DEFINITIONS,
+    # Create a dummy container instance to access build logic
+    container = PodmanContainer(
         image_name="dummy",
+        image_definitions=IMAGE_DEFINITIONS
     )
 
     if target_images:
@@ -54,7 +53,8 @@ async def main():
 
     for image_name in leaves:
         print(f"\n--- Building chain for {image_name} ---")
-        await generator._build_image_chain(image_name, force=True)
+        # Accessing private method as this is a maintenance script
+        await container._build_image_chain(image_name, force=True)
 
     print("\nAll builds complete.")
 

@@ -30,6 +30,7 @@ async def main():
                 print("Calling list_modules...")
                 result = await session.call_tool("list_modules", arguments={"page": 1})
                 content = result.content[0].text
+
                 
                 if "not supported" in content:
                     print("SUCCESS: Server handled missing index gracefully.")

@@ -30,16 +30,17 @@ async def main():
                 print("Server Initialized.")
                 
                 # 1. Test Index (Should be missing)
-                print("Calling list_modules (Expect failure)...")
-                result = await session.call_tool("list_modules", arguments={"page": 1})
+                print("Calling list_modules for 'unknown-kb' (Expect helpful rejection)...")
+                result = await session.call_tool("list_modules", arguments={"kb_id": "unknown-kb", "page": 1})
                 content = result.content[0].text
                 print(f"Tool Output: {content}")
                 
-                if "not supported" in content and "knowledge index is not properly set up" in content:
+                if "Knowledge Base 'unknown-kb' not found" in content:
                     print("SUCCESS: Handled missing index gracefully.")
                 else:
                     print(f"FAIL: Unexpected output: {content}")
                     sys.exit(1)
+
 
                 # 2. Test Symbol retrieval
                 print("Calling read_source_code (Expect failure due to no index)...")
