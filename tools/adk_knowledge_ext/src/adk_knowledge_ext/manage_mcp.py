@@ -505,8 +505,16 @@ def _configure_ide_json(ide_info: dict, mcp_config: dict) -> None:
             kbs = json.loads(kbs_json)
             instr_paths = []
             
-            # Prepare Registry String
-            registry_str = yaml.safe_dump(kbs, sort_keys=False)
+            # Prepare Registry String: {kb_id: description}
+            registry_map = {}
+            for kb in kbs:
+                r_url = kb["repo_url"]
+                ver = kb["version"]
+                r_name = r_url.split("/")[-1].replace(".git", "")
+                k_id = f"{r_name}-{ver}" if ver != "main" else r_name
+                registry_map[k_id] = f"Codebase: {r_url} (version: {ver})"
+            
+            registry_str = yaml.safe_dump(registry_map, sort_keys=False)
             
             # Find Template
             bundled_instr = Path(__file__).parent / "data" / "INSTRUCTIONS.md"

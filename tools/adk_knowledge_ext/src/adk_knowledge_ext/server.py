@@ -209,7 +209,12 @@ def _ensure_instructions(kb_id: str | None):
     
     kbs = _get_available_kbs()
     import yaml
-    registry_str = yaml.safe_dump(list(kbs.values()), sort_keys=False)
+    # Prepare Registry String: {kb_id: description}
+    registry_map = {
+        kid: f"Codebase: {meta['repo_url']} (version: {meta['version']})"
+        for kid, meta in kbs.items()
+    }
+    registry_str = yaml.safe_dump(registry_map, sort_keys=False)
     
     bundled_instr = _BUNDLED_DATA / "INSTRUCTIONS.md"
     template = Path(__file__).parent.parent.parent / "INSTRUCTIONS.template.md"
