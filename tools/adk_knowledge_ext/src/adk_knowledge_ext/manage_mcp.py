@@ -525,10 +525,11 @@ def _configure_ide_json(ide_info: dict, mcp_config: dict) -> None:
                 # Preferred path: .gemini/instructions/ in current workspace
                 # Fallback: ~/.mcp_cache/instructions/
                 local_gemini = Path.cwd() / ".gemini"
+                instr_filename = "KNOWLEDGE_MCP_SERVER_INSTRUCTION.md"
                 if local_gemini.exists():
-                    instr_path = local_gemini / "instructions" / f"{repo_name}.md"
+                    instr_path = local_gemini / "instructions" / instr_filename
                 else:
-                    instr_path = Path.home() / ".mcp_cache" / "instructions" / f"{repo_name}.md"
+                    instr_path = Path.home() / ".mcp_cache" / "instructions" / instr_filename
                     
                 instr_path.parent.mkdir(parents=True, exist_ok=True)
                 

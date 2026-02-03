@@ -138,7 +138,7 @@ GENERATOR_METADATA: Dict[str, AnyGeneratorConfig] = {
         expected_tool_uses=[
             "list_modules",
         ],
-        expected_context_files=["/workdir/.gemini/instructions/adk-python.md"],
+        expected_context_files=["/workdir/.gemini/instructions/KNOWLEDGE_MCP_SERVER_INSTRUCTION.md"],
         extra_env={"ADK_SEARCH_PROVIDER": "vector"},
     ),
     "podman_mcp_adk_runner_remote_main_test_case": PodmanGeneratorConfig(
@@ -152,7 +152,7 @@ GENERATOR_METADATA: Dict[str, AnyGeneratorConfig] = {
         expected_tool_uses=[
             "list_modules",
         ],
-        expected_context_files=["/workdir/.gemini/instructions/adk-python.md"],
+        expected_context_files=["/workdir/.gemini/instructions/KNOWLEDGE_MCP_SERVER_INSTRUCTION.md"],
     ),
     "podman_adk_skill_test_case": PodmanGeneratorConfig(
         id="podman_adk_skill_test_case",

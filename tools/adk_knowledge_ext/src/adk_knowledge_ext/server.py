@@ -233,7 +233,7 @@ def _ensure_instructions(kb_id: str | None):
     content = content.replace("{{CURRENT_KB_ID}}", resolved_id)
 
     repo_name = repo_url.split("/")[-1].replace(".git", "")
-    cache_path = Path.home() / ".mcp_cache" / "instructions" / f"{repo_name}.md"
+    cache_path = Path.home() / ".mcp_cache" / "instructions" / "KNOWLEDGE_MCP_SERVER_INSTRUCTION.md"
     cache_path.parent.mkdir(parents=True, exist_ok=True)
     
     cache_path.write_text(content)

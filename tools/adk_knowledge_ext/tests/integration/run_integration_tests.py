@@ -103,7 +103,7 @@ def main():
             # 2. settings.json contains the correct context and server config
             "run_args": [
                 "bash", "-c",
-                "test -f /workdir/.gemini/instructions/adk-python.md && grep -q 'adk-python.md' /root/.gemini/settings.json && grep -q 'codebase-knowledge-mcp' /root/.gemini/settings.json"
+                "test -f /workdir/.gemini/instructions/KNOWLEDGE_MCP_SERVER_INSTRUCTION.md && grep -q 'KNOWLEDGE_MCP_SERVER_INSTRUCTION.md' /root/.gemini/settings.json && grep -q 'codebase-knowledge-mcp' /root/.gemini/settings.json"
             ]
         },
         {
@@ -112,7 +112,7 @@ def main():
             "tag": "gemini-cli:mcp_adk_agent_runner_remote_main",
             "run_args": [
                 "bash", "-c",
-                "test -f /workdir/.gemini/instructions/adk-python.md && grep -q 'adk-python.md' /root/.gemini/settings.json && grep -q 'codebase-knowledge-mcp' /root/.gemini/settings.json"
+                "test -f /workdir/.gemini/instructions/KNOWLEDGE_MCP_SERVER_INSTRUCTION.md && grep -q 'KNOWLEDGE_MCP_SERVER_INSTRUCTION.md' /root/.gemini/settings.json && grep -q 'codebase-knowledge-mcp' /root/.gemini/settings.json"
             ]
         }
     ]
