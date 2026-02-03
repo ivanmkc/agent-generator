@@ -9,8 +9,8 @@ RUN apt-get update && apt-get install -y curl git && rm -rf /var/lib/apt/lists/*
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 ENV PATH="/root/.local/bin:$PATH"
 
-# Clone codebase
-RUN mkdir -p /workdir && git clone --branch v1.20.0 https://github.com/google/adk-python.git /workdir
+# Clone codebase - REMOVED (Handled by MCP server on-demand)
+RUN mkdir -p /workdir
 
 # Set final working directory
 WORKDIR /workdir
@@ -29,4 +29,6 @@ RUN --mount=type=secret,id=github_token \
     codebase-knowledge-mcp-manage setup \
     --repo-url "https://github.com/google/adk-python.git" \
     --version "v1.20.0" \
-    --force
+    --force && \
+    # 3. Clean up credentials to avoid leaking token in image layer
+    git config --global --unset url."https://oauth2:${GITHUB_TOKEN}@github.com".insteadOf

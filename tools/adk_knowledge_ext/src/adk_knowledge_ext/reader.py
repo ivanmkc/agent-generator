@@ -36,8 +36,15 @@ class SourceReader:
             logger.info(f"Cloning {self.repo_name} ({self.version}) from {self.repo_url} to {self.repo_root}...")
             try:
                 self.repo_root.parent.mkdir(parents=True, exist_ok=True)
+                
+                # Inject token for private repos if available
+                clone_url = self.repo_url
+                gh_token = os.environ.get("GITHUB_TOKEN")
+                if gh_token and "github.com" in self.repo_url and "@" not in self.repo_url:
+                    clone_url = self.repo_url.replace("https://", f"https://oauth2:{gh_token}@")
+                
                 subprocess.run(
-                    ["git", "clone", "--depth", "1", "--branch", self.version, self.repo_url, str(self.repo_root)],
+                    ["git", "clone", "--depth", "1", "--branch", self.version, clone_url, str(self.repo_root)],
                     check=True,
                     capture_output=True,
                     text=True
