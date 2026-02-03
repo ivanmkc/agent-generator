@@ -514,7 +514,7 @@ def _configure_ide_json(ide_info: dict, mcp_config: dict) -> None:
                 k_id = f"{r_name}-{ver}" if ver != "main" else r_name
                 registry_map[k_id] = f"Codebase: {r_url} (version: {ver})"
             
-            registry_str = yaml.safe_dump(registry_map, sort_keys=False)
+            registry_str = yaml.safe_dump(registry_map, sort_keys=False, width=1000).strip()
             
             # Find Template
             bundled_instr = Path(__file__).parent / "data" / "INSTRUCTIONS.md"

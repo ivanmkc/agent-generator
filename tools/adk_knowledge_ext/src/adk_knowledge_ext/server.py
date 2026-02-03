@@ -214,7 +214,7 @@ def _ensure_instructions(kb_id: str | None):
         kid: f"Codebase: {meta['repo_url']} (version: {meta['version']})"
         for kid, meta in kbs.items()
     }
-    registry_str = yaml.safe_dump(registry_map, sort_keys=False)
+    registry_str = yaml.safe_dump(registry_map, sort_keys=False, width=1000).strip()
     
     bundled_instr = _BUNDLED_DATA / "INSTRUCTIONS.md"
     template = Path(__file__).parent.parent.parent / "INSTRUCTIONS.template.md"
