@@ -6,7 +6,7 @@ The **Codebase Knowledge MCP Server** is a high-performance [Model Context Proto
 - `read_source_code(fqn, kb_id=None)`: Reads implementation code directly from the local clone.
 - `search_knowledge(queries, kb_id=None)`: Semantic search using concepts or keywords.
 
-## The Problem (Motivation)
+## The Problem
 Modern LLMs have large context windows, but they still struggle with:
 1.  **Context Overload:** Shoving an entire codebase into context is expensive, slow, and often results in the model "getting lost" or hallucinating.
 2.  **Noise:** Most files in a repo are irrelevant to a specific task. Finding the "high-value" entry points (classes, main functions, core modules) is difficult for an agent without guidance.

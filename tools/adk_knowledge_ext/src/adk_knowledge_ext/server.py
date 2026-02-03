@@ -7,9 +7,19 @@ from pathlib import Path
 from typing import Union, List, Dict, Any
 from logging.handlers import RotatingFileHandler
 from mcp.server.fastmcp import FastMCP
+from pydantic import BaseModel
 from .index import get_index
 from .reader import SourceReader
 from .config import config
+
+class KnowledgeBaseConfig(BaseModel):
+    id: str
+    repo_url: str
+    version: str
+    index_url: str | None = None
+    name: str
+    description: str | None = None
+    source: str  # "bundled" or "env"
 
 # --- Configuration ---
 
@@ -51,7 +61,7 @@ def _get_reader(repo_url: str, version: str) -> SourceReader:
 
 import os
 
-def _get_available_kbs() -> Dict[str, Dict[str, Any]]:
+def _get_available_kbs() -> Dict[str, KnowledgeBaseConfig]:
     """
     Returns a mapping of KB ID to metadata.
     KB IDs are derived from the bundled manifest and environment config.
@@ -73,14 +83,14 @@ def _get_available_kbs() -> Dict[str, Dict[str, Any]]:
                     if isinstance(meta, dict) and meta.get("description"):
                         desc = meta.get("description")
                         
-                    kbs[kb_id] = {
-                        "id": kb_id,
-                        "repo_url": repo_url,
-                        "version": ver,
-                        "name": f"{repo_name} ({ver})",
-                        "description": desc,
-                        "source": "bundled"
-                    }
+                    kbs[kb_id] = KnowledgeBaseConfig(
+                        id=kb_id,
+                        repo_url=repo_url,
+                        version=ver,
+                        name=f"{repo_name} ({ver})",
+                        description=desc,
+                        source="bundled"
+                    )
         except Exception as e:
             logger.warning(f"Failed to read bundled manifest for discovery: {e}")
 
@@ -101,22 +111,22 @@ def _get_available_kbs() -> Dict[str, Dict[str, Any]]:
                 if not desc:
                     desc = f"Configured repository: {repo_url}"
 
-                kbs[kb_id] = {
-                    "id": kb_id,
-                    "repo_url": repo_url,
-                    "version": version,
-                    "index_url": item.get("index_url"),
-                    "name": f"{repo_name} ({version})",
-                    "description": desc,
-                    "source": "env"
-                }
+                kbs[kb_id] = KnowledgeBaseConfig(
+                    id=kb_id,
+                    repo_url=repo_url,
+                    version=version,
+                    index_url=item.get("index_url"),
+                    name=f"{repo_name} ({version})",
+                    description=desc,
+                    source="env"
+                )
         except Exception as e:
             logger.warning(f"Failed to parse MCP_KNOWLEDGE_BASES: {e}")
 
     return kbs
 
 
-def _validate_kb(kb_id: str | None) -> Dict[str, Any]:
+def _validate_kb(kb_id: str | None) -> KnowledgeBaseConfig:
     """Validates kb_id and returns its metadata. Raises if invalid."""
     kbs = _get_available_kbs()
     
@@ -125,7 +135,7 @@ def _validate_kb(kb_id: str | None) -> Dict[str, Any]:
         # If explicitly requesting default, or omitting it, pick the active/env one first
         # Search for one marked as source='env'
         for k, v in kbs.items():
-            if v.get("source") == "env":
+            if v.source == "env":
                 logger.debug(f"Resolved kb_id='{kb_id}' to default env KB: '{k}'")
                 return v
         
@@ -154,11 +164,11 @@ def _validate_kb(kb_id: str | None) -> Dict[str, Any]:
 def _ensure_index(kb_id: str | None) -> str:
     """Ensures index is loaded and returns the resolved kb_id."""
     kb_meta = _validate_kb(kb_id)
-    resolved_id = kb_meta["id"]
+    resolved_id = kb_meta.id
     logger.debug(f"Ensuring index for resolved_id={resolved_id} (requested={kb_id})")
     
-    repo_url = kb_meta["repo_url"]
-    version = kb_meta["version"]
+    repo_url = kb_meta.repo_url
+    version = kb_meta.version
     
     idx = get_index(resolved_id)
     if idx._loaded:
@@ -188,7 +198,7 @@ def _ensure_index(kb_id: str | None) -> str:
             logger.warning(f"Failed to read bundled manifest: {e}")
 
     # 2. Manual URL Download (from configured metadata)
-    index_url = kb_meta.get("index_url")
+    index_url = kb_meta.index_url
 
     if index_url:
         # ... download logic ...
@@ -226,15 +236,15 @@ def _ensure_instructions(kb_id: str | None):
     Ensures that the dynamic instructions file is available.
     """
     kb_meta = _validate_kb(kb_id)
-    resolved_id = kb_meta["id"]
-    repo_url = kb_meta["repo_url"]
-    version = kb_meta["version"]
+    resolved_id = kb_meta.id
+    repo_url = kb_meta.repo_url
+    version = kb_meta.version
     
     kbs = _get_available_kbs()
     import yaml
     # Prepare Registry String: {kb_id: description}
     registry_map = {
-        kid: f"Codebase: {meta['repo_url']} (version: {meta['version']})"
+        kid: f"Codebase: {meta.repo_url} (version: {meta.version})"
         for kid, meta in kbs.items()
     }
     registry_str = yaml.safe_dump(registry_map, sort_keys=False, width=1000).strip()
@@ -361,7 +371,7 @@ def read_source_code(kb_id: str = None, fqn: str = "") -> str:
 
     target_fqn = target.get("id") or target.get("fqn") or target.get("name")
     
-    reader = _get_reader(kb_meta["repo_url"], kb_meta["version"])
+    reader = _get_reader(kb_meta.repo_url, kb_meta.version)
     return reader.read_source(rel_path, target_fqn, suffix)
 
 
@@ -395,7 +405,7 @@ def inspect_symbol(kb_id: str = None, fqn: str = "") -> str:
         if rel_path:
             target_fqn = target.get("id") or target.get("fqn") or target.get("name")
             try:
-                reader = _get_reader(kb_meta["repo_url"], kb_meta["version"])
+                reader = _get_reader(kb_meta.repo_url, kb_meta.version)
                 source_snippet = reader.read_source(rel_path, target_fqn, suffix)
             except Exception as e:
                 source_snippet = f"(Could not retrieve source: {e})"
