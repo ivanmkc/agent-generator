@@ -1,6 +1,10 @@
 # Codebase Knowledge MCP Server
 
-The **Codebase Knowledge MCP Server** is a high-performance [Model Context Protocol](https://modelcontextprotocol.io/) server designed to give AI agents deep, grounded, and efficient access to massive repositories. It provides a specialized toolset for **browsing ranked modules**, **inspecting symbol specifications**, **reading implementation source code**, and **performing semantic search**.
+The **Codebase Knowledge MCP Server** is a high-performance [Model Context Protocol](https://modelcontextprotocol.io/) server designed to give AI agents deep, grounded, and efficient access to massive repositories. It provides a specialized toolset including:
+- `list_modules(page, kb_id=None)`: Lists ranked modules and classes in the codebase.
+- `inspect_symbol(fqn, kb_id=None)`: Shows the full spec (signatures, docstrings) of a symbol.
+- `read_source_code(fqn, kb_id=None)`: Reads implementation code directly from the local clone.
+- `search_knowledge(queries, kb_id=None)`: Semantic search using concepts or keywords.
 
 ## The Problem (Motivation)
 Modern LLMs have large context windows, but they still struggle with:
@@ -13,17 +17,6 @@ This server implements a **Ranked Retrieval** strategy. It uses pre-computed ind
 - **Browse First:** Explore the "top 20" most important modules instead of staring at thousands of files.
 - **Inspect Deeply:** Retrieve full class specifications and signatures with zero noise.
 - **Zero Latency:** High-value indices are bundled directly into the server for near-instant startup and offline use.
-
----
-
-## Tools Provided
-
-All tools support an optional `kb_id` parameter (defaults to the first configured repository).
-
-- `list_modules(page, kb_id=None)`: Lists ranked modules and classes in the codebase.
-- `inspect_symbol(fqn, kb_id=None)`: Shows the full spec (signatures, docstrings) of a symbol.
-- `read_source_code(fqn, kb_id=None)`: Reads implementation code directly from the local clone.
-- `search_knowledge(queries, kb_id=None)`: Semantic/Sparse search using concepts or keywords.
 
 ---
 
