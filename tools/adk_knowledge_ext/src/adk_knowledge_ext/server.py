@@ -81,6 +81,7 @@ def _get_available_kbs() -> Dict[str, Dict[str, Any]]:
 
     # 2. Add Configured KBs from env (JSON)
     configured_kbs_json = os.environ.get("MCP_KNOWLEDGE_BASES")
+    
     if configured_kbs_json:
         try:
             items = json.loads(configured_kbs_json)
@@ -172,10 +173,6 @@ def _ensure_index(kb_id: str | None) -> str:
 
     # 2. Manual URL Download (from configured metadata)
     index_url = kb_meta.get("index_url")
-
-    if index_url:
-        # ... download logic ...
-        cache_dir = Path.home() / ".mcp_cache" / "indices"
 
     if index_url:
         # ... download logic ...
