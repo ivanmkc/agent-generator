@@ -1,6 +1,6 @@
 # Codebase Knowledge MCP Server
 
-The **Codebase Knowledge MCP Server** is a high-performance [Model Context Protocol](https://modelcontextprotocol.io/) server designed to give AI agents deep, grounded, and efficient access to massive repositories. 
+The **Codebase Knowledge MCP Server** is a high-performance [Model Context Protocol](https://modelcontextprotocol.io/) server designed to give AI agents deep, grounded, and efficient access to massive repositories. It provides a specialized toolset for **browsing ranked modules**, **inspecting symbol specifications**, **reading implementation source code**, and **performing semantic search**.
 
 ## The Problem (Motivation)
 Modern LLMs have large context windows, but they still struggle with:
