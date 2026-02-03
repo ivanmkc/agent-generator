@@ -4,10 +4,12 @@ A repository-agnostic MCP server that gives AI coding agents (Claude Code, Curso
 
 ## Tools Provided
 
-- `list_modules(page)`: Lists ranked modules and classes in the codebase.
-- `inspect_symbol(fqn)`: Shows the full spec (signatures, docstrings) of a symbol.
-- `read_source_code(fqn)`: Reads implementation code directly from the Git repository.
-- `search_knowledge(queries)`: Semantic search using concepts or keywords.
+All tools support an optional `kb_id` parameter. If omitted, the server defaults to the repository configured via `TARGET_REPO_URL`.
+
+- `list_modules(page, kb_id=None)`: Lists ranked modules and classes in the codebase.
+- `inspect_symbol(fqn, kb_id=None)`: Shows the full spec (signatures, docstrings) of a symbol.
+- `read_source_code(fqn, kb_id=None)`: Reads implementation code directly from the Git repository.
+- `search_knowledge(queries, kb_id=None)`: Semantic search using concepts or keywords.
 
 ---
 
@@ -32,7 +34,7 @@ sequenceDiagram
     BuildSystem->>Registry: Read supported repos
     BuildSystem->>BuildSystem: Download Indices (Web)
     BuildSystem->>Package: Bundle Indices into /data/indices/
-    BuildSystem->>Package: Generate manifest.json
+    BuildSystem->>Package: Generate manifest.yaml
 
     Note over User, Config: 2. Setup Phase
     User->>Setup: manage setup --repo-url ...
@@ -41,7 +43,7 @@ sequenceDiagram
 
     Note over User, Server: 3. Runtime Phase (Offline)
     User->>Server: Start Server
-    Server->>Package: Check manifest.json
+    Server->>Package: Check manifest.yaml
     alt Index Bundled?
         Server->>Package: Load from /data/indices/ (FAST)
     else Custom Repo
@@ -55,7 +57,7 @@ When you install the package (via `uvx` or `pip`), a custom build hook (`hatch_b
 1.  **Registry Scan:** Reads `registry.yaml` to identify officially supported repositories (e.g., `google/adk-python`).
 2.  **Download:** Fetches the pre-computed Knowledge Index (YAML) for each repo from the web.
 3.  **Bundle:** Saves these indices directly into the package's `data/indices/` directory.
-4.  **Manifest:** Generates a `manifest.json` map so the server can locate them instantly later.
+4.  **Manifest:** Generates a `manifest.yaml` map so the server can locate them instantly later.
 
 ### 2. Setup (`manage setup`)
 When you run the setup command:
@@ -67,10 +69,15 @@ When you run the setup command:
 
 ### 3. Runtime (Server Start)
 When your AI Agent starts the server:
-1.  **Zero-Latency Load:** The server checks `manifest.json`.
+1.  **Zero-Latency Load:** The server checks `manifest.yaml`.
 2.  **Offline Read:** It loads the massive Knowledge Index directly from the local package files (bundled in Step 1).
     *   *Note:* **No API calls or downloads happen here** for supported repos, ensuring speed and stability.
-3.  **Ready:** The tools (`list_modules`, etc.) are immediately available to the agent.
+3. **Ready:** The tools (`list_modules`, etc.) are immediately available to the agent.
+
+### 4. Multi-Repository Support
+The server uses a **Knowledge Registry** pattern. While it defaults to a single `TARGET_REPO_URL`, it can support multiple repositories simultaneously if they are defined in the `manifest.yaml` or injected via configuration.
+- **Smart Defaulting:** Tools automatically use the default repo if `kb_id` is not provided.
+- **Explicit Targeting:** Agents can access other loaded repositories by passing `kb_id="<repo_id>"`.
 
 ---
 
@@ -135,7 +142,7 @@ uvx --from ... codebase-knowledge-mcp-manage setup ... --knowledge-index-url fil
 
 **Q: How does the server locate the correct knowledge index?**
 **A:** The server employs a 3-tier lookup strategy:
-1.  **Bundled Manifest:** It first checks `manifest.json` (generated at build time) to see if a pre-downloaded index exists for the target repo/version in the `data/indices/` directory.
+1.  **Bundled Manifest:** It first checks `manifest.yaml` (generated at build time) to see if a pre-downloaded index exists for the target repo/version in the `data/indices/` directory.
 2.  **Registry Lookup:** If not bundled, it checks `registry.yaml` to find a remote URL for the index.
 3.  **Direct URL:** Finally, it checks if `TARGET_INDEX_URL` was manually provided via environment variables.
 
@@ -158,11 +165,11 @@ https://github.com/google/adk-python.git:
   main: https://example.com/indices/adk-python/main.yaml
 ```
 
-#### `manifest.json` (Build-Time Output)
+#### `manifest.yaml` (Build-Time Output)
 This file is generated during the installation process. It maps repository URLs to the **locally bundled** index files within the package.
 
 ```yaml
-# src/adk_knowledge_ext/data/manifest.json (represented as YAML)
+# src/adk_knowledge_ext/data/manifest.yaml (represented as YAML)
 https://github.com/google/adk-python.git:
   v1.20.0: indices/github-com-google-adk-python/v1.20.0.yaml
   main: indices/github-com-google-adk-python/main.yaml
