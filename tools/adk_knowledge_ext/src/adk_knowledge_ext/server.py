@@ -66,14 +66,19 @@ def _get_available_kbs() -> Dict[str, Dict[str, Any]]:
             manifest = yaml.safe_load(manifest_path.read_text())
             for repo_url, versions in manifest.items():
                 repo_name = repo_url.split("/")[-1].replace(".git", "")
-                for ver in versions.keys():
+                for ver, meta in versions.items():
                     kb_id = f"{repo_name}-{ver}" if ver != "main" else repo_name
+                    
+                    desc = f"Codebase knowledge for {repo_url} at version {ver}"
+                    if isinstance(meta, dict) and meta.get("description"):
+                        desc = meta.get("description")
+                        
                     kbs[kb_id] = {
                         "id": kb_id,
                         "repo_url": repo_url,
                         "version": ver,
                         "name": f"{repo_name} ({ver})",
-                        "description": f"Codebase knowledge for {repo_url} at version {ver}",
+                        "description": desc,
                         "source": "bundled"
                     }
         except Exception as e:
@@ -92,13 +97,17 @@ def _get_available_kbs() -> Dict[str, Dict[str, Any]]:
                 kb_id = f"{repo_name}-{version}" if version != "main" else repo_name
                 
                 # Env config overrides bundled if same ID
+                desc = item.get("description")
+                if not desc:
+                    desc = f"Configured repository: {repo_url}"
+
                 kbs[kb_id] = {
                     "id": kb_id,
                     "repo_url": repo_url,
                     "version": version,
                     "index_url": item.get("index_url"),
                     "name": f"{repo_name} ({version})",
-                    "description": f"Configured repository: {repo_url}",
+                    "description": desc,
                     "source": "env"
                 }
         except Exception as e:
@@ -161,7 +170,14 @@ def _ensure_index(kb_id: str | None) -> str:
         import yaml
         try:
             manifest = yaml.safe_load(manifest_path.read_text())
-            bundled_file = manifest.get(repo_url, {}).get(version)
+            bundled_entry = manifest.get(repo_url, {}).get(version)
+            
+            bundled_file = None
+            if isinstance(bundled_entry, dict):
+                bundled_file = bundled_entry.get("path")
+            elif isinstance(bundled_entry, str):
+                bundled_file = bundled_entry
+                
             if bundled_file:
                 bundled_path = _BUNDLED_DATA / bundled_file
                 if bundled_path.exists():

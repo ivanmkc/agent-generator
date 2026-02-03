@@ -49,7 +49,11 @@ def bundle_indices(src_dir: Path, data_dir: Path) -> None:
             repo_dir = indices_dir / repo_slug
             repo_dir.mkdir(parents=True, exist_ok=True)
             
-            for ver, index_url in versions.items():
+            for ver, meta in versions.items():
+                # Handle legacy (string) vs new (dict) registry format
+                index_url = meta if isinstance(meta, str) else meta.get("index_url")
+                desc = meta.get("description") if isinstance(meta, dict) else None
+                
                 filename = f"{ver}.yaml"
                 index_path = repo_dir / filename
                 
@@ -58,12 +62,24 @@ def bundle_indices(src_dir: Path, data_dir: Path) -> None:
                 
                 print(f"Build Hook: Downloading index for {repo_slug} ({ver}) to {manifest_entry}...")
                 try:
-                    subprocess.run(["curl", "-f", "-L", "-o", str(index_path), index_url], check=True)
+                    # Support GITHUB_TOKEN for private repos during build
+                    import os
+                    curl_cmd = ["curl", "-f", "-L", "-o", str(index_path)]
+                    if os.environ.get("GITHUB_TOKEN"):
+                        curl_cmd.extend(["-H", f"Authorization: token {os.environ.get('GITHUB_TOKEN')}"])
+                    curl_cmd.append(index_url)
+                    
+                    subprocess.run(curl_cmd, check=True)
                     
                     # Update manifest
                     if repo_url not in manifest:
                         manifest[repo_url] = {}
-                    manifest[repo_url][ver] = manifest_entry
+                    
+                    # Store as dict in manifest to preserve metadata
+                    manifest[repo_url][ver] = {
+                        "path": manifest_entry,
+                        "description": desc
+                    }
                     
                 except subprocess.CalledProcessError as e:
                     print(f"Build Hook Warning: Failed to download {index_url}: {e}")

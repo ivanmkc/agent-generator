@@ -150,11 +150,16 @@ def setup(repo_url: Optional[str], version: str, api_key: Optional[str], index_u
             try:
                 registry = yaml.safe_load(registry_path.read_text())
                 for r_url, versions in registry.items():
-                    for ver, idx_url in versions.items():
+                    for ver, meta in versions.items():
+                        # Handle both legacy (string) and new (dict) formats
+                        idx_url = meta if isinstance(meta, str) else meta.get("index_url")
+                        desc = meta.get("description") if isinstance(meta, dict) else None
+                        
                         available_options.append({
                             "repo_url": r_url,
                             "version": ver,
                             "index_url": idx_url,
+                            "description": desc,
                             "label": f"{r_url} ({ver})"
                         })
             except Exception:
@@ -163,7 +168,8 @@ def setup(repo_url: Optional[str], version: str, api_key: Optional[str], index_u
         if available_options:
             console.print("\n[bold]Available Knowledge Bases:[/bold]")
             for i, opt in enumerate(available_options):
-                console.print(f"[{i+1}] {opt['label']}")
+                desc_suffix = f" - {opt['description']}" if opt.get('description') else ""
+                console.print(f"[{i+1}] {opt['label']}{desc_suffix}")
             
             selection_input = Prompt.ask("\nSelect one or more (comma-separated, e.g. 1, 2)")
             selected_indices = [int(x.strip()) for x in selection_input.split(",") if x.strip().isdigit()]
@@ -176,7 +182,8 @@ def setup(repo_url: Optional[str], version: str, api_key: Optional[str], index_u
                     selected_kbs.append({
                         "repo_url": opt["repo_url"],
                         "version": opt["version"],
-                        "index_url": opt["index_url"]
+                        "index_url": opt["index_url"],
+                        "description": opt.get("description")
                     })
         else:
             # Fallback if registry missing
@@ -334,7 +341,13 @@ def _generate_mcp_config(selected_kbs: List[Dict[str, str]], api_key: Optional[s
     for kb in selected_kbs:
         if not kb.get("index_url"):
              repo_map = registry.get(kb["repo_url"], {})
-             kb["index_url"] = repo_map.get(kb["version"])
+             meta = repo_map.get(kb["version"])
+             if isinstance(meta, dict):
+                 kb["index_url"] = meta.get("index_url")
+                 if not kb.get("description"):
+                     kb["description"] = meta.get("description")
+             else:
+                 kb["index_url"] = meta
 
     env = {
         "MCP_KNOWLEDGE_BASES": json.dumps(selected_kbs)
@@ -502,7 +515,11 @@ def _configure_ide_json(ide_info: dict, mcp_config: dict) -> None:
                 ver = kb["version"]
                 r_name = r_url.split("/")[-1].replace(".git", "")
                 k_id = f"{r_name}-{ver}" if ver != "main" else r_name
-                registry_map[k_id] = f"Codebase: {r_url} (version: {ver})"
+                
+                desc = kb.get("description")
+                if not desc:
+                    desc = f"Codebase: {r_url} (version: {ver})"
+                registry_map[k_id] = desc
             
             registry_str = yaml.safe_dump(registry_map, sort_keys=False, width=1000).strip()
             
