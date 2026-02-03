@@ -17,9 +17,8 @@ ENV PATH="/root/.local/bin:$PATH"
 RUN mkdir -p /app && git clone --branch v1.20.0 https://github.com/google/adk-python.git /app/adk-python
 RUN pip install --no-cache-dir /app/adk-python pytest
 
-# Install extension from local copy (so build passes even if repo is private)
-COPY tools/adk_knowledge_ext /app/extensions/adk-knowledge-ext
-RUN pip install --no-cache-dir /app/extensions/adk-knowledge-ext
+# Install extension from Remote GitHub (mcp_server branch)
+RUN pip install "git+https://github.com/ivanmkc/agent-generator.git@mcp_server#subdirectory=tools/adk_knowledge_ext"
 
 # Set final working directory to the codebase
 WORKDIR /app/adk-python
