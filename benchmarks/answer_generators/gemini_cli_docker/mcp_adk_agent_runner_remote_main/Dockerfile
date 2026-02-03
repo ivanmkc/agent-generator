@@ -17,8 +17,8 @@ WORKDIR /workdir
 
 # Setup Gemini CLI with MCP (Remote Mode)
 RUN --mount=type=secret,id=github_token \
-    token=$(grep "^GITHUB_TOKEN=" /run/secrets/github_token | cut -d= -f2- | tr -d '"' | tr -d "'") || token=$(cat /run/secrets/github_token) && \
-    git config --global url."https://oauth2:${token}@github.com".insteadOf https://github.com && \
+    export GITHUB_TOKEN=$(grep "^GITHUB_TOKEN=" /run/secrets/github_token | cut -d= -f2- | tr -d '"' | tr -d "'") && \
+    git config --global url."https://oauth2:${GITHUB_TOKEN}@github.com".insteadOf https://github.com && \
     mkdir -p .gemini && \
     uvx --from "git+https://github.com/ivanmkc/agent-generator.git@mcp_server#subdirectory=tools/adk_knowledge_ext" \
     codebase-knowledge-mcp-manage setup \
