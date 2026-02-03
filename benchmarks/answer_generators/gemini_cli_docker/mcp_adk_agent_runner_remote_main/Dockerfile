@@ -1,38 +1,25 @@
+# Inherit from standard base
 ARG BASE_IMAGE=gemini-cli:base
 FROM ${BASE_IMAGE}
 
-# Install Python MCP SDK and YAML parser
-RUN pip install --no-cache-dir mcp pyyaml rank-bm25
+USER root
 
-# Clone and Install adk-python
-RUN mkdir -p /app && git clone --branch v1.20.0 https://github.com/google/adk-python.git /app/adk-python
-RUN pip install --no-cache-dir /app/adk-python
-
-# Install uv (Required for the generated configuration)
-RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+# Install uv and git
+RUN apt-get update && apt-get install -y curl git && rm -rf /var/lib/apt/lists/*
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 ENV PATH="/root/.local/bin:$PATH"
 
-# Clone and Install adk-python (to have the codebase context)
-RUN mkdir -p /app && git clone --branch v1.20.0 https://github.com/google/adk-python.git /app/adk-python
-RUN pip install --no-cache-dir /app/adk-python pytest
+# Clone codebase
+RUN mkdir -p /workdir && git clone --branch v1.20.0 https://github.com/google/adk-python.git /workdir
 
-# Install extension from Remote GitHub (mcp_server branch)
-RUN pip install "git+https://github.com/ivanmkc/agent-generator.git@mcp_server#subdirectory=tools/adk_knowledge_ext"
-
-# Set final working directory to the codebase
-WORKDIR /app/adk-python
-RUN git init && git add . && touch GEMINI.md
+# Set final working directory
+WORKDIR /workdir
 
 # Setup Gemini CLI with MCP (Remote Mode)
-# We do NOT pass --local, so it generates a config using 'uvx --from git+...'
-RUN mkdir -p .gemini && \
+RUN --mount=type=secret,id=github_token \
+    git config --global url."https://oauth2:$(cat /run/secrets/github_token)@github.com".insteadOf https://github.com && \
+    uvx --from "git+https://github.com/ivanmkc/agent-generator.git@mcp_server#subdirectory=tools/adk_knowledge_ext" \
     codebase-knowledge-mcp-manage setup \
     --repo-url "https://github.com/google/adk-python.git" \
     --version "v1.20.0" \
     --force
-
-ENV ADK_SEARCH_PROVIDER=bm25
-
-# Set working directory to repo root so relative paths work if needed
-WORKDIR /workdir

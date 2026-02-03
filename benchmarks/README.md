@@ -52,7 +52,7 @@ CANDIDATE_GENERATORS = [
         image_name="gemini-cli:mcp_adk_agent_runner_ranked_knowledge",
         model_name=ModelName.GEMINI_2_5_FLASH,
         api_key_manager=api_key_manager,
-        experiment_id="ranked_knowledge_bm25",
+        experiment_id="ranked_knowledge_vector",
     ),
 ]
 ```

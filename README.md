@@ -29,6 +29,16 @@ This repository contains tools and benchmarks for generating and evaluating AI a
 - **tools/analysis/**: A hybrid (LLM + Stats) engine for analyzing why agents fail.
 - **data/**: The root for all persistent files created during runs (SQLite DBs, persistent logs).
 
+## Benchmark Infrastructure
+
+### Ranked Knowledge MCP
+This project uses a custom Model Context Protocol (MCP) server for providing high-fidelity, grounded knowledge to AI agents during benchmarking. It features:
+- **Ranked Retrieval:** Prioritizes high-value modules and symbols based on codebase structure.
+- **Build-Time Bundling:** Performance-optimized indices bundled directly in the runner images.
+- **Multi-Repo Support:** Can index and serve multiple target codebases simultaneously.
+
+See [tools/adk_knowledge_ext/README.md](tools/adk_knowledge_ext/README.md) for setup details.
+
 ## Usage
 
 ### Running Benchmarks

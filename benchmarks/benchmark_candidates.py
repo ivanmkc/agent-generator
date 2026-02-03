@@ -96,6 +96,17 @@ CANDIDATE_GENERATORS.append(
     )
 )
 
+# Remote Main Runner (Tests public install flow)
+CANDIDATE_GENERATORS.append(
+    GeminiCliPodmanAnswerGenerator(
+        image_definitions=IMAGE_DEFINITIONS,
+        image_name="gemini-cli:mcp_adk_agent_runner_remote_main",
+        model_name=ModelName.GEMINI_2_5_FLASH,
+        api_key_manager=api_key_manager,
+        experiment_id="ranked_knowledge_remote_main",
+    )
+)
+
 # # WARNING: This generator relies on the codebase-knowledge MCP server but DOES NOT 
 # # provide a pre-computed YAML index. In its current implementation, the MCP tools 
 # # (search_knowledge, inspect_symbol, etc.) will FAIL with a RuntimeError.
