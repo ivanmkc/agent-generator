@@ -34,8 +34,7 @@ logger = logging.getLogger("codebase-knowledge-mcp")
 logger.info("Server starting up...")
 
 # Validation
-if not config.TARGET_REPO_URL:
-    logger.error("TARGET_REPO_URL environment variable is not set. Cloning will be unavailable.")
+# (TARGET_REPO_URL check removed as it is no longer mandatory)
 
 # Initialize Server
 mcp = FastMCP("codebase-knowledge")
@@ -50,10 +49,12 @@ def _get_reader(repo_url: str, version: str) -> SourceReader:
     return _readers[key]
 
 
+import os
+
 def _get_available_kbs() -> Dict[str, Dict[str, Any]]:
     """
     Returns a mapping of KB ID to metadata.
-    KB IDs are derived from the bundled manifest and registry.
+    KB IDs are derived from the bundled manifest and environment config.
     """
     kbs = {}
     
@@ -78,20 +79,29 @@ def _get_available_kbs() -> Dict[str, Dict[str, Any]]:
         except Exception as e:
             logger.warning(f"Failed to read bundled manifest for discovery: {e}")
 
-    # 2. Add current active repo from env if not already there (fallback)
-    if config.TARGET_REPO_URL:
-        repo_name = config.TARGET_REPO_URL.split("/")[-1].replace(".git", "")
-        ver = config.TARGET_VERSION
-        kb_id = f"{repo_name}-{ver}" if ver != "main" else repo_name
-        if kb_id not in kbs:
-            kbs[kb_id] = {
-                "id": kb_id,
-                "repo_url": config.TARGET_REPO_URL,
-                "version": ver,
-                "name": f"{repo_name} ({ver}) [active]",
-                "description": f"Currently configured repository",
-                "source": "env"
-            }
+    # 2. Add Configured KBs from env (JSON)
+    configured_kbs_json = os.environ.get("MCP_KNOWLEDGE_BASES")
+    if configured_kbs_json:
+        try:
+            items = json.loads(configured_kbs_json)
+            for item in items:
+                repo_url = item["repo_url"]
+                version = item["version"]
+                repo_name = repo_url.split("/")[-1].replace(".git", "")
+                kb_id = f"{repo_name}-{version}" if version != "main" else repo_name
+                
+                # Env config overrides bundled if same ID
+                kbs[kb_id] = {
+                    "id": kb_id,
+                    "repo_url": repo_url,
+                    "version": version,
+                    "index_url": item.get("index_url"),
+                    "name": f"{repo_name} ({version})",
+                    "description": f"Configured repository: {repo_url}",
+                    "source": "env"
+                }
+        except Exception as e:
+            logger.warning(f"Failed to parse MCP_KNOWLEDGE_BASES: {e}")
 
     return kbs
 
@@ -144,15 +154,6 @@ def _ensure_index(kb_id: str | None) -> str:
     if idx._loaded:
         return resolved_id
 
-    # 0. Check for explicit local override via env var (only if it matches the active one)
-    if config.TARGET_INDEX_PATH and config.TARGET_INDEX_PATH.exists():
-        # Only use local override if it matches the KB we are looking for
-        # (Usually local override is for the 'active' development repo)
-        if repo_url == config.TARGET_REPO_URL:
-            logger.debug(f"Found explicit index at {config.TARGET_INDEX_PATH}")
-            idx.load(config.TARGET_INDEX_PATH)
-            return resolved_id
-
     # 1. Check Bundled Manifest
     manifest_path = _BUNDLED_DATA / "manifest.yaml"
     if manifest_path.exists():
@@ -169,11 +170,14 @@ def _ensure_index(kb_id: str | None) -> str:
         except Exception as e:
             logger.warning(f"Failed to read bundled manifest: {e}")
 
-    # 2. Fallback: Manual URL Download (For custom/new repos)
-    # Use TARGET_INDEX_URL if it's the active one, or we might need a way to specify URLs per KB
-    # For now, we only support runtime download for the 'active' repo from config.
-    if repo_url == config.TARGET_REPO_URL and config.TARGET_INDEX_URL:
-        index_url = config.TARGET_INDEX_URL
+    # 2. Manual URL Download (from configured metadata)
+    index_url = kb_meta.get("index_url")
+
+    if index_url:
+        # ... download logic ...
+        cache_dir = Path.home() / ".mcp_cache" / "indices"
+
+    if index_url:
         # ... download logic ...
         cache_dir = Path.home() / ".mcp_cache" / "indices"
         cache_dir.mkdir(parents=True, exist_ok=True)

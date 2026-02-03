@@ -245,7 +245,8 @@ async def run_orchestrator():
     # Configuration for generators that need sequential execution
     # We filter specifically for Podman which requires orchestration
     generators = [
-        config for config in GENERATOR_METADATA.values() if config.type in ["podman"]
+        config for config in GENERATOR_METADATA.values() 
+        if config.type in ["podman"] and config.id == "podman_mcp_adk_runner_ranked_knowledge_test_case"
     ]
 
     print("=== Starting Sequential Integration Test Suite ===")
@@ -299,7 +300,7 @@ async def run_orchestrator():
             test_file = __file__
 
             cmd = [
-                "env/bin/python",
+                sys.executable,
                 "-m",
                 "pytest",
                 "-n",

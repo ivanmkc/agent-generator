@@ -19,6 +19,7 @@ import subprocess
 import os
 import sys
 import shutil
+import yaml
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Optional, Dict, Any, List
@@ -71,12 +72,9 @@ IDE_CONFIGS = {
     },
     "Gemini CLI": {
         "detect_path": Path.home() / ".gemini",
-        "config_method": "cli",
-        "cli_command": "gemini",
-        "cli_scope_flag": "--scope",
-        "cli_scope_value": "user",
-        # Gemini: cmd <command> -- <args...>
-        "cli_separator": "after_command",
+        "config_method": "json",
+        "config_path": Path.home() / ".gemini" / "settings.json",
+        "config_key": "mcpServers",
         "start_instruction": "Run [cyan]gemini[/cyan] in your terminal",
     },
     "Cursor": {
@@ -134,10 +132,71 @@ def cli():
 def setup(repo_url: Optional[str], version: str, api_key: Optional[str], index_url: Optional[str], knowledge_index_url: Optional[str], local: bool, force: bool):
     """Auto-configure this MCP server in your coding agents."""
     
-    # Prompt for missing required args
-    if not repo_url:
-        repo_url = Prompt.ask("Enter the Target Repository URL")
-    
+    selected_kbs = []
+
+    # 1. Resolve Selection
+    if repo_url:
+        # Direct CLI usage
+        selected_kbs.append({
+            "repo_url": repo_url,
+            "version": version,
+            "index_url": knowledge_index_url
+        })
+    else:
+        # Interactive Mode
+        registry_path = Path(__file__).parent / "registry.yaml"
+        available_options = []
+        if registry_path.exists():
+            try:
+                registry = yaml.safe_load(registry_path.read_text())
+                for r_url, versions in registry.items():
+                    for ver, idx_url in versions.items():
+                        available_options.append({
+                            "repo_url": r_url,
+                            "version": ver,
+                            "index_url": idx_url,
+                            "label": f"{r_url} ({ver})"
+                        })
+            except Exception:
+                pass
+
+        if available_options:
+            console.print("\n[bold]Available Knowledge Bases:[/bold]")
+            for i, opt in enumerate(available_options):
+                console.print(f"[{i+1}] {opt['label']}")
+            console.print("[0] Enter custom repository URL")
+            
+            selection_input = Prompt.ask("\nSelect one or more (comma-separated, e.g. 1, 2) or 0 for custom")
+            selected_indices = [int(x.strip()) for x in selection_input.split(",") if x.strip().isdigit()]
+            
+            # Add Registry Selections
+            for idx in selected_indices:
+                if 1 <= idx <= len(available_options):
+                    opt = available_options[idx-1]
+                    # Clean up label before saving
+                    selected_kbs.append({
+                        "repo_url": opt["repo_url"],
+                        "version": opt["version"],
+                        "index_url": opt["index_url"]
+                    })
+            
+            # Add Custom Selection
+            if 0 in selected_indices or not selected_kbs:
+                custom_url = Prompt.ask("Enter the Custom Repository URL")
+                selected_kbs.append({
+                    "repo_url": custom_url,
+                    "version": "main", # Default for custom
+                    "index_url": None
+                })
+        else:
+            # Fallback if registry missing
+            repo_url = Prompt.ask("Enter the Target Repository URL")
+            selected_kbs.append({
+                "repo_url": repo_url,
+                "version": version,
+                "index_url": knowledge_index_url
+            })
+
     # Optional API Key
     if not force and not api_key and not os.environ.get("GEMINI_API_KEY"):
         if ask_confirm("Do you have a Gemini API Key? (Required for semantic search)", default=False):
@@ -146,9 +205,8 @@ def setup(repo_url: Optional[str], version: str, api_key: Optional[str], index_u
     console.print()
     console.print(
         Panel(
-            "[bold]🚀 Codebase Knowledge MCP Setup[/bold]\n\n"
-            f"Repo: [cyan]{repo_url}[/cyan]\n"
-            f"Version: [cyan]{version}[/cyan]",
+            "[bold]🚀 Codebase Knowledge MCP Setup[/bold]\n\n" +
+            "\n".join([f"- {kb['repo_url']} ({kb['version']})" for kb in selected_kbs]),
             border_style="blue",
         )
     )
@@ -219,7 +277,7 @@ def setup(repo_url: Optional[str], version: str, api_key: Optional[str], index_u
         return
 
     # Generate Config
-    mcp_config = _generate_mcp_config(repo_url, version, api_key, index_url, knowledge_index_url, local)
+    mcp_config = _generate_mcp_config(selected_kbs, api_key, index_url, local)
 
     # Configure
     console.print("\n[bold]Applying configuration...[/bold]")
@@ -270,31 +328,32 @@ def remove():
             console.print(f"[red]❌ {ide_name} failed: {e}[/red]")
 
 
-def _generate_mcp_config(repo_url: str, version: str, api_key: Optional[str], index_url: Optional[str] = None, knowledge_index_url: Optional[str] = None, local: bool = False) -> dict:
+def _generate_mcp_config(selected_kbs: List[Dict[str, str]], api_key: Optional[str], index_url: Optional[str] = None, local: bool = False) -> dict:
     """Generate the MCP server configuration."""
+    
+    # Enrich KBs with registry info if index_url missing
+    import yaml
+    registry_path = Path(__file__).parent / "registry.yaml"
+    registry = {}
+    if registry_path.exists():
+        try:
+            registry = yaml.safe_load(registry_path.read_text())
+        except Exception:
+            pass
+
+    for kb in selected_kbs:
+        if not kb.get("index_url"):
+             repo_map = registry.get(kb["repo_url"], {})
+             kb["index_url"] = repo_map.get(kb["version"])
+
     env = {
-        "TARGET_REPO_URL": repo_url,
-        "TARGET_VERSION": version,
+        "MCP_KNOWLEDGE_BASES": json.dumps(selected_kbs)
     }
+    
     if api_key:
         env["GEMINI_API_KEY"] = api_key
     elif os.environ.get("GEMINI_API_KEY"):
         env["GEMINI_API_KEY"] = os.environ.get("GEMINI_API_KEY")
-
-    # Resolve index URL from registry if not provided explicitly
-    if not knowledge_index_url:
-        import yaml
-        registry_path = Path(__file__).parent / "registry.yaml"
-        if registry_path.exists():
-            try:
-                registry = yaml.safe_load(registry_path.read_text())
-                repo_map = registry.get(repo_url, {})
-                knowledge_index_url = repo_map.get(version)
-            except Exception:
-                pass
-
-    if knowledge_index_url:
-        env["TARGET_INDEX_URL"] = knowledge_index_url
 
     # Construct uvx command
     if local:
@@ -435,6 +494,70 @@ def _configure_ide_json(ide_info: dict, mcp_config: dict) -> None:
         config[config_key] = {}
 
     config[config_key][MCP_SERVER_NAME] = mcp_config
+
+    # Automatically add system instructions to Gemini CLI context
+    start_instruction = ide_info.get("start_instruction", "")
+    
+    if "gemini" in start_instruction.lower() or "antigravity" in start_instruction.lower():
+        # Get KBs from config to find repo names
+        try:
+            kbs_json = mcp_config["env"]["MCP_KNOWLEDGE_BASES"]
+            kbs = json.loads(kbs_json)
+            instr_paths = []
+            
+            # Prepare Registry String
+            registry_str = yaml.safe_dump(kbs, sort_keys=False)
+            
+            # Find Template
+            bundled_instr = Path(__file__).parent / "data" / "INSTRUCTIONS.md"
+            source_template = Path(__file__).parent.parent.parent / "INSTRUCTIONS.template.md"
+            
+            template_content = ""
+            if source_template.exists():
+                template_content = source_template.read_text()
+            elif bundled_instr.exists():
+                template_content = bundled_instr.read_text()
+
+            for kb in kbs:
+                repo_url = kb["repo_url"]
+                version = kb["version"]
+                repo_name = repo_url.split("/")[-1].replace(".git", "")
+                kb_id = f"{repo_name}-{version}" if version != "main" else repo_name
+                
+                instr_path = Path.home() / ".mcp_cache" / "instructions" / f"{repo_name}.md"
+                instr_path.parent.mkdir(parents=True, exist_ok=True)
+                
+                if template_content:
+                    content = template_content.replace("{{TARGET_REPO_URL}}", repo_url)
+                    content = content.replace("{{TARGET_VERSION}}", version)
+                    content = content.replace("{{KB_REGISTRY}}", registry_str)
+                    content = content.replace("{{CURRENT_KB_ID}}", kb_id)
+                    instr_path.write_text(content)
+                
+                instr_paths.append(str(instr_path))
+            
+            if instr_paths:
+                if "context" not in config:
+                    config["context"] = {}
+                
+                existing_files = config["context"].get("fileName", [])
+                existing_dirs = config["context"].get("includeDirectories", [])
+                
+                for p in instr_paths:
+                    if p not in existing_files:
+                        existing_files.append(p)
+                    
+                    # Ensure parent dir is included
+                    parent_dir = str(Path(p).parent)
+                    if parent_dir not in existing_dirs:
+                        existing_dirs.append(parent_dir)
+                
+                config["context"]["fileName"] = existing_files
+                config["context"]["includeDirectories"] = existing_dirs
+                # Enable loading
+                config["context"]["loadMemoryFromIncludeDirectories"] = True
+        except Exception:
+            pass
 
     with open(config_path, "w", encoding="utf-8") as f:
         json.dump(config, f, indent=2)

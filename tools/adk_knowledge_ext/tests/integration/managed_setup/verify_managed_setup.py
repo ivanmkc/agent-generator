@@ -92,15 +92,16 @@ def main():
     ]
     run_command(cmd_k_index)
     
-    print("Step 6: Verifying TARGET_INDEX_URL in config...")
+    print("Step 6: Verifying MCP_KNOWLEDGE_BASES in config...")
     result = subprocess.run(list_cmd, capture_output=True, text=True)
     output = result.stdout + result.stderr
     print(f"Gemini Output:\n{output}")
     
-    if f"TARGET_INDEX_URL={index_url}" in output:
-        print("SUCCESS: TARGET_INDEX_URL found in configuration.")
+    # Check for the env var and the embedded index URL
+    if "MCP_KNOWLEDGE_BASES" in output and index_url in output:
+        print("SUCCESS: MCP_KNOWLEDGE_BASES found with correct index URL.")
     else:
-        print("FAIL: TARGET_INDEX_URL missing from configuration.")
+        print(f"FAIL: MCP_KNOWLEDGE_BASES or index URL '{index_url}' missing from configuration.")
         sys.exit(1)
 
     # 5. Verify Tool Execution

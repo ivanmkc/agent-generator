@@ -93,6 +93,18 @@ def main():
             "name": "Full Lifecycle (Install/Bundle/Run/Remove)",
             "dockerfile": "tools/adk_knowledge_ext/tests/integration/full_lifecycle/Dockerfile",
             "tag": "adk-test-lifecycle"
+        },
+        {
+            "name": "Benchmark Runner Image (Ranked Knowledge)",
+            "dockerfile": "benchmarks/answer_generators/gemini_cli_docker/mcp_adk_agent_runner_ranked_knowledge/Dockerfile",
+            "tag": "gemini-cli:mcp_adk_agent_runner_ranked_knowledge",
+            # Verify the image is set up correctly:
+            # 1. Instructions generated
+            # 2. settings.json contains the correct context and server config
+            "run_args": [
+                "bash", "-c",
+                "test -f /root/.mcp_cache/instructions/adk-python.md && grep -q 'adk-python.md' /root/.gemini/settings.json && grep -q 'codebase-knowledge-mcp' /root/.gemini/settings.json"
+            ]
         }
     ]
     
@@ -119,6 +131,11 @@ def main():
             "podman", "run", "--rm",
             test["tag"]
         ]
+        
+        # Append custom run args if present (to override default CMD)
+        if "run_args" in test:
+            run_cmd.extend(test["run_args"])
+            
         if not run_command(run_cmd, description=f"Run {test['tag']}"):
             failed.append(test["name"] + " (Verification)")
             

@@ -13,81 +13,15 @@ All tools support an optional `kb_id` parameter. If omitted, the server defaults
 
 ---
 
-## How It Works: The Install & Runtime Flow
-
-The server uses a unique **Build-Time Bundling** architecture to ensure zero-latency startup and offline capability.
-
-### Architecture Diagram
-
-```mermaid
-sequenceDiagram
-    participant User
-    participant BuildSystem as Build (hatch/pip)
-    participant Registry as registry.yaml
-    participant Package as Python Package
-    participant Setup as Setup CLI
-    participant Config as ~/.gemini/settings.json
-    participant Server as MCP Server
-
-    Note over User, Package: 1. Installation Phase
-    User->>BuildSystem: pip install .
-    BuildSystem->>Registry: Read supported repos
-    BuildSystem->>BuildSystem: Download Indices (Web)
-    BuildSystem->>Package: Bundle Indices into /data/indices/
-    BuildSystem->>Package: Generate manifest.yaml
-
-    Note over User, Config: 2. Setup Phase
-    User->>Setup: manage setup --repo-url ...
-    Setup->>Registry: Resolve Index URL (if not bundled)
-    Setup->>Config: Write env: TARGET_REPO_URL, TARGET_INDEX_URL
-
-    Note over User, Server: 3. Runtime Phase (Offline)
-    User->>Server: Start Server
-    Server->>Package: Check manifest.yaml
-    alt Index Bundled?
-        Server->>Package: Load from /data/indices/ (FAST)
-    else Custom Repo
-        Server->>Server: Download from TARGET_INDEX_URL
-    end
-    Server->>User: Ready (Tools Available)
-```
-
-### 1. Build & Install (`pip install`)
-When you install the package (via `uvx` or `pip`), a custom build hook (`hatch_build.py`) executes automatically:
-1.  **Registry Scan:** Reads `registry.yaml` to identify officially supported repositories (e.g., `google/adk-python`).
-2.  **Download:** Fetches the pre-computed Knowledge Index (YAML) for each repo from the web.
-3.  **Bundle:** Saves these indices directly into the package's `data/indices/` directory.
-4.  **Manifest:** Generates a `manifest.yaml` map so the server can locate them instantly later.
-
-### 2. Setup (`manage setup`)
-When you run the setup command:
-1.  **Input:** You provide the Target Repository URL (e.g., `https://github.com/google/adk-python`).
-2.  **Resolution:** The manager checks its internal registry.
-    *   *If found:* It validates that the index is supported.
-    *   *If custom:* It allows you to provide a local file path or custom URL.
-3.  **Config:** It writes the necessary environment variables (like `TARGET_REPO_URL`) to your Agent's configuration file (e.g., `~/.gemini/settings.json`).
-
-### 3. Runtime (Server Start)
-When your AI Agent starts the server:
-1.  **Zero-Latency Load:** The server checks `manifest.yaml`.
-2.  **Offline Read:** It loads the massive Knowledge Index directly from the local package files (bundled in Step 1).
-    *   *Note:* **No API calls or downloads happen here** for supported repos, ensuring speed and stability.
-3. **Ready:** The tools (`list_modules`, etc.) are immediately available to the agent.
-
-### 4. Multi-Repository Support
-The server uses a **Knowledge Registry** pattern. While it defaults to a single `TARGET_REPO_URL`, it can support multiple repositories simultaneously if they are defined in the `manifest.yaml` or injected via configuration.
-- **Smart Defaulting:** Tools automatically use the default repo if `kb_id` is not provided.
-- **Explicit Targeting:** Agents can access other loaded repositories by passing `kb_id="<repo_id>"`.
-
----
-
 ## Installation & Setup (Recommended)
 
 The easiest way to configure this server in your preferred AI tool is using the built-in setup manager.
 
 **Standard Setup:**
 ```bash
-uvx --from "git+https://github.com/ivanmkc/agent-generator.git#subdirectory=tools/adk_knowledge_ext" codebase-knowledge-mcp-manage setup
+uvx --from "git+https://github.com/ivanmkc/agent-generator.git#subdirectory=tools/adk_knowledge_ext" \
+  codebase-knowledge-mcp-manage setup \
+  --repo-url https://github.com/google/adk-python.git
 ```
 
 **Bypass Private Registry Auth (Common Fix):**
@@ -119,6 +53,60 @@ The tool will:
 3. Automatically update the appropriate configuration files.
 
 > **Verified by:** `tests/integration/managed_setup/` (CLI tools) and `tests/integration/managed_json_setup/` (JSON-based IDEs).
+
+---
+
+## How It Works: The Install & Runtime Flow
+
+The server uses a unique **Build-Time Bundling** architecture to ensure zero-latency startup and offline capability.
+
+### Architecture Diagram
+
+```text
+1. INSTALLATION (Build Time)
+----------------------------
+[Registry] --> [Download Indices] --> [Bundle into Package]
+                                      (manifest.yaml map)
+
+2. SETUP (User Action)
+----------------------
+[Repo URL] --> [Resolve Config] --> [Write settings.json]
+
+3. RUNTIME (Server Start)
+-------------------------
+Check manifest.yaml --+--> [Bundled?] --> Load Local (FAST & OFFLINE)
+                      |
+                      +--> [Custom?]  --> Download from URL
+```
+
+### 1. Build & Install (`pip install`)
+When you install the package (via `uvx` or `pip`), a custom build hook (`hatch_build.py`) executes automatically:
+1.  **Registry Scan:** Reads `registry.yaml` to identify officially supported repositories (e.g., `google/adk-python`).
+2.  **Download:** Fetches the pre-computed Knowledge Index (YAML) for each repo from the web.
+3.  **Bundle:** Saves these indices directly into the package's `data/indices/` directory.
+4.  **Manifest:** Generates a `manifest.yaml` map so the server can locate them instantly later.
+
+### 2. Setup (`manage setup`)
+When you run the setup command:
+1.  **Input:** You provide the Target Repository URL (e.g., `https://github.com/google/adk-python`).
+2.  **Resolution:** The manager checks its internal registry.
+    *   *If found:*
+ It validates that the index is supported.
+    *   *If custom:*
+ It allows you to provide a local file path or custom URL.
+3.  **Config:** It writes the necessary environment variables (like `TARGET_REPO_URL`) to your Agent's configuration file (e.g., `~/.gemini/settings.json`).
+
+### 3. Runtime (Server Start)
+When your AI Agent starts the server:
+1.  **Zero-Latency Load:** The server checks `manifest.yaml`.
+2.  **Offline Read:** It loads the massive Knowledge Index directly from the local package files (bundled in Step 1).
+    *   *Note:* **No API calls or downloads happen here** for supported repos, ensuring speed and stability.
+3. **Ready:** The tools (`list_modules`, etc.) are immediately available to the agent.
+
+### 4. Multi-Repository Support
+The server uses a **Knowledge Registry** pattern. While it defaults to a single `TARGET_REPO_URL`, it can support multiple repositories simultaneously if they are defined in the `manifest.yaml` or injected via configuration.
+- **Smart Defaulting:** Tools automatically use the default repo if `kb_id` is not provided.
+- **Explicit Targeting:** Agents can access other loaded repositories by passing `kb_id="<repo_id>"`.
 
 ---
 
