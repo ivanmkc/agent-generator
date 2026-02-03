@@ -258,7 +258,7 @@ class PodmanContainer:
         payload = {"args": args, "env": env or {}}
 
         async with aiohttp.ClientSession() as session:
-            async with session.post(self.base_url, json=payload, timeout=120.0) as resp:
+            async with session.post(self.base_url, json=payload, timeout=300.0) as resp:
                 if resp.status != 200:
                     text = await resp.text()
                     raise RuntimeError(f"Podman server returned {resp.status}: {text}")
