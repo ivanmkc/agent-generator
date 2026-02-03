@@ -164,9 +164,8 @@ def setup(repo_url: Optional[str], version: str, api_key: Optional[str], index_u
             console.print("\n[bold]Available Knowledge Bases:[/bold]")
             for i, opt in enumerate(available_options):
                 console.print(f"[{i+1}] {opt['label']}")
-            console.print("[0] Enter custom repository URL")
             
-            selection_input = Prompt.ask("\nSelect one or more (comma-separated, e.g. 1, 2) or 0 for custom")
+            selection_input = Prompt.ask("\nSelect one or more (comma-separated, e.g. 1, 2)")
             selected_indices = [int(x.strip()) for x in selection_input.split(",") if x.strip().isdigit()]
             
             # Add Registry Selections
@@ -179,15 +178,6 @@ def setup(repo_url: Optional[str], version: str, api_key: Optional[str], index_u
                         "version": opt["version"],
                         "index_url": opt["index_url"]
                     })
-            
-            # Add Custom Selection
-            if 0 in selected_indices or not selected_kbs:
-                custom_url = Prompt.ask("Enter the Custom Repository URL")
-                selected_kbs.append({
-                    "repo_url": custom_url,
-                    "version": "main", # Default for custom
-                    "index_url": None
-                })
         else:
             # Fallback if registry missing
             repo_url = Prompt.ask("Enter the Target Repository URL")
