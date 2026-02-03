@@ -13,13 +13,21 @@ RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 ENV PATH="/root/.local/bin:$PATH"
 
-# Install extension from Remote GitHub (Main Branch)
-RUN pip install "git+https://github.com/ivanmkc/agent-generator.git#subdirectory=tools/adk_knowledge_ext"
+# Clone and Install adk-python (to have the codebase context)
+RUN mkdir -p /app && git clone --branch v1.20.0 https://github.com/google/adk-python.git /app/adk-python
+RUN pip install --no-cache-dir /app/adk-python pytest
+
+# Install extension from local copy (so build passes even if repo is private)
+COPY tools/adk_knowledge_ext /app/extensions/adk-knowledge-ext
+RUN pip install --no-cache-dir /app/extensions/adk-knowledge-ext
+
+# Set final working directory to the codebase
+WORKDIR /app/adk-python
+RUN git init && git add . && touch GEMINI.md
 
 # Setup Gemini CLI with MCP (Remote Mode)
-# This generates a config using 'uvx --from git+...'
-RUN mkdir -p /root/.gemini && \
-    mkdir -p /root/.mcp_cache/instructions && \
+# We do NOT pass --local, so it generates a config using 'uvx --from git+...'
+RUN mkdir -p .gemini && \
     codebase-knowledge-mcp-manage setup \
     --repo-url "https://github.com/google/adk-python.git" \
     --version "v1.20.0" \

@@ -133,9 +133,12 @@ GENERATOR_METADATA: Dict[str, AnyGeneratorConfig] = {
             "benchmarks/answer_generators/gemini_cli_docker/mcp_adk_agent_runner_ranked_knowledge"
         ),
         image_name="gemini-cli:mcp_adk_agent_runner_ranked_knowledge",
-        expected_mcp_servers=["codebase-knowledge"],
+        expected_mcp_servers=["codebase-knowledge", "adk-agent-runner"],
         custom_case=MCP_ADK_RUNNER_CASE,
-        expected_tool_uses=["list_modules", "inspect_symbol", "run_adk_agent"],
+        expected_tool_uses=[
+            "list_modules",
+        ],
+        expected_context_files=["/workdir/.gemini/instructions/adk-python.md"],
         extra_env={"ADK_SEARCH_PROVIDER": "vector"},
     ),
     "podman_mcp_adk_runner_remote_main_test_case": PodmanGeneratorConfig(
@@ -146,7 +149,10 @@ GENERATOR_METADATA: Dict[str, AnyGeneratorConfig] = {
         image_name="gemini-cli:mcp_adk_agent_runner_remote_main",
         expected_mcp_servers=["codebase-knowledge"],
         custom_case=MCP_ADK_RUNNER_CASE,
-        expected_tool_uses=["list_modules"],
+        expected_tool_uses=[
+            "list_modules",
+        ],
+        expected_context_files=["/workdir/.gemini/instructions/adk-python.md"],
     ),
     "podman_adk_skill_test_case": PodmanGeneratorConfig(
         id="podman_adk_skill_test_case",

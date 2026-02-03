@@ -524,7 +524,14 @@ def _configure_ide_json(ide_info: dict, mcp_config: dict) -> None:
                 repo_name = repo_url.split("/")[-1].replace(".git", "")
                 kb_id = f"{repo_name}-{version}" if version != "main" else repo_name
                 
-                instr_path = Path.home() / ".mcp_cache" / "instructions" / f"{repo_name}.md"
+                # Preferred path: .gemini/instructions/ in current workspace
+                # Fallback: ~/.mcp_cache/instructions/
+                local_gemini = Path.cwd() / ".gemini"
+                if local_gemini.exists():
+                    instr_path = local_gemini / "instructions" / f"{repo_name}.md"
+                else:
+                    instr_path = Path.home() / ".mcp_cache" / "instructions" / f"{repo_name}.md"
+                    
                 instr_path.parent.mkdir(parents=True, exist_ok=True)
                 
                 if template_content:
@@ -534,7 +541,12 @@ def _configure_ide_json(ide_info: dict, mcp_config: dict) -> None:
                     content = content.replace("{{CURRENT_KB_ID}}", kb_id)
                     instr_path.write_text(content)
                 
-                instr_paths.append(str(instr_path))
+                # Use relative path if within workspace
+                try:
+                    rel_p = instr_path.relative_to(Path.cwd())
+                    instr_paths.append(str(rel_p))
+                except ValueError:
+                    instr_paths.append(str(instr_path))
             
             if instr_paths:
                 if "context" not in config:
@@ -548,9 +560,12 @@ def _configure_ide_json(ide_info: dict, mcp_config: dict) -> None:
                         existing_files.append(p)
                     
                     # Ensure parent dir is included
-                    parent_dir = str(Path(p).parent)
-                    if parent_dir not in existing_dirs:
-                        existing_dirs.append(parent_dir)
+                    try:
+                        parent_dir = str(Path(p).parent)
+                        if parent_dir not in existing_dirs:
+                            existing_dirs.append(parent_dir)
+                    except Exception:
+                        pass
                 
                 config["context"]["fileName"] = existing_files
                 config["context"]["includeDirectories"] = existing_dirs

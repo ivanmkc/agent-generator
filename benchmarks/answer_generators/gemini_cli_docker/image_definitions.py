@@ -98,6 +98,13 @@ IMAGE_DEFINITIONS: Dict[str, ImageDefinition] = {
         dependencies=[f"{IMAGE_PREFIX}:base"],
         build_args={"BASE_IMAGE": f"{IMAGE_PREFIX}:base"},
     ),
+    f"{IMAGE_PREFIX}:mcp_adk_agent_runner_remote_main": ImageDefinition(
+        source_dir="../../../",
+        dockerfile="mcp_adk_agent_runner_remote_main/Dockerfile",
+        description="**Remote Main Runner:** Tests the production flow where the MCP server is installed directly from the GitHub main branch using uvx.",
+        dependencies=[f"{IMAGE_PREFIX}:base"],
+        build_args={"BASE_IMAGE": f"{IMAGE_PREFIX}:base"},
+    ),
     f"{IMAGE_PREFIX}:gemini-cli-mcp-context7": ImageDefinition(
         source_dir="mcp_context7",
         dockerfile="mcp_context7/Dockerfile",
