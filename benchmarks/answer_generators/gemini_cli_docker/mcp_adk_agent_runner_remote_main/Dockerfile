@@ -14,10 +14,12 @@ RUN mkdir -p /workdir && git clone --branch v1.20.0 https://github.com/google/ad
 
 # Set final working directory
 WORKDIR /workdir
+RUN git init && git add . && touch GEMINI.md
 
 # Setup Gemini CLI with MCP (Remote Mode)
 RUN --mount=type=secret,id=github_token \
     git config --global url."https://oauth2:$(cat /run/secrets/github_token)@github.com".insteadOf https://github.com && \
+    mkdir -p .gemini && \
     uvx --from "git+https://github.com/ivanmkc/agent-generator.git@mcp_server#subdirectory=tools/adk_knowledge_ext" \
     codebase-knowledge-mcp-manage setup \
     --repo-url "https://github.com/google/adk-python.git" \
