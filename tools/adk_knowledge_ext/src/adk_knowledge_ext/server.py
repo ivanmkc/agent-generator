@@ -1,4 +1,15 @@
-"""Server module."""
+"""
+Codebase Knowledge MCP Server.
+
+This module implements a Model Context Protocol (MCP) server that provides tools for:
+- Browsing ranked codebase modules.
+- Inspecting symbol specifications (classes, functions).
+- Reading implementation source code.
+- Semantic searching within the codebase.
+
+It supports multiple knowledge bases (repositories), either bundled directly into the
+package (for zero-latency offline use) or configured via environment variables.
+"""
 
 import logging
 import subprocess
@@ -13,6 +24,18 @@ from .reader import SourceReader
 from .config import config
 
 class KnowledgeBaseConfig(BaseModel):
+    """
+    Configuration model for a single Knowledge Base (repository).
+    
+    Attributes:
+        id: Unique identifier for the KB (e.g., 'adk-python-v1.20.0').
+        repo_url: The Git URL of the repository.
+        version: The version tag or branch name.
+        index_url: Optional URL to download the pre-computed knowledge index.
+        name: Human-readable name.
+        description: Description of the codebase.
+        source: Origin of the config ('bundled' or 'env').
+    """
     id: str
     repo_url: str
     version: str
@@ -53,6 +76,16 @@ mcp = FastMCP("codebase-knowledge")
 _readers: dict[str, SourceReader] = {}
 
 def _get_reader(repo_url: str, version: str) -> SourceReader:
+    """
+    Retrieves or creates a cached SourceReader for the specified repository and version.
+    
+    Args:
+        repo_url: The Git URL of the repository.
+        version: The version/branch to read from.
+        
+    Returns:
+        A configured SourceReader instance.
+    """
     key = f"{repo_url}@{version}"
     if key not in _readers:
         _readers[key] = SourceReader(repo_url=repo_url, version=version)

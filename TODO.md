@@ -30,6 +30,7 @@
 - [ ] **Notebook CI:** Add a CI step (or pre-commit hook) to run `papermill` on visualization notebooks with dummy data to prevent regressions.
 - [ ] **Canonical Agent:** Create one canonical agent that uses 99% of the API, with comments. This will be used as a sample to present as initial context. It needs tests.
 - [x] **List Modules Pagination:** Determined that Page 1 (first 51 items) captures >99% of cumulative usage (368/370).
+- [ ] **Index Automation:** Create a script to rebuild `ranked_targets.yaml` for the latest `adk-python` release and update the registry.
 
 # On Hold (do not start)
 
