@@ -236,10 +236,16 @@ async def test_generator_memory_context(test_case: GeneratorTestCase) -> None:
 @pytest.mark.asyncio
 async def test_read_source_code_dynamic_clone(test_case: GeneratorTestCase) -> None:
     """
-    Verifies that read_source_code triggers dynamic cloning for remote_main runner.
+    Verifies that read_source_code works (triggering dynamic cloning if needed).
+    Runs for both remote_main (private repo) and ranked_knowledge (public/local repo).
     """
-    if test_case.id != "podman_mcp_adk_runner_remote_main_test_case":
-        pytest.skip("Dynamic clone test is specific to remote_main runner.")
+    target_ids = [
+        "podman_mcp_adk_runner_remote_main_test_case",
+        "podman_mcp_adk_runner_ranked_knowledge_test_case"
+    ]
+    
+    if test_case.id not in target_ids:
+        pytest.skip("Dynamic clone test is specific to knowledge MCP runners.")
 
     generator = test_case.generator
     

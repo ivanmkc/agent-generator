@@ -290,3 +290,58 @@ graph TD
 > - **`parse_cli_stream_json_output`**: Helper function (external) to convert raw CLI streaming output into structured JSON objects.
 > 
 
+
+## gemini-cli:mcp_adk_agent_runner_remote_main
+
+### Concise Summary
+- **Core Philosophy:** A container-first design pattern that isolates AI tool execution within ephemeral Podman environments to ensure reproducibility, security, and distinct dependency management per experiment.
+- **Topology:** Containerized Proxy / Remote Execution Pattern
+- **Key Tool Chain:** `Python 3.x (Asyncio)`, `Podman (Container Runtime)`, `gemini-cli (Target Application)`, `aiohttp (Inter-process Communication)`, `Docker/Container Images`
+
+---
+
+### Extensive Architectural Breakdown
+
+> **1. Architecture Overview**
+> The system follows a Proxy-Adapter pattern where the `GeminiCliPodmanAnswerGenerator` acts as a high-level driver. Instead of running the `gemini-cli` directly on the host, it manages a `PodmanContainer` lifecycle. The generator ensures the container is running (Setup), sends execution commands via an API bridge (likely HTTP/JSON) to the containerized environment, and parses the raw stdout/stderr streams into structured `TraceLogEvent` objects. This architecture decouples the agent logic from the runtime environment.
+>
+> **2. Tool Chain Analysis**
+> - **`GeminiCliPodmanAnswerGenerator`**: The primary orchestration class that creates a bridge between the host application and the isolated container environment. (e.g., *Instantiated with a specific `image_name` to run an experiment using a specific version of the CLI tools.*)
+> - **`PodmanContainer`**: A wrapper class (dependency) responsible for the low-level management of the container daemon (starting, stopping, and file I/O). (e.g., *Used to `await self.container.start()` or `read_file` to retrieve error reports from the container file system.*)
+> - **`gemini-cli`**: The core executable running inside the container that interacts with the LLM models. (e.g., *Invoked via constructed command lists like `['gemini', 'prompt', '--model', '...']`.*)
+> - **`TraceLogEvent`**: Data structure for capturing structured logs from the raw container output. (e.g., *Used to tag `CLI_STDERR` or `GEMINI_CLIENT_ERROR` events for downstream debugging.*)
+> 
+>
+> **3. Call Hierarchy & Flow**
+> ```
+> Client Code
+>    |
+>    v
+> [GeminiCliPodmanAnswerGenerator.run_cli_command()]
+>    |-- Check Setup -> [setup()] -> [PodmanContainer.start()]
+>    |
+>    |-- Merge Env Vars -> [Prepare Command List]
+>    |
+>    |-- [API Call / Proxy Request] ---------> [Podman Container]
+>    |                                                |
+>    |                                         [gemini-cli execution]
+>    |                                                |
+>    | <------ [JSON Response / Stdout] <-------------|
+>    |
+>    |-- [Error Pattern Matching (Regex)]
+>    |-- [Output Parsing (JSON Stream vs Raw)]
+>    |
+>    v
+> Returns (response_dict, logs)
+> ```
+>
+> **4. Detailed Call Flow Example**
+> 1. User initiates `run_cli_command` with a prompt. 2. `setup()` checks if the container is running; if not, it triggers `PodmanContainer.start()` and waits for the base URL. 3. The `context_instruction` is prepended to the prompt args. 4. `run_cli_command` sends the args and merged environment variables to the container. 5. The container executes `gemini-cli`. 6. Code detects a return code of 1. 7. Regex scans stderr for 'Error when talking to Gemini API'. 8. It matches, calls `container.read_file` to get the full report. 9. A `GeminiCliExecutionError` is raised containing the full report and log trace.
+>
+> **5. Key Components**
+> - **`GeminiCliPodmanAnswerGenerator`**: Main entry point. Manages configuration, lifecycle state (setup/teardown), and coordinates the request/response cycle.
+> - **`run_cli_command`**: Core logic method. Handles command construction, environment injection, proxy communication, output parsing, and error enrichment.
+> - **`setup`**: Async initialization method using a lock to ensure the container is only started once per session. Establishes the `_base_url`.
+> - **`_is_proxy logic`**: Determines if the generator communicates via a direct container handle or acts as a pure network proxy to an existing service.
+> 
+
