@@ -12,6 +12,9 @@ import aiohttp
 
 from benchmarks.answer_generators.hash_utils import calculate_source_hash
 
+# List of secret IDs to mount from .env during podman builds
+PODMAN_BUILD_SECRET_IDS: List[str] = ["github_token"]
+
 class PodmanContainer:
     """
     Manages the lifecycle of a Gemini CLI Podman container.
@@ -172,6 +175,12 @@ class PodmanContainer:
     async def _execute_podman_build(self, image_name: str, dockerfile_path: Path, context_path: Path, build_args: Optional[Dict[str, str]] = None, labels: Optional[Dict[str, str]] = None):
         print(f"Building Podman image: {image_name}...")
         build_cmd = ["podman", "build", "-t", image_name, "-f", str(dockerfile_path)]
+
+        # Inject secrets if .env exists
+        if Path(".env").exists():
+            for secret_id in PODMAN_BUILD_SECRET_IDS:
+                build_cmd.extend(["--secret", f"id={secret_id},src=.env"])
+
         if build_args:
             for k, v in build_args.items():
                 build_cmd.extend(["--build-arg", f"{k}={v}"])

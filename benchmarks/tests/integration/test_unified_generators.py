@@ -88,7 +88,7 @@ async def test_generator_capabilities(test_case: GeneratorTestCase) -> None:
         checks_performed = True
         print(f"[{test_case.id}] Fetching MCP tools...")
         actual_mcp = await generator.get_mcp_servers()
-        print(f"[{test_case.id}] Discovered MCP tools: {actual_mcp}")
+        print(f"[{test_case.id}] Discovered MCP servers: {actual_mcp}")
 
         for expected in test_case.expected_mcp_servers:
             assert any(
