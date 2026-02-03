@@ -1,6 +1,20 @@
 # Codebase Knowledge MCP Server
 
-A repository-agnostic MCP server that gives AI coding agents (Claude Code, Cursor, Gemini CLI, Windsurf, etc.) deep access to any codebase using ranked indices.
+The **Codebase Knowledge MCP Server** is a high-performance [Model Context Protocol](https://modelcontextprotocol.io/) server designed to give AI agents deep, grounded, and efficient access to massive repositories. 
+
+## The Problem (Motivation)
+Modern LLMs have large context windows, but they still struggle with:
+1.  **Context Overload:** Shoving an entire codebase into context is expensive, slow, and often results in the model "getting lost" or hallucinating.
+2.  **Noise:** Most files in a repo are irrelevant to a specific task. Finding the "high-value" entry points (classes, main functions, core modules) is difficult for an agent without guidance.
+3.  **Stale Knowledge:** Standard RAG (Retrieval-Augmented Generation) often lacks the structural understanding of codebases (e.g., distinguishing a core interface from a test helper).
+
+## The Solution
+This server implements a **Ranked Retrieval** strategy. It uses pre-computed indices that rank symbols and modules based on their importance and centrality in the codebase. This allows agents to:
+- **Browse First:** Explore the "top 20" most important modules instead of staring at thousands of files.
+- **Inspect Deeply:** Retrieve full class specifications and signatures with zero noise.
+- **Zero Latency:** High-value indices are bundled directly into the server for near-instant startup and offline use.
+
+---
 
 ## Tools Provided
 
