@@ -70,6 +70,7 @@ class PodmanContainer:
                 "GOOGLE_CLOUD_LOCATION",
                 "CONTEXT7_API_KEY",
                 "GOOGLE_API_KEY",
+                "GITHUB_TOKEN",
             ]
             for var in env_vars:
                 if os.environ.get(var):

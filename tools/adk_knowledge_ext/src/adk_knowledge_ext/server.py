@@ -185,7 +185,14 @@ def _ensure_index(kb_id: str | None) -> str:
         if not cached_index.exists():
             logger.info(f"Downloading index from {index_url}...")
             try:
-                subprocess.run(["curl", "-f", "-L", "-o", str(cached_index), index_url], check=True)
+                cmd = ["curl", "-f", "-L", "-o", str(cached_index)]
+                # Add auth token if available
+                gh_token = os.environ.get("GITHUB_TOKEN")
+                if gh_token:
+                    cmd.extend(["-H", f"Authorization: token {gh_token}"])
+                cmd.append(index_url)
+                
+                subprocess.run(cmd, check=True)
             except Exception as e:
                 logger.error(f"Failed to download index: {e}")
                 cached_index = None
