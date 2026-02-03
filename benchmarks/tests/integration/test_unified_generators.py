@@ -233,6 +233,93 @@ async def test_generator_memory_context(test_case: GeneratorTestCase) -> None:
         ), f"Expected context file '{expected_file}' not found in loaded memory paths. Available: {loaded_paths}"
 
 
+@pytest.mark.asyncio
+async def test_read_source_code_dynamic_clone(test_case: GeneratorTestCase) -> None:
+    """
+    Verifies that read_source_code triggers dynamic cloning for remote_main runner.
+    """
+    if test_case.id != "podman_mcp_adk_runner_remote_main_test_case":
+        pytest.skip("Dynamic clone test is specific to remote_main runner.")
+
+    generator = test_case.generator
+    
+    # Prompt the agent to read source code, which should trigger the clone
+    # We use a dummy BenchmarkCase structure to reuse generate_answer interface if possible,
+    # or just use run_cli_command directly for finer control.
+    # Using run_cli_command is better to avoid the complexity of a full benchmark case validation.
+    
+    # Ensure generator setup
+    await generator.setup()
+    
+    print(f"[{test_case.id}] Testing dynamic clone via read_source_code...")
+    
+    prompt = (
+        "Please read the source code for the class `google.adk.agents.base_agent.BaseAgent` "
+        "using the `read_source_code` tool. I need to see the class definition. "
+        "Use kb_id='adk-python-v1.20.0'."
+    )
+    
+    command_parts = [
+        generator.cli_path,
+        "--output-format", "json",
+        "--model", generator.model_name,
+        "--yolo", # Auto-approve tool use
+        "--debug",
+        prompt
+    ]
+    
+    # We need to inject the API key manually if we bypass generate_answer
+    from core.api_key_manager import KeyType
+    # Assuming the generator has an api_key_manager initialized by the fixture/orchestrator
+    # We'll borrow a key temporarily
+    run_id = f"test_clone_{uuid.uuid4().hex}"
+    current_key, _ = await generator.api_key_manager.get_key_for_run(run_id, KeyType.GEMINI_API)
+    env = {"GEMINI_API_KEY": current_key}
+    
+    try:
+        response_dict, logs = await generator.run_cli_command(command_parts, extra_env=env)
+        
+        # Check logs for tool execution
+        tool_calls = [e for e in logs if e.type == "TOOL_CALL"]
+        tool_results = [e for e in logs if e.type == "TOOL_RESULT"]
+        
+        # Verify read_source_code was called
+        read_calls = [tc for tc in tool_calls if tc.tool_name == "read_source_code"]
+        
+        if not read_calls:
+             # Save logs for debugging
+            logs_str = json.dumps([t.model_dump() for t in logs], default=str)
+            project_tmp_dir = Path("tmp/test_traces")
+            timestamp_str = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            log_file = project_tmp_dir / f"dynamic_clone_fail_{timestamp_str}.json"
+            log_file.parent.mkdir(parents=True, exist_ok=True)
+            with open(log_file, "w") as f:
+                f.write(logs_str)
+            print(f"[{test_case.id}] Trace logs saved to {log_file}")
+            
+        assert read_calls, "Agent did not attempt to call read_source_code."
+        
+        # Verify result was successful (not an error string)
+        # The tool returns code content on success, or "Error: ..." on failure.
+        # We need to find the result matching the call.
+        
+        read_success = False
+        for result in tool_results:
+            if result.tool_name == "read_source_code":
+                content = result.content
+                if "class BaseAgent" in content and "Error:" not in content[:50]:
+                    read_success = True
+                    print(f"[{test_case.id}] Successfully read source code from dynamically cloned repo.")
+                    break
+                elif "Error:" in content:
+                    print(f"[{test_case.id}] read_source_code returned error: {content}")
+        
+        assert read_success, "read_source_code failed to return the expected source code content."
+        
+    finally:
+        generator.api_key_manager.release_run(run_id)
+
+
 # --- Orchestrator Logic ---
 
 

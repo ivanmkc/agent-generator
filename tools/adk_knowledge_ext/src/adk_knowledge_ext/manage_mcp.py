@@ -583,10 +583,31 @@ def _configure_ide_json(ide_info: dict, mcp_config: dict) -> None:
                     except Exception:
                         pass
                 
-                config["context"]["fileName"] = existing_files
                 config["context"]["includeDirectories"] = existing_dirs
                 # Enable loading
                 config["context"]["loadMemoryFromIncludeDirectories"] = True
+                
+                # Deduplicate and add files
+                current_files = config["context"].get("fileName", [])
+                # Normalize existing for comparison
+                existing_abs = set()
+                for f in current_files:
+                    try:
+                        existing_abs.add(str(Path(f).resolve()))
+                    except Exception:
+                        existing_abs.add(str(f))
+                
+                for p in instr_paths:
+                    try:
+                        p_abs = str(Path(p).resolve())
+                        if p_abs not in existing_abs:
+                            current_files.append(p)
+                            existing_abs.add(p_abs)
+                    except Exception:
+                        if p not in current_files:
+                            current_files.append(p)
+                
+                config["context"]["fileName"] = current_files
         except Exception:
             pass
 

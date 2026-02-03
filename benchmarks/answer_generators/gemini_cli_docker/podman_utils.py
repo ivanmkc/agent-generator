@@ -85,6 +85,16 @@ class PodmanContainer:
 
             cmd.append(self.image_name)
 
+            # Override the default command to configure git if GITHUB_TOKEN is present
+            # The original command is 'python3 /usr/local/bin/cli_server.py'
+            cmd.extend([
+                "bash", "-c",
+                "if [ -n \"$GITHUB_TOKEN\" ]; then "
+                "git config --global url.\"https://oauth2:${GITHUB_TOKEN}@github.com\".insteadOf https://github.com; "
+                "fi; "
+                "exec python3 /usr/local/bin/cli_server.py"
+            ])
+
             # Start container
             process = await asyncio.create_subprocess_exec(
                 *cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE

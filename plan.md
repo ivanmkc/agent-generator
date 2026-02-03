@@ -19,13 +19,17 @@
 ## 2. Finished Tasks
 - [x] **Runner Modernization:** Removed redundant `git init` and `mkdir` commands from Dockerfiles.
 - [x] **Secure Build Secrets:** Updated `podman_utils.py` and `remote_main` Dockerfile to support `.env` secret mounting.
-- [x] **Multi-Repo Context:** Updated `KB_REGISTRY` format to `{kb_id: description}` as requested.
+- [x] **Runtime Authentication:** Implemented secure token injection for `git clone` (reader.py), `curl` (server.py), and `uvx` (podman_utils.py) to support private repositories without baking secrets into images.
+- [x] **Multi-Repo Context:** Updated `KB_REGISTRY` format to `{kb_id: description}`.
+- [x] **Code Quality:** Refactored `server.py` to use Pydantic models for configuration.
 - [x] **UX Improvements:** Rephrased setup prompts as questions and ensured case-insensitivity.
 - [x] **Integration Testing:** Verified both `ranked_knowledge` and `remote_main` runners pass the unified integration tests (6/6 passing).
+- [x] **Benchmark Verification:** Successfully ran the full debug suite with `remote_main`. The `api_understanding` case passed, confirming the MCP tools are working correctly on the private repo.
 - [x] **Documentation:** Updated all READMEs to point to the correct `mcp_server` branch and installation commands.
 - [x] **Hygiene:** Cleaned up accidentally tracked large index files and unused `patch_settings.py`.
 
 ## 3. Current Status & Questions
+- **Remote Runner:** The `remote_main` runner is now fully functional and secure. It can authenticate with private repositories at runtime using the injected `GITHUB_TOKEN`.
 - **Roo Code Accuracy:** The path `~/.roo-code/mcp.json` is likely incorrect for modern Roo Code installations. 
     - *Question:* Should we update this to the official VS Code global storage path?
 - **Antigravity:** This integration is assumed correct as it shares logic with the verified Gemini CLI flow.
