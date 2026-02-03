@@ -19,14 +19,12 @@ COPY benchmarks/answer_generators/gemini_cli_docker/mcp_adk_agent_runner_basic/s
 
 # Set final working directory
 WORKDIR /workdir
-RUN git init && git add . && touch GEMINI.md
 
 # Install extension from local copy (for mounting via uvx)
 COPY tools/adk_knowledge_ext /app/extensions/adk-knowledge-ext
 
 # Setup Gemini CLI with MCP (Local Mode via uvx)
-RUN mkdir -p .gemini && \
-    uvx --from /app/extensions/adk-knowledge-ext \
+RUN uvx --from /app/extensions/adk-knowledge-ext \
     codebase-knowledge-mcp-manage setup \
     --repo-url "https://github.com/google/adk-python.git" \
     --version "v1.20.0" \
