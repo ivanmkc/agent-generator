@@ -12,11 +12,6 @@ ENV PATH="/root/.local/bin:$PATH"
 # Clone codebase (to have the context)
 RUN mkdir -p /workdir && git clone --branch v1.20.0 https://github.com/google/adk-python.git /workdir
 
-# Install ADK Agent Runner tools
-COPY benchmarks/answer_generators/gemini_cli_docker/mcp_adk_agent_runner_basic/requirements.txt /tmp/requirements.txt
-RUN pip install --no-cache-dir -r /tmp/requirements.txt
-COPY benchmarks/answer_generators/gemini_cli_docker/mcp_adk_agent_runner_basic/src/ /app/agent-runner/
-
 # Set final working directory
 WORKDIR /workdir
 
@@ -30,7 +25,3 @@ RUN uvx --from /app/extensions/adk-knowledge-ext \
     --version "v1.20.0" \
     --local \
     --force
-
-# Manually add the adk-agent-runner to settings.json
-COPY benchmarks/answer_generators/gemini_cli_docker/mcp_adk_agent_runner_ranked_knowledge/patch_settings.py /tmp/patch_settings.py
-RUN python3 /tmp/patch_settings.py

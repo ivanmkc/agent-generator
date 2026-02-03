@@ -133,7 +133,7 @@ GENERATOR_METADATA: Dict[str, AnyGeneratorConfig] = {
             "benchmarks/answer_generators/gemini_cli_docker/mcp_adk_agent_runner_ranked_knowledge"
         ),
         image_name="gemini-cli:mcp_adk_agent_runner_ranked_knowledge",
-        expected_mcp_servers=["codebase-knowledge", "adk-agent-runner"],
+        expected_mcp_servers=["codebase-knowledge"],
         custom_case=MCP_ADK_RUNNER_CASE,
         expected_tool_uses=[
             "list_modules",
