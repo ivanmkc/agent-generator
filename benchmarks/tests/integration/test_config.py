@@ -138,6 +138,16 @@ GENERATOR_METADATA: Dict[str, AnyGeneratorConfig] = {
         expected_tool_uses=["list_modules", "inspect_symbol", "run_adk_agent"],
         extra_env={"ADK_SEARCH_PROVIDER": "vector"},
     ),
+    "podman_mcp_adk_runner_remote_main_test_case": PodmanGeneratorConfig(
+        id="podman_mcp_adk_runner_remote_main_test_case",
+        dockerfile_dir=Path(
+            "benchmarks/answer_generators/gemini_cli_docker/mcp_adk_agent_runner_remote_main"
+        ),
+        image_name="gemini-cli:mcp_adk_agent_runner_remote_main",
+        expected_mcp_servers=["codebase-knowledge"],
+        custom_case=MCP_ADK_RUNNER_CASE,
+        expected_tool_uses=["list_modules"],
+    ),
     "podman_adk_skill_test_case": PodmanGeneratorConfig(
         id="podman_adk_skill_test_case",
         dockerfile_dir=Path(

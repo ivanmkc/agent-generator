@@ -105,6 +105,15 @@ def main():
                 "bash", "-c",
                 "test -f /root/.mcp_cache/instructions/adk-python.md && grep -q 'adk-python.md' /root/.gemini/settings.json && grep -q 'codebase-knowledge-mcp' /root/.gemini/settings.json"
             ]
+        },
+        {
+            "name": "Benchmark Runner Image (Remote Main)",
+            "dockerfile": "benchmarks/answer_generators/gemini_cli_docker/mcp_adk_agent_runner_remote_main/Dockerfile",
+            "tag": "gemini-cli:mcp_adk_agent_runner_remote_main",
+            "run_args": [
+                "bash", "-c",
+                "test -f /root/.mcp_cache/instructions/adk-python.md && grep -q 'adk-python.md' /root/.gemini/settings.json && grep -q 'codebase-knowledge-mcp' /root/.gemini/settings.json"
+            ]
         }
     ]
     

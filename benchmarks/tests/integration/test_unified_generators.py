@@ -246,7 +246,7 @@ async def run_orchestrator():
     # We filter specifically for Podman which requires orchestration
     generators = [
         config for config in GENERATOR_METADATA.values() 
-        if config.type in ["podman"] and config.id == "podman_mcp_adk_runner_ranked_knowledge_test_case"
+        if config.type in ["podman"]
     ]
 
     print("=== Starting Sequential Integration Test Suite ===")
