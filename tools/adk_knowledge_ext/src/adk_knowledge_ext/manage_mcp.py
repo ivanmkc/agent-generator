@@ -266,10 +266,10 @@ def setup(repo_url: Optional[str], version: str, api_key: Optional[str], index_u
     if force:
         selected_ides = detected_ides
     else:
-        console.print("\n[bold]Configure MCP for:[/bold]")
+        console.print("\n[bold]Which coding agents would you like to configure?[/bold]")
         for ide_name in detected_ides:
             default_val = not configured_status.get(ide_name, False)
-            if ask_confirm(f"   {ide_name}", default=default_val):
+            if ask_confirm(f"   Configure {ide_name}?", default=default_val):
                 selected_ides[ide_name] = detected_ides[ide_name]
 
     if not selected_ides:
