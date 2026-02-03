@@ -12,7 +12,7 @@ This directory contains Docker configurations for running ADK benchmarks with di
 
 ### 2. `mcp_adk_agent_runner_remote_main` (CI / Release Test)
 - **Use Case:** Verifying that the tool works when installed from the public GitHub repository (integration testing the "user flow").
-- **Installation:** Installs from `git+https://github.com/ivanmkc/agent-generator.git#subdirectory=tools/adk_knowledge_ext`.
+- **Installation:** Installs from `git+https://github.com/ivanmkc/agent-generator.git@mcp_server#subdirectory=tools/adk_knowledge_ext`.
 - **Configuration:** Uses `manage setup` (default) which configures `uvx --from git+...`.
 - **Requirements:** Requires `uv` to be installed in the image.
 - **Note:** This runner depends on the code being pushed to the remote `main` branch.

@@ -373,7 +373,7 @@ def _generate_mcp_config(selected_kbs: List[Dict[str, str]], api_key: Optional[s
              if (Path(pkg_spec) / "tools" / "adk_knowledge_ext").exists():
                  pkg_spec = str(Path(pkg_spec) / "tools" / "adk_knowledge_ext")
     else:
-        pkg_spec = "git+https://github.com/ivanmkc/agent-generator.git#subdirectory=tools/adk_knowledge_ext"
+        pkg_spec = "git+https://github.com/ivanmkc/agent-generator.git@mcp_server#subdirectory=tools/adk_knowledge_ext"
     
     args = []
     if index_url:
