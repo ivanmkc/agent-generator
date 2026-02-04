@@ -28,21 +28,20 @@ The easiest way to configure this server is using the built-in setup manager.
 ```bash
 uvx --from "git+https://github.com/ivanmkc/agent-generator.git@mcp_server#subdirectory=tools/adk_knowledge_ext" \
   codebase-knowledge-mcp-manage setup \
-  --repo-url https://github.com/google/adk-python.git
+  --kb-ids "adk-python-v1.20.0"
 ```
 
-**Custom/Private Repositories:**
-If the repository is not in the official registry, provide a local index file:
+**Non-Interactive (CI/CD):**
+To skip prompts and use default settings:
 ```bash
 uvx --from ... codebase-knowledge-mcp-manage setup \
-  --repo-url https://github.com/your-org/private-repo.git \
-  --knowledge-index-url file:///path/to/local/index.yaml \
-  --force
+  --kb-ids "adk-python-v1.20.0" \
+  --quiet
 ```
 
 The tool will:
 1. Detect installed agents (Claude Code, Gemini CLI, Cursor, Windsurf, Roo Code, etc.).
-2. Generate a custom `instructions/repo-name.md` file.
+2. Generate a custom `instructions/KNOWLEDGE_MCP_SERVER_INSTRUCTION.md` file.
 3. Automatically update the agent's configuration with the necessary JSON state.
 
 ---
@@ -84,11 +83,11 @@ The server is configured via the `MCP_KNOWLEDGE_BASES` environment variable, whi
 ## How It Works: The Knowledge Lifecycle
 
 ### 1. Build-Time Bundling
-When the package is built (or installed via `uvx`), officially supported indices defined in `data/manifest.yaml` are bundled directly into the Python package. This ensures **zero-latency startup** and **offline capability** for known repositories like `google/adk-python`.
+When the package is built (or installed via `uvx`), officially supported indices defined in `registry.yaml` are bundled directly into the Python package. This ensures **zero-latency startup** and **offline capability** for known repositories like `google/adk-python`.
 
 ### 2. Runtime Resolution
 When a tool is called:
-1.  **Check Manifest:** The server looks for a locally bundled index matching the `repo_url` and `version`.
+1.  **Check Registry:** The server looks for a locally bundled index matching the `repo_url` and `version` in `registry.yaml`.
 2.  **Check Cache:** If not bundled, it checks `~/.mcp_cache/indices/`.
 3.  **On-Demand Download:** If missing, it attempts to download the index from the `index_url` provided in the configuration.
 4.  **Local Clone:** The server maintains a shallow clone of the source code in `~/.mcp_cache/repo/` for the `read_source_code` tool.
