@@ -209,6 +209,7 @@ def setup(kb_ids: Optional[str], repo_url: Optional[str], version: Optional[str]
 
     # 1. Resolve Selection
     if kb_ids:
+        console.print(f"[dim]Pre-selecting Knowledge Bases from list: {kb_ids} (skipping interactive selection)[/dim]")
         # Resolve IDs: owner/repo@version OR owner/repo (default)
         requested_ids = [x.strip() for x in kb_ids.split(",") if x.strip()]
         for rid in requested_ids:
