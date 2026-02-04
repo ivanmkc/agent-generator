@@ -206,9 +206,19 @@ class ApiKeyManager:
         """Persists current stats to JSON file."""
         data = {}
         for k_type, stats_map in self._key_stats.items():
-            data[k_type.value] = {
-                k_id: asdict(stat) for k_id, stat in stats_map.items()
-            }
+            data[k_type.value] = {}
+            for k_id, stat in stats_map.items():
+                # Explicitly construct dict to avoid leaking the key
+                stat_dict = {
+                    "id": stat.id,
+                    "status": stat.status.value,
+                    "success_count": stat.success_count,
+                    "failure_count": stat.failure_count,
+                    "last_used": stat.last_used,
+                    "cooldown_until": stat.cooldown_until,
+                    "consecutive_failures": stat.consecutive_failures,
+                }
+                data[k_type.value][k_id] = stat_dict
 
         try:
             # This is a quick operation, a thread lock is fine to prevent corruption
