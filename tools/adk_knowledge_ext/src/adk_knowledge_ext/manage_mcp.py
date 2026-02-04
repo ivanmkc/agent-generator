@@ -601,9 +601,13 @@ def debug():
                             console.print(f"      [dim]→ search_knowledge({json.dumps(q_args)})[/dim]")
                             result = await session.call_tool("search_knowledge", arguments=q_args)
                             content = result.content[0].text
-                            console.print(f"      ✅ [green]OK[/green]")
-                            # Increased truncation limit to 800 chars
-                            console.print(Panel(content[:800] + ("..." if len(content)>800 else ""), title="Output (Truncated)", border_style="dim"))
+                            
+                            if "Error" in content or "not found" in content.lower():
+                                console.print(f"      ❌ [red]Failed[/red]")
+                                console.print(Panel(content, title="Output (Error)", border_style="red"))
+                            else:
+                                console.print(f"      ✅ [green]OK[/green]")
+                                console.print(Panel(content[:800] + ("..." if len(content)>800 else ""), title="Output (Truncated)", border_style="dim"))
                         except Exception as e:
                             console.print(f"      ❌ [red]Error {e}[/red]")
 
@@ -617,9 +621,13 @@ def debug():
                                 console.print(f"      [dim]→ inspect_symbol({json.dumps(i_args)})[/dim]")
                                 result = await session.call_tool("inspect_symbol", arguments=i_args)
                                 content = result.content[0].text
-                                console.print(f"      ✅ [green]OK[/green]")
-                                # Increased truncation limit to 800 chars
-                                console.print(Panel(content[:800] + ("..." if len(content)>800 else ""), title="Output (Truncated)", border_style="dim"))
+                                
+                                if "Error" in content or "not found" in content.lower():
+                                    console.print(f"      ❌ [red]Failed[/red]")
+                                    console.print(Panel(content, title="Output (Error)", border_style="red"))
+                                else:
+                                    console.print(f"      ✅ [green]OK[/green]")
+                                    console.print(Panel(content[:800] + ("..." if len(content)>800 else ""), title="Output (Truncated)", border_style="dim"))
                             except Exception as e:
                                 console.print(f"      ❌ [red]Error {e}[/red]")
                         else:
