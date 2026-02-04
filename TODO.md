@@ -31,6 +31,7 @@
 - [ ] **Canonical Agent:** Create one canonical agent that uses 99% of the API, with comments. This will be used as a sample to present as initial context. It needs tests.
 - [x] **List Modules Pagination:** Determined that Page 1 (first 51 items) captures >99% of cumulative usage (368/370).
 - [ ] **Index Automation:** Create a script to rebuild `ranked_targets.yaml` for the latest `adk-python` release and update the registry.
+- [ ] **Registry Automation:** Implement `tools/manage_registry.py` based on `ai/instructions/design_docs/registry_architecture.md`.
 
 # On Hold (do not start)
 
