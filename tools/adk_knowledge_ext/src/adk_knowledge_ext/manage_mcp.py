@@ -525,9 +525,12 @@ def debug():
                     
                     for kb in kbs_to_test:
                         kb_id = kb.get("id")
-                        label = f"{kb_id}" if kb_id else "Default"
+                        label = f"{kb_id}" if kb_id else "Default (Bundled)"
                         
-                        console.print(f"   Testing KB: [cyan]{label}[/cyan]...")
+                        console.print(f"   Testing KB: [cyan]{label}[/cyan]")
+                        
+                        # 1. list_modules
+                        first_item_fqn = None
                         try:
                             # Call list_modules
                             args = {"page_size": 1}
@@ -537,12 +540,39 @@ def debug():
                             result = await session.call_tool("list_modules", arguments=args)
                             content = result.content[0].text
                             if "Error" in content or "not found" in content.lower():
-                                console.print(f"      ❌ list_modules: Failed - {content[:100]}...")
+                                console.print(f"      ❌ list_modules: [red]Failed[/red] - {content[:100]}...")
                             else:
-                                console.print(f"      ✅ list_modules: OK")
-                                
+                                console.print(f"      ✅ list_modules: [green]OK[/green]")
+                                # Extract FQN for next tests
+                                import re
+                                match = re.search(r'\[.*?\] \w+: (\S+)', content)
+                                if match:
+                                    first_item_fqn = match.group(1)
                         except Exception as e:
-                            console.print(f"      ❌ Failed: {e}")
+                            console.print(f"      ❌ list_modules: [red]Error {e}[/red]")
+
+                        # 2. search_knowledge
+                        try:
+                            q_args = {"queries": ["client"], "limit": 1}
+                            if kb_id:
+                                q_args["kb_id"] = kb_id
+                            await session.call_tool("search_knowledge", arguments=q_args)
+                            console.print(f"      ✅ search_knowledge: [green]OK[/green]")
+                        except Exception as e:
+                            console.print(f"      ❌ search_knowledge: [red]Error {e}[/red]")
+
+                        # 3. inspect_symbol
+                        if first_item_fqn:
+                            try:
+                                i_args = {"fqn": first_item_fqn}
+                                if kb_id:
+                                    i_args["kb_id"] = kb_id
+                                await session.call_tool("inspect_symbol", arguments=i_args)
+                                console.print(f"      ✅ inspect_symbol ('{first_item_fqn}'): [green]OK[/green]")
+                            except Exception as e:
+                                console.print(f"      ❌ inspect_symbol: [red]Error {e}[/red]")
+                        else:
+                             console.print(f"      ⚠️  inspect_symbol: Skipped (no FQN found)")
 
         except Exception as e:
             console.print(f"   [red]Server Start Failed: {e}[/red]")
@@ -552,8 +582,11 @@ def debug():
 
     # 3. Integrations Check
     console.print(f"\n[bold]3. Integration Status[/bold]")
+    found_any = False
+    
     for ide_name, ide_info in IDE_CONFIGS.items():
         if _is_mcp_configured(ide_name, ide_info):
+            found_any = True
             console.print(f"   ✓ {ide_name}")
             
             # CLI Checks
@@ -610,6 +643,15 @@ def debug():
                     
                 except Exception as e:
                     console.print(f"      - Config Check: [red]Error reading config: {e}[/red]")
+
+    if not found_any:
+        console.print("   [yellow]No active integrations found.[/yellow]")
+        console.print("   Checked the following locations:")
+        for ide_name, ide_info in IDE_CONFIGS.items():
+             detect_path = ide_info.get("detect_path")
+             if detect_path:
+                 status = "[red]Not found[/red]" if not detect_path.exists() else "[yellow]Found but unconfigured[/yellow]"
+                 console.print(f"   - {ide_name}: {detect_path} ({status})")
 
 
 def _generate_mcp_config(selected_kbs: List[Dict[str, str]], api_key: Optional[str], local_path: Optional[str] = None) -> dict:
