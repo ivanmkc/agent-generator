@@ -30,6 +30,13 @@ from rich.panel import Panel
 from rich.prompt import Confirm, Prompt
 from pydantic import BaseModel
 
+# Import reader for pre-cloning
+try:
+    from .reader import SourceReader
+except ImportError:
+    # If running as script
+    from adk_knowledge_ext.reader import SourceReader
+
 console = Console()
 
 class RegistryEntry(BaseModel):
@@ -183,8 +190,11 @@ def setup(kb_ids: Optional[str], api_key: Optional[str], local_path: Optional[st
             else:
                 console.print(f"[yellow]Warning: KB ID '{rid}' not found in registry.[/yellow]")
     else:
-        # Interactive Mode
-        if registry_options:
+        # Interactive Mode (unless quiet)
+        if quiet:
+            # In quiet mode without kb_ids, we assume empty selection (using bundled registry only)
+            pass
+        elif registry_options:
             console.print("\n[bold]Available Knowledge Bases:[/bold]")
             for i, opt in enumerate(registry_options):
                 desc_suffix = f" - {opt.description}" if opt.description else ""
@@ -218,6 +228,17 @@ def setup(kb_ids: Optional[str], api_key: Optional[str], local_path: Optional[st
             # Fallback if registry missing
             console.print("[red]Registry missing and no KB IDs provided.[/red]")
             return
+
+    # Pre-load/Clone Repositories
+    if selected_kbs:
+        console.print("\n[bold]Pre-loading Knowledge Bases...[/bold]")
+        for kb in selected_kbs:
+            try:
+                reader = SourceReader(kb["repo_url"], kb["version"])
+                console.print(f"   Using {kb['repo_url']}...")
+                # SourceReader.__init__ triggers clone if missing.
+            except Exception as e:
+                console.print(f"   [yellow]Warning: Failed to pre-clone {kb['repo_url']}: {e}[/yellow]")
 
     # Optional API Key
     if not force and not api_key and not os.environ.get("GEMINI_API_KEY"):
@@ -552,44 +573,81 @@ def _configure_ide_json(ide_info: dict, mcp_config: dict) -> None:
             elif bundled_instr.exists():
                 template_content = bundled_instr.read_text()
 
-            for kb in kbs:
-                repo_url = kb["repo_url"]
-                version = kb["version"]
-                repo_name = repo_url.split("/")[-1].replace(".git", "")
-                kb_id = f"{repo_name}-{version}" if version != "main" else repo_name
-                
-                # Preferred path: .gemini/instructions/ in current workspace
-                # Fallback: ~/.mcp_cache/instructions/
-                local_gemini = Path.cwd() / ".gemini"
-                instr_filename = "KNOWLEDGE_MCP_SERVER_INSTRUCTION.md"
-                
-                # Check if we are in the home directory
-                try:
-                    is_home = Path.cwd().resolve().samefile(Path.home().resolve())
-                except Exception:
-                    is_home = (Path.cwd().resolve() == Path.home().resolve())
-                
-                # If .gemini exists OR we are in a workspace (not home), use local .gemini
-                if local_gemini.exists() or not is_home:
-                    instr_path = local_gemini / "instructions" / instr_filename
+            if template_content:
+                # Fallback: If no KBs selected, generate a generic instruction using registry
+                if not kbs:
+                    registry_path = Path(__file__).parent / "registry.yaml"
+                    if registry_path.exists():
+                        try:
+                            registry_data = yaml.safe_load(registry_path.read_text())
+                            # Construct synthetic KB list for instruction generation purposes
+                            # We use the first one as "current" or just generic
+                            # Actually, we can generate one file listing all.
+                            
+                            # Update registry map for all
+                            for kid, meta in registry_data.items():
+                                registry_map[kid] = meta.get("description", f"Codebase: {meta['repo_url']}")
+                            
+                            registry_str = yaml.safe_dump(registry_map, sort_keys=False, width=1000).strip()
+                            
+                            # Fake a KB for the loop to run once
+                            kbs_to_process = [{
+                                "repo_url": "dynamic",
+                                "version": "dynamic",
+                                "kb_id": "registry_catalog" 
+                            }]
+                        except Exception:
+                            kbs_to_process = []
+                    else:
+                        kbs_to_process = []
                 else:
-                    instr_path = Path.home() / ".mcp_cache" / "instructions" / instr_filename
+                    kbs_to_process = kbs
+
+                for kb in kbs_to_process:
+                    # Determine ID
+                    if "kb_id" in kb:
+                        kb_id = kb["kb_id"]
+                        repo_url = kb.get("repo_url", "")
+                        version = kb.get("version", "")
+                    else:
+                        r_url = kb["repo_url"]
+                        ver = kb["version"]
+                        r_name = r_url.split("/")[-1].replace(".git", "")
+                        kb_id = f"{r_name}-{ver}" if ver != "main" else r_name
+                        repo_url = r_url
+                        version = ver
                     
-                instr_path.parent.mkdir(parents=True, exist_ok=True)
-                
-                if template_content:
+                    # Preferred path: .gemini/instructions/ in current workspace
+                    # Fallback: ~/.mcp_cache/instructions/
+                    local_gemini = Path.cwd() / ".gemini"
+                    instr_filename = f"INSTRUCTION_{kb_id}.md"
+                    
+                    # Check if we are in the home directory
+                    try:
+                        is_home = Path.cwd().resolve().samefile(Path.home().resolve())
+                    except Exception:
+                        is_home = (Path.cwd().resolve() == Path.home().resolve())
+                    
+                    # If .gemini exists OR we are in a workspace (not home), use local .gemini
+                    if local_gemini.exists() or not is_home:
+                        instr_path = local_gemini / "instructions" / instr_filename
+                    else:
+                        instr_path = Path.home() / ".mcp_cache" / "instructions" / instr_filename
+                        
+                    instr_path.parent.mkdir(parents=True, exist_ok=True)
+                    
                     content = template_content.replace("{{TARGET_REPO_URL}}", repo_url)
                     content = content.replace("{{TARGET_VERSION}}", version)
                     content = content.replace("{{KB_REGISTRY}}", registry_str)
                     content = content.replace("{{CURRENT_KB_ID}}", kb_id)
                     instr_path.write_text(content)
-                
-                # Use relative path if within workspace
-                try:
-                    rel_p = instr_path.relative_to(Path.cwd())
-                    instr_paths.append(str(rel_p))
-                except ValueError:
-                    instr_paths.append(str(instr_path))
+                    
+                    # Use relative path if within workspace
+                    try:
+                        rel_p = instr_path.relative_to(Path.cwd())
+                        instr_paths.append(str(rel_p))
+                    except ValueError:
+                        instr_paths.append(str(instr_path))
             
             if instr_paths:
                 if "context" not in config:
