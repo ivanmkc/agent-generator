@@ -28,8 +28,21 @@ import click
 from rich.console import Console
 from rich.panel import Panel
 from rich.prompt import Confirm, Prompt
+from pydantic import BaseModel
 
 console = Console()
+
+class RegistryEntry(BaseModel):
+    """Model for a Knowledge Base registry entry."""
+    id: str
+    repo_url: str
+    version: str
+    index_url: Optional[str] = None
+    description: Optional[str] = None
+    
+    @property
+    def label(self) -> str:
+        return f"{self.repo_url} ({self.version})"
 
 def ask_confirm(question: str, default: bool = True) -> bool:
     """Case-insensitive confirmation prompt."""
@@ -139,19 +152,18 @@ def setup(kb_ids: Optional[str], api_key: Optional[str], local_path: Optional[st
 
     # Load Registry
     registry_path = Path(__file__).parent / "registry.yaml"
-    registry_options = []
+    registry_options: List[RegistryEntry] = []
     if registry_path.exists():
         try:
             registry_data = yaml.safe_load(registry_path.read_text())
             for kb_id, meta in registry_data.items():
-                registry_options.append({
-                    "id": kb_id,
-                    "repo_url": meta["repo_url"],
-                    "version": meta["version"],
-                    "index_url": meta.get("index_url"),
-                    "description": meta.get("description"),
-                    "label": f"{meta['repo_url']} ({meta['version']})"
-                })
+                registry_options.append(RegistryEntry(
+                    id=kb_id,
+                    repo_url=meta["repo_url"],
+                    version=meta["version"],
+                    index_url=meta.get("index_url"),
+                    description=meta.get("description")
+                ))
         except Exception:
             pass
 
@@ -160,13 +172,13 @@ def setup(kb_ids: Optional[str], api_key: Optional[str], local_path: Optional[st
         # Resolve IDs from registry
         requested_ids = [x.strip() for x in kb_ids.split(",") if x.strip()]
         for rid in requested_ids:
-            match = next((opt for opt in registry_options if opt["id"] == rid), None)
+            match = next((opt for opt in registry_options if opt.id == rid), None)
             if match:
                 selected_kbs.append({
-                    "repo_url": match["repo_url"],
-                    "version": match["version"],
-                    "index_url": match["index_url"],
-                    "description": match["description"]
+                    "repo_url": match.repo_url,
+                    "version": match.version,
+                    "index_url": match.index_url,
+                    "description": match.description
                 })
             else:
                 console.print(f"[yellow]Warning: KB ID '{rid}' not found in registry.[/yellow]")
@@ -175,8 +187,8 @@ def setup(kb_ids: Optional[str], api_key: Optional[str], local_path: Optional[st
         if registry_options:
             console.print("\n[bold]Available Knowledge Bases:[/bold]")
             for i, opt in enumerate(registry_options):
-                desc_suffix = f" - {opt['description']}" if opt.get('description') else ""
-                console.print(f"[{i+1}] {opt['id']}: {opt['label']}{desc_suffix}")
+                desc_suffix = f" - {opt.description}" if opt.description else ""
+                console.print(f"[{i+1}] {opt.id}: {opt.label}{desc_suffix}")
             
             selection_input = Prompt.ask("\nSelect one or more (comma-separated indices or IDs)")
             # Handle both indices and string IDs
@@ -187,19 +199,19 @@ def setup(kb_ids: Optional[str], api_key: Optional[str], local_path: Optional[st
                     if 1 <= idx <= len(registry_options):
                          match = registry_options[idx-1]
                          selected_kbs.append({
-                            "repo_url": match["repo_url"],
-                            "version": match["version"],
-                            "index_url": match["index_url"],
-                            "description": match["description"]
+                            "repo_url": match.repo_url,
+                            "version": match.version,
+                            "index_url": match.index_url,
+                            "description": match.description
                         })
                 else:
-                    match = next((opt for opt in registry_options if opt["id"] == p), None)
+                    match = next((opt for opt in registry_options if opt.id == p), None)
                     if match:
                          selected_kbs.append({
-                            "repo_url": match["repo_url"],
-                            "version": match["version"],
-                            "index_url": match["index_url"],
-                            "description": match["description"]
+                            "repo_url": match.repo_url,
+                            "version": match.version,
+                            "index_url": match.index_url,
+                            "description": match.description
                         })
 
         else:
