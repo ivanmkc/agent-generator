@@ -122,16 +122,12 @@ def cli():
     pass
 
 @cli.command()
-@click.option("--repo-url", help="Target repository URL (e.g. https://github.com/google/adk-python.git)")
-@click.option("--version", default="main", help="Target version/branch (default: main)")
 @click.option("--kb-ids", help="Comma-separated list of Knowledge Base IDs to configure (e.g. adk-python-v1.20.0)")
 @click.option("--api-key", help="Gemini API Key (optional, for semantic search)")
-@click.option("--index-url", help="Custom PyPI index URL (e.g. https://pypi.org/simple) for uvx")
-@click.option("--knowledge-index-url", help="Direct URL or file path to the knowledge index YAML (overrides registry lookup)")
 @click.option("--local", "local_path", help="Use local source directory for the MCP server. Optionally provide path to the package root.")
 @click.option("--force", is_flag=True, help="Skip confirmation prompts")
 @click.option("--quiet", "-q", is_flag=True, help="Quiet mode (implies --force)")
-def setup(repo_url: Optional[str], version: str, kb_ids: Optional[str], api_key: Optional[str], index_url: Optional[str], knowledge_index_url: Optional[str], local_path: Optional[str], force: bool, quiet: bool):
+def setup(kb_ids: Optional[str], api_key: Optional[str], local_path: Optional[str], force: bool, quiet: bool):
     """Auto-configure this MCP server in your coding agents."""
     
     local = local_path is not None
@@ -182,13 +178,6 @@ def setup(repo_url: Optional[str], version: str, kb_ids: Optional[str], api_key:
                 })
             else:
                 console.print(f"[yellow]Warning: KB ID '{rid}' not found in registry.[/yellow]")
-    elif repo_url:
-        # Direct CLI usage
-        selected_kbs.append({
-            "repo_url": repo_url,
-            "version": version,
-            "index_url": knowledge_index_url
-        })
     else:
         # Interactive Mode
         if registry_options:
@@ -223,12 +212,8 @@ def setup(repo_url: Optional[str], version: str, kb_ids: Optional[str], api_key:
 
         else:
             # Fallback if registry missing
-            repo_url = Prompt.ask("Enter the Target Repository URL")
-            selected_kbs.append({
-                "repo_url": repo_url,
-                "version": version,
-                "index_url": knowledge_index_url
-            })
+            console.print("[red]Registry missing and no KB IDs provided.[/red]")
+            return
 
     # Optional API Key
     if not force and not api_key and not os.environ.get("GEMINI_API_KEY"):
@@ -319,7 +304,7 @@ def setup(repo_url: Optional[str], version: str, kb_ids: Optional[str], api_key:
         # Actually, let's make it robust:
         resolved_local_path = local_path if local_path else "."
 
-    mcp_config = _generate_mcp_config(selected_kbs, api_key, index_url, resolved_local_path)
+    mcp_config = _generate_mcp_config(selected_kbs, api_key, resolved_local_path)
 
     for ide_name, ide_info in selected_ides.items():
         try:
@@ -368,7 +353,7 @@ def remove():
             console.print(f"[red]❌ {ide_name} failed: {e}[/red]")
 
 
-def _generate_mcp_config(selected_kbs: List[Dict[str, str]], api_key: Optional[str], index_url: Optional[str] = None, local_path: Optional[str] = None) -> dict:
+def _generate_mcp_config(selected_kbs: List[Dict[str, str]], api_key: Optional[str], local_path: Optional[str] = None) -> dict:
     """Generate the MCP server configuration."""
     
     # Enrich KBs with registry info if index_url missing
@@ -412,15 +397,11 @@ def _generate_mcp_config(selected_kbs: List[Dict[str, str]], api_key: Optional[s
     else:
         pkg_spec = "git+https://github.com/ivanmkc/agent-generator.git@mcp_server#subdirectory=tools/adk_knowledge_ext"
     
-    args = []
-    if index_url:
-        args.extend(["--index-url", index_url])
-        
-    args.extend([
+    args = [
         "--from",
         pkg_spec,
         "codebase-knowledge-mcp"
-    ])
+    ]
     
     return {
         "command": "uvx",
