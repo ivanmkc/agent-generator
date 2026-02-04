@@ -487,6 +487,7 @@ def debug():
     async def run_diagnostics():
         # Set environment to force unbuffered output if possible, though mcp handles stdio
         server_env["PYTHONUNBUFFERED"] = "1"
+        server_env["MCP_LOG_INDENT"] = "   "
         
         server_params = StdioServerParameters(
             command=server_cmd[0],

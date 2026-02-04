@@ -14,6 +14,7 @@ package (for zero-latency offline use) or configured via environment variables.
 import logging
 import subprocess
 import json
+import os
 from pathlib import Path
 from typing import Union, List, Dict, Any
 from logging.handlers import RotatingFileHandler
@@ -55,9 +56,11 @@ log_dir = Path.home() / ".mcp_cache" / "logs"
 log_dir.mkdir(parents=True, exist_ok=True)
 log_file = log_dir / "codebase-knowledge.log"
 
+log_indent = os.environ.get("MCP_LOG_INDENT", "")
+
 logging.basicConfig(
     level=logging.DEBUG,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    format=f"{log_indent}%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     handlers=[
         RotatingFileHandler(log_file, maxBytes=10*1024*1024, backupCount=5),
         logging.StreamHandler()
