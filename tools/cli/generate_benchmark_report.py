@@ -1202,6 +1202,10 @@ class LogAnalyzer:
                                 lines.append(
                                     f"- **Explanation:** {insight.explanation}"
                                 )
+                                if insight.evidence:
+                                    lines.append("- **Evidence:**")
+                                    for ev in insight.evidence:
+                                        lines.append(f"  - {ev}")
 
                             # Static Details (Diffs)
                             if att.ground_truth or att.answer:
