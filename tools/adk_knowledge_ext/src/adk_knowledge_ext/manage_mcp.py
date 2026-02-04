@@ -607,15 +607,11 @@ def _configure_ide_json(ide_info: dict, mcp_config: dict) -> None:
                     # Determine ID
                     if "kb_id" in kb:
                         kb_id = kb["kb_id"]
-                        repo_url = kb.get("repo_url", "")
-                        version = kb.get("version", "")
                     else:
                         r_url = kb["repo_url"]
                         ver = kb["version"]
                         r_name = r_url.split("/")[-1].replace(".git", "")
                         kb_id = f"{r_name}-{ver}" if ver != "main" else r_name
-                        repo_url = r_url
-                        version = ver
                     
                     # Preferred path: .gemini/instructions/ in current workspace
                     # Fallback: ~/.mcp_cache/instructions/
@@ -636,10 +632,7 @@ def _configure_ide_json(ide_info: dict, mcp_config: dict) -> None:
                         
                     instr_path.parent.mkdir(parents=True, exist_ok=True)
                     
-                    content = template_content.replace("{{TARGET_REPO_URL}}", repo_url)
-                    content = content.replace("{{TARGET_VERSION}}", version)
-                    content = content.replace("{{KB_REGISTRY}}", registry_str)
-                    content = content.replace("{{CURRENT_KB_ID}}", kb_id)
+                    content = template_content.replace("{{KB_REGISTRY}}", registry_str)
                     instr_path.write_text(content)
                     
                     # Use relative path if within workspace

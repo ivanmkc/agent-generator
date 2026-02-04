@@ -266,8 +266,6 @@ def _ensure_instructions(kb_id: str | None):
     """
     kb_meta = _validate_kb(kb_id)
     resolved_id = kb_meta.id
-    repo_url = kb_meta.repo_url
-    version = kb_meta.version
     
     kbs = _get_available_kbs()
     import yaml
@@ -289,13 +287,9 @@ def _ensure_instructions(kb_id: str | None):
     else:
         return
 
-    content = content.replace("{{TARGET_REPO_URL}}", repo_url)
-    content = content.replace("{{TARGET_VERSION}}", version)
     content = content.replace("{{KB_REGISTRY}}", registry_str)
-    content = content.replace("{{CURRENT_KB_ID}}", resolved_id)
 
-    repo_name = repo_url.split("/")[-1].replace(".git", "")
-    cache_path = Path.home() / ".mcp_cache" / "instructions" / "KNOWLEDGE_MCP_SERVER_INSTRUCTION.md"
+    cache_path = Path.home() / ".mcp_cache" / "instructions" / f"INSTRUCTION_{resolved_id}.md"
     cache_path.parent.mkdir(parents=True, exist_ok=True)
     
     cache_path.write_text(content)

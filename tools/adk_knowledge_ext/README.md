@@ -66,7 +66,7 @@ The server is configured via the `MCP_KNOWLEDGE_BASES` environment variable, whi
     }
   },
   "context": [
-    ".gemini/instructions/KNOWLEDGE_MCP_SERVER_INSTRUCTION.md"
+    ".gemini/instructions/INSTRUCTION_<kb_id>.md"
   ]
 }
 ```
