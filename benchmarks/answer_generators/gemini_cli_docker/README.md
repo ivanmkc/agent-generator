@@ -11,11 +11,11 @@ This directory contains Docker configurations for running ADK benchmarks with di
 - **Index:** Uses the index bundled within the package (`indices/adk-python-v1.20.0.yaml`).
 
 ### 2. `mcp_adk_agent_runner_remote_main` (CI / Release Test)
-- **Use Case:** Verifying that the tool works when installed from the public GitHub repository (integration testing the "user flow").
-- **Installation:** Installs from `git+https://github.com/ivanmkc/agent-generator.git@mcp_server#subdirectory=tools/adk_knowledge_ext`.
-- **Configuration:** Uses `manage setup` (default) which configures `uvx --from git+...`.
+- **Use Case:** Simulates the remote installation flow but uses local code overrides for testing.
+- **Installation:** Copies the local `tools/adk_knowledge_ext` directory into the image.
+- **Configuration:** Uses `manage setup --local` to point to the copied extension.
+- **Why this setup?** Typically, a "remote" runner would pull directly from GitHub (`uvx --from git+...`). However, to verify unmerged changes in CI or local development without pushing to a remote branch first, we inject the local source code while maintaining the "remote-style" structure (no pre-cloned repositories, relying on dynamic retrieval).
 - **Requirements:** Requires `uv` to be installed in the image.
-- **Note:** This runner depends on the code being pushed to the remote `main` branch.
 
 ## Usage
 

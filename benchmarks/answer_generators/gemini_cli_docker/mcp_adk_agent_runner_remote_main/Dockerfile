@@ -20,9 +20,12 @@ RUN --mount=type=secret,id=github_token \
     export GITHUB_TOKEN=$(grep "^GITHUB_TOKEN=" /run/secrets/github_token | cut -d= -f2- | tr -d '"' | tr -d "'") && \
     # 2. Configure git to use the token for authentication against github.com
     git config --global url."https://oauth2:${GITHUB_TOKEN}@github.com".insteadOf https://github.com && \
+    # We use --local here to test unmerged changes from the workspace.
+    # In a true production install, you would omit --local to pull from PyPI/Git.
     uvx --from /app/extensions/adk-knowledge-ext \
     codebase-knowledge-mcp-manage setup \
     --kb-ids "adk-python-v1.20.0" \
+    --local "/app/extensions/adk-knowledge-ext" \
     --quiet && \
     # 3. Clean up credentials to avoid leaking token in image layer
     git config --global --unset url."https://oauth2:${GITHUB_TOKEN}@github.com".insteadOf
