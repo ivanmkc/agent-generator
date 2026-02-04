@@ -534,7 +534,7 @@ def debug():
                         first_item_fqn = None
                         try:
                             # Call list_modules
-                            args = {"page_size": 1}
+                            args = {"page_size": 5}
                             if kb_id:
                                 args["kb_id"] = kb_id
                             
@@ -560,7 +560,7 @@ def debug():
 
                         # 2. search_knowledge
                         try:
-                            q_args = {"queries": ["client"], "limit": 1}
+                            q_args = {"queries": ["client"], "limit": 3}
                             if kb_id:
                                 q_args["kb_id"] = kb_id
                             
