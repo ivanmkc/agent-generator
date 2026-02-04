@@ -612,20 +612,31 @@ def debug():
             if p.is_dir():
                 try:
                     # Specific counting based on directory type
+                    item_list = []
                     if "instructions" in str(p):
                         items = list(p.glob("*.md"))
                         count_str = f"{len(items)} instruction files"
+                        item_list = [i.name for i in items]
                     elif "indices" in str(p):
                         items = list(p.glob("*.yaml"))
                         count_str = f"{len(items)} indices"
+                        item_list = [i.name for i in items]
                     elif "logs" in str(p):
                         items = list(p.glob("*.log*"))
                         count_str = f"{len(items)} log files"
+                        item_list = [i.name for i in items]
                     else:
-                        items = [x for x in p.iterdir() if not x.name.startswith(".")]
+                        items = [x for x in p.iterdir() if x.is_dir() and not x.name.startswith(".")]
                         count_str = f"{len(items)} cached repos"
+                        item_list = [i.name for i in items]
                     
                     console.print(f"   ✓ [bold]{label:<15}[/bold] {p}\n      [dim]└─ {desc}[/dim] [green]({count_str})[/green]")
+                    if item_list:
+                        # Limit list to 10 items for readability
+                        display_items = item_list[:10]
+                        if len(item_list) > 10:
+                            display_items.append("...")
+                        console.print(f"      [dim]   Items: {', '.join(display_items)}[/dim]")
                 except Exception as e:
                     console.print(f"   ✓ [bold]{label:<15}[/bold] {p}\n      [dim]└─ {desc}[/dim] [yellow](Unreadable: {e})[/yellow]")
             else:
@@ -718,13 +729,13 @@ def debug():
                     console.print(f"      - Config Check: [red]Error reading config: {e}[/red]")
 
     if not found_any:
-        console.print("   [yellow]No active integrations found.[/yellow]")
-        console.print("   Checked the following locations:")
+        console.print("   [yellow]No active integrations found for this MCP server.[/yellow]")
+        console.print("   The following application directories were checked:")
         for ide_name, ide_info in IDE_CONFIGS.items():
              detect_path = ide_info.get("detect_path")
              if detect_path:
-                 status = "[red]Not found[/red]" if not detect_path.exists() else "[yellow]Found but unconfigured[/yellow]"
-                 console.print(f"   - {ide_name}: {detect_path} ({status})")
+                 status = "[red]Not found[/red]" if not detect_path.exists() else "[yellow]App found, but MCP not configured[/yellow]"
+                 console.print(f"   - {ide_name:<15}: {detect_path} {status}")
 
 
 def _generate_mcp_config(selected_kbs: List[Dict[str, str]], api_key: Optional[str], local_path: Optional[str] = None) -> dict:
