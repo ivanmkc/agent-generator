@@ -543,8 +543,14 @@ def _configure_ide_json(ide_info: dict, mcp_config: dict) -> None:
                 local_gemini = Path.cwd() / ".gemini"
                 instr_filename = "KNOWLEDGE_MCP_SERVER_INSTRUCTION.md"
                 
+                # Check if we are in the home directory
+                try:
+                    is_home = Path.cwd().resolve().samefile(Path.home().resolve())
+                except Exception:
+                    is_home = (Path.cwd().resolve() == Path.home().resolve())
+                
                 # If .gemini exists OR we are in a workspace (not home), use local .gemini
-                if local_gemini.exists() or Path.cwd().resolve() != Path.home().resolve():
+                if local_gemini.exists() or not is_home:
                     instr_path = local_gemini / "instructions" / instr_filename
                 else:
                     instr_path = Path.home() / ".mcp_cache" / "instructions" / instr_filename
