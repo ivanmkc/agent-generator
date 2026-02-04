@@ -31,3 +31,13 @@ class CustomBuildHook(BuildHookInterface):
             output_path.write_text(content)
         else:
             print("Build Hook Warning: INSTRUCTIONS.template.md not found.")
+
+        # 3. Embed Git SHA
+        import subprocess
+        try:
+            git_sha = subprocess.check_output(["git", "rev-parse", "HEAD"], stderr=subprocess.DEVNULL).decode().strip()
+        except Exception:
+            git_sha = "unknown"
+        
+        version_file = src_dir / "_version_git.py"
+        version_file.write_text(f'GIT_SHA = "{git_sha}"\n')

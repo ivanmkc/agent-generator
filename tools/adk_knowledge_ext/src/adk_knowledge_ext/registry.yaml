@@ -1,5 +1,8 @@
-adk-python-v1.20.0:
-  repo_url: https://github.com/google/adk-python.git
-  version: v1.20.0
-  index_url: https://raw.githubusercontent.com/ivanmkc/agent-generator/mcp_server/benchmarks/generator/benchmark_generator/data/ranked_targets.yaml
-  description: "Google Agent Development Kit (ADK) for Python"
+repositories:
+  google/adk-python:
+    description: "Google Agent Development Kit (ADK) for Python"
+    repo_url: "https://github.com/google/adk-python.git"
+    default_version: "v1.20.0"
+    versions:
+      v1.20.0:
+        index_url: "https://raw.githubusercontent.com/ivanmkc/agent-generator/mcp_server/benchmarks/generator/benchmark_generator/data/ranked_targets.yaml"

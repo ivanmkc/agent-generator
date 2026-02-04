@@ -15,7 +15,7 @@ COPY tools/adk_knowledge_ext /tmp/pkg
 # Configure Registry to point to dummy index
 # We overwrite registry.yaml inside the source before build
 RUN mkdir -p /tmp/pkg/src/adk_knowledge_ext
-RUN echo "https://bundled.com/repo.git:\n  v1.0.0: file:///tmp/dummy_index.yaml" > /tmp/pkg/src/adk_knowledge_ext/registry.yaml
+RUN echo "repositories:\n  bundled/repo:\n    repo_url: https://bundled.com/repo.git\n    description: Bundled Repo\n    default_version: v1.0.0\n    versions:\n      v1.0.0:\n        index_url: file:///tmp/dummy_index.yaml" > /tmp/pkg/src/adk_knowledge_ext/registry.yaml
 
 # Install (triggers hatch_build.py)
 # We need to set TARGET_REPO_URL/VERSION env vars just in case hatch hook needs them for fallback, 

@@ -18,11 +18,7 @@ async def main():
     print("--- Starting Registry Miss Verification ---")
     
     cmd = "codebase-knowledge-mcp"
-    env = {
-        "TARGET_REPO_URL": "https://unknown.com/repo.git",
-        "TARGET_VERSION": "main"
-        # TARGET_INDEX_URL omitted
-    }
+    env = {} # No configuration provided
     
     server_params = StdioServerParameters(
         command=cmd,
@@ -44,7 +40,7 @@ async def main():
                     content = result.content[0].text
 
                     print(f"Tool Output: {content}")
-                    if "not supported" in content:
+                    if "not found" in content:
                         print("SUCCESS: Correctly failed due to missing registry entry.")
                     else:
                         print(f"FAIL: Unexpected success or error message: {content}")

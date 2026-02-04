@@ -20,7 +20,7 @@ COPY benchmarks/generator/benchmark_generator/data/ranked_targets.yaml /tmp/loca
 COPY tools/adk_knowledge_ext /tmp/pkg
 
 COPY tools/adk_knowledge_ext/tests/integration/manual_uvx/settings.json /root/.gemini/settings.json
-RUN python3 -c "import json; f='/root/.gemini/settings.json'; d=json.load(open(f)); d['mcpServers']['test-codebase']['env']['TARGET_INDEX_URL']='file:///tmp/local_index.yaml'; json.dump(d, open(f,'w'))"
+RUN python3 -c "import json; f='/root/.gemini/settings.json'; d=json.load(open(f)); env=d['mcpServers']['test-codebase'].get('env', {}); env.pop('TARGET_REPO_URL', None); env.pop('TARGET_VERSION', None); env.pop('TARGET_INDEX_URL', None); env['MCP_KNOWLEDGE_BASES']=json.dumps([{'id': 'google/adk-python@v1.20.0', 'repo_url': 'https://github.com/google/adk-python.git', 'version': 'v1.20.0', 'index_url': 'file:///tmp/local_index.yaml'}]); d['mcpServers']['test-codebase']['env']=env; json.dump(d, open(f,'w'))"
 
 # 3. Verification Script
 COPY tools/adk_knowledge_ext/tests/integration/common/verify_mcp_config.py /app/verify.py

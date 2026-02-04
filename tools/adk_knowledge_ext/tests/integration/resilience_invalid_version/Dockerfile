@@ -7,8 +7,7 @@ RUN apt-get update && apt-get install -y git curl && rm -rf /var/lib/apt/lists/*
 
 # 1. Install Dependencies
 COPY benchmarks/generator/benchmark_generator/data/ranked_targets.yaml /tmp/local_index.yaml
-ENV TARGET_VERSION=v1.20.0
-ENV TARGET_INDEX_URL=file:///tmp/local_index.yaml
+ENV MCP_KNOWLEDGE_BASES='[{"id": "google/adk-python@v1.20.0", "repo_url": "https://github.com/google/adk-python.git", "version": "v1.20.0", "index_url": "file:///tmp/local_index.yaml"}]'
 
 COPY tools/adk_knowledge_ext /tmp/pkg
 RUN pip install /tmp/pkg

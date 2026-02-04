@@ -70,6 +70,11 @@ def main():
             "tag": "adk-test-registry-miss"
         },
         {
+            "name": "Debug Command Verification",
+            "dockerfile": "tools/adk_knowledge_ext/tests/integration/debug_command/Dockerfile",
+            "tag": "adk-test-debug"
+        },
+        {
             "name": "Managed Setup (CLI Integration)",
             "dockerfile": "tools/adk_knowledge_ext/tests/integration/managed_setup/Dockerfile",
             "tag": "adk-test-managed-setup"
@@ -127,6 +132,7 @@ def main():
         print(f"--- Build {image_name} ---")
         build_cmd = [
             "podman", "build",
+            "--no-cache",
             "-t", image_name,
             "-f", str(dockerfile),
             "."

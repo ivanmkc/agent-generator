@@ -20,6 +20,7 @@ import os
 import sys
 import shutil
 import yaml
+import asyncio
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Optional, Dict, Any, List
@@ -29,6 +30,8 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.prompt import Confirm, Prompt
 from pydantic import BaseModel
+from mcp import ClientSession, StdioServerParameters
+from mcp.client.stdio import stdio_client
 
 # Import reader for pre-cloning
 try:
@@ -39,17 +42,19 @@ except ImportError:
 
 console = Console()
 
-class RegistryEntry(BaseModel):
-    """Model for a Knowledge Base registry entry."""
-    id: str
-    repo_url: str
-    version: str
+class VersionEntry(BaseModel):
     index_url: Optional[str] = None
     description: Optional[str] = None
-    
+
+class RepositoryEntry(BaseModel):
+    description: str
+    repo_url: str
+    default_version: str
+    versions: Dict[str, VersionEntry]
+
     @property
     def label(self) -> str:
-        return f"{self.repo_url} ({self.version})"
+        return f"{self.repo_url} (Default: {self.default_version})"
 
 def ask_confirm(question: str, default: bool = True) -> bool:
     """Case-insensitive confirmation prompt."""
@@ -73,7 +78,8 @@ def _get_platform_config_path(app_name: str, config_file: str) -> Path:
     elif app_name == "Windsurf":
         return Path.home() / ".codeium" / "windsurf" / config_file
         
-    return Path.home() / f".{app_name.lower().replace(' ', '-')}" / config_file
+    folder_name = f".{app_name.lower().replace(' ', '-')}"
+    return Path.home() / folder_name / config_file
 
 
 # IDE configuration - how to detect, configure, and start each IDE
@@ -140,92 +146,135 @@ def cli():
     pass
 
 @cli.command()
-@click.option("--kb-ids", help="Comma-separated list of Knowledge Base IDs to configure (e.g. adk-python-v1.20.0)")
+@click.option("--kb-ids", help="Comma-separated list of Knowledge Base IDs to configure (e.g. google/adk-python@v1.20.0)")
+@click.option("--repo-url", help="Custom Repository URL (optional)")
+@click.option("--version", help="Custom Repository Version (optional)")
+@click.option("--index-url", help="Custom Index URL (optional)")
+@click.option("--knowledge-index-url", help="Alias for --index-url")
 @click.option("--api-key", help="Gemini API Key (optional, for semantic search)")
-@click.option("--local", "local_path", help="Use local source directory for the MCP server. Optionally provide path to the package root.")
+@click.option("--local", "local_path", required=False, is_flag=False, flag_value=".", help="Use local source directory for the MCP server. Optionally provide path to the package root.")
 @click.option("--force", is_flag=True, help="Skip confirmation prompts")
 @click.option("--quiet", "-q", is_flag=True, help="Quiet mode (implies --force)")
-def setup(kb_ids: Optional[str], api_key: Optional[str], local_path: Optional[str], force: bool, quiet: bool):
+def setup(kb_ids: Optional[str], repo_url: Optional[str], version: Optional[str], index_url: Optional[str], knowledge_index_url: Optional[str], api_key: Optional[str], local_path: Optional[str], force: bool, quiet: bool):
     """Auto-configure this MCP server in your coding agents."""
     
     local = local_path is not None
-    # Quiet implies force
     if quiet:
         force = True
         
     selected_kbs = []
 
+    # Handle Custom Repo
+    if repo_url:
+        ver = version or "main"
+        idx = index_url or knowledge_index_url
+        repo_name = repo_url.split("/")[-1].replace(".git", "")
+        # Generate a temporary ID for custom repos
+        custom_id = f"custom/{repo_name}@{ver}"
+        
+        selected_kbs.append({
+            "id": custom_id,
+            "repo_url": repo_url,
+            "version": ver,
+            "index_url": idx,
+            "description": f"Custom Repository: {repo_url}"
+        })
+
     # Load Registry
     registry_path = Path(__file__).parent / "registry.yaml"
-    registry_options: List[RegistryEntry] = []
+    registry_repos: Dict[str, RepositoryEntry] = {}
+    
     if registry_path.exists():
         try:
-            registry_data = yaml.safe_load(registry_path.read_text())
-            for kb_id, meta in registry_data.items():
-                registry_options.append(RegistryEntry(
-                    id=kb_id,
-                    repo_url=meta["repo_url"],
-                    version=meta["version"],
-                    index_url=meta.get("index_url"),
-                    description=meta.get("description")
-                ))
+            data = yaml.safe_load(registry_path.read_text())
+            # Support both legacy flat and new hierarchical format
+            if "repositories" in data:
+                # New Hierarchical Format
+                for repo_id, meta in data["repositories"].items():
+                    versions = {}
+                    for v_id, v_meta in meta.get("versions", {}).items():
+                        versions[v_id] = VersionEntry(**v_meta)
+                    
+                    registry_repos[repo_id] = RepositoryEntry(
+                        description=meta["description"],
+                        repo_url=meta["repo_url"],
+                        default_version=meta["default_version"],
+                        versions=versions
+                    )
+            else:
+                # Legacy Flat Format (fallback)
+                pass 
         except Exception:
             pass
 
     # 1. Resolve Selection
     if kb_ids:
-        # Resolve IDs from registry
+        # Resolve IDs: owner/repo@version OR owner/repo (default)
         requested_ids = [x.strip() for x in kb_ids.split(",") if x.strip()]
         for rid in requested_ids:
-            match = next((opt for opt in registry_options if opt.id == rid), None)
-            if match:
-                selected_kbs.append({
-                    "repo_url": match.repo_url,
-                    "version": match.version,
-                    "index_url": match.index_url,
-                    "description": match.description
-                })
+            if "@" in rid:
+                # Explicit version
+                repo_id, version_arg = rid.split("@", 1)
             else:
-                console.print(f"[yellow]Warning: KB ID '{rid}' not found in registry.[/yellow]")
-    else:
-        # Interactive Mode (unless quiet)
+                # Default version
+                repo_id = rid
+                version_arg = None
+
+            if repo_id in registry_repos:
+                repo_entry = registry_repos[repo_id]
+                target_version = version_arg or repo_entry.default_version
+                
+                if target_version in repo_entry.versions:
+                    v_entry = repo_entry.versions[target_version]
+                    selected_kbs.append({
+                        "id": f"{repo_id}@{target_version}",
+                        "repo_url": repo_entry.repo_url,
+                        "version": target_version,
+                        "index_url": v_entry.index_url,
+                        "description": v_entry.description or repo_entry.description
+                    })
+                else:
+                    console.print(f"[yellow]Warning: Version '{target_version}' not found for '{repo_id}'[/yellow]")
+            else:
+                # Check for legacy flat ID match if needed, or just warn
+                console.print(f"[yellow]Warning: Repository '{repo_id}' not found in registry.[/yellow]")
+
+    elif not repo_url:
+        # Interactive Mode (only if no custom repo provided)
         if quiet:
-            # In quiet mode without kb_ids, we assume empty selection (using bundled registry only)
             pass
-        elif registry_options:
-            console.print("\n[bold]Available Knowledge Bases:[/bold]")
-            for i, opt in enumerate(registry_options):
-                desc_suffix = f" - {opt.description}" if opt.description else ""
-                console.print(f"[{i+1}] {opt.id}: {opt.label}{desc_suffix}")
+        elif registry_repos:
+            console.print("\n[bold]Available Repositories:[/bold]")
+            repo_keys = list(registry_repos.keys())
+            for i, r_key in enumerate(repo_keys):
+                entry = registry_repos[r_key]
+                console.print(f"[{i+1}] {r_key}: {entry.description}")
             
-            selection_input = Prompt.ask("\nSelect one or more (comma-separated indices or IDs)")
-            # Handle both indices and string IDs
+            selection_input = Prompt.ask("\nSelect repositories (comma-separated indices or names)")
             parts = [x.strip() for x in selection_input.split(",")]
+            
             for p in parts:
+                target_repo = None
                 if p.isdigit():
                     idx = int(p)
-                    if 1 <= idx <= len(registry_options):
-                         match = registry_options[idx-1]
-                         selected_kbs.append({
-                            "repo_url": match.repo_url,
-                            "version": match.version,
-                            "index_url": match.index_url,
-                            "description": match.description
-                        })
-                else:
-                    match = next((opt for opt in registry_options if opt.id == p), None)
-                    if match:
-                         selected_kbs.append({
-                            "repo_url": match.repo_url,
-                            "version": match.version,
-                            "index_url": match.index_url,
-                            "description": match.description
-                        })
-
-        else:
-            # Fallback if registry missing
-            console.print("[red]Registry missing and no KB IDs provided.[/red]")
-            return
+                    if 1 <= idx <= len(repo_keys):
+                        target_repo = registry_repos[repo_keys[idx-1]]
+                        repo_id = repo_keys[idx-1]
+                elif p in registry_repos:
+                    target_repo = registry_repos[p]
+                    repo_id = p
+                
+                if target_repo:
+                    # For now, default to default_version. Could ask for version here.
+                    ver = target_repo.default_version
+                    v_entry = target_repo.versions[ver]
+                    selected_kbs.append({
+                        "id": f"{repo_id}@{ver}",
+                        "repo_url": target_repo.repo_url,
+                        "version": ver,
+                        "index_url": v_entry.index_url,
+                        "description": v_entry.description or target_repo.description
+                    })
 
     # Pre-load/Clone Repositories
     if selected_kbs:
@@ -233,7 +282,7 @@ def setup(kb_ids: Optional[str], api_key: Optional[str], local_path: Optional[st
         for kb in selected_kbs:
             try:
                 reader = SourceReader(kb["repo_url"], kb["version"])
-                console.print(f"   Using {kb['repo_url']}...")
+                console.print(f"   Using {kb['repo_url']} ({kb['version']})...")
                 # SourceReader.__init__ triggers clone if missing.
             except Exception as e:
                 console.print(f"   [yellow]Warning: Failed to pre-clone {kb['repo_url']}: {e}[/yellow]")
@@ -374,6 +423,193 @@ def remove():
             console.print(f"✅ {ide_name} - removed")
         except Exception as e:
             console.print(f"[red]❌ {ide_name} failed: {e}[/red]")
+
+
+@cli.command()
+def debug():
+    """Diagnose the MCP server installation and configuration."""
+    console.print("\n[bold blue]🕵️  Codebase Knowledge MCP Debugger[/bold blue]")
+    
+    # 1. Version Info
+    try:
+        from ._version_git import GIT_SHA
+        version_str = f"Git SHA: {GIT_SHA}"
+    except ImportError:
+        version_str = "Git SHA: Unknown (Source/Dev)"
+    
+    console.print(f"\n[bold]1. Version Information[/bold]")
+    console.print(f"   {version_str}")
+    console.print(f"   Python: {sys.version.split()[0]}")
+    console.print(f"   Platform: {sys.platform}")
+
+    # 2. Server Self-Test
+    console.print(f"\n[bold]2. Server Self-Test[/bold]")
+    
+    env = os.environ.copy()
+    if "MCP_KNOWLEDGE_BASES" in env:
+        del env["MCP_KNOWLEDGE_BASES"]
+    
+    console.print("   [dim]Scanning IDE configurations...[/dim]")
+    
+    ide_configs_found = []
+    
+    for ide_name, ide_info in IDE_CONFIGS.items():
+        if _is_mcp_configured(ide_name, ide_info):
+            ide_configs_found.append((ide_name, ide_info))
+            
+    if not ide_configs_found:
+        console.print("   [yellow]No integrations configured. Running generic server test with bundled registry.[/yellow]")
+        server_env = env
+    else:
+        console.print(f"   Found configurations for: {', '.join(n for n, _ in ide_configs_found)}")
+        target_conf = None
+        for name, info in ide_configs_found:
+            if info["config_method"] == "json":
+                try:
+                    with open(info["config_path"]) as f:
+                        data = json.load(f)
+                        mcp_conf = data[info["config_key"]][MCP_SERVER_NAME]
+                        target_conf = mcp_conf.get("env", {})
+                        break
+                except Exception:
+                    pass
+        
+        if not target_conf:
+            console.print("   [yellow]Could not extract env from configurations (CLI-only?). Using default.[/yellow]")
+            server_env = env
+        else:
+            server_env = env
+            server_env.update(target_conf)
+
+    # Use sys.executable to run the module
+    server_cmd = [sys.executable, "-m", "adk_knowledge_ext.server"]
+    
+    async def run_diagnostics():
+        # Set environment to force unbuffered output if possible, though mcp handles stdio
+        server_env["PYTHONUNBUFFERED"] = "1"
+        
+        server_params = StdioServerParameters(
+            command=server_cmd[0],
+            args=server_cmd[1:],
+            env=server_env
+        )
+        
+        console.print(f"   Starting server with command: {' '.join(server_cmd)}")
+        
+        try:
+            async with stdio_client(server_params) as (read, write):
+                async with ClientSession(read, write) as session:
+                    await session.initialize()
+                    
+                    # 1. List Tools
+                    tools_result = await session.list_tools()
+                    tool_names = [t.name for t in tools_result.tools]
+                    console.print(f"   ✅ Server Connection: OK")
+                    console.print(f"   🛠️  Tools Available: {', '.join(tool_names)}")
+                    
+                    if "list_modules" not in tool_names:
+                        console.print("   [red]CRITICAL: list_modules tool missing![/red]")
+                        return
+
+                    # 2. Inspect KBs
+                    kbs_json = server_env.get("MCP_KNOWLEDGE_BASES")
+                    kbs_to_test = []
+                    if kbs_json:
+                        try:
+                            kbs_to_test = json.loads(kbs_json)
+                        except:
+                            pass
+                    
+                    if not kbs_to_test:
+                        kbs_to_test = [{"id": None, "desc": "Default/Bundled"}]
+                    
+                    for kb in kbs_to_test:
+                        kb_id = kb.get("id")
+                        label = f"{kb_id}" if kb_id else "Default"
+                        
+                        console.print(f"   Testing KB: [cyan]{label}[/cyan]...")
+                        try:
+                            # Call list_modules
+                            args = {"page_size": 1}
+                            if kb_id:
+                                args["kb_id"] = kb_id
+                                
+                            result = await session.call_tool("list_modules", arguments=args)
+                            content = result.content[0].text
+                            if "Error" in content or "not found" in content.lower():
+                                console.print(f"      ❌ list_modules: Failed - {content[:100]}...")
+                            else:
+                                console.print(f"      ✅ list_modules: OK")
+                                
+                        except Exception as e:
+                            console.print(f"      ❌ Failed: {e}")
+
+        except Exception as e:
+            console.print(f"   [red]Server Start Failed: {e}[/red]")
+            console.print("   Check if 'adk_knowledge_ext.server' is importable.")
+
+    asyncio.run(run_diagnostics())
+
+    # 3. Integrations Check
+    console.print(f"\n[bold]3. Integration Status[/bold]")
+    for ide_name, ide_info in IDE_CONFIGS.items():
+        if _is_mcp_configured(ide_name, ide_info):
+            console.print(f"   ✓ {ide_name}")
+            
+            # CLI Checks
+            if ide_info["config_method"] == "cli":
+                cmd = ide_info["cli_command"]
+                try:
+                    res = subprocess.run([cmd, "mcp", "list"], capture_output=True, text=True, timeout=5)
+                    if MCP_SERVER_NAME in res.stdout or MCP_SERVER_NAME in res.stderr:
+                         console.print(f"      - CLI Status: [green]Verified[/green] (found in registry)")
+                    else:
+                         console.print(f"      - CLI Status: [yellow]Not found in output[/yellow]")
+                except Exception:
+                     console.print(f"      - CLI Status: [red]Command failed[/red]")
+            
+            # JSON Checks
+            elif ide_info["config_method"] == "json":
+                try:
+                    with open(ide_info["config_path"], "r") as f:
+                        config = json.load(f)
+                    
+                    server_conf = config.get(ide_info["config_key"], {}).get(MCP_SERVER_NAME)
+                    if not server_conf:
+                        console.print(f"      - Config: [red]Missing entry[/red]")
+                        continue
+                        
+                    cmd = server_conf.get("command")
+                    args = server_conf.get("args", [])
+                    env_vars = server_conf.get("env", {})
+                    
+                    # 1. Check Command
+                    if shutil.which(cmd):
+                        console.print(f"      - Command '{cmd}': [green]Found[/green]")
+                    else:
+                        console.print(f"      - Command '{cmd}': [red]Not found in PATH[/red]")
+                        
+                    # 2. Check Paths in Args
+                    for i, arg in enumerate(args):
+                        if arg == "--from" and i + 1 < len(args):
+                            path_arg = args[i+1]
+                            if not path_arg.startswith("git+"):
+                                p = Path(path_arg).expanduser().resolve()
+                                if p.exists():
+                                     console.print(f"      - Source Path: [green]Exists[/green]")
+                                else:
+                                     console.print(f"      - Source Path '{p}': [red]Not found[/red]")
+
+                    # 3. Check Env Vars (KB Config)
+                    if "MCP_KNOWLEDGE_BASES" in env_vars:
+                        try:
+                            kbs = json.loads(env_vars["MCP_KNOWLEDGE_BASES"])
+                            console.print(f"      - KBs Configured: {len(kbs)}")
+                        except json.JSONDecodeError:
+                            console.print(f"      - KBs Configured: [red]Invalid JSON[/red]")
+                    
+                except Exception as e:
+                    console.print(f"      - Config Check: [red]Error reading config: {e}[/red]")
 
 
 def _generate_mcp_config(selected_kbs: List[Dict[str, str]], api_key: Optional[str], local_path: Optional[str] = None) -> dict:
@@ -546,20 +782,38 @@ def _configure_ide_json(ide_info: dict, mcp_config: dict) -> None:
             kbs = json.loads(kbs_json)
             instr_paths = []
             
-            # Prepare Registry String: {kb_id: description}
-            registry_map = {}
+            # Prepare Registry String
+            # Group by repo_url to create compact listing
+            from collections import defaultdict
+            repos = defaultdict(list)
             for kb in kbs:
-                r_url = kb["repo_url"]
-                ver = kb["version"]
-                r_name = r_url.split("/")[-1].replace(".git", "")
-                k_id = f"{r_name}-{ver}" if ver != "main" else r_name
-                
-                desc = kb.get("description")
-                if not desc:
-                    desc = f"Codebase: {r_url} (version: {ver})"
-                registry_map[k_id] = desc
-            
-            registry_str = yaml.safe_dump(registry_map, sort_keys=False, width=1000).strip()
+                # kb has id, repo_url, version, description
+                repos[kb["repo_url"]].append(kb)
+
+            registry_lines = []
+            for repo_url, versions in repos.items():
+                # Use description from first version
+                desc = versions[0].get("description", f"Codebase: {repo_url}")
+                # Derive repo name for display (e.g. google/adk-python)
+                # If we have the ID, we can extract it.
+                # kb['id'] is expected to be 'owner/repo@version'
+                # So we can try to extract 'owner/repo'
+                repo_id = "Unknown Repo"
+                if "@" in versions[0]["id"]:
+                    repo_id = versions[0]["id"].split("@")[0]
+                else:
+                    repo_id = repo_url.split("/")[-1].replace(".git", "")
+
+                registry_lines.append(f"*   `{repo_id}` | {desc}")
+                for v in versions:
+                    # Check if this is the default (heuristic: if it was selected without version specifier? 
+                    # Actually we don't know here easily, so just list version)
+                    ver = v["version"]
+                    kb_id = v["id"]
+                    registry_lines.append(f"    *   Version: `{ver}`")
+                    registry_lines.append(f"    *   *Usage:* `list_modules(kb_id=\"{kb_id}\", ...)`")
+
+            registry_str = "\n".join(registry_lines)
             
             # Find Template
             bundled_instr = Path(__file__).parent / "data" / "INSTRUCTIONS.md"
@@ -577,14 +831,30 @@ def _configure_ide_json(ide_info: dict, mcp_config: dict) -> None:
                     registry_path = Path(__file__).parent / "registry.yaml"
                     if registry_path.exists():
                         try:
-                            registry_data = yaml.safe_load(registry_path.read_text())
-                            for kid, meta in registry_data.items():
-                                registry_map[kid] = meta.get("description", f"Codebase: {meta['repo_url']}")
+                            data = yaml.safe_load(registry_path.read_text())
+                            fallback_lines = []
+                            if "repositories" in data:
+                                for repo_id, meta in data["repositories"].items():
+                                    desc = meta.get("description", f"Codebase: {meta['repo_url']}")
+                                    fallback_lines.append(f"*   `{repo_id}` | {desc}")
+                                    for ver, v_meta in meta.get("versions", {}).items():
+                                        kb_id = f"{repo_id}@{ver}"
+                                        fallback_lines.append(f"    *   Version: `{ver}`")
+                                        fallback_lines.append(f"    *   *Usage:* `list_modules(kb_id=\"{kb_id}\", ...)`")
+                            
+                            if fallback_lines:
+                                registry_str = "\n".join(fallback_lines)
                         except Exception:
                             pass
                 
                 # Regenerate registry string with potentially updated map (fallback case)
-                registry_str = yaml.safe_dump(registry_map, sort_keys=False, width=1000).strip()
+                # registry_str is already string now, no yaml dump needed if fallback used or normal path used string.
+                # But wait, normal path sets registry_str. Fallback path sets registry_str.
+                # We need to ensure we don't double dump or overwrite if kbs existed.
+                
+                # If kbs existed, registry_str is set. If not, fallback sets it.
+                # No need to do yaml.safe_dump here anymore.
+                pass
 
                 # Preferred path: .gemini/instructions/ in current workspace
                 # Fallback: ~/.mcp_cache/instructions/

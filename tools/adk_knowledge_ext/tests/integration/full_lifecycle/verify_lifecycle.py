@@ -69,8 +69,12 @@ def main():
     try:
         # Determine absolute path to the extension source
         cwd = Path.cwd()
-        src_dir = str(cwd / "tools/adk_knowledge_ext")
-        if not (cwd / "tools/adk_knowledge_ext").exists():
+        # In Docker (full_lifecycle), source is at /src/tools/adk_knowledge_ext
+        if Path("/src/tools/adk_knowledge_ext").exists():
+            src_dir = "/src/tools/adk_knowledge_ext"
+        elif (cwd / "tools/adk_knowledge_ext").exists():
+             src_dir = str(cwd / "tools/adk_knowledge_ext")
+        else:
              src_dir = str(cwd.parent.parent.parent / "tools/adk_knowledge_ext")
 
         # 1. Setup
@@ -81,12 +85,10 @@ def main():
             "codebase-knowledge-mcp-manage", "setup",
             "--repo-url", "https://github.com/google/adk-python.git",
             "--version", "v1.20.0",
-            "--local",
+            "--local", # Uses flag_value='.' (cwd will be src_dir)
             "--force"
         ]
-        # We must run this from src_dir so the relative path logic works or just pass absolute path (which we did)
-        # Wait, if --local is passed, manage_mcp tries to resolve current dir.
-        # So we should run it FROM src_dir.
+        # We run FROM src_dir so '.' resolution works
         run_cmd(setup_cmd, cwd=src_dir)
 
         # 2. Verify Config
@@ -101,13 +103,12 @@ def main():
         mcp_config = gemini_config['mcpServers']['codebase-knowledge']
         print(json.dumps(mcp_config, indent=2))
         
-        # Check if index URL was resolved (it should be, via registry lookup in manage_mcp)
-        # Note: manage_mcp puts it in args/env
-        args_str = str(mcp_config['args'])
-        if "TARGET_INDEX_URL" not in args_str:
-            print("WARNING: TARGET_INDEX_URL not found in config. Ensure registry lookup worked.")
+        # Check if config was resolved
+        env_str = str(mcp_config.get('env', {}))
+        if "MCP_KNOWLEDGE_BASES" not in env_str:
+            print("WARNING: MCP_KNOWLEDGE_BASES not found in config.")
         else:
-            print("Config contains TARGET_INDEX_URL.")
+            print("Config contains MCP_KNOWLEDGE_BASES.")
 
         # 3. Verify Tool Execution (Async)
         print("\n=== Step 3: Tool Verification ===")

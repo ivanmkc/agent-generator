@@ -85,6 +85,12 @@ Instead of listing every KB ID, we inject a summarized view into `INSTRUCTIONS.m
 - **Token Efficiency:** Description is repeated once per repo, not per version.
 - **Clarity:** LLM understands the relationship between versions.
 
+### 4.1 Version Constraints
+
+To prevent agent confusion and hallucination, **only one version of a given repository can be loaded at a time.**
+- If the configuration requests multiple versions of the same `owner/repo`, the server startup must fail or warn.
+- The `setup` CLI should enforce this validation during the selection phase.
+
 ## 5. Alternate Proposals Considered
 
 ### 5.1 Status Quo (Flat Registry)

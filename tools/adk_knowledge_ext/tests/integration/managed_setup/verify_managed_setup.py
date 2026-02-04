@@ -63,15 +63,16 @@ def main():
     ]
     run_command(cmd_index)
     
-    print("Step 4: Verifying --index-url in config...")
+    print("Step 4: Verifying --index-url in config (via env)...")
     result = subprocess.run(list_cmd, capture_output=True, text=True)
     output = result.stdout + result.stderr
     print(f"Gemini Output:\n{output}")
     
-    if "--index-url https://test.pypi.org/simple" in output:
-        print("SUCCESS: --index-url found in configuration.")
+    # In new architecture, index-url is packed into the MCP_KNOWLEDGE_BASES JSON in env
+    if "https://test.pypi.org/simple" in output:
+        print("SUCCESS: index-url found in configuration.")
     else:
-        print("FAIL: --index-url missing from configuration.")
+        print("FAIL: index-url missing from configuration.")
         sys.exit(1)
 
     # 4. Test --knowledge-index-url (Re-setup)

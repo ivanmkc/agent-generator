@@ -66,6 +66,13 @@ logging.basicConfig(
 logger = logging.getLogger("codebase-knowledge-mcp")
 logger.info("Server starting up...")
 
+# Log Git Version
+try:
+    from ._version_git import GIT_SHA
+    logger.info(f"Server Build Version (Git SHA): {GIT_SHA}")
+except ImportError:
+    logger.info("Server Build Version: Unknown (running from source or unbuilt package)")
+
 # Validation
 # (TARGET_REPO_URL check removed as it is no longer mandatory)
 
@@ -106,22 +113,46 @@ def _get_available_kbs() -> Dict[str, KnowledgeBaseConfig]:
     if registry_path.exists():
         import yaml
         try:
-            registry = yaml.safe_load(registry_path.read_text())
-            for kb_id, meta in registry.items():
-                repo_url = meta["repo_url"]
-                ver = meta["version"]
-                
-                desc = meta.get("description") or f"Codebase knowledge for {repo_url} at version {ver}"
-                
-                kbs[kb_id] = KnowledgeBaseConfig(
-                    id=kb_id,
-                    repo_url=repo_url,
-                    version=ver,
-                    name=f"{repo_url.split('/')[-1].replace('.git', '')} ({ver})",
-                    description=desc,
-                    source="bundled",
-                    index_url=meta.get("index_url")
-                )
+            data = yaml.safe_load(registry_path.read_text())
+            if "repositories" in data:
+                # Hierarchical Format
+                for repo_id, meta in data["repositories"].items():
+                    repo_url = meta["repo_url"]
+                    base_desc = meta.get("description")
+                    default_ver = meta.get("default_version")
+                    
+                    for ver, v_meta in meta.get("versions", {}).items():
+                        # Standard ID: owner/repo@version
+                        kb_id = f"{repo_id}@{ver}"
+                        
+                        desc = v_meta.get("description") or base_desc or f"Codebase: {repo_url}"
+                        
+                        config = KnowledgeBaseConfig(
+                            id=kb_id,
+                            repo_url=repo_url,
+                            version=ver,
+                            name=f"{repo_id} ({ver})",
+                            description=desc,
+                            source="bundled",
+                            index_url=v_meta.get("index_url")
+                        )
+                        kbs[kb_id] = config
+                        
+                        # Register default alias if matches
+                        if ver == default_ver:
+                            kbs[repo_id] = config
+            else:
+                # Legacy Format Fallback
+                for kb_id, meta in data.items():
+                    kbs[kb_id] = KnowledgeBaseConfig(
+                        id=kb_id,
+                        repo_url=meta["repo_url"],
+                        version=meta["version"],
+                        name=f"{meta['repo_url']} ({meta['version']})",
+                        description=meta.get("description"),
+                        source="bundled",
+                        index_url=meta.get("index_url")
+                    )
         except Exception as e:
             logger.warning(f"Failed to read bundled registry: {e}")
 
@@ -132,23 +163,23 @@ def _get_available_kbs() -> Dict[str, KnowledgeBaseConfig]:
         try:
             items = json.loads(configured_kbs_json)
             for item in items:
+                # Expect 'id', 'repo_url', 'version'
+                kb_id = item.get("id")
                 repo_url = item["repo_url"]
                 version = item["version"]
-                repo_name = repo_url.split("/")[-1].replace(".git", "")
-                kb_id = f"{repo_name}-{version}" if version != "main" else repo_name
                 
-                # Env config overrides bundled if same ID
-                desc = item.get("description")
-                if not desc:
-                    desc = f"Configured repository: {repo_url}"
+                # Fallback ID generation if missing (legacy env var format)
+                if not kb_id:
+                    repo_name = repo_url.split("/")[-1].replace(".git", "")
+                    kb_id = f"{repo_name}-{version}" if version != "main" else repo_name
 
                 kbs[kb_id] = KnowledgeBaseConfig(
                     id=kb_id,
                     repo_url=repo_url,
                     version=version,
                     index_url=item.get("index_url"),
-                    name=f"{repo_name} ({version})",
-                    description=desc,
+                    name=item.get("name") or f"{kb_id}",
+                    description=item.get("description"),
                     source="env"
                 )
         except Exception as e:
@@ -264,16 +295,43 @@ def _ensure_instructions():
     """
     Ensures that the dynamic instructions file is available.
     """
-    # No longer dependent on specific kb_id for filename
-    
     kbs = _get_available_kbs()
-    import yaml
-    # Prepare Registry String: {kb_id: description}
-    registry_map = {
-        kid: f"Codebase: {meta.repo_url} (version: {meta.version})"
-        for kid, meta in kbs.items()
-    }
-    registry_str = yaml.safe_dump(registry_map, sort_keys=False, width=1000).strip()
+    
+    # Group by repo_url for compact display
+    from collections import defaultdict
+    repos = defaultdict(list)
+    for kb in kbs.values():
+        # Avoid duplicating alias entries
+        # If ID == repo_url (e.g. google/adk-python), skip it in listing if we also have the explicit version
+        # But wait, we want to list versions.
+        # Let's filter out aliases that are just pointers.
+        # Heuristic: if ID contains '@', it's a version. If not, it's an alias (unless legacy).
+        # Actually, let's just group everything and deduplicate versions.
+        repos[kb.repo_url].append(kb)
+
+    registry_lines = []
+    for repo_url, configs in repos.items():
+        # Deduplicate by version
+        unique_versions = {}
+        for c in configs:
+            unique_versions[c.version] = c
+        
+        # Pick description from one of them
+        first = next(iter(unique_versions.values()))
+        repo_id = "Unknown"
+        # Try to extract repo id from the ID if it follows convention
+        if "@" in first.id:
+            repo_id = first.id.split("@")[0]
+        else:
+            repo_id = repo_url.split("/")[-1].replace(".git", "")
+
+        registry_lines.append(f"*   `{repo_id}` | {first.description or 'No description'}")
+        
+        for ver, c in unique_versions.items():
+            registry_lines.append(f"    *   Version: `{ver}`")
+            registry_lines.append(f"    *   *Usage:* `list_modules(kb_id=\"{c.id}\", ...)`")
+
+    registry_str = "\n".join(registry_lines)
     
     bundled_instr = _BUNDLED_DATA / "INSTRUCTIONS.md"
     template = Path(__file__).parent.parent.parent / "INSTRUCTIONS.template.md"
