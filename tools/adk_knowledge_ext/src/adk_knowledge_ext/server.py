@@ -269,7 +269,10 @@ def _ensure_index(kb_id: str | None) -> str:
         cache_dir.mkdir(parents=True, exist_ok=True)
         import hashlib
         url_hash = hashlib.md5(index_url.encode()).hexdigest()[:8]
-        cached_index = cache_dir / f"index_{url_hash}.yaml"
+        
+        # Sanitize ID for filename
+        safe_id = resolved_id.replace("/", "_").replace("@", "_").replace(":", "_")
+        cached_index = cache_dir / f"index_{safe_id}_{url_hash}.yaml"
         
         if not cached_index.exists():
             logger.info(f"Downloading index from {index_url}...")

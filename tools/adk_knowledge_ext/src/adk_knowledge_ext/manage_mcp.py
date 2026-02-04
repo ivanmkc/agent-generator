@@ -804,6 +804,9 @@ def _generate_mcp_config(selected_kbs: List[Dict[str, str]], api_key: Optional[s
     elif os.environ.get("GEMINI_API_KEY"):
         env["GEMINI_API_KEY"] = os.environ.get("GEMINI_API_KEY")
 
+    if os.environ.get("GITHUB_TOKEN"):
+        env["GITHUB_TOKEN"] = os.environ.get("GITHUB_TOKEN")
+
     # Construct uvx command
     if local_path:
         # Resolve the absolute path to the package root
