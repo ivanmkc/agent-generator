@@ -97,35 +97,33 @@ import os
 def _get_available_kbs() -> Dict[str, KnowledgeBaseConfig]:
     """
     Returns a mapping of KB ID to metadata.
-    KB IDs are derived from the bundled manifest and environment config.
+    KB IDs are derived from the bundled registry and environment config.
     """
     kbs = {}
     
-    # 1. Load Bundled Manifest
-    manifest_path = _BUNDLED_DATA / "manifest.yaml"
-    if manifest_path.exists():
+    # 1. Load Bundled Registry
+    registry_path = Path(__file__).parent / "registry.yaml"
+    if registry_path.exists():
         import yaml
         try:
-            manifest = yaml.safe_load(manifest_path.read_text())
-            for repo_url, versions in manifest.items():
-                repo_name = repo_url.split("/")[-1].replace(".git", "")
-                for ver, meta in versions.items():
-                    kb_id = f"{repo_name}-{ver}" if ver != "main" else repo_name
-                    
-                    desc = f"Codebase knowledge for {repo_url} at version {ver}"
-                    if isinstance(meta, dict) and meta.get("description"):
-                        desc = meta.get("description")
-                        
-                    kbs[kb_id] = KnowledgeBaseConfig(
-                        id=kb_id,
-                        repo_url=repo_url,
-                        version=ver,
-                        name=f"{repo_name} ({ver})",
-                        description=desc,
-                        source="bundled"
-                    )
+            registry = yaml.safe_load(registry_path.read_text())
+            for kb_id, meta in registry.items():
+                repo_url = meta["repo_url"]
+                ver = meta["version"]
+                
+                desc = meta.get("description") or f"Codebase knowledge for {repo_url} at version {ver}"
+                
+                kbs[kb_id] = KnowledgeBaseConfig(
+                    id=kb_id,
+                    repo_url=repo_url,
+                    version=ver,
+                    name=f"{repo_url.split('/')[-1].replace('.git', '')} ({ver})",
+                    description=desc,
+                    source="bundled",
+                    index_url=meta.get("index_url")
+                )
         except Exception as e:
-            logger.warning(f"Failed to read bundled manifest for discovery: {e}")
+            logger.warning(f"Failed to read bundled registry: {e}")
 
     # 2. Add Configured KBs from env (JSON)
     configured_kbs_json = os.environ.get("MCP_KNOWLEDGE_BASES")
@@ -207,28 +205,26 @@ def _ensure_index(kb_id: str | None) -> str:
     if idx._loaded:
         return resolved_id
 
-    # 1. Check Bundled Manifest
-    manifest_path = _BUNDLED_DATA / "manifest.yaml"
-    if manifest_path.exists():
+    # 1. Check Bundled Registry
+    registry_path = Path(__file__).parent / "registry.yaml"
+    if registry_path.exists():
         import yaml
         try:
-            manifest = yaml.safe_load(manifest_path.read_text())
-            bundled_entry = manifest.get(repo_url, {}).get(version)
-            
-            bundled_file = None
-            if isinstance(bundled_entry, dict):
-                bundled_file = bundled_entry.get("path")
-            elif isinstance(bundled_entry, str):
-                bundled_file = bundled_entry
-                
-            if bundled_file:
-                bundled_path = _BUNDLED_DATA / bundled_file
-                if bundled_path.exists():
-                    logger.info(f"Using bundled index for {resolved_id}: {bundled_path}")
-                    idx.load(bundled_path)
-                    return resolved_id
+            registry = yaml.safe_load(registry_path.read_text())
+            # Lookup by ID directly
+            if resolved_id in registry:
+                meta = registry[resolved_id]
+                # If registry points to a local file path as index_url (legacy/bundling support)
+                # We check if it's a file in data/
+                idx_val = meta.get("index_url")
+                if idx_val and not idx_val.startswith("http"):
+                     bundled_path = _BUNDLED_DATA / idx_val
+                     if bundled_path.exists():
+                        logger.info(f"Using bundled index for {resolved_id}: {bundled_path}")
+                        idx.load(bundled_path)
+                        return resolved_id
         except Exception as e:
-            logger.warning(f"Failed to read bundled manifest: {e}")
+            logger.warning(f"Failed to read bundled registry: {e}")
 
     # 2. Manual URL Download (from configured metadata)
     index_url = kb_meta.index_url

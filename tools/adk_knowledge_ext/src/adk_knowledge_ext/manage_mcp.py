@@ -143,23 +143,15 @@ def setup(kb_ids: Optional[str], api_key: Optional[str], local_path: Optional[st
     if registry_path.exists():
         try:
             registry_data = yaml.safe_load(registry_path.read_text())
-            for r_url, versions in registry_data.items():
-                for ver, meta in versions.items():
-                    # Handle both legacy (string) and new (dict) formats
-                    idx_url = meta if isinstance(meta, str) else meta.get("index_url")
-                    desc = meta.get("description") if isinstance(meta, dict) else None
-                    
-                    r_name = r_url.split("/")[-1].replace(".git", "")
-                    kb_id = f"{r_name}-{ver}" if ver != "main" else r_name
-                    
-                    registry_options.append({
-                        "id": kb_id,
-                        "repo_url": r_url,
-                        "version": ver,
-                        "index_url": idx_url,
-                        "description": desc,
-                        "label": f"{r_url} ({ver})"
-                    })
+            for kb_id, meta in registry_data.items():
+                registry_options.append({
+                    "id": kb_id,
+                    "repo_url": meta["repo_url"],
+                    "version": meta["version"],
+                    "index_url": meta.get("index_url"),
+                    "description": meta.get("description"),
+                    "label": f"{meta['repo_url']} ({meta['version']})"
+                })
         except Exception:
             pass
 
@@ -368,14 +360,14 @@ def _generate_mcp_config(selected_kbs: List[Dict[str, str]], api_key: Optional[s
 
     for kb in selected_kbs:
         if not kb.get("index_url"):
-             repo_map = registry.get(kb["repo_url"], {})
-             meta = repo_map.get(kb["version"])
-             if isinstance(meta, dict):
-                 kb["index_url"] = meta.get("index_url")
-                 if not kb.get("description"):
-                     kb["description"] = meta.get("description")
-             else:
-                 kb["index_url"] = meta
+             # Try to find matching entry in flattened registry
+             # We match on repo_url AND version
+             for kb_id, meta in registry.items():
+                 if meta.get("repo_url") == kb["repo_url"] and meta.get("version") == kb["version"]:
+                     kb["index_url"] = meta.get("index_url")
+                     if not kb.get("description"):
+                         kb["description"] = meta.get("description")
+                     break
 
     env = {
         "MCP_KNOWLEDGE_BASES": json.dumps(selected_kbs)
