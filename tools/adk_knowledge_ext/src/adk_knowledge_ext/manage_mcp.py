@@ -244,36 +244,69 @@ def setup(kb_ids: Optional[str], repo_url: Optional[str], version: Optional[str]
         if quiet:
             pass
         elif registry_repos:
-            console.print("\n[bold]Available Repositories:[/bold]")
+            console.print("\n[bold]Step 1: Select Repositories[/bold]")
             repo_keys = list(registry_repos.keys())
             for i, r_key in enumerate(repo_keys):
                 entry = registry_repos[r_key]
-                console.print(f"[{i+1}] {r_key}: {entry.description}")
+                console.print(f" [{i+1}] {r_key}: {entry.description}")
             
             selection_input = Prompt.ask("\nSelect repositories (comma-separated indices or names)")
             parts = [x.strip() for x in selection_input.split(",")]
             
+            selected_repo_entries = []
             for p in parts:
                 target_repo = None
+                r_id = None
                 if p.isdigit():
                     idx = int(p)
                     if 1 <= idx <= len(repo_keys):
-                        target_repo = registry_repos[repo_keys[idx-1]]
-                        repo_id = repo_keys[idx-1]
+                        r_id = repo_keys[idx-1]
+                        target_repo = registry_repos[r_id]
                 elif p in registry_repos:
+                    r_id = p
                     target_repo = registry_repos[p]
-                    repo_id = p
                 
-                if target_repo:
-                    # For now, default to default_version. Could ask for version here.
-                    ver = target_repo.default_version
-                    v_entry = target_repo.versions[ver]
+                if target_repo and target_repo not in [x[1] for x in selected_repo_entries]:
+                    selected_repo_entries.append((r_id, target_repo))
+
+            # Step 2: Select Versions for each repo
+            if selected_repo_entries:
+                console.print("\n[bold]Step 2: Select Versions[/bold]")
+                for r_id, repo in selected_repo_entries:
+                    versions = list(repo.versions.keys())
+                    if len(versions) == 1:
+                        target_version = versions[0]
+                        console.print(f"   Using only available version for '{r_id}': [cyan]{target_version}[/cyan]")
+                    else:
+                        console.print(f"\n   Configuring [bold]{r_id}[/bold]:")
+                        for j, v_id in enumerate(versions):
+                            v_meta = repo.versions[v_id]
+                            default_mark = " [dim](Default)[/dim]" if v_id == repo.default_version else ""
+                            desc = f" - {v_meta.description}" if v_meta.description else ""
+                            console.print(f"    [{j+1}] {v_id}{default_mark}{desc}")
+                        
+                        # Find default index
+                        def_idx = 1
+                        try:
+                            def_idx = versions.index(repo.default_version) + 1
+                        except ValueError:
+                            pass
+
+                        v_choice = Prompt.ask(
+                            f"   Select version for '{r_id}'", 
+                            choices=[str(x+1) for x in range(len(versions))],
+                            default=str(def_idx),
+                            show_choices=False
+                        )
+                        target_version = versions[int(v_choice) - 1]
+
+                    v_entry = repo.versions[target_version]
                     selected_kbs.append({
-                        "id": f"{repo_id}@{ver}",
-                        "repo_url": target_repo.repo_url,
-                        "version": ver,
+                        "id": f"{r_id}@{target_version}",
+                        "repo_url": repo.repo_url,
+                        "version": target_version,
                         "index_url": v_entry.index_url,
-                        "description": v_entry.description or target_repo.description
+                        "description": v_entry.description or repo.description
                     })
 
     # Pre-load/Clone Repositories
