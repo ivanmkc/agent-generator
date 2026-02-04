@@ -53,9 +53,7 @@ class RegistryEntry(BaseModel):
 
 def ask_confirm(question: str, default: bool = True) -> bool:
     """Case-insensitive confirmation prompt."""
-    choices = "[Y/n]" if default else "[y/N]"
-    resp = Prompt.ask(f"{question} {choices}", default="y" if default else "n", show_default=False)
-    return resp.lower().startswith("y")
+    return Confirm.ask(question, default=default)
 
 MCP_SERVER_NAME = "codebase-knowledge"
 
