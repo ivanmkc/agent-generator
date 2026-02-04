@@ -124,19 +124,65 @@ def cli():
 @cli.command()
 @click.option("--repo-url", help="Target repository URL (e.g. https://github.com/google/adk-python.git)")
 @click.option("--version", default="main", help="Target version/branch (default: main)")
+@click.option("--kb-ids", help="Comma-separated list of Knowledge Base IDs to configure (e.g. adk-python-v1.20.0)")
 @click.option("--api-key", help="Gemini API Key (optional, for semantic search)")
 @click.option("--index-url", help="Custom PyPI index URL (e.g. https://pypi.org/simple) for uvx")
 @click.option("--knowledge-index-url", help="Direct URL or file path to the knowledge index YAML (overrides registry lookup)")
 @click.option("--local", "local_path", help="Use local source directory for the MCP server. Optionally provide path to the package root.")
 @click.option("--force", is_flag=True, help="Skip confirmation prompts")
-def setup(repo_url: Optional[str], version: str, api_key: Optional[str], index_url: Optional[str], knowledge_index_url: Optional[str], local_path: Optional[str], force: bool):
+@click.option("--quiet", "-q", is_flag=True, help="Quiet mode (implies --force)")
+def setup(repo_url: Optional[str], version: str, kb_ids: Optional[str], api_key: Optional[str], index_url: Optional[str], knowledge_index_url: Optional[str], local_path: Optional[str], force: bool, quiet: bool):
     """Auto-configure this MCP server in your coding agents."""
     
     local = local_path is not None
+    # Quiet implies force
+    if quiet:
+        force = True
+        
     selected_kbs = []
 
+    # Load Registry
+    registry_path = Path(__file__).parent / "registry.yaml"
+    registry_options = []
+    if registry_path.exists():
+        try:
+            registry_data = yaml.safe_load(registry_path.read_text())
+            for r_url, versions in registry_data.items():
+                for ver, meta in versions.items():
+                    # Handle both legacy (string) and new (dict) formats
+                    idx_url = meta if isinstance(meta, str) else meta.get("index_url")
+                    desc = meta.get("description") if isinstance(meta, dict) else None
+                    
+                    r_name = r_url.split("/")[-1].replace(".git", "")
+                    kb_id = f"{r_name}-{ver}" if ver != "main" else r_name
+                    
+                    registry_options.append({
+                        "id": kb_id,
+                        "repo_url": r_url,
+                        "version": ver,
+                        "index_url": idx_url,
+                        "description": desc,
+                        "label": f"{r_url} ({ver})"
+                    })
+        except Exception:
+            pass
+
     # 1. Resolve Selection
-    if repo_url:
+    if kb_ids:
+        # Resolve IDs from registry
+        requested_ids = [x.strip() for x in kb_ids.split(",") if x.strip()]
+        for rid in requested_ids:
+            match = next((opt for opt in registry_options if opt["id"] == rid), None)
+            if match:
+                selected_kbs.append({
+                    "repo_url": match["repo_url"],
+                    "version": match["version"],
+                    "index_url": match["index_url"],
+                    "description": match["description"]
+                })
+            else:
+                console.print(f"[yellow]Warning: KB ID '{rid}' not found in registry.[/yellow]")
+    elif repo_url:
         # Direct CLI usage
         selected_kbs.append({
             "repo_url": repo_url,
@@ -145,47 +191,36 @@ def setup(repo_url: Optional[str], version: str, api_key: Optional[str], index_u
         })
     else:
         # Interactive Mode
-        registry_path = Path(__file__).parent / "registry.yaml"
-        available_options = []
-        if registry_path.exists():
-            try:
-                registry = yaml.safe_load(registry_path.read_text())
-                for r_url, versions in registry.items():
-                    for ver, meta in versions.items():
-                        # Handle both legacy (string) and new (dict) formats
-                        idx_url = meta if isinstance(meta, str) else meta.get("index_url")
-                        desc = meta.get("description") if isinstance(meta, dict) else None
-                        
-                        available_options.append({
-                            "repo_url": r_url,
-                            "version": ver,
-                            "index_url": idx_url,
-                            "description": desc,
-                            "label": f"{r_url} ({ver})"
-                        })
-            except Exception:
-                pass
-
-        if available_options:
+        if registry_options:
             console.print("\n[bold]Available Knowledge Bases:[/bold]")
-            for i, opt in enumerate(available_options):
+            for i, opt in enumerate(registry_options):
                 desc_suffix = f" - {opt['description']}" if opt.get('description') else ""
-                console.print(f"[{i+1}] {opt['label']}{desc_suffix}")
+                console.print(f"[{i+1}] {opt['id']}: {opt['label']}{desc_suffix}")
             
-            selection_input = Prompt.ask("\nSelect one or more (comma-separated, e.g. 1, 2)")
-            selected_indices = [int(x.strip()) for x in selection_input.split(",") if x.strip().isdigit()]
-            
-            # Add Registry Selections
-            for idx in selected_indices:
-                if 1 <= idx <= len(available_options):
-                    opt = available_options[idx-1]
-                    # Clean up label before saving
-                    selected_kbs.append({
-                        "repo_url": opt["repo_url"],
-                        "version": opt["version"],
-                        "index_url": opt["index_url"],
-                        "description": opt.get("description")
-                    })
+            selection_input = Prompt.ask("\nSelect one or more (comma-separated indices or IDs)")
+            # Handle both indices and string IDs
+            parts = [x.strip() for x in selection_input.split(",")]
+            for p in parts:
+                if p.isdigit():
+                    idx = int(p)
+                    if 1 <= idx <= len(registry_options):
+                         match = registry_options[idx-1]
+                         selected_kbs.append({
+                            "repo_url": match["repo_url"],
+                            "version": match["version"],
+                            "index_url": match["index_url"],
+                            "description": match["description"]
+                        })
+                else:
+                    match = next((opt for opt in registry_options if opt["id"] == p), None)
+                    if match:
+                         selected_kbs.append({
+                            "repo_url": match["repo_url"],
+                            "version": match["version"],
+                            "index_url": match["index_url"],
+                            "description": match["description"]
+                        })
+
         else:
             # Fallback if registry missing
             repo_url = Prompt.ask("Enter the Target Repository URL")

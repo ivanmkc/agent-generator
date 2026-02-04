@@ -22,8 +22,7 @@ COPY tools/adk_knowledge_ext /app/extensions/adk-knowledge-ext
 WORKDIR /workdir
 RUN uvx --from /app/extensions/adk-knowledge-ext \
     codebase-knowledge-mcp-manage setup \
-    --repo-url "https://github.com/google/adk-python.git" \
-    --version "v1.20.0" \
+    --kb-ids "adk-python-v1.20.0" \
     --local "/app/extensions/adk-knowledge-ext" \
-    --force
+    --quiet
 
