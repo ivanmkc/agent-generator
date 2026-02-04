@@ -546,7 +546,8 @@ def debug():
                                 console.print(Panel(content, title="Output (Error)", border_style="red"))
                             else:
                                 console.print(f"      ✅ [green]OK[/green]")
-                                console.print(Panel(content[:500] + ("..." if len(content)>500 else ""), title="Output (Truncated)", border_style="dim"))
+                                # Increased truncation limit to 1000 chars
+                                console.print(Panel(content[:1000] + ("..." if len(content)>1000 else ""), title="Output (Truncated)", border_style="dim"))
                                 
                                 # Extract FQN for next tests
                                 import re
@@ -566,7 +567,8 @@ def debug():
                             result = await session.call_tool("search_knowledge", arguments=q_args)
                             content = result.content[0].text
                             console.print(f"      ✅ [green]OK[/green]")
-                            console.print(Panel(content[:300] + "...", title="Output (Truncated)", border_style="dim"))
+                            # Increased truncation limit to 800 chars
+                            console.print(Panel(content[:800] + ("..." if len(content)>800 else ""), title="Output (Truncated)", border_style="dim"))
                         except Exception as e:
                             console.print(f"      ❌ [red]Error {e}[/red]")
 
@@ -581,7 +583,8 @@ def debug():
                                 result = await session.call_tool("inspect_symbol", arguments=i_args)
                                 content = result.content[0].text
                                 console.print(f"      ✅ [green]OK[/green]")
-                                console.print(Panel(content[:300] + "...", title="Output (Truncated)", border_style="dim"))
+                                # Increased truncation limit to 800 chars
+                                console.print(Panel(content[:800] + ("..." if len(content)>800 else ""), title="Output (Truncated)", border_style="dim"))
                             except Exception as e:
                                 console.print(f"      ❌ [red]Error {e}[/red]")
                         else:
@@ -596,31 +599,48 @@ def debug():
     # 3. File System & Paths
     console.print(f"\n[bold]3. File System & Paths[/bold]")
     paths_to_check = [
-        ("Base Cache", Path.home() / ".mcp_cache"),
-        ("Instructions", Path.home() / ".mcp_cache" / "instructions"),
-        ("Indices", Path.home() / ".mcp_cache" / "indices"),
-        ("Logs", Path.home() / ".mcp_cache" / "logs"),
-        ("Registry", Path(__file__).parent / "registry.yaml")
+        ("Base Cache", Path.home() / ".mcp_cache", "Root directory for all persisted MCP data (cloned repos, indices)."),
+        ("Instructions", Path.home() / ".mcp_cache" / "instructions", "System instructions injected into LLM contexts."),
+        ("Indices", Path.home() / ".mcp_cache" / "indices", "Pre-computed codebase knowledge indices (YAML)."),
+        ("Logs", Path.home() / ".mcp_cache" / "logs", "Server execution and error logs."),
+        ("Registry", Path(__file__).parent / "registry.yaml", "Bundled list of known repositories and versions.")
     ]
     
-    for label, p in paths_to_check:
+    for label, p, desc in paths_to_check:
         if p.exists():
             if p.is_dir():
                 try:
-                    count = len(list(p.iterdir()))
-                    console.print(f"   ✓ {label:<15} {p} [green](Exists, {count} items)[/green]")
+                    # Specific counting based on directory type
+                    if "instructions" in str(p):
+                        items = list(p.glob("*.md"))
+                        count_str = f"{len(items)} instruction files"
+                    elif "indices" in str(p):
+                        items = list(p.glob("*.yaml"))
+                        count_str = f"{len(items)} indices"
+                    elif "logs" in str(p):
+                        items = list(p.glob("*.log*"))
+                        count_str = f"{len(items)} log files"
+                    else:
+                        items = [x for x in p.iterdir() if not x.name.startswith(".")]
+                        count_str = f"{len(items)} cached repos"
+                    
+                    console.print(f"   ✓ [bold]{label:<15}[/bold] {p}\n      [dim]└─ {desc}[/dim] [green]({count_str})[/green]")
                 except Exception as e:
-                    console.print(f"   ✓ {label:<15} {p} [green](Exists, unreadable: {e})[/green]")
+                    console.print(f"   ✓ [bold]{label:<15}[/bold] {p}\n      [dim]└─ {desc}[/dim] [yellow](Unreadable: {e})[/yellow]")
             else:
                 size = p.stat().st_size
-                console.print(f"   ✓ {label:<15} {p} [green](Exists, {size} bytes)[/green]")
+                console.print(f"   ✓ [bold]{label:<15}[/bold] {p}\n      [dim]└─ {desc}[/dim] [green]({size} bytes)[/green]")
         else:
-            console.print(f"   ✗ {label:<15} {p} [red](Missing)[/red]")
+            console.print(f"   ✗ [bold]{label:<15}[/bold] {p}\n      [dim]└─ {desc}[/dim] [red](Missing)[/red]")
 
     # 4. Environment
     console.print(f"\n[bold]4. Environment Variables[/bold]")
-    vars_to_check = ["GEMINI_API_KEY", "MCP_KNOWLEDGE_BASES", "GITHUB_TOKEN"]
-    for v in vars_to_check:
+    vars_to_check = [
+        ("GEMINI_API_KEY", "Used for semantic/vector search and LLM-based tools."),
+        ("MCP_KNOWLEDGE_BASES", "JSON list of active repositories for this session."),
+        ("GITHUB_TOKEN", "Optional: Used to avoid rate limits when downloading indices or cloning.")
+    ]
+    for v, desc in vars_to_check:
         val = os.environ.get(v)
         if val:
             display = "[green]Set[/green]"
@@ -628,9 +648,9 @@ def debug():
                 display += f" ({len(val)} chars)"
             else:
                 display += " (Masked)"
-            console.print(f"   ✓ {v:<20} {display}")
+            console.print(f"   ✓ [bold]{v:<20}[/bold] {display}\n      [dim]└─ {desc}[/dim]")
         else:
-            console.print(f"   - {v:<20} [dim]Not set[/dim]")
+            console.print(f"   - [bold]{v:<20}[/bold] [dim]Not set[/dim]\n      [dim]└─ {desc}[/dim]")
 
     # 5. Integrations Check
     console.print(f"\n[bold]5. Integration Status[/bold]")
