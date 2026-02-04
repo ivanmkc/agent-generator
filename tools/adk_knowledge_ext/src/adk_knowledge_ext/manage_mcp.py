@@ -580,67 +580,42 @@ def _configure_ide_json(ide_info: dict, mcp_config: dict) -> None:
                     if registry_path.exists():
                         try:
                             registry_data = yaml.safe_load(registry_path.read_text())
-                            # Construct synthetic KB list for instruction generation purposes
-                            # We use the first one as "current" or just generic
-                            # Actually, we can generate one file listing all.
-                            
-                            # Update registry map for all
                             for kid, meta in registry_data.items():
                                 registry_map[kid] = meta.get("description", f"Codebase: {meta['repo_url']}")
-                            
-                            registry_str = yaml.safe_dump(registry_map, sort_keys=False, width=1000).strip()
-                            
-                            # Fake a KB for the loop to run once
-                            kbs_to_process = [{
-                                "repo_url": "dynamic",
-                                "version": "dynamic",
-                                "kb_id": "registry_catalog" 
-                            }]
                         except Exception:
-                            kbs_to_process = []
-                    else:
-                        kbs_to_process = []
-                else:
-                    kbs_to_process = kbs
+                            pass
+                
+                # Regenerate registry string with potentially updated map (fallback case)
+                registry_str = yaml.safe_dump(registry_map, sort_keys=False, width=1000).strip()
 
-                for kb in kbs_to_process:
-                    # Determine ID
-                    if "kb_id" in kb:
-                        kb_id = kb["kb_id"]
-                    else:
-                        r_url = kb["repo_url"]
-                        ver = kb["version"]
-                        r_name = r_url.split("/")[-1].replace(".git", "")
-                        kb_id = f"{r_name}-{ver}" if ver != "main" else r_name
+                # Preferred path: .gemini/instructions/ in current workspace
+                # Fallback: ~/.mcp_cache/instructions/
+                local_gemini = Path.cwd() / ".gemini"
+                instr_filename = "KNOWLEDGE_MCP_SERVER_INSTRUCTION.md"
+                
+                # Check if we are in the home directory
+                try:
+                    is_home = Path.cwd().resolve().samefile(Path.home().resolve())
+                except Exception:
+                    is_home = (Path.cwd().resolve() == Path.home().resolve())
+                
+                # If .gemini exists OR we are in a workspace (not home), use local .gemini
+                if local_gemini.exists() or not is_home:
+                    instr_path = local_gemini / "instructions" / instr_filename
+                else:
+                    instr_path = Path.home() / ".mcp_cache" / "instructions" / instr_filename
                     
-                    # Preferred path: .gemini/instructions/ in current workspace
-                    # Fallback: ~/.mcp_cache/instructions/
-                    local_gemini = Path.cwd() / ".gemini"
-                    instr_filename = f"INSTRUCTION_{kb_id}.md"
-                    
-                    # Check if we are in the home directory
-                    try:
-                        is_home = Path.cwd().resolve().samefile(Path.home().resolve())
-                    except Exception:
-                        is_home = (Path.cwd().resolve() == Path.home().resolve())
-                    
-                    # If .gemini exists OR we are in a workspace (not home), use local .gemini
-                    if local_gemini.exists() or not is_home:
-                        instr_path = local_gemini / "instructions" / instr_filename
-                    else:
-                        instr_path = Path.home() / ".mcp_cache" / "instructions" / instr_filename
-                        
-                    instr_path.parent.mkdir(parents=True, exist_ok=True)
-                    
-                    content = template_content.replace("{{KB_REGISTRY}}", registry_str)
-                    instr_path.write_text(content)
-                    
-                    # Use relative path if within workspace
-                    try:
-                        rel_p = instr_path.relative_to(Path.cwd())
-                        instr_paths.append(str(rel_p))
-                    except ValueError:
-                        instr_paths.append(str(instr_path))
+                instr_path.parent.mkdir(parents=True, exist_ok=True)
+                
+                content = template_content.replace("{{KB_REGISTRY}}", registry_str)
+                instr_path.write_text(content)
+                
+                # Use relative path if within workspace
+                try:
+                    rel_p = instr_path.relative_to(Path.cwd())
+                    instr_paths.append(str(rel_p))
+                except ValueError:
+                    instr_paths.append(str(instr_path))
             
             if instr_paths:
                 if "context" not in config:

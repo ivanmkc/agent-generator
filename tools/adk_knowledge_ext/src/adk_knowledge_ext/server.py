@@ -260,12 +260,11 @@ def _ensure_index(kb_id: str | None) -> str:
     raise RuntimeError(f"Index for '{resolved_id}' ({repo_url}) not properly set up and no download URL available.")
 
 
-def _ensure_instructions(kb_id: str | None):
+def _ensure_instructions():
     """
     Ensures that the dynamic instructions file is available.
     """
-    kb_meta = _validate_kb(kb_id)
-    resolved_id = kb_meta.id
+    # No longer dependent on specific kb_id for filename
     
     kbs = _get_available_kbs()
     import yaml
@@ -289,7 +288,7 @@ def _ensure_instructions(kb_id: str | None):
 
     content = content.replace("{{KB_REGISTRY}}", registry_str)
 
-    cache_path = Path.home() / ".mcp_cache" / "instructions" / f"INSTRUCTION_{resolved_id}.md"
+    cache_path = Path.home() / ".mcp_cache" / "instructions" / "KNOWLEDGE_MCP_SERVER_INSTRUCTION.md"
     cache_path.parent.mkdir(parents=True, exist_ok=True)
     
     cache_path.write_text(content)
@@ -306,7 +305,7 @@ def list_modules(kb_id: str = None, page: int = 1, page_size: int = 20) -> str:
         page_size: Number of items per page.
     """
     resolved_id = _ensure_index(kb_id)
-    _ensure_instructions(resolved_id)
+    _ensure_instructions()
     items = get_index(resolved_id).list_items(page, page_size)
 
     if not items:
