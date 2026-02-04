@@ -21,11 +21,13 @@ COPY tools/adk_knowledge_ext /app/extensions/adk-knowledge-ext
 # Setup Gemini CLI with MCP (Local Mode via uvx)
 # We change directory so 'manage setup --local' correctly infers the package path
 WORKDIR /app/extensions/adk-knowledge-ext
-RUN uvx --from . \
+RUN mkdir -p .gemini && \
+    uvx --from . \
     codebase-knowledge-mcp-manage setup \
     --repo-url "https://github.com/google/adk-python.git" \
     --version "v1.20.0" \
     --local \
-    --force
+    --force && \
+    cp -r .gemini /workdir/
 
 WORKDIR /workdir
