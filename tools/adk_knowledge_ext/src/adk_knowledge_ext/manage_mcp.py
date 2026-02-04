@@ -536,30 +536,39 @@ def debug():
                             args = {"page_size": 1}
                             if kb_id:
                                 args["kb_id"] = kb_id
-                                
+                            
+                            console.print(f"      [dim]→ list_modules({json.dumps(args)})[/dim]")
                             result = await session.call_tool("list_modules", arguments=args)
                             content = result.content[0].text
+                            
                             if "Error" in content or "not found" in content.lower():
-                                console.print(f"      ❌ list_modules: [red]Failed[/red] - {content[:100]}...")
+                                console.print(f"      ❌ [red]Failed[/red]")
+                                console.print(Panel(content, title="Output (Error)", border_style="red"))
                             else:
-                                console.print(f"      ✅ list_modules: [green]OK[/green]")
+                                console.print(f"      ✅ [green]OK[/green]")
+                                console.print(Panel(content[:500] + ("..." if len(content)>500 else ""), title="Output (Truncated)", border_style="dim"))
+                                
                                 # Extract FQN for next tests
                                 import re
                                 match = re.search(r'\[.*?\] \w+: (\S+)', content)
                                 if match:
                                     first_item_fqn = match.group(1)
                         except Exception as e:
-                            console.print(f"      ❌ list_modules: [red]Error {e}[/red]")
+                            console.print(f"      ❌ [red]Error {e}[/red]")
 
                         # 2. search_knowledge
                         try:
                             q_args = {"queries": ["client"], "limit": 1}
                             if kb_id:
                                 q_args["kb_id"] = kb_id
-                            await session.call_tool("search_knowledge", arguments=q_args)
-                            console.print(f"      ✅ search_knowledge: [green]OK[/green]")
+                            
+                            console.print(f"      [dim]→ search_knowledge({json.dumps(q_args)})[/dim]")
+                            result = await session.call_tool("search_knowledge", arguments=q_args)
+                            content = result.content[0].text
+                            console.print(f"      ✅ [green]OK[/green]")
+                            console.print(Panel(content[:300] + "...", title="Output (Truncated)", border_style="dim"))
                         except Exception as e:
-                            console.print(f"      ❌ search_knowledge: [red]Error {e}[/red]")
+                            console.print(f"      ❌ [red]Error {e}[/red]")
 
                         # 3. inspect_symbol
                         if first_item_fqn:
@@ -567,10 +576,14 @@ def debug():
                                 i_args = {"fqn": first_item_fqn}
                                 if kb_id:
                                     i_args["kb_id"] = kb_id
-                                await session.call_tool("inspect_symbol", arguments=i_args)
-                                console.print(f"      ✅ inspect_symbol ('{first_item_fqn}'): [green]OK[/green]")
+                                
+                                console.print(f"      [dim]→ inspect_symbol({json.dumps(i_args)})[/dim]")
+                                result = await session.call_tool("inspect_symbol", arguments=i_args)
+                                content = result.content[0].text
+                                console.print(f"      ✅ [green]OK[/green]")
+                                console.print(Panel(content[:300] + "...", title="Output (Truncated)", border_style="dim"))
                             except Exception as e:
-                                console.print(f"      ❌ inspect_symbol: [red]Error {e}[/red]")
+                                console.print(f"      ❌ [red]Error {e}[/red]")
                         else:
                              console.print(f"      ⚠️  inspect_symbol: Skipped (no FQN found)")
 
@@ -580,8 +593,47 @@ def debug():
 
     asyncio.run(run_diagnostics())
 
-    # 3. Integrations Check
-    console.print(f"\n[bold]3. Integration Status[/bold]")
+    # 3. File System & Paths
+    console.print(f"\n[bold]3. File System & Paths[/bold]")
+    paths_to_check = [
+        ("Base Cache", Path.home() / ".mcp_cache"),
+        ("Instructions", Path.home() / ".mcp_cache" / "instructions"),
+        ("Indices", Path.home() / ".mcp_cache" / "indices"),
+        ("Logs", Path.home() / ".mcp_cache" / "logs"),
+        ("Registry", Path(__file__).parent / "registry.yaml")
+    ]
+    
+    for label, p in paths_to_check:
+        if p.exists():
+            if p.is_dir():
+                try:
+                    count = len(list(p.iterdir()))
+                    console.print(f"   ✓ {label:<15} {p} [green](Exists, {count} items)[/green]")
+                except Exception as e:
+                    console.print(f"   ✓ {label:<15} {p} [green](Exists, unreadable: {e})[/green]")
+            else:
+                size = p.stat().st_size
+                console.print(f"   ✓ {label:<15} {p} [green](Exists, {size} bytes)[/green]")
+        else:
+            console.print(f"   ✗ {label:<15} {p} [red](Missing)[/red]")
+
+    # 4. Environment
+    console.print(f"\n[bold]4. Environment Variables[/bold]")
+    vars_to_check = ["GEMINI_API_KEY", "MCP_KNOWLEDGE_BASES", "GITHUB_TOKEN"]
+    for v in vars_to_check:
+        val = os.environ.get(v)
+        if val:
+            display = "[green]Set[/green]"
+            if v == "MCP_KNOWLEDGE_BASES":
+                display += f" ({len(val)} chars)"
+            else:
+                display += " (Masked)"
+            console.print(f"   ✓ {v:<20} {display}")
+        else:
+            console.print(f"   - {v:<20} [dim]Not set[/dim]")
+
+    # 5. Integrations Check
+    console.print(f"\n[bold]5. Integration Status[/bold]")
     found_any = False
     
     for ide_name, ide_info in IDE_CONFIGS.items():

@@ -18,7 +18,10 @@ def main():
         "Git SHA:",
         "Server Self-Test",
         "Server Connection: OK",
-        "list_modules: OK"
+        "list_modules",
+        "File System & Paths",
+        "Environment Variables",
+        "Integration Status"
     ]
     
     failed = False
