@@ -106,8 +106,6 @@
     [Note: Inherited members from pydantic.BaseModel are omitted.]'
   constructor_signature: 'def __init__(self, *, name: str, description: str = '''', sub_agents: list[google.adk.agents.base_agent.BaseAgent] = list(), before_agent_callback: typing.Optional[google.adk.agents.base_agent.BeforeAgentCallback] = None, after_agent_callback: typing.Optional[google.adk.agents.base_agent.AfterAgentCallback] = None, model: typing.Union[str, google.adk.models.base_llm.BaseLlm] = '''', instruction: typing.Union[str, google.adk.agents.llm_agent.InstructionProvider] = '''', global_instruction: typing.Union[str, google.adk.agents.llm_agent.InstructionProvider] = '''', static_instruction: typing.Optional[google.genai.types.ContentUnion] = None, tools: list[google.adk.agents.llm_agent.ToolUnion] = list(), generate_content_config: typing.Optional[google.genai.types.GenerateContentConfig] = None, disallow_transfer_to_parent: bool = False, disallow_transfer_to_peers: bool = False, include_contents: typing.Literal[default, none] = ''default'', input_schema: typing.Optional[type[pydantic.BaseModel]]
     = None, output_schema: typing.Optional[type[pydantic.BaseModel]] = None, output_key: typing.Optional[str] = None, planner: typing.Optional[google.adk.planners.base_planner.BasePlanner] = None, code_executor: typing.Optional[google.adk.code_executors.base_code_executor.BaseCodeExecutor] = None, before_model_callback: typing.Optional[google.adk.agents.llm_agent.BeforeModelCallback] = None, after_model_callback: typing.Optional[google.adk.agents.llm_agent.AfterModelCallback] = None, on_model_error_callback: typing.Optional[google.adk.agents.llm_agent.OnModelErrorCallback] = None, before_tool_callback: typing.Optional[google.adk.agents.llm_agent.BeforeToolCallback] = None, after_tool_callback: typing.Optional[google.adk.agents.llm_agent.AfterToolCallback] = None, on_tool_error_callback: typing.Optional[google.adk.agents.llm_agent.OnToolErrorCallback] = None):'
-  aliases:
-  - google.adk.cli.utils.LlmAgent
   methods:
   - signature: 'def _run_async_impl(self, ctx: google.adk.agents.invocation_context.InvocationContext) -> typing.AsyncGenerator[google.adk.events.event.Event, None]:'
   - signature: 'def collect_agents(agent):'
@@ -790,8 +788,6 @@
   usage_score: 10
   docstring: "Wrapper around litellm.\n\nThis wrapper can be used with any of the models supported by litellm. The\nenvironment variable(s) needed for authenticating with the model endpoint must\nbe set prior to instantiating this class.\n\nExample usage:\n```\nos.environ[\"VERTEXAI_PROJECT\"] = \"your-gcp-project-id\"\nos.environ[\"VERTEXAI_LOCATION\"] = \"your-gcp-location\"\n\nagent = Agent(\n    model=LiteLlm(model=\"vertex_ai/claude-3-7-sonnet@20250219\"),\n    ...\n)\n```\n\nAttributes:\n  model: The name of the LiteLlm model.\n  llm_client: The LLM client to use for the model.\n\n[Note: Inherited members from pydantic.BaseModel are omitted.]"
   constructor_signature: 'def __init__(self, model: str):'
-  aliases:
-  - google.adk.models.LiteLlm
   methods:
   - signature: 'def generate_content_async(self, llm_request: google.adk.models.llm_request.LlmRequest, stream: bool) -> typing.AsyncGenerator[google.adk.models.llm_response.LlmResponse, None]:'
     docstring: "Generates content asynchronously.\n\nArgs:\n  llm_request: LlmRequest, the request to send to the LiteLlm model.\n  stream: bool = False, whether to do streaming call.\n\nYields:\n  LlmResponse: The model response."
@@ -2028,8 +2024,6 @@
   usage_score: 2
   docstring: "Parameters for the MCP Stdio connection.\n\nAttributes:\n    server_params: Parameters for the MCP Stdio server.\n    timeout: Timeout in seconds for establishing the connection to the MCP\n      stdio server.\n\n[Note: Inherited members from pydantic.BaseModel are omitted.]"
   constructor_signature: 'def __init__(self, *, server_params: mcp.StdioServerParameters, timeout: float = 5.0):'
-  aliases:
-  - google.adk.tools.mcp_tool.StdioConnectionParams
   properties:
   - signature: 'server_params: mcp.StdioServerParameters'
   - signature: 'timeout: float'
@@ -2047,8 +2041,6 @@
   usage_score: 2
   docstring: "Parameters for the MCP SSE connection.\n\nSee MCP SSE Client documentation for more details.\nhttps://github.com/modelcontextprotocol/python-sdk/blob/main/src/mcp/client/sse.py\n\nAttributes:\n    url: URL for the MCP SSE server.\n    headers: Headers for the MCP SSE connection.\n    timeout: Timeout in seconds for establishing the connection to the MCP SSE\n      server.\n    sse_read_timeout: Timeout in seconds for reading data from the MCP SSE\n      server.\n\n[Note: Inherited members from pydantic.BaseModel are omitted.]"
   constructor_signature: 'def __init__(self, *, url: str, headers: dict[str, Any] | None = None, timeout: float = 5.0, sse_read_timeout: float = 60 * 5.0):'
-  aliases:
-  - google.adk.tools.mcp_tool.SseConnectionParams
   properties:
   - signature: 'url: str'
   - signature: 'headers: dict[str, Any] | None'
@@ -2068,8 +2060,6 @@
   usage_score: 2
   docstring: "Parameters for the MCP Streamable HTTP connection.\n\nSee MCP Streamable HTTP Client documentation for more details.\nhttps://github.com/modelcontextprotocol/python-sdk/blob/main/src/mcp/client/streamable_http.py\n\nAttributes:\n    url: URL for the MCP Streamable HTTP server.\n    headers: Headers for the MCP Streamable HTTP connection.\n    timeout: Timeout in seconds for establishing the connection to the MCP\n      Streamable HTTP server.\n    sse_read_timeout: Timeout in seconds for reading data from the MCP\n      Streamable HTTP server.\n    terminate_on_close: Whether to terminate the MCP Streamable HTTP server\n      when the connection is closed.\n\n[Note: Inherited members from pydantic.BaseModel are omitted.]"
   constructor_signature: 'def __init__(self, *, url: str, headers: dict[str, Any] | None = None, timeout: float = 5.0, sse_read_timeout: float = 60 * 5.0, terminate_on_close: bool = True):'
-  aliases:
-  - google.adk.tools.mcp_tool.StreamableHTTPConnectionParams
   properties:
   - signature: 'url: str'
   - signature: 'headers: dict[str, Any] | None'
@@ -2881,7 +2871,6 @@
   constructor_signature: 'def __init__(self, *, name: str, description: str = '''', sub_agents: list[google.adk.agents.base_agent.BaseAgent] = list(), before_agent_callback: typing.Optional[google.adk.agents.base_agent.BeforeAgentCallback] = None, after_agent_callback: typing.Optional[google.adk.agents.base_agent.AfterAgentCallback] = None):'
   aliases:
   - google.adk.agents.BaseAgent
-  - google.adk.cli.utils.BaseAgent
   methods:
   - signature: 'def clone(self: google.adk.agents.base_agent.SelfAgent, update: Mapping[str, Any] | None) -> google.adk.agents.base_agent.SelfAgent:'
     docstring: "Creates a copy of this agent instance.\n\nArgs:\n  update: Optional mapping of new values for the fields of the cloned agent.\n    The keys of the mapping are the names of the fields to be updated, and\n    the values are the new values for those fields.\n    For example: {\"name\": \"cloned_agent\"}\n\nReturns:\n  A new agent instance with identical configuration as the original\n  agent except for the fields specified in the update."
@@ -4070,8 +4059,6 @@
 
     [Note: Inherited members from InstructionProvider are omitted.]'
   constructor_signature: 'def __init__(self, connection_params: typing.Any, prompt_name: str, errlog: typing.TextIO):'
-  aliases:
-  - google.adk.agents.McpInstructionProvider
   omitted_inherited_members_from:
   - InstructionProvider
 - rank: 178
@@ -10449,8 +10436,6 @@
   group: Orphan
   usage_score: 0
   docstring: An evaluator for Agents, mainly intended for helping with test cases.
-  aliases:
-  - google.adk.evaluation.AgentEvaluator
   methods:
   - signature: 'def find_config_for_test_file(test_file: str) -> google.adk.evaluation.eval_config.EvalConfig:'
     docstring: Find the test_config.json file in the same folder as the test file.
@@ -15126,8 +15111,6 @@
 
     [Note: Inherited members from ABC are omitted.]'
   constructor_signature: 'def __init__(self, rag_corpus: typing.Optional[str], similarity_top_k: typing.Optional[int], vector_distance_threshold: float):'
-  aliases:
-  - google.adk.memory.VertexAiRagMemoryService
   methods:
   - signature: 'def add_session_to_memory(self, session: google.adk.sessions.session.Session):'
   - signature: 'def search_memory(self, *, app_name: str, user_id: str, query: str) -> google.adk.memory.base_memory_service.SearchMemoryResponse:'

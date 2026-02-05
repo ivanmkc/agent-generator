@@ -200,9 +200,10 @@ def scan_repository(
                     self.f_path = f_path
                     self.imports = {}
                     self.local_names = set()
+                    self.exported_names = None # Set of names in __all__
 
-                def collect_local_names(self, node):
-                    """Pre-scans top-level nodes to identify locally defined classes/functions/types."""
+                def collect_metadata(self, node):
+                    """Pre-scans top-level nodes for __all__ and locally defined names."""
                     if not hasattr(node, "body"):
                         return
                     for child in node.body:
@@ -214,6 +215,27 @@ def scan_repository(
                             for target in child.targets:
                                 if isinstance(target, ast.Name):
                                     self.local_names.add(target.id)
+                                    # Detect __all__ = [...]
+                                    if target.id == "__all__" and isinstance(child.value, (ast.List, ast.Tuple)):
+                                        self.exported_names = set()
+                                        for elt in child.value.elts:
+                                            if isinstance(elt, ast.Constant) and isinstance(elt.value, str):
+                                                self.exported_names.add(elt.value)
+                        elif isinstance(child, ast.Expr) and isinstance(child.value, ast.Call):
+                            # Detect __all__.extend([...]) or __all__.append("...")
+                            call = child.value
+                            if isinstance(call.func, ast.Attribute) and isinstance(call.func.value, ast.Name) and call.func.value.id == "__all__":
+                                if self.exported_names is None:
+                                    self.exported_names = set()
+                                
+                                if call.func.attr == "extend" and len(call.args) == 1:
+                                    if isinstance(call.args[0], (ast.List, ast.Tuple)):
+                                        for elt in call.args[0].elts:
+                                            if isinstance(elt, ast.Constant) and isinstance(elt.value, str):
+                                                self.exported_names.add(elt.value)
+                                elif call.func.attr == "append" and len(call.args) == 1:
+                                    if isinstance(call.args[0], ast.Constant) and isinstance(call.args[0].value, str):
+                                        self.exported_names.add(call.args[0].value)
                         elif isinstance(child, ast.AnnAssign):
                             if isinstance(child.target, ast.Name):
                                 self.local_names.add(child.target.id)
@@ -245,10 +267,10 @@ def scan_repository(
                             module = f"{prefix}.{module}" if module else prefix
 
                     for alias in node.names:
-                        name = alias.asname or alias.name
+                        alias_name = alias.asname or alias.name
                         if alias.name == "*":
                             continue  # wildcard import - hard to resolve without static analysis
-                        self.imports[name] = (
+                        self.imports[alias_name] = (
                             f"{module}.{alias.name}" if module else alias.name
                         )
 
@@ -256,7 +278,13 @@ def scan_repository(
                     if relative_path.name == "__init__.py":
                         canonical_mod = module
                         for alias in node.names:
-                            alias_fqn = f"{self.mod_fqn}.{alias.asname or alias.name}"
+                            alias_name = alias.asname or alias.name
+                            
+                            # Filter: If __all__ exists, only record if alias_name is in it.
+                            if self.exported_names is not None and alias_name not in self.exported_names:
+                                continue
+
+                            alias_fqn = f"{self.mod_fqn}.{alias_name}"
                             canonical_fqn = f"{canonical_mod}.{alias.name}"
                             
                             # Only add if canonical exists and is NOT a module
@@ -729,7 +757,7 @@ def scan_repository(
                 # Removed old visit_ImportFrom that was here, merged into top class logic
 
             visitor = EntityVisitor(module_fqn, str(relative_path))
-            visitor.collect_local_names(tree)
+            visitor.collect_metadata(tree)
             visitor.visit(tree)
         except Exception:
             pass
