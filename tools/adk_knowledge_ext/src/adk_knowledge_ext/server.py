@@ -155,25 +155,49 @@ def _get_available_kbs() -> Dict[str, KnowledgeBaseConfig]:
         try:
             items = json.loads(configured_kbs_json)
             for item in items:
-                repo_url = item["repo_url"]
-                version = item["version"]
-                repo_name = repo_url.split("/")[-1].replace(".git", "")
-                kb_id = f"{repo_name}-{version}" if version != "main" else repo_name
-                
-                # Env config overrides bundled if same ID
-                desc = item.get("description")
-                if not desc:
-                    desc = f"Configured repository: {repo_url}"
+                # Support string-only IDs (from registry)
+                if isinstance(item, str):
+                    if item in kbs:
+                        # Clone and mark as active/env
+                        existing = kbs[item]
+                        kbs[item] = KnowledgeBaseConfig(
+                            id=existing.id,
+                            repo_url=existing.repo_url,
+                            version=existing.version,
+                            index_url=existing.index_url,
+                            name=existing.name,
+                            description=existing.description,
+                            source="env"
+                        )
+                    else:
+                        logger.warning(f"Configured KB ID '{item}' not found in registry and no details provided.")
+                    continue
 
-                kbs[kb_id] = KnowledgeBaseConfig(
-                    id=kb_id,
-                    repo_url=repo_url,
-                    version=version,
-                    index_url=item.get("index_url"),
-                    name=f"{repo_name} ({version})",
-                    description=desc,
-                    source="env"
-                )
+                # Support full dictionary config (legacy/custom)
+                if isinstance(item, dict):
+                    repo_url = item["repo_url"]
+                    version = item["version"]
+                    
+                    # Use explicit ID if provided, otherwise generate one
+                    kb_id = item.get("id")
+                    if not kb_id:
+                        repo_name = repo_url.split("/")[-1].replace(".git", "")
+                        kb_id = f"{repo_name}-{version}" if version != "main" else repo_name
+                    
+                    # Env config overrides bundled if same ID
+                    desc = item.get("description")
+                    if not desc:
+                        desc = f"Configured repository: {repo_url}"
+
+                    kbs[kb_id] = KnowledgeBaseConfig(
+                        id=kb_id,
+                        repo_url=repo_url,
+                        version=version,
+                        index_url=item.get("index_url"),
+                        name=item.get("name") or f"{kb_id}",
+                        description=desc,
+                        source="env"
+                    )
         except Exception as e:
             logger.warning(f"Failed to parse MCP_KNOWLEDGE_BASES: {e}")
 
@@ -219,14 +243,24 @@ def _ensure_index(kb_id: str | None) -> str:
     """Ensures index is loaded and returns the resolved kb_id."""
     kb_meta = _validate_kb(kb_id)
     resolved_id = kb_meta.id
+    repo_url = kb_meta.repo_url
     logger.debug(f"Ensuring index for resolved_id={resolved_id} (requested={kb_id})")
     
     idx = get_index(resolved_id)
     if idx._loaded:
         return resolved_id
 
-    # 1. Check if the index_url points to a local bundled file
     index_url = kb_meta.index_url
+    
+    # 0. Check for file:// URL (Absolute Local Path)
+    if index_url and index_url.startswith("file://"):
+        local_path = Path(index_url.replace("file://", ""))
+        if local_path.exists():
+            logger.info(f"Using local file index for {resolved_id}: {local_path}")
+            idx.load(local_path)
+            return resolved_id
+
+    # 1. Check if the index_url points to a local bundled file
     if index_url and not index_url.startswith("http"):
         # Assume it's a relative path from the 'data' directory
         bundled_path = _BUNDLED_DATA / index_url

@@ -3,7 +3,8 @@
 import pytest
 import sys
 from unittest.mock import patch
-from adk_knowledge_ext.search import BM25SearchProvider, get_search_provider, KeywordSearchProvider, CompositeSearchProvider
+from adk_knowledge_ext.search import BM25SearchProvider, KeywordSearchProvider, CompositeSearchProvider
+from adk_knowledge_ext.index import _initialize_search_provider
 
 @pytest.mark.asyncio
 async def test_search_fqn_suffix():
@@ -30,7 +31,7 @@ async def test_search_fqn_suffix():
 async def test_bm25_fallback_to_keyword():
     """Verifies that BM25SearchProvider handles missing rank_bm25 gracefully (logs warning, doesn't crash)."""
     with patch.dict(sys.modules, {"rank_bm25": None}):
-        provider = get_search_provider("bm25")
+        provider = _initialize_search_provider("bm25", None, None)
         assert isinstance(provider, BM25SearchProvider)
         
         # Should not crash when building index
