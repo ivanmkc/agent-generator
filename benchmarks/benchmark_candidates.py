@@ -47,13 +47,13 @@ _selected_images = [
 CANDIDATE_GENERATORS = []
 
 # Add Gemini CLI Podman-based generators
-CANDIDATE_GENERATORS.extend(list(permute(
-    GeminiCliPodmanAnswerGenerator,
-    model_name=[ModelName.GEMINI_2_5_FLASH],
-    image_name=_selected_images,
-    image_definitions=[IMAGE_DEFINITIONS],
-    api_key_manager=[api_key_manager]
-)))
+# CANDIDATE_GENERATORS.extend(list(permute(
+#     GeminiCliPodmanAnswerGenerator,
+#     model_name=[ModelName.GEMINI_2_5_FLASH],
+#     image_name=_selected_images,
+#     image_definitions=[IMAGE_DEFINITIONS],
+#     api_key_manager=[api_key_manager]
+# )))
 
 # # Add Workflow ADK-based generators
 # CANDIDATE_GENERATORS.extend([
@@ -84,7 +84,10 @@ CANDIDATE_GENERATORS.append(
         image_name="gemini-cli:mcp_adk_agent_runner_ranked_knowledge",
         model_name=ModelName.GEMINI_2_5_FLASH,
         api_key_manager=api_key_manager,
-        extra_env={"ADK_SEARCH_PROVIDER": "vector"},
+        extra_env={
+            "ADK_SEARCH_PROVIDER": "vector",
+            "TARGET_INDEX_PATH": "/root/.mcp_cache/indices",
+        },
         experiment_id="ranked_knowledge_vector",
     )
 )

@@ -70,7 +70,9 @@ class KnowledgeIndex:
                         logger.info("No GEMINI_API_KEY detected. Using 'bm25' search.")
 
                 logger.info(f"Initializing search provider: {provider_type}")
-                self._provider = get_search_provider(provider_type)
+                self._provider = get_search_provider(
+                    provider_type, index_dir=config.TARGET_INDEX_PATH
+                )
                 self._provider.build_index(self._items)
 
             self._loaded = True

@@ -3,8 +3,7 @@ Unit tests for the `remove` command in the MCP Management CLI.
 
 This module verifies the behavior of the `mcp-manage remove` command, specifically focusing on:
 - Interactive confirmation flows.
-- Quiet mode (`--quiet`) for automated scripts.
-- Forced mode (`--force`) for skipping confirmations with feedback.
+- Quiet mode (`--quiet`) for automated scripts (skips prompts).
 """
 
 import pytest
@@ -65,7 +64,7 @@ def test_remove_quiet(mock_which, mock_confirm, mock_remove, runner):
     Scenario: Quiet Removal (`--quiet`)
     
     Verifies that `remove --quiet`:
-    1. Implies `--force` (no confirmation prompts).
+    1. Skips confirmation prompts (implicit force).
     2. Suppresses ALL standard output (stdout).
     3. Executes the removal logic silently.
     """
@@ -86,34 +85,3 @@ def test_remove_quiet(mock_which, mock_confirm, mock_remove, runner):
         assert result.output == "" # Should be absolutely silent
         assert not mock_confirm.called # Should NOT ask for confirmation
         assert mock_remove.called # Should still perform the action
-
-@patch("adk_knowledge_ext.manage_mcp._remove_mcp_config")
-@patch("adk_knowledge_ext.manage_mcp.ask_confirm")
-@patch("shutil.which")
-def test_remove_force(mock_which, mock_confirm, mock_remove, runner):
-    """
-    Scenario: Forced Removal (`--force`)
-    
-    Verifies that `remove --force`:
-    1. Skips confirmation prompts.
-    2. Still displays status output (unlike quiet mode).
-    3. Executes the removal logic.
-    """
-    mock_which.return_value = "/bin/fake-ide"
-    
-    mock_ide_info = MagicMock()
-    mock_ide_info.detect_path.exists.return_value = True
-    mock_ide_info.config_method = "json"
-    
-    with (
-        patch("adk_knowledge_ext.manage_mcp.IDE_CONFIGS", {"TestIDE": mock_ide_info}),
-        patch("adk_knowledge_ext.manage_mcp._is_mcp_configured", return_value=True)
-    ):
-        
-        result = runner.invoke(manage_mcp.remove, ["--force"])
-        
-        assert result.exit_code == 0
-        assert "Codebase Knowledge MCP Remove" in result.output # Should show header
-        assert "removed" in result.output # Should show success message
-        assert not mock_confirm.called # Should NOT ask
-        assert mock_remove.called

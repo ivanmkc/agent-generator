@@ -9,9 +9,6 @@ RUN apt-get update && apt-get install -y curl git && rm -rf /var/lib/apt/lists/*
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 ENV PATH="/root/.local/bin:$PATH"
 
-# Clone codebase (to have the context)
-RUN mkdir -p /workdir && git clone --branch v1.20.0 https://github.com/google/adk-python.git /workdir
-
 # Set final working directory
 WORKDIR /workdir
 
@@ -19,10 +16,10 @@ WORKDIR /workdir
 COPY tools/adk_knowledge_ext /app/extensions/adk-knowledge-ext
 
 # Setup Gemini CLI with MCP (Local Mode via uvx)
-WORKDIR /workdir
 RUN uvx --from /app/extensions/adk-knowledge-ext \
     codebase-knowledge-mcp-manage setup \
     --kb-ids "adk-python-v1.20.0" \
     --local "/app/extensions/adk-knowledge-ext" \
-    --quiet
+    --quiet && \
+    rm -rf /app/extensions/adk-knowledge-ext
 

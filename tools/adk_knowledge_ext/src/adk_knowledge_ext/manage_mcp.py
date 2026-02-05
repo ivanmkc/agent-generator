@@ -718,21 +718,16 @@ def setup(kb_ids: Optional[str], repo_url: Optional[str], version: Optional[str]
 
 
 @cli.command()
-@click.option("--force", is_flag=True, help="Skip confirmation prompts")
-@click.option("--quiet", "-q", is_flag=True, help="Quiet mode (implies --force)")
-def remove(force: bool, quiet: bool):
+@click.option("--quiet", "-q", is_flag=True, help="Quiet mode (skips confirmation prompts and suppresses output)")
+def remove(quiet: bool):
     """Remove this MCP server configuration from coding agents.
 
     Checks all supported IDEs for the codebase-knowledge server and
     prompts the user to remove it from each one.
 
     Args:
-        force (bool): Skip confirmation prompts.
-        quiet (bool): Suppress output.
+        quiet (bool): Suppress output and skip confirmation prompts.
     """
-    if quiet:
-        force = True
-
     if not quiet:
         console.print("\n[bold]🗑️  Codebase Knowledge MCP Remove[/bold]\n")
 
@@ -759,7 +754,7 @@ def remove(force: bool, quiet: bool):
 
     selected_ides = {}
 
-    if force:
+    if quiet:
         selected_ides = configured_ides
     else:
         console.print("\n[bold]Remove from:[/bold]")
