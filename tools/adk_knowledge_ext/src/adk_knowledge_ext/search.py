@@ -319,15 +319,16 @@ SEARCH_PROVIDERS = {
 }
 
 
-def get_search_provider(provider_type: str = "hybrid", index_dir: Optional[Path] = None) -> SearchProvider:
+def get_search_provider(provider_type: str = "hybrid", **kwargs) -> SearchProvider:
     """
     Factory function to retrieve a search provider by name.
     
     Args:
         provider_type: The name of the provider ('bm25', 'keyword', 'vector', or 'hybrid').
-        index_dir: Optional directory containing index artifacts (required for 'vector' and 'hybrid').
+        **kwargs: Additional arguments passed to specific providers (e.g., 'index_dir').
     """
     p_type = provider_type.lower()
+    index_dir = kwargs.get("index_dir")
 
     if p_type == "hybrid":
         # Hybrid strategy: BM25 -> Vector (if available) -> Keyword
