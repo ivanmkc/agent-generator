@@ -5,7 +5,13 @@ import logging
 import os
 from pathlib import Path
 from typing import List, Dict, Any, Optional, Tuple
-from .search import SearchProvider, get_search_provider
+from .search import (
+    SearchProvider,
+    BM25SearchProvider,
+    KeywordSearchProvider,
+    VectorSearchProvider,
+    CompositeSearchProvider,
+)
 from .config import config
 
 logger = logging.getLogger(__name__)
@@ -70,9 +76,30 @@ class KnowledgeIndex:
                         logger.info("No GEMINI_API_KEY detected. Using 'bm25' search.")
 
                 logger.info(f"Initializing search provider: {provider_type}")
-                self._provider = get_search_provider(
-                    provider_type, index_dir=config.TARGET_INDEX_PATH
-                )
+                
+                if provider_type == "hybrid":
+                    providers = [BM25SearchProvider()]
+                    if config.TARGET_INDEX_PATH:
+                        providers.append(
+                            VectorSearchProvider(config.TARGET_INDEX_PATH, api_key)
+                        )
+                    providers.append(KeywordSearchProvider())
+                    self._provider = CompositeSearchProvider(providers)
+                elif provider_type == "vector":
+                    if not config.TARGET_INDEX_PATH:
+                        logger.warning(
+                            "VectorSearchProvider requested but no index_dir provided. Falling back to Keyword."
+                        )
+                        self._provider = KeywordSearchProvider()
+                    else:
+                        self._provider = VectorSearchProvider(
+                            config.TARGET_INDEX_PATH, api_key
+                        )
+                elif provider_type == "bm25":
+                    self._provider = BM25SearchProvider()
+                else:
+                    self._provider = KeywordSearchProvider()
+
                 self._provider.build_index(self._items)
 
             self._loaded = True
@@ -148,4 +175,3 @@ def get_index(kb_id: Optional[str] = None) -> KnowledgeIndex:
         # Fallback to a default if not provided (for existing tools not yet updated)
         kb_id = "default"
     return get_registry().get_index(kb_id)
-

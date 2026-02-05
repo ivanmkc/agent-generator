@@ -35,7 +35,7 @@ class SearchProvider(ABC):
 
 class BM25SearchProvider(SearchProvider):
 
-    def __init__(self, index_dir: Optional[Path] = None, api_key: Optional[str] = None):
+    def __init__(self):
         self._bm25_index = None
         self._corpus_map = []  # Maps corpus index to original item index
         self._items = []
@@ -116,7 +116,7 @@ class KeywordSearchProvider(SearchProvider):
     5. Returns a paginated slice of the results.
     """
 
-    def __init__(self, index_dir: Optional[Path] = None, api_key: Optional[str] = None):
+    def __init__(self):
         self._items = []
 
     def build_index(self, items: List[Dict[str, Any]]):
@@ -310,45 +310,3 @@ class CompositeSearchProvider(SearchProvider):
         logger.warning(f"No search providers matched for query: '{query}'")
         # If no provider matches, return empty from the last one (or empty list)
         return []
-
-
-SEARCH_PROVIDERS = {
-    "bm25": BM25SearchProvider,
-    "keyword": KeywordSearchProvider,
-    "vector": VectorSearchProvider,
-}
-
-
-def get_search_provider(
-    provider_type: str = "hybrid", 
-    index_dir: Optional[Path] = None, 
-    api_key: Optional[str] = None
-) -> SearchProvider:
-    """
-    Factory function to retrieve a search provider by name.
-    
-    Args:
-        provider_type: The name of the provider ('bm25', 'keyword', 'vector', or 'hybrid').
-        index_dir: Optional directory containing index artifacts (required for 'vector' and 'hybrid').
-        api_key: Optional API key for semantic search.
-    """
-    p_type = provider_type.lower()
-
-    if p_type == "hybrid":
-        # Hybrid strategy: BM25 -> Vector (if available) -> Keyword
-        providers = [BM25SearchProvider(index_dir, api_key)]
-        if index_dir:
-            providers.append(VectorSearchProvider(index_dir, api_key))
-        providers.append(KeywordSearchProvider(index_dir, api_key))
-        return CompositeSearchProvider(providers)
-
-    provider_cls = SEARCH_PROVIDERS.get(p_type, KeywordSearchProvider)
-
-    if provider_cls == VectorSearchProvider:
-        if not index_dir:
-            logger.warning("VectorSearchProvider requested but no index_dir provided. Falling back to Keyword.")
-            return KeywordSearchProvider(index_dir, api_key)
-        return VectorSearchProvider(index_dir, api_key)
-
-    return provider_cls(index_dir, api_key)
-
