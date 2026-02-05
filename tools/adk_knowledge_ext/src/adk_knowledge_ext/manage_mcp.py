@@ -202,6 +202,7 @@ def setup(kb_ids: Optional[str], repo_url: Optional[str], version: Optional[str]
         force = True
         
     selected_kbs = []
+    github_token = None
 
     # Handle Custom Repo
     if repo_url:
@@ -379,13 +380,46 @@ def setup(kb_ids: Optional[str], repo_url: Optional[str], version: Optional[str]
     # Pre-load/Clone Repositories
     if selected_kbs:
         console.print("\n[bold]Pre-loading Knowledge Bases...[/bold]")
+        
+        # Check if we already have a GitHub token
+        github_token = os.environ.get("GITHUB_TOKEN")
+        
         for kb in selected_kbs:
             try:
+                # If we collected a token from a previous failure in this loop, ensure it's in env
+                if github_token:
+                    os.environ["GITHUB_TOKEN"] = github_token
+                    
                 reader = SourceReader(kb["repo_url"], kb["version"])
+                
+                # Check if clone failed (SourceReader sets repo_root to None on failure)
+                # But wait, SourceReader constructor catches exceptions. 
+                # We need to check if the directory actually exists now.
+                # Actually SourceReader constructor logs error but doesn't raise if we look at the code.
+                # Ideally SourceReader should raise or we check.
+                # Let's check reader.repo_root
+                if reader.repo_root is None or not reader.repo_root.exists():
+                     raise RuntimeError("Clone failed (directory not found)")
+                     
                 console.print(f"   Using {kb['repo_url']} ({kb['version']})...")
-                # SourceReader.__init__ triggers clone if missing.
             except Exception as e:
-                console.print(f"   [yellow]Warning: Failed to pre-clone {kb['repo_url']}: {e}[/yellow]")
+                console.print(f"   [red]Failed to clone {kb['repo_url']}: {e}[/red]")
+                
+                # Auth Retry Logic
+                if not github_token and not force:
+                    if ask_confirm("\nClone failed (possibly private repo). Do you want to provide a GitHub Personal Access Token (PAT)?", default=True):
+                        github_token = Prompt.ask("Enter GitHub Token", password=True)
+                        if github_token:
+                            os.environ["GITHUB_TOKEN"] = github_token
+                            console.print("[dim]Retrying with token...[/dim]")
+                            try:
+                                reader = SourceReader(kb["repo_url"], kb["version"])
+                                if reader.repo_root and reader.repo_root.exists():
+                                    console.print(f"   [green]Success![/green] Using {kb['repo_url']}...")
+                                else:
+                                    console.print("   [red]Retry failed.[/red]")
+                            except Exception as retry_e:
+                                console.print(f"   [red]Retry failed: {retry_e}[/red]")
 
     # Optional API Key
     if not force and not api_key and not os.environ.get("GEMINI_API_KEY"):
@@ -506,7 +540,7 @@ def setup(kb_ids: Optional[str], repo_url: Optional[str], version: Optional[str]
         # Actually, let's make it robust:
         resolved_local_path = local_path if local_path else "."
 
-    mcp_config = _generate_mcp_config(selected_kbs, api_key, resolved_local_path)
+    mcp_config = _generate_mcp_config(selected_kbs, api_key, github_token, resolved_local_path)
 
     for ide_name, ide_info in selected_ides.items():
         try:
@@ -876,7 +910,7 @@ def debug():
                  console.print(f"   - {ide_name:<15}: {detect_path} {status}")
 
 
-def _generate_mcp_config(selected_kbs: List[Dict[str, str]], api_key: Optional[str], local_path: Optional[str] = None) -> dict:
+def _generate_mcp_config(selected_kbs: List[Dict[str, str]], api_key: Optional[str], github_token: Optional[str] = None, local_path: Optional[str] = None) -> dict:
     """Generate the MCP server configuration."""
     
     # Enrich KBs with registry info if index_url missing
@@ -909,7 +943,9 @@ def _generate_mcp_config(selected_kbs: List[Dict[str, str]], api_key: Optional[s
     elif os.environ.get("GEMINI_API_KEY"):
         env["GEMINI_API_KEY"] = os.environ.get("GEMINI_API_KEY")
 
-    if os.environ.get("GITHUB_TOKEN"):
+    if github_token:
+        env["GITHUB_TOKEN"] = github_token
+    elif os.environ.get("GITHUB_TOKEN"):
         env["GITHUB_TOKEN"] = os.environ.get("GITHUB_TOKEN")
 
     # Construct uvx command
