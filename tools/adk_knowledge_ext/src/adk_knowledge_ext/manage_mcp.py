@@ -718,13 +718,23 @@ def setup(kb_ids: Optional[str], repo_url: Optional[str], version: Optional[str]
 
 
 @cli.command()
-def remove():
+@click.option("--force", is_flag=True, help="Skip confirmation prompts")
+@click.option("--quiet", "-q", is_flag=True, help="Quiet mode (implies --force)")
+def remove(force: bool, quiet: bool):
     """Remove this MCP server configuration from coding agents.
-    
+
     Checks all supported IDEs for the codebase-knowledge server and
     prompts the user to remove it from each one.
+
+    Args:
+        force (bool): Skip confirmation prompts.
+        quiet (bool): Suppress output.
     """
-    console.print("\n[bold]🗑️  Codebase Knowledge MCP Remove[/bold]\n")
+    if quiet:
+        force = True
+
+    if not quiet:
+        console.print("\n[bold]🗑️  Codebase Knowledge MCP Remove[/bold]\n")
 
     configured_ides = {}
     for ide_name, ide_info in IDE_CONFIGS.items():
@@ -732,20 +742,30 @@ def remove():
         is_runnable = True
         if ide_info.config_method == "cli" and not shutil.which(ide_info.cli_command):
             is_runnable = False
-            
-        if ide_info.detect_path.exists() and is_runnable and _is_mcp_configured(ide_name, ide_info):
+
+        if (
+            ide_info.detect_path.exists()
+            and is_runnable
+            and _is_mcp_configured(ide_name, ide_info)
+        ):
             configured_ides[ide_name] = ide_info
-            console.print(f"   ✓ {ide_name:<15} [green]configured[/green]")
+            if not quiet:
+                console.print(f"   ✓ {ide_name:<15} [green]configured[/green]")
 
     if not configured_ides:
-        console.print("[yellow]No coding agents have this MCP configured.[/yellow]")
+        if not quiet:
+            console.print("[yellow]No coding agents have this MCP configured.[/yellow]")
         return
 
     selected_ides = {}
-    console.print("\n[bold]Remove from:[/bold]")
-    for ide_name in configured_ides:
-        if ask_confirm(f"   {ide_name}", default=True):
-            selected_ides[ide_name] = configured_ides[ide_name]
+
+    if force:
+        selected_ides = configured_ides
+    else:
+        console.print("\n[bold]Remove from:[/bold]")
+        for ide_name in configured_ides:
+            if ask_confirm(f"   {ide_name}", default=True):
+                selected_ides[ide_name] = configured_ides[ide_name]
 
     if not selected_ides:
         return
@@ -753,9 +773,11 @@ def remove():
     for ide_name, ide_info in selected_ides.items():
         try:
             _remove_mcp_config(ide_name, ide_info)
-            console.print(f"✅ {ide_name} - removed")
+            if not quiet:
+                console.print(f"✅ {ide_name} - removed")
         except Exception as e:
-            console.print(f"[red]❌ {ide_name} failed: {e}[/red]")
+            if not quiet:
+                console.print(f"[red]❌ {ide_name} failed: {e}[/red]")
 
 
 @cli.command()
@@ -903,7 +925,7 @@ def debug():
                             )
                             content = result.content[0].text
 
-                            if "Error" in content or "not found" in content.lower():
+                            if content.strip().startswith("Error:") or "not found" in content.lower():
                                 console.print(f"      ❌ [red]Failed[/red]")
                                 console.print(
                                     Panel(
@@ -947,7 +969,7 @@ def debug():
                             )
                             content = result.content[0].text
 
-                            if "Error" in content or "not found" in content.lower():
+                            if content.strip().startswith("Error:") or "not found" in content.lower():
                                 console.print(f"      ❌ [red]Failed[/red]")
                                 console.print(
                                     Panel(
@@ -984,7 +1006,7 @@ def debug():
                                 )
                                 content = result.content[0].text
 
-                                if "Error" in content or "not found" in content.lower():
+                                if content.strip().startswith("Error:") or "not found" in content.lower():
                                     console.print(f"      ❌ [red]Failed[/red]")
                                     console.print(
                                         Panel(
