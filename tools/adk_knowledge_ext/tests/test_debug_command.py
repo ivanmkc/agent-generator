@@ -52,8 +52,10 @@ def strip_ansi(text):
 @patch("adk_knowledge_ext.manage_mcp.IDE_CONFIGS", {})
 def test_debug_inspect_symbol_success_with_error_word(mock_mcp_client, runner):
     """
+    Scenario: Success with "False Positive" Text
     Verifies that inspect_symbol is marked as OK even if the returned docstring 
-    contains the word "Error".
+    contains the word "Error" or "not found", provided it doesn't match a failure pattern.
+    This prevents false positives when documentation describes error conditions.
     """
     # 1. List Tools (Success)
     t1 = MagicMock(); t1.name = "list_modules"
@@ -91,7 +93,10 @@ def test_debug_inspect_symbol_success_with_error_word(mock_mcp_client, runner):
 @patch("adk_knowledge_ext.manage_mcp.IDE_CONFIGS", {})
 def test_debug_inspect_symbol_real_failure(mock_mcp_client, runner):
     """
-    Verifies that inspect_symbol is marked as Failed if it returns a specific not found error.
+    Scenario: Logical Failure ("Symbol Not Found")
+    Verifies that inspect_symbol is marked as Failed when the server returns the specific 
+    'Symbol ... not found' message. This is technically a success at the MCP protocol level 
+    but a failure for our diagnostic.
     """
     # 1. List Tools
     t1 = MagicMock(); t1.name = "list_modules"
@@ -119,7 +124,9 @@ def test_debug_inspect_symbol_real_failure(mock_mcp_client, runner):
 @patch("adk_knowledge_ext.manage_mcp.IDE_CONFIGS", {})
 def test_debug_inspect_symbol_generic_error(mock_mcp_client, runner):
     """
-    Verifies that inspect_symbol is marked as Failed if it returns "Error: ...".
+    Scenario: Explicit Error Prefix
+    Verifies that inspect_symbol is marked as Failed if it returns a string starting with "Error: ...".
+    This catches generic errors returned as text.
     """
     t1 = MagicMock(); t1.name = "list_modules"
     t2 = MagicMock(); t2.name = "search_knowledge"
@@ -144,7 +151,9 @@ def test_debug_inspect_symbol_generic_error(mock_mcp_client, runner):
 @patch("adk_knowledge_ext.manage_mcp.IDE_CONFIGS", {})
 def test_debug_inspect_symbol_is_error(mock_mcp_client, runner):
     """
-    Verifies that inspect_symbol is marked as Failed if result.isError is True.
+    Scenario: Protocol-Level Error (isError=True)
+    Verifies that if the MCP result object explicitly flags an error (`result.isError`), 
+    the diagnostic correctly reports Failed, even if the response text is benign or ambiguous.
     """
     t1 = MagicMock(); t1.name = "list_modules"
     t2 = MagicMock(); t2.name = "search_knowledge"

@@ -1006,7 +1006,9 @@ def debug():
                                 )
                                 content = result.content[0].text
 
-                                if result.isError or content.strip().startswith("Error:") or (content.strip().startswith("Symbol") and "not found" in content):
+                                    # Check for success
+                                import re
+                                if result.isError or content.strip().startswith("Error:") or re.match(r"^Symbol '.*' not found", content.strip()):
                                     console.print(f"      ❌ [red]Failed[/red]")
                                     console.print(
                                         Panel(
