@@ -1,3 +1,12 @@
+"""
+Unit tests for the `remove` command in the MCP Management CLI.
+
+This module verifies the behavior of the `mcp-manage remove` command, specifically focusing on:
+- Interactive confirmation flows.
+- Quiet mode (`--quiet`) for automated scripts.
+- Forced mode (`--force`) for skipping confirmations with feedback.
+"""
+
 import pytest
 from unittest.mock import MagicMock, patch, mock_open
 from click.testing import CliRunner
@@ -18,7 +27,15 @@ def runner():
 @patch("adk_knowledge_ext.manage_mcp.ask_confirm")
 @patch("shutil.which")
 def test_remove_interactive(mock_which, mock_confirm, mock_remove, runner):
-    """Test standard interactive remove flow."""
+    """
+    Scenario: Interactive Removal (Default)
+    
+    Verifies that running `remove` without flags:
+    1. Detects configured IDEs.
+    2. Prompts the user for confirmation for each IDE.
+    3. Calls the removal logic if confirmed.
+    4. Displays status messages.
+    """
     mock_which.return_value = "/bin/fake-ide"  # Assume IDE is runnable
     mock_confirm.return_value = True # Confirm removal
     
@@ -44,7 +61,14 @@ def test_remove_interactive(mock_which, mock_confirm, mock_remove, runner):
 @patch("adk_knowledge_ext.manage_mcp.ask_confirm")
 @patch("shutil.which")
 def test_remove_quiet(mock_which, mock_confirm, mock_remove, runner):
-    """Test remove --quiet skips prompts and output."""
+    """
+    Scenario: Quiet Removal (`--quiet`)
+    
+    Verifies that `remove --quiet`:
+    1. Implies `--force` (no confirmation prompts).
+    2. Suppresses ALL standard output (stdout).
+    3. Executes the removal logic silently.
+    """
     mock_which.return_value = "/bin/fake-ide"
     
     mock_ide_info = MagicMock()
@@ -67,7 +91,14 @@ def test_remove_quiet(mock_which, mock_confirm, mock_remove, runner):
 @patch("adk_knowledge_ext.manage_mcp.ask_confirm")
 @patch("shutil.which")
 def test_remove_force(mock_which, mock_confirm, mock_remove, runner):
-    """Test remove --force skips prompts but shows output."""
+    """
+    Scenario: Forced Removal (`--force`)
+    
+    Verifies that `remove --force`:
+    1. Skips confirmation prompts.
+    2. Still displays status output (unlike quiet mode).
+    3. Executes the removal logic.
+    """
     mock_which.return_value = "/bin/fake-ide"
     
     mock_ide_info = MagicMock()
@@ -75,8 +106,8 @@ def test_remove_force(mock_which, mock_confirm, mock_remove, runner):
     mock_ide_info.config_method = "json"
     
     with (
-        patch("adk_knowledge_ext.manage_mcp._is_mcp_configured", return_value=True), 
-        patch("adk_knowledge_ext.manage_mcp.IDE_CONFIGS", {"TestIDE": mock_ide_info})
+        patch("adk_knowledge_ext.manage_mcp.IDE_CONFIGS", {"TestIDE": mock_ide_info}),
+        patch("adk_knowledge_ext.manage_mcp._is_mcp_configured", return_value=True)
     ):
         
         result = runner.invoke(manage_mcp.remove, ["--force"])

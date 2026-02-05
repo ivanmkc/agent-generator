@@ -1,3 +1,16 @@
+"""
+Integration Tests for `debug` command edge cases.
+
+This module performs integration testing of the `mcp-manage debug` command against a 
+real (locally spawned) MCP server instance. It specifically targets edge cases by 
+feeding the server "poisoned" data (e.g., fields containing error-like strings) 
+via a custom `ranked_targets.yaml`.
+
+Scenarios covered:
+- False positives in error detection when valid data mimics error messages.
+- Robustness of the regex-based success checks.
+"""
+
 import pytest
 import os
 import sys
@@ -18,7 +31,7 @@ def runner():
 
 def strip_ansi(text):
     import re
-    ansi_escape = re.compile(r'\x1B(?:[@-Z\-_]|\[[0-?]*[ -/]*[@-~])')
+    ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
     return ansi_escape.sub('', text)
 
 @pytest.fixture
@@ -84,10 +97,15 @@ def run_debug_with_env(runner, config_path):
 
 def test_edge_case_symbol_field_collision(create_test_env, runner):
     """
-    Scenario: A target has a custom field named 'Symbol' containing the text 'not found'.
+    Scenario: 'Symbol' Field Collision (False Positive Check)
     
-    This mimics the server's error message structure: "Symbol '...' not found".
-    If the client logic is too loose, it might mistake this valid YAML content for an error.
+    The server error message format is "Symbol '...' not found".
+    This test creates a valid target with a custom field named 'Symbol' that contains 
+    the text "not found".
+    
+    Goal: Verify that the `debug` command does NOT flag this valid target as a failure.
+    It proves the regex check `^Symbol '.*' not found` is strict enough to avoid 
+    matching `Symbol: This string contains not found`.
     """
     data = [{
         "rank": 1,
@@ -113,10 +131,14 @@ def test_edge_case_symbol_field_collision(create_test_env, runner):
 
 def test_edge_case_error_prefix_in_docstring(create_test_env, runner):
     """
-    Scenario: Docstring starts exactly with "Error: ".
+    Scenario: 'Error:' Prefix in Docstring (False Positive Check)
     
-    Since inspect_symbol outputs YAML, this will be indented under `docstring:`.
-    It should NOT trigger `startswith("Error:")`.
+    This test creates a valid target where the docstring starts exactly with "Error: ".
+    Since `inspect_symbol` output is YAML, this content will be nested/indented.
+    
+    Goal: Verify that the `debug` command does NOT flag this as a failure.
+    It proves the check `content.strip().startswith("Error:")` correctly targets 
+    only top-level error messages, not nested content.
     """
     data = [{
         "rank": 1,

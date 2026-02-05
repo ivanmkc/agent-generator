@@ -1,3 +1,17 @@
+"""
+Targeted End-to-End (E2E) Tests for MCP Tools.
+
+This module validates the functionality of individual MCP tools (`list_modules`, `inspect_symbol`)
+by spinning up a real instance of the `adk_knowledge_ext.server` in a subprocess and
+connecting to it via the standard IO client.
+
+It uses a custom, temporary `ranked_targets.yaml` index to ensure deterministic results,
+verifying that:
+1. The server correctly loads custom indices provided via environment configuration.
+2. Tools return the expected data format and content.
+3. Logical errors (e.g., missing symbols) return the expected descriptive messages.
+"""
+
 import pytest
 import os
 import sys
@@ -40,7 +54,14 @@ def test_data(tmp_path):
 
 @pytest.mark.asyncio
 async def test_tool_list_modules_e2e(test_data):
-    """Targeted E2E: Connect to server and run list_modules tool."""
+    """
+    Scenario: List Modules E2E
+    
+    Verifies that `list_modules`:
+    1. Connects to the server initialized with a custom local index.
+    2. Returns a text response containing the formatted list of modules.
+    3. Correctly parses and displays ranks, types, and IDs from the index.
+    """
     
     # Configure environment for the server subprocess
     env = os.environ.copy()
@@ -74,7 +95,14 @@ async def test_tool_list_modules_e2e(test_data):
 
 @pytest.mark.asyncio
 async def test_tool_inspect_symbol_e2e(test_data):
-    """Targeted E2E: Connect to server and run inspect_symbol tool."""
+    """
+    Scenario: Inspect Symbol E2E
+    
+    Verifies that `inspect_symbol`:
+    1. Returns the correct YAML structure for a valid symbol (Success Case).
+    2. Returns a descriptive error message for a missing symbol (Logical Failure Case).
+    3. Does NOT crash (isError=False) on logical failures, matching expected server behavior.
+    """
     
     env = os.environ.copy()
     kb_config = [{
