@@ -58,14 +58,7 @@ We adopt a package-manager style syntax: `owner/repo@version`.
 
 A new tool will automate the lifecycle.
 
-**Command: `check-updates`**
-Scans all repositories in `registry.yaml`, queries `git ls-remote --tags`, and reports versions present in git but missing from the registry.
-
-**Command: `add-version <repo_id> <version>`**
-1.  **Clone:** `git clone --branch <version> ...` to `~/.mcp_cache/tmp/...`
-2.  **Index:** Run `target_ranker` to generate `ranked_targets.yaml`.
-3.  **Upload/Bundle:** Save the index to `data/indices/` or upload to cloud storage.
-4.  **Update YAML:** append the new version entry to `registry.yaml`.
+Detailed workflows for **`check-updates`** and **`add-version`** (index generation, validation, publishing) are documented in **`index_automation.md`**.
 
 ## 4. Instruction Strategy (Compact Injection)
 
