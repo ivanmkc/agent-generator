@@ -82,71 +82,81 @@ def _get_platform_config_path(app_name: str, config_file: str) -> Path:
     return Path.home() / folder_name / config_file
 
 
+class IdeConfig(BaseModel):
+    detect_path: Path
+    config_method: str # Literal["json", "cli"]
+    start_instruction: str = ""
+    # JSON specific
+    config_path: Optional[Path] = None
+    config_key: Optional[str] = None
+    # CLI specific
+    cli_command: Optional[str] = None
+    cli_scope_flag: Optional[str] = None
+    cli_scope_value: Optional[str] = None
+    cli_separator: str = "before_command"
+
 # IDE configuration - how to detect, configure, and start each IDE
-IDE_CONFIGS = {
-    "Claude Code": {
-        "detect_path": Path.home() / ".claude",
-        "config_method": "cli",
-        "cli_command": "claude",
-        "cli_scope_flag": "--scope",
-        "cli_scope_value": "user",
-        # Claude: cmd -- <command> <args...>
-        "cli_separator": "before_command",
-        "start_instruction": "Run [cyan]claude[/cyan] in your terminal",
-    },
-    "Gemini CLI": {
-        "detect_path": Path.home() / ".gemini",
-        "config_method": "json",
-        "config_path": Path.home() / ".gemini" / "settings.json",
-        "config_key": "mcpServers",
-        "start_instruction": "Run [cyan]gemini[/cyan] in your terminal",
-    },
-    "Cursor": {
-        "detect_path": Path.home() / ".cursor",
-        "config_method": "json",
-        "config_path": Path.home() / ".cursor" / "mcp.json",
-        "config_key": "mcpServers",
-        "start_instruction": "Open [cyan]Cursor[/cyan] app",
-    },
-    "Windsurf": {
-        "detect_path": Path.home() / ".codeium" / "windsurf",
-        "config_method": "json",
-        "config_path": Path.home() / ".codeium" / "windsurf" / "mcp_config.json",
-        "config_key": "mcpServers",
-        "start_instruction": "Open [cyan]Windsurf[/cyan] app",
-    },
-    "Antigravity": {
-        "detect_path": Path.home() / ".gemini" / "antigravity",
-        "config_method": "json",
-        "config_path": Path.home() / ".gemini" / "antigravity" / "mcp_config.json",
-        "config_key": "mcpServers",
-        "start_instruction": "Open [cyan]Antigravity[/cyan] IDE",
-    },
-    "Codex": {
-        "detect_path": Path.home() / ".codex",
-        "config_method": "cli",
-        "cli_command": "codex",
-        "cli_scope_flag": None,  # Codex doesn't use scope flags
-        "cli_scope_value": None,
-        "cli_separator": "before_command",
-        "start_instruction": "Run [cyan]codex[/cyan] in your terminal",
-    },
-    "Roo Code": {
-        "detect_path": Path.home() / ".roo-code",
-        "config_method": "json",
-        "config_path": Path.home() / ".roo-code" / "mcp.json",
-        "config_key": "mcpServers",
-        "start_instruction": "Open [cyan]Roo Code[/cyan] in VS Code",
-    },
+IDE_CONFIGS: Dict[str, IdeConfig] = {
+    "Claude Code": IdeConfig(
+        detect_path=Path.home() / ".claude",
+        config_method="cli",
+        cli_command="claude",
+        cli_scope_flag="--scope",
+        cli_scope_value="user",
+        cli_separator="before_command",
+        start_instruction="Run [cyan]claude[/cyan] in your terminal",
+    ),
+    "Gemini CLI": IdeConfig(
+        detect_path=Path.home() / ".gemini",
+        config_method="json",
+        config_path=Path.home() / ".gemini" / "settings.json",
+        config_key="mcpServers",
+        start_instruction="Run [cyan]gemini[/cyan] in your terminal",
+    ),
+    "Cursor": IdeConfig(
+        detect_path=Path.home() / ".cursor",
+        config_method="json",
+        config_path=Path.home() / ".cursor" / "mcp.json",
+        config_key="mcpServers",
+        start_instruction="Open [cyan]Cursor[/cyan] app",
+    ),
+    "Windsurf": IdeConfig(
+        detect_path=Path.home() / ".codeium" / "windsurf",
+        config_method="json",
+        config_path=Path.home() / ".codeium" / "windsurf" / "mcp_config.json",
+        config_key="mcpServers",
+        start_instruction="Open [cyan]Windsurf[/cyan] app",
+    ),
+    "Antigravity": IdeConfig(
+        detect_path=Path.home() / ".gemini" / "antigravity",
+        config_method="json",
+        config_path=Path.home() / ".gemini" / "antigravity" / "mcp_config.json",
+        config_key="mcpServers",
+        start_instruction="Open [cyan]Antigravity[/cyan] IDE",
+    ),
+    "Codex": IdeConfig(
+        detect_path=Path.home() / ".codex",
+        config_method="cli",
+        cli_command="codex",
+        cli_separator="before_command",
+        start_instruction="Run [cyan]codex[/cyan] in your terminal",
+    ),
+    "Roo Code": IdeConfig(
+        detect_path=Path.home() / ".roo-code",
+        config_method="json",
+        config_path=Path.home() / ".roo-code" / "mcp.json",
+        config_key="mcpServers",
+        start_instruction="Open [cyan]Roo Code[/cyan] in VS Code",
+    ),
 }
 
 def _get_existing_kbs_from_configs() -> List[Dict[str, Any]]:
     """Scans detected IDE configurations for existing Knowledge Base definitions."""
     # We prioritize JSON configs as they are easier to parse
     for ide_name, ide_info in IDE_CONFIGS.items():
-        if ide_info.get("config_method") == "json":
-            config_path = ide_info.get("config_path")
-            config_key = ide_info.get("config_key")
+        if ide_info.config_method == "json":
+            config_path = ide_info.config_path
+            config_key = ide_info.config_key
             
             if config_path and config_path.exists():
                 try:
@@ -399,17 +409,17 @@ def setup(kb_ids: Optional[str], repo_url: Optional[str], version: Optional[str]
         is_installed = False
         
         # Check based on method
-        if ide_info["config_method"] == "cli":
+        if ide_info.config_method == "cli":
             # For CLI, verify binary is in PATH
-            if shutil.which(ide_info["cli_command"]):
+            if shutil.which(ide_info.cli_command):
                 is_installed = True
-            elif ide_info["detect_path"].exists():
+            elif ide_info.detect_path.exists():
                  # Fallback: Folder exists but not in PATH
                  # We mark as False to avoid 'No such file' error, but we'll show a warning
                  is_installed = False
         else:
             # For JSON, just check dir existence
-            if ide_info["detect_path"].exists():
+            if ide_info.detect_path.exists():
                 is_installed = True
                 
         if is_installed:
@@ -426,14 +436,14 @@ def setup(kb_ids: Optional[str], repo_url: Optional[str], version: Optional[str]
 
     # Display results
     for ide_name, ide_info in IDE_CONFIGS.items():
-        detect_path = ide_info["detect_path"]
+        detect_path = ide_info.detect_path
         if ide_name in detected_ides:
             status = "[green](configured)[/green]" if configured_status.get(ide_name) else ""
             console.print(f"   ✓ {ide_name:<15} [dim]{detect_path}[/dim] {status}")
         else:
             # Check if it was a CLI tool that failed verification
-            if ide_info["config_method"] == "cli" and ide_info["detect_path"].exists():
-                console.print(f"   [yellow]! {ide_name:<15} (config found at {detect_path}, but '{ide_info['cli_command']}' not in PATH)[/yellow]")
+            if ide_info.config_method == "cli" and ide_info.detect_path.exists():
+                console.print(f"   [yellow]! {ide_name:<15} (config found at {detect_path}, but '{ide_info.cli_command}' not in PATH)[/yellow]")
             else:
                 console.print(f"   [dim]✗ {ide_name:<15} (not installed)[/dim]")
 
@@ -462,11 +472,11 @@ def setup(kb_ids: Optional[str], repo_url: Optional[str], version: Optional[str]
     commands_to_run = []
     
     for ide_name, ide_info in selected_ides.items():
-        if ide_info["config_method"] == "json":
-            p = ide_info["config_path"]
+        if ide_info.config_method == "json":
+            p = ide_info.config_path
             files_to_modify.append((ide_name, p))
-        elif ide_info["config_method"] == "cli":
-            commands_to_run.append(f"{ide_info['cli_command']} mcp add ... (configuring {ide_name})")
+        elif ide_info.config_method == "cli":
+            commands_to_run.append(f"{ide_info.cli_command} mcp add ... (configuring {ide_name})")
 
     if files_to_modify:
         console.print("\n[yellow]The following configuration files will be updated:[/yellow]")
@@ -517,10 +527,10 @@ def remove():
     for ide_name, ide_info in IDE_CONFIGS.items():
         # For CLI tools, we need the binary to check config (mcp list)
         is_runnable = True
-        if ide_info["config_method"] == "cli" and not shutil.which(ide_info["cli_command"]):
+        if ide_info.config_method == "cli" and not shutil.which(ide_info.cli_command):
             is_runnable = False
             
-        if ide_info["detect_path"].exists() and is_runnable and _is_mcp_configured(ide_name, ide_info):
+        if ide_info.detect_path.exists() and is_runnable and _is_mcp_configured(ide_name, ide_info):
             configured_ides[ide_name] = ide_info
             console.print(f"   ✓ {ide_name:<15} [green]configured[/green]")
 
@@ -584,11 +594,11 @@ def debug():
         console.print(f"   Found configurations for: {', '.join(n for n, _ in ide_configs_found)}")
         target_conf = None
         for name, info in ide_configs_found:
-            if info["config_method"] == "json":
+            if info.config_method == "json":
                 try:
-                    with open(info["config_path"]) as f:
+                    with open(info.config_path) as f:
                         data = json.load(f)
-                        mcp_conf = data[info["config_key"]][MCP_SERVER_NAME]
+                        mcp_conf = data[info.config_key][MCP_SERVER_NAME]
                         target_conf = mcp_conf.get("env", {})
                         break
                 except Exception:
@@ -802,8 +812,8 @@ def debug():
             console.print(f"   ✓ {ide_name}")
             
             # CLI Checks
-            if ide_info["config_method"] == "cli":
-                cmd = ide_info["cli_command"]
+            if ide_info.config_method == "cli":
+                cmd = ide_info.cli_command
                 try:
                     res = subprocess.run([cmd, "mcp", "list"], capture_output=True, text=True, timeout=5)
                     if MCP_SERVER_NAME in res.stdout or MCP_SERVER_NAME in res.stderr:
@@ -814,12 +824,12 @@ def debug():
                      console.print(f"      - CLI Status: [red]Command failed[/red]")
             
             # JSON Checks
-            elif ide_info["config_method"] == "json":
+            elif ide_info.config_method == "json":
                 try:
-                    with open(ide_info["config_path"], "r") as f:
+                    with open(ide_info.config_path, "r") as f:
                         config = json.load(f)
                     
-                    server_conf = config.get(ide_info["config_key"], {}).get(MCP_SERVER_NAME)
+                    server_conf = config.get(ide_info.config_key, {}).get(MCP_SERVER_NAME)
                     if not server_conf:
                         console.print(f"      - Config: [red]Missing entry[/red]")
                         continue
@@ -860,7 +870,7 @@ def debug():
         console.print("   [yellow]No active integrations found for this MCP server.[/yellow]")
         console.print("   The following application directories were checked:")
         for ide_name, ide_info in IDE_CONFIGS.items():
-             detect_path = ide_info.get("detect_path")
+             detect_path = ide_info.detect_path
              if detect_path:
                  status = "[red]Not found[/red]" if not detect_path.exists() else "[yellow]App found, but MCP not configured[/yellow]"
                  console.print(f"   - {ide_name:<15}: {detect_path} {status}")
@@ -926,10 +936,10 @@ def _generate_mcp_config(selected_kbs: List[Dict[str, str]], api_key: Optional[s
     }
 
 
-def _is_mcp_configured(ide_name: str, ide_info: dict) -> bool:
-    config_method = ide_info.get("config_method", "json")
+def _is_mcp_configured(ide_name: str, ide_info: IdeConfig) -> bool:
+    config_method = ide_info.config_method
     if config_method == "cli":
-        cli_cmd = ide_info["cli_command"]
+        cli_cmd = ide_info.cli_command
         try:
             result = subprocess.run([cli_cmd, "mcp", "list"], capture_output=True, text=True)
             # Check both stdout and stderr (Gemini CLI prints to stderr)
@@ -938,31 +948,31 @@ def _is_mcp_configured(ide_name: str, ide_info: dict) -> bool:
         except FileNotFoundError:
             return False
     else:
-        config_path = ide_info.get("config_path")
+        config_path = ide_info.config_path
         if config_path and config_path.exists():
             try:
                 with open(config_path, "r", encoding="utf-8") as f:
                     config = json.load(f)
-                    servers = config.get(ide_info.get("config_key", "mcpServers"), {})
+                    servers = config.get(ide_info.config_key or "mcpServers", {})
                     return MCP_SERVER_NAME in servers
             except (json.JSONDecodeError, KeyError):
                 return False
         return False
 
 
-def _configure_ide(ide_name: str, ide_info: dict, mcp_config: dict) -> None:
-    config_method = ide_info.get("config_method", "json")
+def _configure_ide(ide_name: str, ide_info: IdeConfig, mcp_config: dict) -> None:
+    config_method = ide_info.config_method
     if config_method == "cli":
         _configure_cli_based(ide_name, ide_info, mcp_config)
     else:
         _configure_ide_json(ide_info, mcp_config)
 
 
-def _configure_cli_based(ide_name: str, ide_info: dict, mcp_config: dict) -> None:
-    cli_cmd = ide_info["cli_command"]
-    scope_flag = ide_info.get("cli_scope_flag")
-    scope_value = ide_info.get("cli_scope_value")
-    separator_style = ide_info.get("cli_separator", "before_command")
+def _configure_cli_based(ide_name: str, ide_info: IdeConfig, mcp_config: dict) -> None:
+    cli_cmd = ide_info.cli_command
+    scope_flag = ide_info.cli_scope_flag
+    scope_value = ide_info.cli_scope_value
+    separator_style = ide_info.cli_separator
 
     # Remove existing
     try:
@@ -1008,9 +1018,9 @@ def _configure_cli_based(ide_name: str, ide_info: dict, mcp_config: dict) -> Non
         raise RuntimeError(f"{cli_cmd} mcp add failed: {result.stderr}")
 
 
-def _configure_ide_json(ide_info: dict, mcp_config: dict) -> None:
-    config_path = ide_info["config_path"]
-    config_key = ide_info["config_key"]
+def _configure_ide_json(ide_info: IdeConfig, mcp_config: dict) -> None:
+    config_path = ide_info.config_path
+    config_key = ide_info.config_key
     
     # Ensure dir exists
     if not config_path.parent.exists():
@@ -1037,7 +1047,7 @@ def _configure_ide_json(ide_info: dict, mcp_config: dict) -> None:
     config[config_key][MCP_SERVER_NAME] = mcp_config
 
     # Automatically add system instructions to Gemini CLI context
-    start_instruction = ide_info.get("start_instruction", "")
+    start_instruction = ide_info.start_instruction
     
     if "gemini" in start_instruction.lower() or "antigravity" in start_instruction.lower():
         # Get KBs from config to find repo names
@@ -1200,19 +1210,19 @@ def _configure_ide_json(ide_info: dict, mcp_config: dict) -> None:
         json.dump(config, f, indent=2)
 
 
-def _remove_mcp_config(ide_name: str, ide_info: dict) -> None:
-    config_method = ide_info.get("config_method", "json")
+def _remove_mcp_config(ide_name: str, ide_info: IdeConfig) -> None:
+    config_method = ide_info.config_method
     if config_method == "cli":
-        cli_cmd = ide_info["cli_command"]
-        scope_flag = ide_info.get("cli_scope_flag")
+        cli_cmd = ide_info.cli_command
+        scope_flag = ide_info.cli_scope_flag
         if scope_flag:
             for scope in ["user", "project", "local"]:
                 subprocess.run([cli_cmd, "mcp", "remove", MCP_SERVER_NAME, scope_flag, scope], capture_output=True)
         else:
             subprocess.run([cli_cmd, "mcp", "remove", MCP_SERVER_NAME], capture_output=True)
     else:
-        config_path = ide_info["config_path"]
-        config_key = ide_info["config_key"]
+        config_path = ide_info.config_path
+        config_key = ide_info.config_key
         if config_path.exists():
             with open(config_path, "r", encoding="utf-8") as f:
                 try:

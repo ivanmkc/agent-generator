@@ -32,12 +32,15 @@ def test_get_existing_kbs_from_configs_with_config():
         }
     }
     
+    # Create a mock object that mimics IdeConfig attribute access
+    mock_ide_info = MagicMock()
+    mock_ide_info.config_method = "json"
+    mock_ide_info.config_path = MagicMock()
+    mock_ide_info.config_path.exists.return_value = True
+    mock_ide_info.config_key = "mcpServers"
+    
     mock_ide_configs = {
-        "TestIDE": {
-            "config_method": "json",
-            "config_path": MagicMock(exists=lambda: True),
-            "config_key": "mcpServers"
-        }
+        "TestIDE": mock_ide_info
     }
 
     with (patch("adk_knowledge_ext.manage_mcp.IDE_CONFIGS", mock_ide_configs), 
