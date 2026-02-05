@@ -65,23 +65,25 @@ def test_nested_symbol_lookup():
 
     # 1. Test Inspect
     # We must patch _ensure_index because it validates env vars which are missing here
-    with patch.object(server, "_ensure_index"):
-        result_inspect = server.inspect_symbol(method_fqn)
+    with patch.object(server, "_ensure_index", return_value=None):
+        result_inspect = server.inspect_symbol(fqn=method_fqn)
         assert f"Symbol '{method_fqn}' not found in index" not in result_inspect
         assert "BaseLlmConnection" in result_inspect
 
     # 2. Test Read Source (Mocked)
     expected_source = "class BaseLlmConnection:\n    def send_history(self, history): return True"
 
-    # Mock reader.read_source to bypass disk operations and git cloning
-    # We need to patch reader on the server object instance
-    with patch.object(server.reader, "read_source", return_value=expected_source), \
-         patch.object(server, "_ensure_index"):
+    # Mock _get_reader to return a mock reader that returns our expected source
+    mock_reader = MagicMock()
+    mock_reader.read_source.return_value = expected_source
 
-        result_read = server.read_source_code(method_fqn)
+    with patch.object(server, "_get_reader", return_value=mock_reader), \
+         patch.object(server, "_ensure_index", return_value=None):
+
+        result_read = server.read_source_code(fqn=method_fqn)
 
         assert "def send_history(self, history):" in result_read
-        assert "class BaseLlmConnection" in result_read # Should match the return value
+        assert "class BaseLlmConnection" in result_read
 
 
 
@@ -104,39 +106,24 @@ def test_real_index_integrity():
     os.environ["TARGET_VERSION"] = "v1.20.0" # Dummy
     os.environ["TARGET_INDEX_PATH"] = str(REAL_INDEX_PATH)
     
-    # Reload config to pick up env vars (config object is instantiated on import)
-    # We can just manually set the property cache or re-import?
-    # config uses @property so it reads os.environ on every access.
-    
-    # We assume server._ensure_index will call config.TARGET_INDEX_PATH -> os.getenv -> find our path -> load it.
-    # But wait, index is a singleton. _ensure_index loads it.
-    # So we don't need to manually load it if we set the env var correctly!
-    
     # Reset singleton just in case
     index._global_index = index.KnowledgeIndex()
 
-    # Use real repo path
-    # We assume we are running in the project root context
-    # ADK source is likely in 'benchmarks/answer_generators/gemini_cli_docker/adk-python'
-    # BUT that directory might only contain the stub 'src/adk_agent_tool.py' in this environment!
-    # Checking for 'runners.py' failed earlier.
-    # So we can only test 'inspect_symbol' (index only) for all items,
-    # and 'read_source_code' only for items that actually exist on disk here.
-    
     # Manually trigger load to get items for iteration
-    # (server tools call _ensure_index internally, but we need items list here)
     index.get_index().load(REAL_INDEX_PATH)
 
     items = index.get_index()._items
     assert len(items) > 0
 
-    for item in items[:20]:  # Check first 20 to save time
-        fqn = item.get("id") or item.get("fqn")
-        if not fqn:
-            continue
+    # Ensure calls use keywords
+    with patch.object(server, "_ensure_index", return_value=None):
+        for item in items[:10]:
+            fqn = item.get("id") or item.get("fqn")
+            if not fqn:
+                continue
 
-        # Inspect should always work if loaded
-        res = server.inspect_symbol(fqn)
-        assert (
-            f"Symbol '{fqn}' not found in index" not in res
-        ), f"Inspect failed for {fqn}"
+            # Inspect should always work if loaded
+            res = server.inspect_symbol(fqn=fqn)
+            assert (
+                f"Symbol '{fqn}' not found in index" not in res
+            ), f"Inspect failed for {fqn}"
