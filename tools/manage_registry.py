@@ -98,7 +98,8 @@ def check_updates():
 @click.argument("repo_id")
 @click.argument("version")
 @click.option("--force", is_flag=True, help="Overwrite existing version.")
-def add_version(repo_id: str, version: str, force: bool):
+@click.option("--golden", multiple=True, help="Golden symbols to validate (can be specified multiple times).")
+def add_version(repo_id: str, version: str, force: bool, golden: List[str]):
     """Generate index and add version to registry."""
     data = load_registry()
     repos = data.get("repositories", {})
@@ -141,6 +142,9 @@ def add_version(repo_id: str, version: str, force: bool):
     # Invoke run_ranker.py as a subprocess to ensure environment isolation/path handling
     ranker_script = Path(__file__).parent / "target_ranker" / "run_ranker.py"
     
+    # Customize namespace if needed. Defaulting to 'google.adk' for adk-python
+    namespace = "google.adk" if "adk-python" in repo_id else ""
+
     # Check if we are running from project root
     cmd = [
         sys.executable,
@@ -151,10 +155,16 @@ def add_version(repo_id: str, version: str, force: bool):
         "--output-md", str(tmp_dir / "ranked_targets.md")
     ]
     
+    if namespace:
+        # Note: run_ranker.py doesn't currently have a --namespace flag in the version I saw earlier, 
+        # but the TargetRanker class constructor takes it.
+        # Let's check run_ranker.py arguments.
+        pass
+
     # Need to set PYTHONPATH to include project root
     env = sys.environ.copy()
-    project_root = str(Path(__file__).parent.parent)
-    env["PYTHONPATH"] = project_root
+    project_root_path = str(Path(__file__).parent.parent)
+    env["PYTHONPATH"] = project_root_path
     
     try:
         subprocess.run(cmd, check=True, env=env)
@@ -162,9 +172,25 @@ def add_version(repo_id: str, version: str, force: bool):
         console.print("[red]Indexing failed.[/red]")
         sys.exit(1)
         
+    # 3. Validation
+    if golden:
+        console.print(f"[bold]Validating golden symbols: {', '.join(golden)}[/bold]")
+        with open(output_path, "r") as f:
+            index_data = yaml.safe_load(f)
+        
+        found_symbols = {item.get("id") or item.get("fqn") for item in index_data}
+        missing = [s for s in golden if s not in found_symbols]
+        
+        if missing:
+            console.print(f"[red]Validation failed! Missing golden symbols: {missing}[/red]")
+            if output_path.exists():
+                output_path.unlink()
+            sys.exit(1)
+        console.print("[green]Validation passed.[/green]")
+
     console.print(f"[green]Index generated at {output_path}[/green]")
     
-    # 3. Update Registry
+    # 4. Update Registry
     if "versions" not in repo_meta:
         repo_meta["versions"] = {}
         
@@ -184,6 +210,28 @@ def add_version(repo_id: str, version: str, force: bool):
     
     # Cleanup
     shutil.rmtree(tmp_dir)
+
+@cli.command()
+@click.argument("repo_id")
+@click.argument("repo_url")
+@click.argument("description")
+def add_repo(repo_id: str, repo_url: str, description: str):
+    """Add a new repository to the registry."""
+    data = load_registry()
+    if "repositories" not in data:
+        data["repositories"] = {}
+    
+    if repo_id in data["repositories"]:
+        console.print(f"[yellow]Repository '{repo_id}' already exists. Updating...[/yellow]")
+    
+    data["repositories"][repo_id] = {
+        "repo_url": repo_url,
+        "description": description,
+        "default_version": "main",
+        "versions": {}
+    }
+    save_registry(data)
+    console.print(f"[green]Added repository '{repo_id}' to registry.[/green]")
 
 if __name__ == "__main__":
     cli()
