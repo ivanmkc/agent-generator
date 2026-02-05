@@ -925,7 +925,7 @@ def debug():
                             )
                             content = result.content[0].text
 
-                            if content.strip().startswith("Error:") or "not found" in content.lower():
+                            if result.isError or content.strip().startswith("Error:") or "not found" in content.lower():
                                 console.print(f"      ❌ [red]Failed[/red]")
                                 console.print(
                                     Panel(
@@ -969,7 +969,7 @@ def debug():
                             )
                             content = result.content[0].text
 
-                            if content.strip().startswith("Error:") or "not found" in content.lower():
+                            if result.isError or content.strip().startswith("Error:") or "not found" in content.lower():
                                 console.print(f"      ❌ [red]Failed[/red]")
                                 console.print(
                                     Panel(
@@ -1006,7 +1006,7 @@ def debug():
                                 )
                                 content = result.content[0].text
 
-                                if content.strip().startswith("Error:") or "not found" in content.lower():
+                                if result.isError or content.strip().startswith("Error:") or (content.strip().startswith("Symbol") and "not found" in content):
                                     console.print(f"      ❌ [red]Failed[/red]")
                                     console.print(
                                         Panel(
