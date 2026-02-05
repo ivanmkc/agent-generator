@@ -11,6 +11,7 @@ import sys
 sys.path.append(str(Path(__file__).parent.parent / "src"))
 
 from adk_knowledge_ext import manage_mcp
+from adk_knowledge_ext.manage_mcp import KBDefinition
 
 @pytest.fixture
 def runner():
@@ -25,9 +26,13 @@ def test_get_existing_kbs_from_configs_with_config():
     mock_config = {
         "mcpServers": {
             "codebase-knowledge": {
+                "command": "uvx",
+                "args": [],
                 "env": {
-                    "MCP_KNOWLEDGE_BASES": json.dumps([{"id": "test/repo@v1"}])
-                }
+                    "MCP_KNOWLEDGE_BASES": json.dumps(
+                        [{"id": "test/repo@v1", "repo_url": "url", "version": "v1"}]
+                    )
+                },
             }
         }
     }
@@ -48,7 +53,7 @@ def test_get_existing_kbs_from_configs_with_config():
         
         kbs = manage_mcp._get_existing_kbs_from_configs()
         assert len(kbs) == 1
-        assert kbs[0]["id"] == "test/repo@v1"
+        assert kbs[0].id == "test/repo@v1"
 
 @patch("adk_knowledge_ext.manage_mcp.SourceReader")
 @patch("adk_knowledge_ext.manage_mcp._configure_ide")
@@ -58,7 +63,7 @@ def test_get_existing_kbs_from_configs_with_config():
 @patch("rich.prompt.Confirm.ask")
 def test_setup_merge_flow(mock_confirm, mock_ask, mock_get_existing, mock_gen_config, mock_conf_ide, mock_reader, runner):
     # Setup mocks
-    mock_get_existing.return_value = [{"id": "existing/repo@v1", "repo_url": "url1", "version": "v1"}]
+    mock_get_existing.return_value = [KBDefinition(id="existing/repo@v1", repo_url="url1", version="v1")]
     
     # Mock Confirm.ask to return True for "Configure {ide_name}?" and "Proceed?"
     # But we also have "Do you have a Gemini API Key?" which defaults to False.
@@ -66,13 +71,6 @@ def test_setup_merge_flow(mock_confirm, mock_ask, mock_get_existing, mock_gen_co
     mock_confirm.return_value = True 
     
     # Mock Prompt.ask for the merge question
-    # We need to distinguish calls if necessary, but here the most critical one is the merge one.
-    # The setup function uses Prompt.ask for:
-    # 1. Repo selection (skipped here)
-    # 2. Version selection (skipped here)
-    # 3. Merge question (Choices=["y", "n"])
-    # 4. API Key (skipped via env)
-    
     mock_ask.side_effect = lambda prompt, **kwargs: "y" if "Merge" in prompt else "default"
 
     with patch.dict(os.environ, {"GEMINI_API_KEY": "fake-key"}):
@@ -89,7 +87,7 @@ def test_setup_merge_flow(mock_confirm, mock_ask, mock_get_existing, mock_gen_co
     call_args = mock_gen_config.call_args
     selected_kbs = call_args[0][0] # First arg
     
-    ids = [kb["id"] for kb in selected_kbs]
+    ids = [kb.id for kb in selected_kbs]
     assert "existing/repo@v1" in ids
     assert "custom/repo@v2" in ids
 
@@ -101,7 +99,7 @@ def test_setup_merge_flow(mock_confirm, mock_ask, mock_get_existing, mock_gen_co
 @patch("rich.prompt.Confirm.ask")
 def test_setup_replace_flow(mock_confirm, mock_ask, mock_get_existing, mock_gen_config, mock_conf_ide, mock_reader, runner):
     # Setup mocks
-    mock_get_existing.return_value = [{"id": "existing/repo@v1", "repo_url": "url1", "version": "v1"}]
+    mock_get_existing.return_value = [KBDefinition(id="existing/repo@v1", repo_url="url1", version="v1")]
     mock_confirm.return_value = True
     
     # User says "n" to merge
@@ -116,7 +114,7 @@ def test_setup_replace_flow(mock_confirm, mock_ask, mock_get_existing, mock_gen_
     assert mock_gen_config.called
     selected_kbs = mock_gen_config.call_args[0][0]
     
-    ids = [kb["id"] for kb in selected_kbs]
+    ids = [kb.id for kb in selected_kbs]
     assert "existing/repo@v1" not in ids
     assert "custom/repo@v2" in ids
 
@@ -126,7 +124,7 @@ def test_setup_replace_flow(mock_confirm, mock_ask, mock_get_existing, mock_gen_
 @patch("adk_knowledge_ext.manage_mcp._get_existing_kbs_from_configs")
 def test_setup_force_skips_merge(mock_get_existing, mock_gen_config, mock_conf_ide, mock_reader, runner):
     # Force=True should skip _get_existing_kbs_from_configs call or at least ignore it
-    mock_get_existing.return_value = [{"id": "existing/repo@v1"}]
+    mock_get_existing.return_value = [KBDefinition(id="existing/repo@v1", repo_url="url1", version="v1")]
     
     with patch.dict(os.environ, {"GEMINI_API_KEY": "fake-key"}):
         result = runner.invoke(manage_mcp.setup, ["--repo-url", "https://github.com/new/repo.git", "--version", "v2", "--force"])
@@ -135,7 +133,7 @@ def test_setup_force_skips_merge(mock_get_existing, mock_gen_config, mock_conf_i
     
     # Verify we did NOT merge
     selected_kbs = mock_gen_config.call_args[0][0]
-    ids = [kb["id"] for kb in selected_kbs]
+    ids = [kb.id for kb in selected_kbs]
     assert "existing/repo@v1" not in ids
     assert "custom/repo@v2" in ids
 

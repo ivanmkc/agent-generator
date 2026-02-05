@@ -23,13 +23,13 @@ import yaml
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, Union
 
 import click
 from rich.console import Console
 from rich.panel import Panel
 from rich.prompt import Confirm, Prompt
-from pydantic import BaseModel
+from pydantic import BaseModel, TypeAdapter
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 
@@ -41,6 +41,39 @@ except ImportError:
     from adk_knowledge_ext.reader import SourceReader
 
 console = Console()
+
+
+class KBDefinition(BaseModel):
+    """Full definition of a Knowledge Base.
+
+    Attributes:
+        id (str): Unique ID (owner/repo@version).
+        repo_url (str): Git clone URL.
+        version (str): Specific tag/branch.
+        index_url (Optional[str]): URL for pre-computed index.
+        description (Optional[str]): Human-readable summary.
+    """
+
+    id: str
+    repo_url: str
+    version: str
+    index_url: Optional[str] = None
+    description: Optional[str] = None
+
+
+class McpServerConfig(BaseModel):
+    """The configuration for an MCP server instance.
+
+    Attributes:
+        command (str): The binary to run (e.g. 'uvx').
+        args (List[str]): List of command line arguments.
+        env (Dict[str, str]): Environment variables for the server process.
+    """
+
+    command: str
+    args: List[str]
+    env: Dict[str, str]
+
 
 class VersionEntry(BaseModel):
     """Metadata for a specific version of a repository.
@@ -196,37 +229,58 @@ IDE_CONFIGS: Dict[str, IdeConfig] = {
     ),
 }
 
-def _get_existing_kbs_from_configs() -> List[Dict[str, Any]]:
+def _get_existing_kbs_from_configs() -> List[KBDefinition]:
     """Scans detected IDE configurations for existing Knowledge Base definitions.
-    
+
     Iterates through all supported IDEs, checks for their configuration files,
     and extracts any existing MCP_KNOWLEDGE_BASES environment variables.
-    
+
     Returns:
-        List[Dict[str, Any]]: A list of KB definitions if found, otherwise an empty list.
+        List[KBDefinition]: A list of KB definitions if found, otherwise an empty list.
     """
     # We prioritize JSON configs as they are easier to parse
+    kb_list_adapter = TypeAdapter(List[Union[str, KBDefinition]])
+
     for ide_name, ide_info in IDE_CONFIGS.items():
         if ide_info.config_method == "json":
             config_path = ide_info.config_path
             config_key = ide_info.config_key
-            
+
             if config_path and config_path.exists():
                 try:
                     with open(config_path, "r", encoding="utf-8") as f:
                         data = json.load(f)
-                        
+
                     # Navigate to MCP server config
-                    server_conf = data.get(config_key, {}).get(MCP_SERVER_NAME)
-                    if server_conf:
-                        env = server_conf.get("env", {})
-                        kb_json = env.get("MCP_KNOWLEDGE_BASES")
-                        if kb_json:
+                    server_conf_raw = data.get(config_key, {}).get(MCP_SERVER_NAME)
+                    if server_conf_raw:
+                        server_conf = McpServerConfig.model_validate(server_conf_raw)
+                        kb_raw = server_conf.env.get("MCP_KNOWLEDGE_BASES")
+                        if kb_raw:
                             try:
-                                kbs = json.loads(kb_json)
-                                if kbs:
-                                    return kbs # Return the first valid set found
-                            except json.JSONDecodeError:
+                                # Try parsing as JSON or CSV
+                                if kb_raw.startswith("["):
+                                    parsed = kb_list_adapter.validate_json(kb_raw)
+                                else:
+                                    parsed = [x.strip() for x in kb_raw.split(",") if x.strip()]
+
+                                results: List[KBDefinition] = []
+                                for item in parsed:
+                                    if isinstance(item, KBDefinition):
+                                        results.append(item)
+                                    else:
+                                        # String ID - create a skeleton
+                                        results.append(
+                                            KBDefinition(
+                                                id=item,
+                                                repo_url="Unknown",
+                                                version="Unknown",
+                                            )
+                                        )
+
+                                if results:
+                                    return results
+                            except Exception:
                                 pass
                 except Exception:
                     pass
@@ -272,8 +326,8 @@ def setup(kb_ids: Optional[str], repo_url: Optional[str], version: Optional[str]
     local = local_path is not None
     if quiet:
         force = True
-        
-    selected_kbs = []
+
+    selected_kbs: List[KBDefinition] = []
     github_token = None
 
     # Handle Custom Repo
@@ -283,14 +337,16 @@ def setup(kb_ids: Optional[str], repo_url: Optional[str], version: Optional[str]
         repo_name = repo_url.split("/")[-1].replace(".git", "")
         # Generate a temporary ID for custom repos
         custom_id = f"custom/{repo_name}@{ver}"
-        
-        selected_kbs.append({
-            "id": custom_id,
-            "repo_url": repo_url,
-            "version": ver,
-            "index_url": idx,
-            "description": f"Custom Repository: {repo_url}"
-        })
+
+        selected_kbs.append(
+            KBDefinition(
+                id=custom_id,
+                repo_url=repo_url,
+                version=ver,
+                index_url=idx,
+                description=f"Custom Repository: {repo_url}",
+            )
+        )
 
     # Load Registry
     registry_path = Path(__file__).parent / "registry.yaml"
@@ -339,15 +395,19 @@ def setup(kb_ids: Optional[str], repo_url: Optional[str], version: Optional[str]
                 
                 if target_version in repo_entry.versions:
                     v_entry = repo_entry.versions[target_version]
-                    selected_kbs.append({
-                        "id": f"{repo_id}@{target_version}",
-                        "repo_url": repo_entry.repo_url,
-                        "version": target_version,
-                        "index_url": v_entry.index_url,
-                        "description": v_entry.description or repo_entry.description
-                    })
+                    selected_kbs.append(
+                        KBDefinition(
+                            id=f"{repo_id}@{target_version}",
+                            repo_url=repo_entry.repo_url,
+                            version=target_version,
+                            index_url=v_entry.index_url,
+                            description=v_entry.description or repo_entry.description,
+                        )
+                    )
                 else:
-                    console.print(f"[yellow]Warning: Version '{target_version}' not found for '{repo_id}'[/yellow]")
+                    console.print(
+                        f"[yellow]Warning: Version '{target_version}' not found for '{repo_id}'[/yellow]"
+                    )
             else:
                 # Check for legacy flat ID match if needed, or just warn
                 console.print(f"[yellow]Warning: Repository '{repo_id}' not found in registry.[/yellow]")
@@ -414,30 +474,34 @@ def setup(kb_ids: Optional[str], repo_url: Optional[str], version: Optional[str]
                         target_version = versions[int(v_choice) - 1]
 
                     v_entry = repo.versions[target_version]
-                    selected_kbs.append({
-                        "id": f"{r_id}@{target_version}",
-                        "repo_url": repo.repo_url,
-                        "version": target_version,
-                        "index_url": v_entry.index_url,
-                        "description": v_entry.description or repo.description
-                    })
+                    selected_kbs.append(
+                        KBDefinition(
+                            id=f"{r_id}@{target_version}",
+                            repo_url=repo.repo_url,
+                            version=target_version,
+                            index_url=v_entry.index_url,
+                            description=v_entry.description or repo.description,
+                        )
+                    )
 
     # Merge Check
     if not force:
         existing_kbs = _get_existing_kbs_from_configs()
-        
+
         # Case 1: User selected nothing new
         if not selected_kbs:
             if existing_kbs:
                 console.print(f"\n[yellow]No new repositories selected.[/yellow]")
                 console.print(f"Existing configuration found:")
                 for kb in existing_kbs:
-                    console.print(f" - {kb['id']}")
-                
-                if not ask_confirm("Do you want to re-apply the existing configuration?", default=True):
+                    console.print(f" - {kb.id}")
+
+                if not ask_confirm(
+                    "Do you want to re-apply the existing configuration?", default=True
+                ):
                     console.print("Cancelled.")
                     return
-                
+
                 # Re-apply existing
                 selected_kbs = existing_kbs
             else:
@@ -446,68 +510,76 @@ def setup(kb_ids: Optional[str], repo_url: Optional[str], version: Optional[str]
 
         # Case 2: User selected new repos, and we have existing ones
         elif existing_kbs:
-            existing_ids = {kb["id"] for kb in existing_kbs}
-            new_ids = {kb["id"] for kb in selected_kbs}
-            
+            existing_ids = {kb.id for kb in existing_kbs}
+            new_ids = {kb.id for kb in selected_kbs}
+
             # Detect if there's anything to discuss
-            # 1. Are there existing KBs? Yes.
-            # 2. Are we just re-applying the exact same set?
             if existing_ids != new_ids:
-                console.print(f"\n[bold yellow]Existing configuration found:[/bold yellow]")
+                console.print(
+                    f"\n[bold yellow]Existing configuration found:[/bold yellow]"
+                )
                 for kb in existing_kbs:
-                    console.print(f" - {kb['id']}")
-                
+                    console.print(f" - {kb.id}")
+
                 if selected_kbs:
                     console.print(f"\n[bold green]New configuration:[/bold green]")
                     for kb in selected_kbs:
-                        console.print(f" - {kb['id']}")
-                
-                if Prompt.ask("\nMerge with existing configuration?", choices=["y", "n"], default="y") == "y":
-                    merged_map = {kb["id"]: kb for kb in existing_kbs}
+                        console.print(f" - {kb.id}")
+
+                if (
+                    Prompt.ask(
+                        "\nMerge with existing configuration?",
+                        choices=["y", "n"],
+                        default="y",
+                    )
+                    == "y"
+                ):
+                    merged_map = {kb.id: kb for kb in existing_kbs}
                     for kb in selected_kbs:
-                        merged_map[kb["id"]] = kb
+                        merged_map[kb.id] = kb
                     selected_kbs = list(merged_map.values())
-                    console.print(f"[dim]Merged total: {len(selected_kbs)} repositories[/dim]")
+                    console.print(
+                        f"[dim]Merged total: {len(selected_kbs)} repositories[/dim]"
+                    )
 
     # Pre-load/Clone Repositories
     if selected_kbs:
         console.print("\n[bold]Pre-loading Knowledge Bases...[/bold]")
-        
+
         # Check if we already have a GitHub token
         github_token = os.environ.get("GITHUB_TOKEN")
-        
+
         for kb in selected_kbs:
             try:
                 # If we collected a token from a previous failure in this loop, ensure it's in env
                 if github_token:
                     os.environ["GITHUB_TOKEN"] = github_token
-                    
-                reader = SourceReader(kb["repo_url"], kb["version"])
-                
-                # Check if clone failed (SourceReader sets repo_root to None on failure)
-                # But wait, SourceReader constructor catches exceptions. 
-                # We need to check if the directory actually exists now.
-                # Actually SourceReader constructor logs error but doesn't raise if we look at the code.
-                # Ideally SourceReader should raise or we check.
-                # Let's check reader.repo_root
+
+                reader = SourceReader(kb.repo_url, kb.version)
+
                 if reader.repo_root is None or not reader.repo_root.exists():
-                     raise RuntimeError("Clone failed (directory not found)")
-                     
-                console.print(f"   Using {kb['repo_url']} ({kb['version']})...")
+                    raise RuntimeError("Clone failed (directory not found)")
+
+                console.print(f"   Using {kb.repo_url} ({kb.version})...")
             except Exception as e:
-                console.print(f"   [red]Failed to clone {kb['repo_url']}: {e}[/red]")
-                
+                console.print(f"   [red]Failed to clone {kb.repo_url}: {e}[/red]")
+
                 # Auth Retry Logic
                 if not github_token and not force:
-                    if ask_confirm("\nClone failed (possibly private repo). Do you want to provide a GitHub Personal Access Token (PAT)?", default=True):
+                    if ask_confirm(
+                        f"\nClone failed (possibly private repo). Do you want to provide a GitHub Personal Access Token (PAT)?",
+                        default=True,
+                    ):
                         github_token = Prompt.ask("Enter GitHub Token", password=True)
                         if github_token:
                             os.environ["GITHUB_TOKEN"] = github_token
                             console.print("[dim]Retrying with token...[/dim]")
                             try:
-                                reader = SourceReader(kb["repo_url"], kb["version"])
+                                reader = SourceReader(kb.repo_url, kb.version)
                                 if reader.repo_root and reader.repo_root.exists():
-                                    console.print(f"   [green]Success![/green] Using {kb['repo_url']}...")
+                                    console.print(
+                                        f"   [green]Success![/green] Using {kb.repo_url}..."
+                                    )
                                 else:
                                     console.print("   [red]Retry failed.[/red]")
                             except Exception as retry_e:
@@ -521,8 +593,8 @@ def setup(kb_ids: Optional[str], repo_url: Optional[str], version: Optional[str]
     console.print()
     console.print(
         Panel(
-            "[bold]🚀 Codebase Knowledge MCP Setup[/bold]\n\n" +
-            "\n".join([f"- {kb['repo_url']} ({kb['version']})" for kb in selected_kbs]),
+            "[bold]🚀 Codebase Knowledge MCP Setup[/bold]\n\n"
+            + "\n".join([f"- {kb.repo_url} ({kb.version})" for kb in selected_kbs]),
             border_style="blue",
         )
     )
@@ -783,46 +855,79 @@ def debug():
                         return
 
                     # 2. Inspect KBs
-                    kbs_json = server_env.get("MCP_KNOWLEDGE_BASES")
-                    kbs_to_test = []
-                    if kbs_json:
+                    kbs_raw = server_env.get("MCP_KNOWLEDGE_BASES")
+                    kbs_to_test: List[Union[str, KBDefinition]] = []
+                    if kbs_raw:
                         try:
-                            kbs_to_test = json.loads(kbs_json)
-                        except:
+                            # Use TypeAdapter for robust parsing
+                            adapter = TypeAdapter(List[Union[str, KBDefinition]])
+                            if kbs_raw.startswith("["):
+                                kbs_to_test = adapter.validate_json(kbs_raw)
+                            else:
+                                # String list
+                                kbs_to_test = [
+                                    x.strip() for x in kbs_raw.split(",") if x.strip()
+                                ]
+                        except Exception:
                             pass
-                    
+
                     if not kbs_to_test:
-                        kbs_to_test = [{"id": None, "desc": "Default/Bundled"}]
-                    
+                        # Add a dummy KB definition for testing default
+                        kbs_to_test = [
+                            KBDefinition(
+                                id="Default/Bundled", repo_url="None", version="None"
+                            )
+                        ]
+
                     for kb in kbs_to_test:
-                        kb_id = kb.get("id")
+                        # Extract ID safely from Union
+                        kb_id = kb if isinstance(kb, str) else kb.id
                         label = f"{kb_id}" if kb_id else "Default (Bundled)"
-                        
+
                         console.print(f"   Testing KB: [cyan]{label}[/cyan]")
-                        
+
                         # 1. list_modules
                         first_item_fqn = None
                         try:
                             # Call list_modules
                             args = {"page_size": 5}
-                            if kb_id:
+                            # Only pass kb_id if it's not the dummy one
+                            if kb_id != "Default/Bundled":
                                 args["kb_id"] = kb_id
-                            
-                            console.print(f"      [dim]→ list_modules({json.dumps(args)})[/dim]")
-                            result = await session.call_tool("list_modules", arguments=args)
+
+                            console.print(
+                                f"      [dim]→ list_modules({json.dumps(args)})[/dim]"
+                            )
+                            result = await session.call_tool(
+                                "list_modules", arguments=args
+                            )
                             content = result.content[0].text
-                            
+
                             if "Error" in content or "not found" in content.lower():
                                 console.print(f"      ❌ [red]Failed[/red]")
-                                console.print(Panel(content, title="Output (Error)", border_style="red"))
+                                console.print(
+                                    Panel(
+                                        content,
+                                        title="Output (Error)",
+                                        border_style="red",
+                                    )
+                                )
                             else:
                                 console.print(f"      ✅ [green]OK[/green]")
                                 # Increased truncation limit to 1000 chars
-                                console.print(Panel(content[:1000] + ("..." if len(content)>1000 else ""), title="Output (Truncated)", border_style="dim"))
-                                
+                                console.print(
+                                    Panel(
+                                        content[:1000]
+                                        + ("..." if len(content) > 1000 else ""),
+                                        title="Output (Truncated)",
+                                        border_style="dim",
+                                    )
+                                )
+
                                 # Extract FQN for next tests
                                 import re
-                                match = re.search(r'\[.*?\] \w+: (\S+)', content)
+
+                                match = re.search(r"\[.*?\] \w+: (\S+)", content)
                                 if match:
                                     first_item_fqn = match.group(1)
                         except Exception as e:
@@ -831,19 +936,36 @@ def debug():
                         # 2. search_knowledge
                         try:
                             q_args = {"queries": ["client"], "limit": 3}
-                            if kb_id:
+                            if kb_id != "Default/Bundled":
                                 q_args["kb_id"] = kb_id
-                            
-                            console.print(f"      [dim]→ search_knowledge({json.dumps(q_args)})[/dim]")
-                            result = await session.call_tool("search_knowledge", arguments=q_args)
+
+                            console.print(
+                                f"      [dim]→ search_knowledge({json.dumps(q_args)})[/dim]"
+                            )
+                            result = await session.call_tool(
+                                "search_knowledge", arguments=q_args
+                            )
                             content = result.content[0].text
-                            
+
                             if "Error" in content or "not found" in content.lower():
                                 console.print(f"      ❌ [red]Failed[/red]")
-                                console.print(Panel(content, title="Output (Error)", border_style="red"))
+                                console.print(
+                                    Panel(
+                                        content,
+                                        title="Output (Error)",
+                                        border_style="red",
+                                    )
+                                )
                             else:
                                 console.print(f"      ✅ [green]OK[/green]")
-                                console.print(Panel(content[:800] + ("..." if len(content)>800 else ""), title="Output (Truncated)", border_style="dim"))
+                                console.print(
+                                    Panel(
+                                        content[:800]
+                                        + ("..." if len(content) > 800 else ""),
+                                        title="Output (Truncated)",
+                                        border_style="dim",
+                                    )
+                                )
                         except Exception as e:
                             console.print(f"      ❌ [red]Error {e}[/red]")
 
@@ -851,23 +973,40 @@ def debug():
                         if first_item_fqn:
                             try:
                                 i_args = {"fqn": first_item_fqn}
-                                if kb_id:
+                                if kb_id != "Default/Bundled":
                                     i_args["kb_id"] = kb_id
-                                
-                                console.print(f"      [dim]→ inspect_symbol({json.dumps(i_args)})[/dim]")
-                                result = await session.call_tool("inspect_symbol", arguments=i_args)
+
+                                console.print(
+                                    f"      [dim]→ inspect_symbol({json.dumps(i_args)})[/dim]"
+                                )
+                                result = await session.call_tool(
+                                    "inspect_symbol", arguments=i_args
+                                )
                                 content = result.content[0].text
-                                
+
                                 if "Error" in content or "not found" in content.lower():
                                     console.print(f"      ❌ [red]Failed[/red]")
-                                    console.print(Panel(content, title="Output (Error)", border_style="red"))
+                                    console.print(
+                                        Panel(
+                                            content,
+                                            title="Output (Error)",
+                                            border_style="red",
+                                        )
+                                    )
                                 else:
                                     console.print(f"      ✅ [green]OK[/green]")
-                                    console.print(Panel(content[:800] + ("..." if len(content)>800 else ""), title="Output (Truncated)", border_style="dim"))
+                                    console.print(
+                                        Panel(
+                                            content[:800]
+                                            + ("..." if len(content) > 800 else ""),
+                                            title="Output (Truncated)",
+                                            border_style="dim",
+                                        )
+                                    )
                             except Exception as e:
                                 console.print(f"      ❌ [red]Error {e}[/red]")
                         else:
-                             console.print(f"      ⚠️  inspect_symbol: Skipped (no FQN found)")
+                            console.print(f"      ⚠️  inspect_symbol: Skipped (no FQN found)")
 
         except Exception as e:
             console.print(f"   [red]Server Start Failed: {e}[/red]")
@@ -1016,21 +1155,27 @@ def debug():
                  console.print(f"   - {ide_name:<15}: {detect_path} {status}")
 
 
-def _generate_mcp_config(selected_kbs: List[Dict[str, str]], api_key: Optional[str], github_token: Optional[str] = None, local_path: Optional[str] = None) -> dict:
+def _generate_mcp_config(
+    selected_kbs: List[KBDefinition],
+    api_key: Optional[str],
+    github_token: Optional[str] = None,
+    local_path: Optional[str] = None,
+) -> McpServerConfig:
     """Generate the MCP server configuration.
-    
+
     Args:
-        selected_kbs (List[Dict[str, str]]): List of knowledge base definitions.
+        selected_kbs (List[KBDefinition]): List of knowledge base definitions.
         api_key (Optional[str]): Gemini API key for semantic search.
         github_token (Optional[str]): GitHub PAT for private repo cloning.
         local_path (Optional[str]): Optional path to local source code.
-        
+
     Returns:
-        dict: A dictionary containing the command, args, and env for the MCP server.
+        McpServerConfig: A validated configuration object for the MCP server.
     """
-    
+
     # Enrich KBs with registry info if index_url missing
     import yaml
+
     registry_path = Path(__file__).parent / "registry.yaml"
     registry = {}
     if registry_path.exists():
@@ -1039,78 +1184,55 @@ def _generate_mcp_config(selected_kbs: List[Dict[str, str]], api_key: Optional[s
         except Exception:
             pass
 
-    final_kbs = []
-    
+    final_kbs: List[Union[str, KBDefinition]] = []
+
     for kb in selected_kbs:
         # Check if this KB is in the bundled registry
-        is_bundled = False
-        kb_id = kb.get("id")
-        
-        # Try to find matching entry in flattened registry logic
-        # We match on repo_url AND version
-        # Or if we have a direct ID match in the registry structure
-        
-        # Helper to check if registry contains this exact definition
-        # Since the registry structure in this file is not fully parsed into objects here,
-        # we do a best-effort lookup.
-        
-        # 1. Try direct ID lookup if ID is standard (owner/repo@ver)
-        # But our registry logic is complex (hierarchical vs legacy).
-        # Simplest is: if we found it via registry lookup during selection, it should be standard.
-        
-        # Let's reconstruct the registry lookup briefly to verify.
-        # Ideally, manage_mcp shouldn't need to re-parse deeply.
-        
-        # If the KB came from the registry, we can just use the ID.
-        # But we need to be sure the SERVER has the same registry.
-        # Assumption: server.py and manage_mcp.py are in same package version.
-        
-        # We can check if 'id' looks like a standard registry ID AND we resolved it from there?
-        # Let's iterate the registry we loaded above.
-        
         match_found = False
+
         if "repositories" in registry:
-             for repo_id, meta in registry["repositories"].items():
-                 if meta.get("repo_url") == kb["repo_url"]:
-                     # check version
-                     if kb["version"] in meta.get("versions", {}):
-                         # Found exact match
-                         # Verify if ID matches what we expect
-                         expected_id = f"{repo_id}@{kb['version']}"
-                         if kb_id == expected_id:
-                             match_found = True
-                         # Also handle default alias
-                         elif kb["version"] == meta.get("default_version") and kb_id == repo_id:
-                             match_found = True
-                         break
+            for repo_id, meta in registry["repositories"].items():
+                if meta.get("repo_url") == kb.repo_url:
+                    # check version
+                    if kb.version in meta.get("versions", {}):
+                        # Found exact match
+                        # Verify if ID matches what we expect
+                        expected_id = f"{repo_id}@{kb.version}"
+                        if kb.id == expected_id:
+                            match_found = True
+                        # Also handle default alias
+                        elif (
+                            kb.version == meta.get("default_version")
+                            and kb.id == repo_id
+                        ):
+                            match_found = True
+                        break
         else:
             # Legacy flat format
-            if kb_id in registry:
-                meta = registry[kb_id]
-                if meta.get("repo_url") == kb["repo_url"] and meta.get("version") == kb["version"]:
+            if kb.id in registry:
+                meta = registry[kb.id]
+                if (
+                    meta.get("repo_url") == kb.repo_url
+                    and meta.get("version") == kb.version
+                ):
                     match_found = True
 
         if match_found:
             # It's a standard bundled KB, just save the ID string
-            final_kbs.append(kb_id)
+            final_kbs.append(kb.id)
         else:
             # Custom or overridden KB, save full dict
-            # Ensure index_url is set if we found it during earlier resolution
-            if not kb.get("index_url"):
-                 # Try to fill missing index_url from registry if possible (for custom aliases of known repos)
-                 pass 
             final_kbs.append(kb)
 
     # Serialize to JSON or simple comma-separated list
     if all(isinstance(x, str) for x in final_kbs):
         kbs_value = ",".join(final_kbs)
     else:
-        kbs_value = json.dumps(final_kbs)
+        # Use Pydantic's serialization
+        kbs_value = TypeAdapter(List[Union[str, KBDefinition]]).dump_json(final_kbs).decode()
 
-    env = {
-        "MCP_KNOWLEDGE_BASES": kbs_value
-    }
-    
+    env = {"MCP_KNOWLEDGE_BASES": kbs_value}
+
     if api_key:
         env["GEMINI_API_KEY"] = api_key
     elif os.environ.get("GEMINI_API_KEY"):
@@ -1126,23 +1248,17 @@ def _generate_mcp_config(selected_kbs: List[Dict[str, str]], api_key: Optional[s
         # Resolve the absolute path to the package root
         pkg_spec = str(Path(local_path).resolve())
         if not (Path(pkg_spec) / "pyproject.toml").exists():
-             # Try to find tools/adk_knowledge_ext within the path
-             if (Path(pkg_spec) / "tools" / "adk_knowledge_ext").exists():
-                 pkg_spec = str(Path(pkg_spec) / "tools" / "adk_knowledge_ext")
+            # Try to find tools/adk_knowledge_ext within the path
+            if (Path(pkg_spec) / "tools" / "adk_knowledge_ext").exists():
+                pkg_spec = str(Path(pkg_spec) / "tools" / "adk_knowledge_ext")
     else:
         pkg_spec = "git+https://github.com/ivanmkc/agent-generator.git@mcp_server#subdirectory=tools/adk_knowledge_ext"
-    
-    args = [
-        "--from",
-        pkg_spec,
-        "codebase-knowledge-mcp"
-    ]
-    
-    return {
-        "command": "uvx",
-        "args": args,
-        "env": env
-    }
+
+    return McpServerConfig(
+        command="uvx",
+        args=["--from", pkg_spec, "codebase-knowledge-mcp"],
+        env=env,
+    )
 
 
 def _is_mcp_configured(ide_name: str, ide_info: IdeConfig) -> bool:
@@ -1178,13 +1294,15 @@ def _is_mcp_configured(ide_name: str, ide_info: IdeConfig) -> bool:
         return False
 
 
-def _configure_ide(ide_name: str, ide_info: IdeConfig, mcp_config: dict) -> None:
+def _configure_ide(
+    ide_name: str, ide_info: IdeConfig, mcp_config: McpServerConfig
+) -> None:
     """Configures the MCP server in a specific IDE.
-    
+
     Args:
         ide_name (str): Name of the IDE.
         ide_info (IdeConfig): Configuration metadata for the IDE.
-        mcp_config (dict): The server configuration to apply.
+        mcp_config (McpServerConfig): The server configuration to apply.
     """
     config_method = ide_info.config_method
     if config_method == "cli":
@@ -1193,13 +1311,15 @@ def _configure_ide(ide_name: str, ide_info: IdeConfig, mcp_config: dict) -> None
         _configure_ide_json(ide_info, mcp_config)
 
 
-def _configure_cli_based(ide_name: str, ide_info: IdeConfig, mcp_config: dict) -> None:
+def _configure_cli_based(
+    ide_name: str, ide_info: IdeConfig, mcp_config: McpServerConfig
+) -> None:
     """Uses a CLI tool to configure the MCP server.
-    
+
     Args:
         ide_name (str): Name of the IDE.
         ide_info (IdeConfig): Configuration metadata for the IDE.
-        mcp_config (dict): The server configuration to apply.
+        mcp_config (McpServerConfig): The server configuration to apply.
     """
     cli_cmd = ide_info.cli_command
     scope_flag = ide_info.cli_scope_flag
@@ -1210,11 +1330,16 @@ def _configure_cli_based(ide_name: str, ide_info: IdeConfig, mcp_config: dict) -
     try:
         if scope_flag:
             for scope in ["user", "project", "local"]:
-                subprocess.run([cli_cmd, "mcp", "remove", MCP_SERVER_NAME, scope_flag, scope], capture_output=True)
+                subprocess.run(
+                    [cli_cmd, "mcp", "remove", MCP_SERVER_NAME, scope_flag, scope],
+                    capture_output=True,
+                )
         else:
-            subprocess.run([cli_cmd, "mcp", "remove", MCP_SERVER_NAME], capture_output=True)
+            subprocess.run(
+                [cli_cmd, "mcp", "remove", MCP_SERVER_NAME], capture_output=True
+            )
     except FileNotFoundError:
-        pass # CLI tool might not be in PATH even if folder exists
+        pass  # CLI tool might not be in PATH even if folder exists
 
     # Add
     cmd = [cli_cmd, "mcp", "add"]
@@ -1222,18 +1347,16 @@ def _configure_cli_based(ide_name: str, ide_info: IdeConfig, mcp_config: dict) -
         cmd.extend([scope_flag, scope_value])
     cmd.append(MCP_SERVER_NAME)
 
-    
     env_args = []
-    if "env" in mcp_config:
-        for k, v in mcp_config["env"].items():
-            env_args.append(f"{k}={v}")
-            
+    for k, v in mcp_config.env.items():
+        env_args.append(f"{k}={v}")
+
     # We use `env` as the command to set variables
     # cmd: env VAR=VAL uvx ...
-    
+
     final_command = "env"
-    final_args = env_args + [mcp_config["command"]] + mcp_config["args"]
-    
+    final_args = env_args + [mcp_config.command] + mcp_config.args
+
     if separator_style == "before_command":
         # Claude: mcp add name -- env VAR=VAL ...
         cmd.append("--")
@@ -1250,12 +1373,12 @@ def _configure_cli_based(ide_name: str, ide_info: IdeConfig, mcp_config: dict) -
         raise RuntimeError(f"{cli_cmd} mcp add failed: {result.stderr}")
 
 
-def _configure_ide_json(ide_info: IdeConfig, mcp_config: dict) -> None:
+def _configure_ide_json(ide_info: IdeConfig, mcp_config: McpServerConfig) -> None:
     """Updates a JSON configuration file to include the MCP server.
-    
+
     Args:
         ide_info (IdeConfig): Configuration metadata for the IDE.
-        mcp_config (dict): The server configuration to apply.
+        mcp_config (McpServerConfig): The server configuration to apply.
     """
     config_path = ide_info.config_path
     config_key = ide_info.config_key
@@ -1282,25 +1405,31 @@ def _configure_ide_json(ide_info: IdeConfig, mcp_config: dict) -> None:
     if config_key not in config:
         config[config_key] = {}
 
-    config[config_key][MCP_SERVER_NAME] = mcp_config
+    config[config_key][MCP_SERVER_NAME] = mcp_config.model_dump()
 
     # Automatically add system instructions to Gemini CLI context
     start_instruction = ide_info.start_instruction
-    
-    if "gemini" in start_instruction.lower() or "antigravity" in start_instruction.lower():
+
+    if (
+        "gemini" in start_instruction.lower()
+        or "antigravity" in start_instruction.lower()
+    ):
         # Get KBs from config to find repo names
         try:
-            kbs_raw = mcp_config["env"]["MCP_KNOWLEDGE_BASES"]
-            
-            # Robust parsing of KBs (JSON list or comma-separated string)
-            kbs_input = []
-            try:
-                kbs_input = json.loads(kbs_raw)
-            except json.JSONDecodeError:
-                kbs_input = [x.strip() for x in kbs_raw.split(",") if x.strip()]
+            kbs_raw = mcp_config.env.get("MCP_KNOWLEDGE_BASES")
+
+            # Robust parsing of KBs (JSON list or comma-separated string) using TypeAdapter
+            kb_list_adapter = TypeAdapter(List[Union[str, KBDefinition]])
+            kbs_input: List[Union[str, KBDefinition]] = []
+            if kbs_raw:
+                if kbs_raw.startswith("["):
+                    kbs_input = kb_list_adapter.validate_json(kbs_raw)
+                else:
+                    kbs_input = [x.strip() for x in kbs_raw.split(",") if x.strip()]
 
             # Load Registry for enrichment of string-only IDs
             import yaml
+
             registry_path = Path(__file__).parent / "registry.yaml"
             registry = {}
             if registry_path.exists():
@@ -1309,81 +1438,80 @@ def _configure_ide_json(ide_info: IdeConfig, mcp_config: dict) -> None:
                 except Exception:
                     pass
 
-            kbs = []
+            kbs: List[KBDefinition] = []
             for item in kbs_input:
                 if isinstance(item, str):
                     # Enrich from registry
                     match_found = False
                     if "repositories" in registry:
                         for repo_id, meta in registry["repositories"].items():
-                            # Check if item is exact ID 'owner/repo@ver'
                             if "@" in item:
                                 rid, ver = item.split("@", 1)
                                 if rid == repo_id and ver in meta.get("versions", {}):
                                     v_meta = meta["versions"][ver]
-                                    kbs.append({
-                                        "id": item,
-                                        "repo_url": meta["repo_url"],
-                                        "version": ver,
-                                        "description": v_meta.get("description") or meta.get("description")
-                                    })
+                                    kbs.append(
+                                        KBDefinition(
+                                            id=item,
+                                            repo_url=meta["repo_url"],
+                                            version=ver,
+                                            description=v_meta.get("description")
+                                            or meta.get("description"),
+                                        )
+                                    )
                                     match_found = True
                                     break
-                            # Check if item is alias 'owner/repo'
                             elif item == repo_id:
                                 ver = meta.get("default_version")
                                 v_meta = meta.get("versions", {}).get(ver, {})
-                                kbs.append({
-                                    "id": item,
-                                    "repo_url": meta["repo_url"],
-                                    "version": ver,
-                                    "description": v_meta.get("description") or meta.get("description")
-                                })
+                                kbs.append(
+                                    KBDefinition(
+                                        id=item,
+                                        repo_url=meta["repo_url"],
+                                        version=ver,
+                                        description=v_meta.get("description")
+                                        or meta.get("description"),
+                                    )
+                                )
                                 match_found = True
                                 break
-                    
+
                     if not match_found:
                         # Fallback for unknown strings
-                        kbs.append({"id": item, "repo_url": "Unknown", "version": "Unknown"})
+                        kbs.append(
+                            KBDefinition(id=item, repo_url="Unknown", version="Unknown")
+                        )
                 else:
-                    # It's already a dict
                     kbs.append(item)
 
             instr_paths = []
-            
+
             # Prepare Registry String
             # Group by repo_url to create compact listing
             from collections import defaultdict
+
             repos = defaultdict(list)
-            for kb in kbs:
-                # kb has id, repo_url, version, description
-                repos[kb.get("repo_url", "Unknown")].append(kb)
+            for kb_def in kbs:
+                repos[kb_def.repo_url].append(kb_def)
 
             registry_lines = []
             for repo_url, versions in repos.items():
-                # Use description from first version
-                desc = versions[0].get("description", f"Codebase: {repo_url}")
+                v0 = versions[0]
+                desc = v0.description or f"Codebase: {repo_url}"
                 # Derive repo name for display (e.g. google/adk-python)
-                # If we have the ID, we can extract it.
-                # kb['id'] is expected to be 'owner/repo@version'
-                # So we can try to extract 'owner/repo'
                 repo_id = "Unknown Repo"
-                v0_id = versions[0].get("id", "")
-                if "@" in v0_id:
-                    repo_id = v0_id.split("@")[0]
-                elif v0_id:
-                    repo_id = v0_id
+                if "@" in v0.id:
+                    repo_id = v0.id.split("@")[0]
+                elif v0.id:
+                    repo_id = v0.id
                 else:
                     repo_id = repo_url.split("/")[-1].replace(".git", "")
 
                 registry_lines.append(f"*   `{repo_id}` | {desc}")
                 for v in versions:
-                    # Check if this is the default (heuristic: if it was selected without version specifier? 
-                    # Actually we don't know here easily, so just list version)
-                    ver = v.get("version", "unknown")
-                    kb_id = v.get("id", "unknown")
-                    registry_lines.append(f"    *   Version: `{ver}`")
-                    registry_lines.append(f"    *   *Usage:* `list_modules(kb_id=\"{kb_id}\", ...)`")
+                    registry_lines.append(f"    *   Version: `{v.version}`")
+                    registry_lines.append(
+                        f"    *   *Usage:* `list_modules(kb_id=\"{v.id}\", ...)`"
+                    )
 
             registry_str = "\n".join(registry_lines)
             
