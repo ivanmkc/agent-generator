@@ -81,7 +81,9 @@ def ask_confirm(question: str, default: bool = True) -> bool:
     Returns:
         bool: True if user confirmed, False otherwise.
     """
-    return Confirm.ask(question, default=default)
+    # Explicitly disable case sensitivity to handle 'Y'/'y' equally
+    return Confirm.ask(question, default=default, case_sensitive=False)
+
 
 MCP_SERVER_NAME = "codebase-knowledge"
 

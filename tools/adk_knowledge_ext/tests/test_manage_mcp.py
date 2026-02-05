@@ -138,3 +138,12 @@ def test_setup_force_skips_merge(mock_get_existing, mock_gen_config, mock_conf_i
     ids = [kb["id"] for kb in selected_kbs]
     assert "existing/repo@v1" not in ids
     assert "custom/repo@v2" in ids
+
+@patch("rich.prompt.Confirm.ask")
+def test_ask_confirm_case_insensitive(mock_confirm_ask):
+    """Ensure ask_confirm is case-insensitive."""
+    mock_confirm_ask.return_value = True
+    
+    manage_mcp.ask_confirm("Question?")
+    
+    mock_confirm_ask.assert_called_once_with("Question?", default=True, case_sensitive=False)
