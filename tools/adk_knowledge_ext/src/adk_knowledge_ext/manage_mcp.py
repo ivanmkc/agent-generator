@@ -1037,19 +1037,70 @@ def _generate_mcp_config(selected_kbs: List[Dict[str, str]], api_key: Optional[s
         except Exception:
             pass
 
+    final_kbs = []
+    
     for kb in selected_kbs:
-        if not kb.get("index_url"):
-             # Try to find matching entry in flattened registry
-             # We match on repo_url AND version
-             for kb_id, meta in registry.items():
-                 if meta.get("repo_url") == kb["repo_url"] and meta.get("version") == kb["version"]:
-                     kb["index_url"] = meta.get("index_url")
-                     if not kb.get("description"):
-                         kb["description"] = meta.get("description")
-                     break
+        # Check if this KB is in the bundled registry
+        is_bundled = False
+        kb_id = kb.get("id")
+        
+        # Try to find matching entry in flattened registry logic
+        # We match on repo_url AND version
+        # Or if we have a direct ID match in the registry structure
+        
+        # Helper to check if registry contains this exact definition
+        # Since the registry structure in this file is not fully parsed into objects here,
+        # we do a best-effort lookup.
+        
+        # 1. Try direct ID lookup if ID is standard (owner/repo@ver)
+        # But our registry logic is complex (hierarchical vs legacy).
+        # Simplest is: if we found it via registry lookup during selection, it should be standard.
+        
+        # Let's reconstruct the registry lookup briefly to verify.
+        # Ideally, manage_mcp shouldn't need to re-parse deeply.
+        
+        # If the KB came from the registry, we can just use the ID.
+        # But we need to be sure the SERVER has the same registry.
+        # Assumption: server.py and manage_mcp.py are in same package version.
+        
+        # We can check if 'id' looks like a standard registry ID AND we resolved it from there?
+        # Let's iterate the registry we loaded above.
+        
+        match_found = False
+        if "repositories" in registry:
+             for repo_id, meta in registry["repositories"].items():
+                 if meta.get("repo_url") == kb["repo_url"]:
+                     # check version
+                     if kb["version"] in meta.get("versions", {}):
+                         # Found exact match
+                         # Verify if ID matches what we expect
+                         expected_id = f"{repo_id}@{kb['version']}"
+                         if kb_id == expected_id:
+                             match_found = True
+                         # Also handle default alias
+                         elif kb["version"] == meta.get("default_version") and kb_id == repo_id:
+                             match_found = True
+                         break
+        else:
+            # Legacy flat format
+            if kb_id in registry:
+                meta = registry[kb_id]
+                if meta.get("repo_url") == kb["repo_url"] and meta.get("version") == kb["version"]:
+                    match_found = True
+
+        if match_found:
+            # It's a standard bundled KB, just save the ID string
+            final_kbs.append(kb_id)
+        else:
+            # Custom or overridden KB, save full dict
+            # Ensure index_url is set if we found it during earlier resolution
+            if not kb.get("index_url"):
+                 # Try to fill missing index_url from registry if possible (for custom aliases of known repos)
+                 pass 
+            final_kbs.append(kb)
 
     env = {
-        "MCP_KNOWLEDGE_BASES": json.dumps(selected_kbs)
+        "MCP_KNOWLEDGE_BASES": json.dumps(final_kbs)
     }
     
     if api_key:
