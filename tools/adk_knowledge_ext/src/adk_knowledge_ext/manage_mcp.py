@@ -1290,8 +1290,65 @@ def _configure_ide_json(ide_info: IdeConfig, mcp_config: dict) -> None:
     if "gemini" in start_instruction.lower() or "antigravity" in start_instruction.lower():
         # Get KBs from config to find repo names
         try:
-            kbs_json = mcp_config["env"]["MCP_KNOWLEDGE_BASES"]
-            kbs = json.loads(kbs_json)
+            kbs_raw = mcp_config["env"]["MCP_KNOWLEDGE_BASES"]
+            
+            # Robust parsing of KBs (JSON list or comma-separated string)
+            kbs_input = []
+            try:
+                kbs_input = json.loads(kbs_raw)
+            except json.JSONDecodeError:
+                kbs_input = [x.strip() for x in kbs_raw.split(",") if x.strip()]
+
+            # Load Registry for enrichment of string-only IDs
+            import yaml
+            registry_path = Path(__file__).parent / "registry.yaml"
+            registry = {}
+            if registry_path.exists():
+                try:
+                    registry = yaml.safe_load(registry_path.read_text())
+                except Exception:
+                    pass
+
+            kbs = []
+            for item in kbs_input:
+                if isinstance(item, str):
+                    # Enrich from registry
+                    match_found = False
+                    if "repositories" in registry:
+                        for repo_id, meta in registry["repositories"].items():
+                            # Check if item is exact ID 'owner/repo@ver'
+                            if "@" in item:
+                                rid, ver = item.split("@", 1)
+                                if rid == repo_id and ver in meta.get("versions", {}):
+                                    v_meta = meta["versions"][ver]
+                                    kbs.append({
+                                        "id": item,
+                                        "repo_url": meta["repo_url"],
+                                        "version": ver,
+                                        "description": v_meta.get("description") or meta.get("description")
+                                    })
+                                    match_found = True
+                                    break
+                            # Check if item is alias 'owner/repo'
+                            elif item == repo_id:
+                                ver = meta.get("default_version")
+                                v_meta = meta.get("versions", {}).get(ver, {})
+                                kbs.append({
+                                    "id": item,
+                                    "repo_url": meta["repo_url"],
+                                    "version": ver,
+                                    "description": v_meta.get("description") or meta.get("description")
+                                })
+                                match_found = True
+                                break
+                    
+                    if not match_found:
+                        # Fallback for unknown strings
+                        kbs.append({"id": item, "repo_url": "Unknown", "version": "Unknown"})
+                else:
+                    # It's already a dict
+                    kbs.append(item)
+
             instr_paths = []
             
             # Prepare Registry String
@@ -1300,7 +1357,7 @@ def _configure_ide_json(ide_info: IdeConfig, mcp_config: dict) -> None:
             repos = defaultdict(list)
             for kb in kbs:
                 # kb has id, repo_url, version, description
-                repos[kb["repo_url"]].append(kb)
+                repos[kb.get("repo_url", "Unknown")].append(kb)
 
             registry_lines = []
             for repo_url, versions in repos.items():
@@ -1311,8 +1368,11 @@ def _configure_ide_json(ide_info: IdeConfig, mcp_config: dict) -> None:
                 # kb['id'] is expected to be 'owner/repo@version'
                 # So we can try to extract 'owner/repo'
                 repo_id = "Unknown Repo"
-                if "@" in versions[0]["id"]:
-                    repo_id = versions[0]["id"].split("@")[0]
+                v0_id = versions[0].get("id", "")
+                if "@" in v0_id:
+                    repo_id = v0_id.split("@")[0]
+                elif v0_id:
+                    repo_id = v0_id
                 else:
                     repo_id = repo_url.split("/")[-1].replace(".git", "")
 
@@ -1320,8 +1380,8 @@ def _configure_ide_json(ide_info: IdeConfig, mcp_config: dict) -> None:
                 for v in versions:
                     # Check if this is the default (heuristic: if it was selected without version specifier? 
                     # Actually we don't know here easily, so just list version)
-                    ver = v["version"]
-                    kb_id = v["id"]
+                    ver = v.get("version", "unknown")
+                    kb_id = v.get("id", "unknown")
                     registry_lines.append(f"    *   Version: `{ver}`")
                     registry_lines.append(f"    *   *Usage:* `list_modules(kb_id=\"{kb_id}\", ...)`")
 
