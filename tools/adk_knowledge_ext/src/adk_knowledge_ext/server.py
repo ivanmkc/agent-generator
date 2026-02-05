@@ -14,7 +14,6 @@ package (for zero-latency offline use) or configured via environment variables.
 import logging
 import subprocess
 import json
-import os
 from pathlib import Path
 from typing import Union, List, Dict, Any
 from logging.handlers import RotatingFileHandler
@@ -56,11 +55,9 @@ log_dir = Path.home() / ".mcp_cache" / "logs"
 log_dir.mkdir(parents=True, exist_ok=True)
 log_file = log_dir / "codebase-knowledge.log"
 
-log_indent = os.environ.get("MCP_LOG_INDENT", "")
-
 logging.basicConfig(
     level=logging.DEBUG,
-    format=f"{log_indent}%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     handlers=[
         RotatingFileHandler(log_file, maxBytes=10*1024*1024, backupCount=5),
         logging.StreamHandler()
@@ -68,13 +65,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger("codebase-knowledge-mcp")
 logger.info("Server starting up...")
-
-# Log Git Version
-try:
-    from ._version_git import GIT_SHA
-    logger.info(f"Server Build Version (Git SHA): {GIT_SHA}")
-except ImportError:
-    logger.info("Server Build Version: Unknown (running from source or unbuilt package)")
 
 # Validation
 # (TARGET_REPO_URL check removed as it is no longer mandatory)
@@ -108,112 +98,84 @@ def _get_available_kbs() -> Dict[str, KnowledgeBaseConfig]:
     """
     Returns a mapping of KB ID to metadata.
     KB IDs are derived from the bundled registry and environment config.
+    Supports V2 hierarchical registry: owner/repo@version.
     """
     kbs = {}
     
-    # 1. Load Bundled Registry
+    # 1. Load Bundled Registry (V2)
     registry_path = Path(__file__).parent / "registry.yaml"
     if registry_path.exists():
         import yaml
         try:
-            data = yaml.safe_load(registry_path.read_text())
-            if "repositories" in data:
-                # Hierarchical Format
-                for repo_id, meta in data["repositories"].items():
+            registry = yaml.safe_load(registry_path.read_text())
+            repos = registry.get("repositories", {})
+            
+            # If it's old format (no 'repositories' key), fallback
+            if not repos and registry:
+                 # Legacy V1 fallback
+                 for kb_id, meta in registry.items():
                     repo_url = meta["repo_url"]
-                    base_desc = meta.get("description")
-                    default_ver = meta.get("default_version")
+                    ver = meta["version"]
+                    desc = meta.get("description") or f"Codebase knowledge for {repo_url} at version {ver}"
+                    kbs[kb_id] = KnowledgeBaseConfig(
+                        id=kb_id, repo_url=repo_url, version=ver,
+                        name=f"{repo_url.split('/')[-1].replace('.git', '')} ({ver})",
+                        description=desc, source="bundled", index_url=meta.get("index_url")
+                    )
+            else:
+                for repo_id, repo_meta in repos.items():
+                    repo_url = repo_meta["repo_url"]
+                    desc = repo_meta.get("description")
+                    default_ver = repo_meta.get("default_version")
                     
-                    for ver, v_meta in meta.get("versions", {}).items():
-                        # Standard ID: owner/repo@version
+                    for ver, ver_meta in repo_meta.get("versions", {}).items():
                         kb_id = f"{repo_id}@{ver}"
-                        
-                        desc = v_meta.get("description") or base_desc or f"Codebase: {repo_url}"
-                        
-                        config = KnowledgeBaseConfig(
+                        kb_config = KnowledgeBaseConfig(
                             id=kb_id,
                             repo_url=repo_url,
                             version=ver,
                             name=f"{repo_id} ({ver})",
                             description=desc,
                             source="bundled",
-                            index_url=v_meta.get("index_url")
+                            index_url=ver_meta.get("index_url")
                         )
-                        kbs[kb_id] = config
+                        kbs[kb_id] = kb_config
                         
-                        # Register default alias if matches
+                        # Add alias for default version
                         if ver == default_ver:
-                            kbs[repo_id] = config
-            else:
-                # Legacy Format Fallback
-                for kb_id, meta in data.items():
-                    kbs[kb_id] = KnowledgeBaseConfig(
-                        id=kb_id,
-                        repo_url=meta["repo_url"],
-                        version=meta["version"],
-                        name=f"{meta['repo_url']} ({meta['version']})",
-                        description=meta.get("description"),
-                        source="bundled",
-                        index_url=meta.get("index_url")
-                    )
+                            kbs[repo_id] = kb_config
+
         except Exception as e:
             logger.warning(f"Failed to read bundled registry: {e}")
 
-    # 2. Add Configured KBs from env
-    configured_kbs_raw = os.environ.get("MCP_KNOWLEDGE_BASES")
+    # 2. Add Configured KBs from env (JSON) - Legacy Support
+    configured_kbs_json = os.environ.get("MCP_KNOWLEDGE_BASES")
     
-    if configured_kbs_raw:
-        items = []
-        # Try JSON first
+    if configured_kbs_json:
         try:
-            items = json.loads(configured_kbs_raw)
-        except json.JSONDecodeError:
-            # Fallback to comma-separated string
-            items = [x.strip() for x in configured_kbs_raw.split(",") if x.strip()]
+            items = json.loads(configured_kbs_json)
+            for item in items:
+                repo_url = item["repo_url"]
+                version = item["version"]
+                repo_name = repo_url.split("/")[-1].replace(".git", "")
+                kb_id = f"{repo_name}-{version}" if version != "main" else repo_name
+                
+                # Env config overrides bundled if same ID
+                desc = item.get("description")
+                if not desc:
+                    desc = f"Configured repository: {repo_url}"
 
-        for item in items:
-            try:
-                # Support string-only IDs (from registry)
-                if isinstance(item, str):
-                    if item in kbs:
-                        # Clone and mark as active/env
-                        existing = kbs[item]
-                        kbs[item] = KnowledgeBaseConfig(
-                            id=existing.id,
-                            repo_url=existing.repo_url,
-                            version=existing.version,
-                            index_url=existing.index_url,
-                            name=existing.name,
-                            description=existing.description,
-                            source="env"
-                        )
-                    else:
-                        logger.warning(f"Configured KB ID '{item}' not found in registry and no details provided.")
-                    continue
-
-                # Support full dictionary config (legacy/custom)
-                if isinstance(item, dict):
-                    # Expect 'id', 'repo_url', 'version'
-                    kb_id = item.get("id")
-                    repo_url = item["repo_url"]
-                    version = item["version"]
-                    
-                    # Fallback ID generation if missing (legacy env var format)
-                    if not kb_id:
-                        repo_name = repo_url.split("/")[-1].replace(".git", "")
-                        kb_id = f"{repo_name}-{version}" if version != "main" else repo_name
-
-                    kbs[kb_id] = KnowledgeBaseConfig(
-                        id=kb_id,
-                        repo_url=repo_url,
-                        version=version,
-                        index_url=item.get("index_url"),
-                        name=item.get("name") or f"{kb_id}",
-                        description=item.get("description"),
-                        source="env"
-                    )
-            except Exception as e:
-                logger.warning(f"Failed to process KB configuration item '{item}': {e}")
+                kbs[kb_id] = KnowledgeBaseConfig(
+                    id=kb_id,
+                    repo_url=repo_url,
+                    version=version,
+                    index_url=item.get("index_url"),
+                    name=f"{repo_name} ({version})",
+                    description=desc,
+                    source="env"
+                )
+        except Exception as e:
+            logger.warning(f"Failed to parse MCP_KNOWLEDGE_BASES: {e}")
 
     return kbs
 
@@ -221,12 +183,6 @@ def _get_available_kbs() -> Dict[str, KnowledgeBaseConfig]:
 def _validate_kb(kb_id: str | None) -> KnowledgeBaseConfig:
     """Validates kb_id and returns its metadata. Raises if invalid."""
     kbs = _get_available_kbs()
-    
-    if not kbs:
-        raise ValueError(
-            "No Knowledge Bases are configured. The server has nothing to index.\n"
-            "To resolve this, please run the MCP setup command to configure at least one repository."
-        )
     
     # Smart Defaulting
     if not kb_id or kb_id in ("default", "adk", "active"):
@@ -265,47 +221,34 @@ def _ensure_index(kb_id: str | None) -> str:
     resolved_id = kb_meta.id
     logger.debug(f"Ensuring index for resolved_id={resolved_id} (requested={kb_id})")
     
-    repo_url = kb_meta.repo_url
-    version = kb_meta.version
-    
     idx = get_index(resolved_id)
     if idx._loaded:
         return resolved_id
 
-    # 1. Check Bundled Registry
-    registry_path = Path(__file__).parent / "registry.yaml"
-    if registry_path.exists():
-        import yaml
-        try:
-            registry = yaml.safe_load(registry_path.read_text())
-            # Lookup by ID directly
-            if resolved_id in registry:
-                meta = registry[resolved_id]
-                # If registry points to a local file path as index_url (legacy/bundling support)
-                # We check if it's a file in data/
-                idx_val = meta.get("index_url")
-                if idx_val and not idx_val.startswith("http"):
-                     bundled_path = _BUNDLED_DATA / idx_val
-                     if bundled_path.exists():
-                        logger.info(f"Using bundled index for {resolved_id}: {bundled_path}")
-                        idx.load(bundled_path)
-                        return resolved_id
-        except Exception as e:
-            logger.warning(f"Failed to read bundled registry: {e}")
-
-    # 2. Manual URL Download (from configured metadata)
+    # 1. Check if the index_url points to a local bundled file
     index_url = kb_meta.index_url
+    if index_url and not index_url.startswith("http"):
+        # Assume it's a relative path from the 'data' directory
+        bundled_path = _BUNDLED_DATA / index_url
+        if bundled_path.exists():
+            logger.info(f"Using bundled index for {resolved_id}: {bundled_path}")
+            idx.load(bundled_path)
+            return resolved_id
+        # Also check if it's just a filename in data/
+        bundled_path_alt = _BUNDLED_DATA / index_url.split("/")[-1]
+        if bundled_path_alt.exists():
+            logger.info(f"Using bundled index (alt) for {resolved_id}: {bundled_path_alt}")
+            idx.load(bundled_path_alt)
+            return resolved_id
 
-    if index_url:
+    # 2. Manual URL Download
+    if index_url and index_url.startswith("http"):
         # ... download logic ...
         cache_dir = Path.home() / ".mcp_cache" / "indices"
         cache_dir.mkdir(parents=True, exist_ok=True)
         import hashlib
         url_hash = hashlib.md5(index_url.encode()).hexdigest()[:8]
-        
-        # Sanitize ID for filename
-        safe_id = resolved_id.replace("/", "_").replace("@", "_").replace(":", "_")
-        cached_index = cache_dir / f"index_{safe_id}_{url_hash}.yaml"
+        cached_index = cache_dir / f"index_{url_hash}.yaml"
         
         if not cached_index.exists():
             logger.info(f"Downloading index from {index_url}...")
@@ -333,42 +276,26 @@ def _ensure_index(kb_id: str | None) -> str:
 def _ensure_instructions():
     """
     Ensures that the dynamic instructions file is available.
+    Generates a compact, version-aware registry summary.
     """
     kbs = _get_available_kbs()
     
-    # Group by repo_url for compact display
-    from collections import defaultdict
-    repos = defaultdict(list)
-    for kb in kbs.values():
-        # Avoid duplicating alias entries
-        # If ID == repo_url (e.g. google/adk-python), skip it in listing if we also have the explicit version
-        # But wait, we want to list versions.
-        # Let's filter out aliases that are just pointers.
-        # Heuristic: if ID contains '@', it's a version. If not, it's an alias (unless legacy).
-        # Actually, let's just group everything and deduplicate versions.
-        repos[kb.repo_url].append(kb)
+    # Group KBs by repository for compact display
+    repos = {}
+    for kb_id, config in kbs.items():
+        # Canonicalize base ID (strip version suffix if present)
+        base_id = kb_id.split("@")[0]
+        if base_id not in repos:
+            repos[base_id] = {"description": config.description, "versions": set()}
+        repos[base_id]["versions"].add(config.version)
 
-    registry_lines = []
-    for repo_url, configs in repos.items():
-        # Deduplicate by version
-        unique_versions = {}
-        for c in configs:
-            unique_versions[c.version] = c
-        
-        # Pick description from one of them
-        first = next(iter(unique_versions.values()))
-        repo_id = "Unknown"
-        # Try to extract repo id from the ID if it follows convention
-        if "@" in first.id:
-            repo_id = first.id.split("@")[0]
-        else:
-            repo_id = repo_url.split("/")[-1].replace(".git", "")
-
-        registry_lines.append(f"*   `{repo_id}` | {first.description or 'No description'}")
-        
-        for ver, c in unique_versions.items():
-            registry_lines.append(f"    *   Version: `{ver}`")
-            registry_lines.append(f"    *   *Usage:* `list_modules(kb_id=\"{c.id}\", ...)`")
+    registry_lines = ["**KNOWLEDGE BASE REGISTRY:**", "(Format: `kb_id` | Description | Supported Versions)", ""]
+    for repo_id, info in repos.items():
+        versions_list = sorted(list(info["versions"]), reverse=True)
+        versions_str = ", ".join([f"`{v}`" for v in versions_list])
+        registry_lines.append(f"*   `{repo_id}` | {info['description']}")
+        registry_lines.append(f"    *   Versions: {versions_str}")
+        registry_lines.append(f"    *   *Usage:* `list_modules(kb_id=\"{repo_id}@<version>\", ...)`")
 
     registry_str = "\n".join(registry_lines)
     
