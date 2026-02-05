@@ -43,10 +43,24 @@ except ImportError:
 console = Console()
 
 class VersionEntry(BaseModel):
+    """Metadata for a specific version of a repository.
+    
+    Attributes:
+        index_url: URL to the pre-computed index for this version.
+        description: Human-readable description of the version.
+    """
     index_url: Optional[str] = None
     description: Optional[str] = None
 
 class RepositoryEntry(BaseModel):
+    """Definition of a repository available in the registry.
+    
+    Attributes:
+        description: General description of the repository.
+        repo_url: Git clone URL.
+        default_version: Version to use if none specified.
+        versions: Map of version names to their metadata.
+    """
     description: str
     repo_url: str
     default_version: str
@@ -54,16 +68,33 @@ class RepositoryEntry(BaseModel):
 
     @property
     def label(self) -> str:
+        """Returns a formatted label for display."""
         return f"{self.repo_url} (Default: {self.default_version})"
 
 def ask_confirm(question: str, default: bool = True) -> bool:
-    """Case-insensitive confirmation prompt."""
+    """Case-insensitive confirmation prompt using Rich.
+    
+    Args:
+        question (str): The text to display to the user.
+        default (bool): The default answer if user presses Enter.
+        
+    Returns:
+        bool: True if user confirmed, False otherwise.
+    """
     return Confirm.ask(question, default=default)
 
 MCP_SERVER_NAME = "codebase-knowledge"
 
 def _get_platform_config_path(app_name: str, config_file: str) -> Path:
-    """Helper to determine config path based on OS."""
+    """Helper to determine config path based on OS and application.
+    
+    Args:
+        app_name (str): Name of the application (e.g., 'Cursor', 'Windsurf').
+        config_file (str): Filename to look for.
+        
+    Returns:
+        Path: Absolute path to the configuration file.
+    """
     if sys.platform == "darwin":
         # macOS paths
         if app_name == "Cursor":
@@ -83,6 +114,19 @@ def _get_platform_config_path(app_name: str, config_file: str) -> Path:
 
 
 class IdeConfig(BaseModel):
+    """Configuration requirements for a specific IDE or coding agent.
+    
+    Attributes:
+        detect_path: Directory path used to detect if the IDE is installed.
+        config_method: Method used to configure ('json' or 'cli').
+        start_instruction: Instruction shown to user to start the IDE.
+        config_path: Path to the JSON configuration file (for json method).
+        config_key: Key within the JSON file where MCP servers are stored.
+        cli_command: Binary name in PATH (for cli method).
+        cli_scope_flag: Flag for scoping (e.g., --scope).
+        cli_scope_value: Value for the scope flag (e.g., user).
+        cli_separator: Position of '--' separator in the command.
+    """
     detect_path: Path
     config_method: str # Literal["json", "cli"]
     start_instruction: str = ""
@@ -151,7 +195,14 @@ IDE_CONFIGS: Dict[str, IdeConfig] = {
 }
 
 def _get_existing_kbs_from_configs() -> List[Dict[str, Any]]:
-    """Scans detected IDE configurations for existing Knowledge Base definitions."""
+    """Scans detected IDE configurations for existing Knowledge Base definitions.
+    
+    Iterates through all supported IDEs, checks for their configuration files,
+    and extracts any existing MCP_KNOWLEDGE_BASES environment variables.
+    
+    Returns:
+        List[Dict[str, Any]]: A list of KB definitions if found, otherwise an empty list.
+    """
     # We prioritize JSON configs as they are easier to parse
     for ide_name, ide_info in IDE_CONFIGS.items():
         if ide_info.config_method == "json":
@@ -195,7 +246,26 @@ def cli():
 @click.option("--force", is_flag=True, help="Skip confirmation prompts")
 @click.option("--quiet", "-q", is_flag=True, help="Quiet mode (implies --force)")
 def setup(kb_ids: Optional[str], repo_url: Optional[str], version: Optional[str], index_url: Optional[str], knowledge_index_url: Optional[str], api_key: Optional[str], local_path: Optional[str], force: bool, quiet: bool):
-    """Auto-configure this MCP server in your coding agents."""
+    """Auto-configure this MCP server in your coding agents.
+    
+    This command:
+    1. Resolves which Knowledge Bases to use (via CLI args or interactively).
+    2. Detects installed IDEs/Coding Agents.
+    3. Prompts for merge if existing KBs are found.
+    4. Handles cloning (with auth retry if needed).
+    5. Writes the configuration to all selected IDEs.
+
+    Args:
+        kb_ids (Optional[str]): Comma-separated list of KB IDs.
+        repo_url (Optional[str]): Custom Git repository URL.
+        version (Optional[str]): Specific version/tag/branch.
+        index_url (Optional[str]): Custom index URL.
+        knowledge_index_url (Optional[str]): Alias for index_url.
+        api_key (Optional[str]): Gemini API Key.
+        local_path (Optional[str]): Path to local source code.
+        force (bool): Skip confirmation prompts.
+        quiet (bool): Suppress output.
+    """
     
     local = local_path is not None
     if quiet:
@@ -461,6 +531,7 @@ def setup(kb_ids: Optional[str], repo_url: Optional[str], version: Optional[str]
 
     configured_status = {}
     def check_configured(ide_name: str) -> tuple[str, bool]:
+        """Helper to check if MCP is already configured in a specific IDE."""
         return ide_name, _is_mcp_configured(ide_name, detected_ides[ide_name])
 
     if detected_ides:
@@ -554,7 +625,11 @@ def setup(kb_ids: Optional[str], repo_url: Optional[str], version: Optional[str]
 
 @cli.command()
 def remove():
-    """Remove this MCP server configuration from coding agents."""
+    """Remove this MCP server configuration from coding agents.
+    
+    Checks all supported IDEs for the codebase-knowledge server and
+    prompts the user to remove it from each one.
+    """
     console.print("\n[bold]🗑️  Codebase Knowledge MCP Remove[/bold]\n")
 
     configured_ides = {}
@@ -591,7 +666,15 @@ def remove():
 
 @cli.command()
 def debug():
-    """Diagnose the MCP server installation and configuration."""
+    """Diagnose the MCP server installation and configuration.
+    
+    Performs the following checks:
+    1. Version Information (Git SHA, Python, Platform).
+    2. Server Self-Test (Connection, Tools, Knowledge Bases).
+    3. File System & Paths (Cache, Instructions, Indices, Logs).
+    4. Environment Variables (API Keys, Token).
+    5. IDE Integration Status (Command, Args, Env).
+    """
     console.print("\n[bold blue]🕵️  Codebase Knowledge MCP Debugger[/bold blue]")
     
     # 1. Version Info
@@ -649,6 +732,7 @@ def debug():
     server_cmd = [sys.executable, "-m", "adk_knowledge_ext.server"]
     
     async def run_diagnostics():
+        """Internal helper to run async diagnostics."""
         # Set environment to force unbuffered output if possible, though mcp handles stdio
         server_env["PYTHONUNBUFFERED"] = "1"
         server_env["MCP_LOG_INDENT"] = "   "
@@ -911,7 +995,17 @@ def debug():
 
 
 def _generate_mcp_config(selected_kbs: List[Dict[str, str]], api_key: Optional[str], github_token: Optional[str] = None, local_path: Optional[str] = None) -> dict:
-    """Generate the MCP server configuration."""
+    """Generate the MCP server configuration.
+    
+    Args:
+        selected_kbs (List[Dict[str, str]]): List of knowledge base definitions.
+        api_key (Optional[str]): Gemini API key for semantic search.
+        github_token (Optional[str]): GitHub PAT for private repo cloning.
+        local_path (Optional[str]): Optional path to local source code.
+        
+    Returns:
+        dict: A dictionary containing the command, args, and env for the MCP server.
+    """
     
     # Enrich KBs with registry info if index_url missing
     import yaml
@@ -973,6 +1067,15 @@ def _generate_mcp_config(selected_kbs: List[Dict[str, str]], api_key: Optional[s
 
 
 def _is_mcp_configured(ide_name: str, ide_info: IdeConfig) -> bool:
+    """Checks if the MCP server is already configured in a specific IDE.
+    
+    Args:
+        ide_name (str): Name of the IDE.
+        ide_info (IdeConfig): Configuration metadata for the IDE.
+        
+    Returns:
+        bool: True if the server is found in the IDE's configuration.
+    """
     config_method = ide_info.config_method
     if config_method == "cli":
         cli_cmd = ide_info.cli_command
@@ -997,6 +1100,13 @@ def _is_mcp_configured(ide_name: str, ide_info: IdeConfig) -> bool:
 
 
 def _configure_ide(ide_name: str, ide_info: IdeConfig, mcp_config: dict) -> None:
+    """Configures the MCP server in a specific IDE.
+    
+    Args:
+        ide_name (str): Name of the IDE.
+        ide_info (IdeConfig): Configuration metadata for the IDE.
+        mcp_config (dict): The server configuration to apply.
+    """
     config_method = ide_info.config_method
     if config_method == "cli":
         _configure_cli_based(ide_name, ide_info, mcp_config)
@@ -1005,6 +1115,13 @@ def _configure_ide(ide_name: str, ide_info: IdeConfig, mcp_config: dict) -> None
 
 
 def _configure_cli_based(ide_name: str, ide_info: IdeConfig, mcp_config: dict) -> None:
+    """Uses a CLI tool to configure the MCP server.
+    
+    Args:
+        ide_name (str): Name of the IDE.
+        ide_info (IdeConfig): Configuration metadata for the IDE.
+        mcp_config (dict): The server configuration to apply.
+    """
     cli_cmd = ide_info.cli_command
     scope_flag = ide_info.cli_scope_flag
     scope_value = ide_info.cli_scope_value
@@ -1055,6 +1172,12 @@ def _configure_cli_based(ide_name: str, ide_info: IdeConfig, mcp_config: dict) -
 
 
 def _configure_ide_json(ide_info: IdeConfig, mcp_config: dict) -> None:
+    """Updates a JSON configuration file to include the MCP server.
+    
+    Args:
+        ide_info (IdeConfig): Configuration metadata for the IDE.
+        mcp_config (dict): The server configuration to apply.
+    """
     config_path = ide_info.config_path
     config_key = ide_info.config_key
     
@@ -1247,6 +1370,12 @@ def _configure_ide_json(ide_info: IdeConfig, mcp_config: dict) -> None:
 
 
 def _remove_mcp_config(ide_name: str, ide_info: IdeConfig) -> None:
+    """Internal helper to remove MCP server configuration.
+    
+    Args:
+        ide_name (str): Name of the IDE.
+        ide_info (IdeConfig): Configuration metadata for the IDE.
+    """
     config_method = ide_info.config_method
     if config_method == "cli":
         cli_cmd = ide_info.cli_command
@@ -1272,6 +1401,7 @@ def _remove_mcp_config(ide_name: str, ide_info: IdeConfig) -> None:
                     json.dump(config, f, indent=2)
 
 def main():
+    """Main entry point for the CLI."""
     cli()
 
 if __name__ == "__main__":
