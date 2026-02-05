@@ -159,18 +159,24 @@ def _get_available_kbs() -> Dict[str, KnowledgeBaseConfig]:
         except Exception as e:
             logger.warning(f"Failed to read bundled registry: {e}")
 
-    # 2. Add Configured KBs from env (JSON)
-    configured_kbs_json = os.environ.get("MCP_KNOWLEDGE_BASES")
+    # 2. Add Configured KBs from env
+    configured_kbs_raw = os.environ.get("MCP_KNOWLEDGE_BASES")
     
-    if configured_kbs_json:
+    if configured_kbs_raw:
+        items = []
+        # Try JSON first
         try:
-            items = json.loads(configured_kbs_json)
-            for item in items:
-                # Support string-only IDs if they refer to bundled repos
+            items = json.loads(configured_kbs_raw)
+        except json.JSONDecodeError:
+            # Fallback to comma-separated string
+            items = [x.strip() for x in configured_kbs_raw.split(",") if x.strip()]
+
+        for item in items:
+            try:
+                # Support string-only IDs (from registry)
                 if isinstance(item, str):
                     if item in kbs:
                         # Clone and mark as active/env
-                        # We use the existing config but mark source as env to prioritize it
                         existing = kbs[item]
                         kbs[item] = KnowledgeBaseConfig(
                             id=existing.id,
@@ -185,27 +191,29 @@ def _get_available_kbs() -> Dict[str, KnowledgeBaseConfig]:
                         logger.warning(f"Configured KB ID '{item}' not found in registry and no details provided.")
                     continue
 
-                # Expect 'id', 'repo_url', 'version'
-                kb_id = item.get("id")
-                repo_url = item["repo_url"]
-                version = item["version"]
-                
-                # Fallback ID generation if missing (legacy env var format)
-                if not kb_id:
-                    repo_name = repo_url.split("/")[-1].replace(".git", "")
-                    kb_id = f"{repo_name}-{version}" if version != "main" else repo_name
+                # Support full dictionary config (legacy/custom)
+                if isinstance(item, dict):
+                    # Expect 'id', 'repo_url', 'version'
+                    kb_id = item.get("id")
+                    repo_url = item["repo_url"]
+                    version = item["version"]
+                    
+                    # Fallback ID generation if missing (legacy env var format)
+                    if not kb_id:
+                        repo_name = repo_url.split("/")[-1].replace(".git", "")
+                        kb_id = f"{repo_name}-{version}" if version != "main" else repo_name
 
-                kbs[kb_id] = KnowledgeBaseConfig(
-                    id=kb_id,
-                    repo_url=repo_url,
-                    version=version,
-                    index_url=item.get("index_url"),
-                    name=item.get("name") or f"{kb_id}",
-                    description=item.get("description"),
-                    source="env"
-                )
-        except Exception as e:
-            logger.warning(f"Failed to parse MCP_KNOWLEDGE_BASES: {e}")
+                    kbs[kb_id] = KnowledgeBaseConfig(
+                        id=kb_id,
+                        repo_url=repo_url,
+                        version=version,
+                        index_url=item.get("index_url"),
+                        name=item.get("name") or f"{kb_id}",
+                        description=item.get("description"),
+                        source="env"
+                    )
+            except Exception as e:
+                logger.warning(f"Failed to process KB configuration item '{item}': {e}")
 
     return kbs
 

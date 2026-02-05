@@ -1101,8 +1101,14 @@ def _generate_mcp_config(selected_kbs: List[Dict[str, str]], api_key: Optional[s
                  pass 
             final_kbs.append(kb)
 
+    # Serialize to JSON or simple comma-separated list
+    if all(isinstance(x, str) for x in final_kbs):
+        kbs_value = ",".join(final_kbs)
+    else:
+        kbs_value = json.dumps(final_kbs)
+
     env = {
-        "MCP_KNOWLEDGE_BASES": json.dumps(final_kbs)
+        "MCP_KNOWLEDGE_BASES": kbs_value
     }
     
     if api_key:
