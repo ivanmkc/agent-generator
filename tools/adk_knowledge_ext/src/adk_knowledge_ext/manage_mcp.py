@@ -140,6 +140,35 @@ IDE_CONFIGS = {
     },
 }
 
+def _get_existing_kbs_from_configs() -> List[Dict[str, Any]]:
+    """Scans detected IDE configurations for existing Knowledge Base definitions."""
+    # We prioritize JSON configs as they are easier to parse
+    for ide_name, ide_info in IDE_CONFIGS.items():
+        if ide_info.get("config_method") == "json":
+            config_path = ide_info.get("config_path")
+            config_key = ide_info.get("config_key")
+            
+            if config_path and config_path.exists():
+                try:
+                    with open(config_path, "r", encoding="utf-8") as f:
+                        data = json.load(f)
+                        
+                    # Navigate to MCP server config
+                    server_conf = data.get(config_key, {}).get(MCP_SERVER_NAME)
+                    if server_conf:
+                        env = server_conf.get("env", {})
+                        kb_json = env.get("MCP_KNOWLEDGE_BASES")
+                        if kb_json:
+                            try:
+                                kbs = json.loads(kb_json)
+                                if kbs:
+                                    return kbs # Return the first valid set found
+                            except json.JSONDecodeError:
+                                pass
+                except Exception:
+                    pass
+    return []
+
 @click.group()
 def cli():
     """Manage the Codebase Knowledge MCP server configuration."""
@@ -309,6 +338,33 @@ def setup(kb_ids: Optional[str], repo_url: Optional[str], version: Optional[str]
                         "index_url": v_entry.index_url,
                         "description": v_entry.description or repo.description
                     })
+
+    # Merge Check
+    if not force:
+        existing_kbs = _get_existing_kbs_from_configs()
+        if existing_kbs:
+            existing_ids = {kb["id"] for kb in existing_kbs}
+            new_ids = {kb["id"] for kb in selected_kbs}
+            
+            # Detect if there's anything to discuss
+            # 1. Are there existing KBs? Yes.
+            # 2. Are we just re-applying the exact same set?
+            if existing_ids != new_ids:
+                console.print(f"\n[bold yellow]Existing configuration found:[/bold yellow]")
+                for kb in existing_kbs:
+                    console.print(f" - {kb['id']}")
+                
+                if selected_kbs:
+                    console.print(f"\n[bold green]New configuration:[/bold green]")
+                    for kb in selected_kbs:
+                        console.print(f" - {kb['id']}")
+                
+                if Prompt.ask("\nMerge with existing configuration?", choices=["y", "n"], default="y") == "y":
+                    merged_map = {kb["id"]: kb for kb in existing_kbs}
+                    for kb in selected_kbs:
+                        merged_map[kb["id"]] = kb
+                    selected_kbs = list(merged_map.values())
+                    console.print(f"[dim]Merged total: {len(selected_kbs)} repositories[/dim]")
 
     # Pre-load/Clone Repositories
     if selected_kbs:
