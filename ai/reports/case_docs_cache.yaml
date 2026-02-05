@@ -198,8 +198,9 @@ cases:
     one_liner: Answer the multiple choice question.
     checksum: 54945b0b43977728ebd71d62cc9d3c4b
   diagnose_setup_errors_mc:clone_parent_agent:
-    one_liner: Answer a multiple choice question.
-    checksum: 2a3526fc3e834610c85ed9a8d3e06d40
+    one_liner: Answer a multiple choice question and return the result as a JSON object
+      with rationale.
+    checksum: 54945b0b43977728ebd71d62cc9d3c4b
   diagnose_setup_errors_mc:clone_unknown_field:
     one_liner: Answer a multiple-choice question and return the result as a JSON object
       containing 'answer' and 'rationale' keys.
@@ -331,9 +332,9 @@ cases:
     one_liner: How do you correctly construct a user message content object with text?
     checksum: b471d5efb694d7bb2d2ae27f856c7e34
   configure_adk_features_mc:when_defining_a_custom_agent_class_which_abstract_:
-    one_liner: Answer the multiple-choice question identifying the correct abstract
-      base class to inherit from when defining a custom agent class.
-    checksum: 0c82ae82c00812585c558407fddb9ae2
+    one_liner: Answer a multiple choice question with a JSON response containing the
+      answer key and rationale.
+    checksum: 54945b0b43977728ebd71d62cc9d3c4b
   configure_adk_features_mc:you_are_implementing_a_custom_tool_which_method_mu:
     one_liner: Answer the multiple choice question.
     checksum: 54945b0b43977728ebd71d62cc9d3c4b
@@ -399,8 +400,9 @@ cases:
     one_liner: Answer the multiple choice question.
     checksum: 54945b0b43977728ebd71d62cc9d3c4b
   configure_adk_features_mc:how_does_contextfilterplugin_generally_operate:
-    one_liner: Explain the general operation of the `ContextFilterPlugin`.
-    checksum: cdf984cb277e85d7eb8473bf9838e8c3
+    one_liner: Answer a multiple choice question providing the result as a JSON object
+      with answer and rationale.
+    checksum: 54945b0b43977728ebd71d62cc9d3c4b
   configure_adk_features_mc:which_class_allows_you_to_run_an_agent_loop_specif:
     one_liner: Answer a multiple choice question.
     checksum: 54945b0b43977728ebd71d62cc9d3c4b
@@ -480,8 +482,9 @@ cases:
     one_liner: Answer the multiple choice question.
     checksum: 54945b0b43977728ebd71d62cc9d3c4b
   configure_adk_features_mc:which_llmagent_parameter_type_basecodeexecutor_is_:
-    one_liner: Which `LlmAgent` parameter enables Python code execution?
-    checksum: 6d4faaa4c81d2d4515dbf6ccea769748
+    one_liner: Answer a multiple-choice question providing a JSON object with the
+      answer letter and rationale.
+    checksum: 54945b0b43977728ebd71d62cc9d3c4b
   configure_adk_features_mc:which_llmagent_parameter_type_str_is_used_for_defi:
     one_liner: Identify which `LlmAgent` parameter is used to define the LLM model.
     checksum: 612f93c8678ed88488cdd6c1ed190b19
@@ -546,8 +549,9 @@ cases:
       containing the answer key and rationale.
     checksum: 54945b0b43977728ebd71d62cc9d3c4b
   configure_adk_features_mc:how_do_you_enable_vertexaisearchtool_via_configura:
-    one_liner: How do you enable `VertexAISearchTool` via configuration?
-    checksum: 7b8ee535fcc972ebef746f6c39475310
+    one_liner: Answer a multiple choice question providing the result and rationale
+      in a specific JSON format.
+    checksum: 54945b0b43977728ebd71d62cc9d3c4b
   configure_adk_features_mc:you_want_to_configure_an_llmagent_with_a_specific_:
     one_liner: How do you pass a specific set of tools to configure an `LlmAgent`?
     checksum: 26db209332cdf5a010d69450f8aeb018
@@ -638,9 +642,9 @@ cases:
       answers a specified question.
     checksum: 285ec957305be878b88ee504642beae3
   configure_adk_features_mc:which_event_type_indicates_that_the_model_has_fini:
-    one_liner: Identify the event type that indicates the model has finished generating
-      a text response.
-    checksum: d8fbd59c42e9a1c94d8316028e0009dd
+    one_liner: Answer a multiple choice question and return the result as a JSON object
+      with rationale.
+    checksum: 54945b0b43977728ebd71d62cc9d3c4b
   diagnose_setup_errors_mc:runner_no_app_no_name:
     one_liner: Answer a multiple choice question and return the result as a JSON object
       with the answer key and rationale.
@@ -671,3 +675,7 @@ cases:
     one_liner: Identify the precise and exact Python definition from the ADK API that
       correctly answers the user's question.
     checksum: 285ec957305be878b88ee504642beae3
+  configure_adk_features_mc:which_llmagent_parameter_type_list_is_used_for_pro:
+    one_liner: Answer a multiple-choice question and return the result as a JSON object
+      containing the answer letter and a rationale.
+    checksum: 54945b0b43977728ebd71d62cc9d3c4b

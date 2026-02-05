@@ -42,25 +42,18 @@ _selected_images = [
     "gemini-cli:base",
     "gemini-cli:adk-python",
     "gemini-cli:adk-docs-ext",
-    # "gemini-cli:mcp_context7",
-    "gemini-cli:adk-docs-ext-starter",
-    "gemini-cli:adk-docs-ext-llms",
-    "gemini-cli:adk-docs-ext-llms-full",
-    # "gemini-cli:mcp_adk_agent_runner_basic",
-    # "gemini-cli:mcp_adk_agent_runner_smart_search",
-    "gemini-cli:adk_skill",
 ]
 
 CANDIDATE_GENERATORS = []
 
-# # Add Gemini CLI Podman-based generators
-# CANDIDATE_GENERATORS.extend(list(permute(
-#     GeminiCliPodmanAnswerGenerator,
-#     model_name=[ModelName.GEMINI_2_5_FLASH], #, ModelName.GEMINI_2_5_PRO],
-#     image_name=_selected_images,
-#     image_definitions=[IMAGE_DEFINITIONS],
-#     api_key_manager=[api_key_manager]
-# )))
+# Add Gemini CLI Podman-based generators
+CANDIDATE_GENERATORS.extend(list(permute(
+    GeminiCliPodmanAnswerGenerator,
+    model_name=[ModelName.GEMINI_2_5_FLASH],
+    image_name=_selected_images,
+    image_definitions=[IMAGE_DEFINITIONS],
+    api_key_manager=[api_key_manager]
+)))
 
 # # Add Workflow ADK-based generators
 # CANDIDATE_GENERATORS.extend([
