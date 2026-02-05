@@ -35,7 +35,7 @@ class SearchProvider(ABC):
 
 class BM25SearchProvider(SearchProvider):
 
-    def __init__(self):
+    def __init__(self, index_dir: Optional[Path] = None, api_key: Optional[str] = None):
         self._bm25_index = None
         self._corpus_map = []  # Maps corpus index to original item index
         self._items = []
@@ -116,7 +116,7 @@ class KeywordSearchProvider(SearchProvider):
     5. Returns a paginated slice of the results.
     """
 
-    def __init__(self):
+    def __init__(self, index_dir: Optional[Path] = None, api_key: Optional[str] = None):
         self._items = []
 
     def build_index(self, items: List[Dict[str, Any]]):
@@ -319,23 +319,27 @@ SEARCH_PROVIDERS = {
 }
 
 
-def get_search_provider(provider_type: str = "hybrid", **kwargs) -> SearchProvider:
+def get_search_provider(
+    provider_type: str = "hybrid", 
+    index_dir: Optional[Path] = None, 
+    api_key: Optional[str] = None
+) -> SearchProvider:
     """
     Factory function to retrieve a search provider by name.
     
     Args:
         provider_type: The name of the provider ('bm25', 'keyword', 'vector', or 'hybrid').
-        **kwargs: Additional arguments passed to specific providers (e.g., 'index_dir').
+        index_dir: Optional directory containing index artifacts (required for 'vector' and 'hybrid').
+        api_key: Optional API key for semantic search.
     """
     p_type = provider_type.lower()
-    index_dir = kwargs.get("index_dir")
 
     if p_type == "hybrid":
         # Hybrid strategy: BM25 -> Vector (if available) -> Keyword
-        providers = [BM25SearchProvider()]
+        providers = [BM25SearchProvider(index_dir, api_key)]
         if index_dir:
-            providers.append(VectorSearchProvider(index_dir))
-        providers.append(KeywordSearchProvider())
+            providers.append(VectorSearchProvider(index_dir, api_key))
+        providers.append(KeywordSearchProvider(index_dir, api_key))
         return CompositeSearchProvider(providers)
 
     provider_cls = SEARCH_PROVIDERS.get(p_type, KeywordSearchProvider)
@@ -343,8 +347,8 @@ def get_search_provider(provider_type: str = "hybrid", **kwargs) -> SearchProvid
     if provider_cls == VectorSearchProvider:
         if not index_dir:
             logger.warning("VectorSearchProvider requested but no index_dir provided. Falling back to Keyword.")
-            return KeywordSearchProvider()
-        return VectorSearchProvider(index_dir)
+            return KeywordSearchProvider(index_dir, api_key)
+        return VectorSearchProvider(index_dir, api_key)
 
-    return provider_cls()
+    return provider_cls(index_dir, api_key)
 
