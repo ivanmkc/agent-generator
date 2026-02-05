@@ -423,7 +423,27 @@ def setup(kb_ids: Optional[str], repo_url: Optional[str], version: Optional[str]
     # Merge Check
     if not force:
         existing_kbs = _get_existing_kbs_from_configs()
-        if existing_kbs:
+        
+        # Case 1: User selected nothing new
+        if not selected_kbs:
+            if existing_kbs:
+                console.print(f"\n[yellow]No new repositories selected.[/yellow]")
+                console.print(f"Existing configuration found:")
+                for kb in existing_kbs:
+                    console.print(f" - {kb['id']}")
+                
+                if not ask_confirm("Do you want to re-apply the existing configuration?", default=True):
+                    console.print("Cancelled.")
+                    return
+                
+                # Re-apply existing
+                selected_kbs = existing_kbs
+            else:
+                console.print("[red]No repositories selected.[/red]")
+                return
+
+        # Case 2: User selected new repos, and we have existing ones
+        elif existing_kbs:
             existing_ids = {kb["id"] for kb in existing_kbs}
             new_ids = {kb["id"] for kb in selected_kbs}
             
