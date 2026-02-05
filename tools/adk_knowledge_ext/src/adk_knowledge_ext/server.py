@@ -198,8 +198,7 @@ def _validate_kb(kb_id: str | None) -> KnowledgeBaseConfig:
     if not kbs:
         raise ValueError(
             "No Knowledge Bases are configured. The server has nothing to index.\n"
-            "To resolve this, please run the setup command to configure at least one repository:\n\n"
-            "uvx --from codebase-knowledge-mcp codebase-knowledge-mcp-manage setup"
+            "To resolve this, please run the MCP setup command to configure at least one repository."
         )
     
     # Smart Defaulting
