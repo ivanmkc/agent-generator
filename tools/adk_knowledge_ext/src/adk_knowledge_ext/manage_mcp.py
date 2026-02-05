@@ -400,6 +400,36 @@ def setup(kb_ids: Optional[str], repo_url: Optional[str], version: Optional[str]
         console.print("No IDEs selected.")
         return
 
+    # Plan Changes
+    console.print("\n[bold]Configuration Plan[/bold]")
+    files_to_modify = []
+    commands_to_run = []
+    
+    for ide_name, ide_info in selected_ides.items():
+        if ide_info["config_method"] == "json":
+            p = ide_info["config_path"]
+            files_to_modify.append((ide_name, p))
+        elif ide_info["config_method"] == "cli":
+            commands_to_run.append(f"{ide_info['cli_command']} mcp add ... (configuring {ide_name})")
+
+    if files_to_modify:
+        console.print("\n[yellow]The following configuration files will be updated:[/yellow]")
+        for name, p in files_to_modify:
+            status = "(modifying)" if p.exists() else "(creating)"
+            console.print(f"   - [bold]{name}[/bold]: {p} {status}")
+            if p.exists():
+                console.print(f"     [dim]A backup will be created at {p}.bak[/dim]")
+
+    if commands_to_run:
+        console.print("\n[yellow]The following commands will be executed:[/yellow]")
+        for cmd in commands_to_run:
+            console.print(f"   - {cmd}")
+            
+    if not force:
+        if not ask_confirm("\nProceed with these changes?", default=True):
+            console.print("Cancelled.")
+            return
+
     # Configure
     console.print("\n[bold]Applying configuration...[/bold]")
     # Resolve local path if provided as a flag but empty, or use the provided string
@@ -932,6 +962,13 @@ def _configure_ide_json(ide_info: dict, mcp_config: dict) -> None:
 
     config = {}
     if config_path.exists():
+        # Create backup
+        backup_path = config_path.with_name(config_path.name + ".bak")
+        try:
+            shutil.copy2(config_path, backup_path)
+        except Exception as e:
+            console.print(f"   [yellow]Warning: Failed to backup config: {e}[/yellow]")
+
         try:
             with open(config_path, "r", encoding="utf-8") as f:
                 config = json.load(f)
