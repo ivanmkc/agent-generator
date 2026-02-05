@@ -87,3 +87,7 @@ TODO
 - [x] **Verification:**
     - [x] Create comprehensive integration test suite for multiple installation and configuration scenarios.
     - [x] Verify end-to-end functionality using the `mcp_codebase_knowledge_runner` in benchmarks.
+
+## 4. MCP Update Command (Design Doc)
+- [x] **Design:** Created proposal `ai/instructions/design_docs/mcp_server/mcp_update_command.md`.
+- [ ] **Implementation:** On Hold.
