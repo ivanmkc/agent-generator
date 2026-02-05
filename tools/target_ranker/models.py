@@ -30,6 +30,7 @@ class RankedTarget(BaseModel):
     docstring: Optional[str] = None
     signature: Optional[str] = None
     constructor_signature: Optional[str] = None
+    aliases: Optional[List[str]] = None
 
     methods: Optional[List[MemberInfo]] = None
     properties: Optional[List[MemberInfo]] = None

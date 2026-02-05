@@ -58,7 +58,12 @@ class BM25SearchProvider(SearchProvider):
             if fqn:
                 # Tokenize FQN by dot and underscore to expose class names
                 fqn_parts = " ".join(re.split(r"[._]", fqn))
-                doc_text = f"{fqn_parts} {fqn} {fqn} {fqn} " + (
+                
+                # Incorporate aliases for searchability
+                aliases = item.get("aliases", [])
+                alias_text = " ".join(aliases)
+                
+                doc_text = f"{fqn_parts} {fqn} {fqn} {fqn} {alias_text} " + (
                     item.get("docstring") or ""
                 )
                 tokenized_corpus.append(doc_text.lower().split())
@@ -151,14 +156,26 @@ class KeywordSearchProvider(SearchProvider):
             fqn_raw = item.get("id") or item.get("fqn") or item.get("name") or ""
             fqn = fqn_raw.lower()
             summary = item.get("docstring", "").lower()
+            
+            # Incorporate aliases
+            aliases = [a.lower() for a in item.get("aliases", [])]
 
             score = 0
             for kw in keywords:
+                # Check FQN
                 if kw in fqn:
                     score += 10
                     if fqn.endswith(kw) or fqn.endswith("." + kw):
                         score += 20
-                elif kw in summary:
+                
+                # Check Aliases
+                for alias in aliases:
+                    if kw in alias:
+                        score += 10
+                        if alias.endswith(kw) or alias.endswith("." + kw):
+                            score += 20
+                            
+                if kw in summary:
                     score += 5
 
             if score > 0:

@@ -229,10 +229,20 @@ def scan_repository(
                     # Resolve relative imports
                     if node.level > 0:
                         parts = self.mod_fqn.split(".")
-                        if len(parts) >= node.level:
-                            prefix = ".".join(parts[: -node.level])
-                            if prefix:
-                                module = f"{prefix}.{module}" if module else prefix
+                        
+                        # Fix for __init__.py: mod_fqn IS the package.
+                        # level=1 (.) -> current package (mod_fqn)
+                        # level=2 (..) -> parent (mod_fqn - 1)
+                        if relative_path.name == "__init__.py":
+                            cutoff = len(parts) - (node.level - 1)
+                        else:
+                            cutoff = len(parts) - node.level
+                            
+                        if cutoff < 0: cutoff = 0
+                        prefix = ".".join(parts[:cutoff])
+                            
+                        if prefix:
+                            module = f"{prefix}.{module}" if module else prefix
 
                     for alias in node.names:
                         name = alias.asname or alias.name
@@ -244,22 +254,19 @@ def scan_repository(
 
                     # Also populate alias_map for the scanner's structural needs if in __init__
                     if relative_path.name == "__init__.py":
-                        if node.level > 0:
-                            base = self.mod_fqn.split(".")
-                            canonical_base = ".".join(
-                                base[: len(base) - (node.level - 1)]
-                            )
-                            canonical_mod = (
-                                f"{canonical_base}.{module}"
-                                if module
-                                else canonical_base
-                            )
-                        else:
-                            canonical_mod = module
+                        canonical_mod = module
                         for alias in node.names:
                             alias_fqn = f"{self.mod_fqn}.{alias.asname or alias.name}"
                             canonical_fqn = f"{canonical_mod}.{alias.name}"
-                            alias_map[alias_fqn] = canonical_fqn
+                            
+                            # Only add if canonical exists and is NOT a module
+                            # AND alias_fqn is NOT itself a module (prevent shadowing issues)
+                            if (
+                                canonical_fqn in structure_map
+                                and structure_map[canonical_fqn]["type"] != "Module"
+                                and (alias_fqn not in structure_map or structure_map[alias_fqn]["type"] != "Module")
+                            ):
+                                alias_map[alias_fqn] = canonical_fqn
 
                     self.generic_visit(node)
 
