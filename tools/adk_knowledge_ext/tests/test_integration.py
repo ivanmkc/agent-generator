@@ -104,7 +104,7 @@ def test_real_index_integrity():
     # Configure environment to make _ensure_index happy and load the correct file
     os.environ["TARGET_REPO_URL"] = "https://github.com/google/adk-python.git"
     os.environ["TARGET_VERSION"] = "v1.20.0" # Dummy
-    os.environ["TARGET_INDEX_PATH"] = str(REAL_INDEX_PATH)
+    os.environ["EMBEDDINGS_FOLDER_PATH"] = str(REAL_INDEX_PATH)
     
     # Reset singleton just in case
     index._global_index = index.KnowledgeIndex()

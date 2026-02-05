@@ -16,8 +16,8 @@ class AppConfig:
         return os.environ.get("TARGET_INDEX_URL")
     
     @property
-    def TARGET_INDEX_PATH(self) -> Optional[Path]:
-        val = os.environ.get("TARGET_INDEX_PATH")
+    def EMBEDDINGS_FOLDER_PATH(self) -> Optional[Path]:
+        val = os.environ.get("EMBEDDINGS_FOLDER_PATH")
         return Path(val) if val else None
     
     @property

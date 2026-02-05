@@ -86,7 +86,7 @@ CANDIDATE_GENERATORS.append(
         api_key_manager=api_key_manager,
         extra_env={
             "ADK_SEARCH_PROVIDER": "vector",
-            "TARGET_INDEX_PATH": "/root/.mcp_cache/indices",
+            "EMBEDDINGS_FOLDER_PATH": "/root/.mcp_cache/indices",
         },
         experiment_id="ranked_knowledge_vector",
     )

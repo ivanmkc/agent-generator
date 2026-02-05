@@ -79,21 +79,21 @@ class KnowledgeIndex:
                 
                 if provider_type == "hybrid":
                     providers = [BM25SearchProvider()]
-                    if config.TARGET_INDEX_PATH:
+                    if config.EMBEDDINGS_FOLDER_PATH:
                         providers.append(
-                            VectorSearchProvider(config.TARGET_INDEX_PATH, api_key)
+                            VectorSearchProvider(config.EMBEDDINGS_FOLDER_PATH, api_key)
                         )
                     providers.append(KeywordSearchProvider())
                     self._provider = CompositeSearchProvider(providers)
                 elif provider_type == "vector":
-                    if not config.TARGET_INDEX_PATH:
+                    if not config.EMBEDDINGS_FOLDER_PATH:
                         logger.warning(
                             "VectorSearchProvider requested but no index_dir provided. Falling back to Keyword."
                         )
                         self._provider = KeywordSearchProvider()
                     else:
                         self._provider = VectorSearchProvider(
-                            config.TARGET_INDEX_PATH, api_key
+                            config.EMBEDDINGS_FOLDER_PATH, api_key
                         )
                 elif provider_type == "bm25":
                     self._provider = BM25SearchProvider()

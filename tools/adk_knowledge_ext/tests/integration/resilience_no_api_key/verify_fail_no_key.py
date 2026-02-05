@@ -23,7 +23,7 @@ async def main():
         "GEMINI_API_KEY": "", # Explicitly empty
         "TARGET_REPO_URL": "https://github.com/google/adk-python.git",
         "TARGET_VERSION": "v1.20.0",
-        "TARGET_INDEX_PATH": "/tmp/local_index.yaml"
+        "EMBEDDINGS_FOLDER_PATH": "/tmp/local_index.yaml"
     }
     
     server_params = StdioServerParameters(
