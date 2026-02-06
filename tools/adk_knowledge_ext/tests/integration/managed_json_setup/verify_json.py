@@ -17,6 +17,7 @@ def main():
     home = Path.home()
     ide_configs = [
         {"name": "Cursor", "dir": home / ".cursor", "file": "mcp.json"},
+        {"name": "Antigravity", "dir": home / ".gemini" / "antigravity", "file": "mcp_config.json"},
     ]
     
     # Initialize all IDEs with existing configs
@@ -29,10 +30,15 @@ def main():
 
     # 1. Setup
     print("\nRunning setup for all detected IDEs...")
+    # Use uvx to run the tool from the current directory (which should be the package root in tests)
+    # We assume CWD is the package root or we point to it.
+    # In integration tests, we can use '.' if we run from root.
     cmd = [
+        "uvx", "--from", ".",
         "codebase-knowledge-mcp-manage", "setup",
-        "--repo-url", "https://github.com/test/repo.git",
-        "--version", "v1.0.0",
+        "--repo-url", "https://github.com/google/adk-python.git", # Use a real repo for better testing
+        "--version", "v1.20.0",
+        "--local",
         "--force"
     ]
     
@@ -62,8 +68,10 @@ def main():
     # The tool asks:
     # 1. Remove from IDE 1? [Y/n]
     # ...
+    # ...
     confirmations = "y\n" * 10 
-    p = subprocess.Popen(["codebase-knowledge-mcp-manage", "remove"], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    remove_cmd = ["uvx", "--from", ".", "codebase-knowledge-mcp-manage", "remove"]
+    p = subprocess.Popen(remove_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     stdout, stderr = p.communicate(input=confirmations)
     
     if p.returncode != 0:

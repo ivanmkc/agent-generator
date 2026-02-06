@@ -135,15 +135,11 @@ def _get_platform_config_path(app_name: str, config_file: str) -> Path:
         if app_name == "Cursor":
             # Cursor commonly uses ~/.cursor for MCP, but app data is in Library
             return Path.home() / ".cursor" / config_file
-        elif app_name == "Windsurf":
-             return Path.home() / ".codeium" / "windsurf" / config_file
 
     
     # Default/Linux paths
     if app_name == "Cursor":
         return Path.home() / ".cursor" / config_file
-    elif app_name == "Windsurf":
-        return Path.home() / ".codeium" / "windsurf" / config_file
 
         
     folder_name = f".{app_name.lower().replace(' ', '-')}"
@@ -201,13 +197,7 @@ IDE_CONFIGS: Dict[str, IdeConfig] = {
         config_key="mcpServers",
         start_instruction="Open [cyan]Cursor[/cyan] app",
     ),
-    "Windsurf": IdeConfig(
-        detect_path=Path.home() / ".codeium" / "windsurf",
-        config_method="json",
-        config_path=Path.home() / ".codeium" / "windsurf" / "mcp_config.json",
-        config_key="mcpServers",
-        start_instruction="Open [cyan]Windsurf[/cyan] app",
-    ),
+
     "Antigravity": IdeConfig(
         detect_path=Path.home() / ".gemini" / "antigravity",
         config_method="json",
@@ -215,13 +205,7 @@ IDE_CONFIGS: Dict[str, IdeConfig] = {
         config_key="mcpServers",
         start_instruction="Open [cyan]Antigravity[/cyan] IDE",
     ),
-    "Codex": IdeConfig(
-        detect_path=Path.home() / ".codex",
-        config_method="cli",
-        cli_command="codex",
-        cli_separator="before_command",
-        start_instruction="Run [cyan]codex[/cyan] in your terminal",
-    ),
+
 
 }
 
