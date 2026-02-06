@@ -844,6 +844,7 @@ def debug():
     
     async def run_diagnostics():
         """Internal helper to run async diagnostics."""
+        nonlocal critical_failure_found
         # Set environment to force unbuffered output if possible, though mcp handles stdio
         server_env["PYTHONUNBUFFERED"] = "1"
         server_env["MCP_LOG_INDENT"] = "   "
@@ -983,8 +984,62 @@ def debug():
                                         border_style="dim",
                                     )
                                 )
+                                
+                                # 2.5 Vector Search Capability Check (New)
+                                console.print("      [bold cyan]Checking Vector Search capability...[/bold cyan]")
+                                # Perform a search with a unique query to trace it in logs
+                                test_query = "agent state management"
+                                v_args = {"queries": [test_query], "limit": 1}
+                                if kb_id != "Default/Bundled":
+                                    v_args["kb_id"] = kb_id
+                                
+                                await session.call_tool("search_knowledge", arguments=v_args)
+                                
+                                # Inspect logs to verify VectorSearchProvider matched
+                                log_path = Path.home() / ".mcp_cache" / "logs" / "codebase-knowledge.log"
+                                if log_path.exists():
+                                    try:
+                                        # Give the server a moment to flush logs
+                                        await asyncio.sleep(0.2)
+                                        log_lines = log_path.read_text().splitlines()
+                                        found_provider = None
+                                        # Scan backwards for our test query
+                                        for line in reversed(log_lines):
+                                            # Check for Composite match
+                                            if f"matched for query: '{test_query}'" in line:
+                                                if "VectorSearchProvider" in line:
+                                                    found_provider = "VectorSearchProvider"
+                                                elif "BM25SearchProvider" in line:
+                                                    found_provider = "BM25SearchProvider"
+                                                elif "KeywordSearchProvider" in line:
+                                                    found_provider = "KeywordSearchProvider"
+                                                break
+                                            # Check for Direct Vector match
+                                            if f"VectorSearchProvider searching for query: '{test_query}'" in line:
+                                                found_provider = "VectorSearchProvider"
+                                                break
+                                        
+                                        if found_provider == "VectorSearchProvider":
+                                            console.print("      ✅ [green]Vector Search: ACTIVE[/green] (confirmed via logs)")
+                                        elif found_provider:
+                                            console.print(f"      ❌ [red]Vector Search: FAILED[/red] (fell back to {found_provider})")
+                                            # Track critical failure
+                                            critical_failure_found = True
+                                        else:
+                                            # If we have API KEY, we expected it to work
+                                            if server_env.get("GEMINI_API_KEY"):
+                                                console.print("      ❌ [red]Vector Search: FAILED[/red] (trace not found in logs)")
+                                                critical_failure_found = True
+                                            else:
+                                                console.print("      ⚠️  [yellow]Vector Search: SKIPPED[/yellow] (GEMINI_API_KEY not set)")
+                                    except Exception as log_e:
+                                        console.print(f"      ⚠️  [yellow]Vector Search: Could not verify logs ({log_e})[/yellow]")
+                                else:
+                                    console.print("      ⚠️  [yellow]Vector Search: Log file missing, cannot verify provider.[/yellow]")
                         except Exception as e:
                             console.print(f"      ❌ [red]Error {e}[/red]")
+                            # Track critical failure
+                            critical_failure_found = True
 
                         # 3. inspect_symbol
                         if first_item_fqn:
@@ -1031,6 +1086,7 @@ def debug():
             console.print(f"   [red]Server Start Failed: {e}[/red]")
             console.print("   Check if 'adk_knowledge_ext.server' is importable.")
 
+    critical_failure_found = False
     asyncio.run(run_diagnostics())
 
     # 3. File System & Paths
@@ -1172,6 +1228,11 @@ def debug():
              if detect_path:
                  status = "[red]Not found[/red]" if not detect_path.exists() else "[yellow]App found, but MCP not configured[/yellow]"
                  console.print(f"   - {ide_name:<15}: {detect_path} {status}")
+
+    # At the end of debug command, if critical failure found, exit with error
+    if critical_failure_found:
+        console.print("\n[bold red]FATAL: One or more critical capability checks failed.[/bold red]")
+        sys.exit(1)
 
 
 def _generate_mcp_config(

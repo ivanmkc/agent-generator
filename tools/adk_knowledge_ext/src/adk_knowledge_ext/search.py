@@ -11,6 +11,82 @@ from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
+# Constants
+DEFAULT_EMBEDDING_MODEL = "gemini-embedding-001"
+
+_PROVIDER_REGISTRY: Dict[str, "SearchProvider"] = {}
+
+def setup_providers(index_dir: Optional[Path] = None, api_key: Optional[str] = None):
+    """
+    Initializes search providers and populates the global registry.
+    Can be called multiple times to register providers for different index directories.
+    """
+    global _PROVIDER_REGISTRY
+    api_key = api_key or os.environ.get("GEMINI_API_KEY")
+    
+    # Always register basic stateless providers if missing
+    if "bm25" not in _PROVIDER_REGISTRY:
+        _PROVIDER_REGISTRY["bm25"] = BM25SearchProvider()
+    if "keyword" not in _PROVIDER_REGISTRY:
+        _PROVIDER_REGISTRY["keyword"] = KeywordSearchProvider()
+    
+    # Register Vector if possible
+    if index_dir and api_key:
+        key = f"vector:{index_dir}"
+        if key not in _PROVIDER_REGISTRY:
+            _PROVIDER_REGISTRY[key] = VectorSearchProvider(index_dir, api_key)
+            
+        # Register Hybrid for this context
+        h_key = f"hybrid:{index_dir}"
+        if h_key not in _PROVIDER_REGISTRY:
+            components = []
+            if key in _PROVIDER_REGISTRY:
+                components.append(_PROVIDER_REGISTRY[key])
+            components.append(_PROVIDER_REGISTRY["bm25"])
+            components.append(_PROVIDER_REGISTRY["keyword"])
+            _PROVIDER_REGISTRY[h_key] = CompositeSearchProvider(components)
+            
+        # Update default aliases (pointing to latest setup)
+        _PROVIDER_REGISTRY["vector"] = _PROVIDER_REGISTRY[key]
+        _PROVIDER_REGISTRY["hybrid"] = _PROVIDER_REGISTRY[h_key]
+        
+    logger.info(f"Search providers active: {list(_PROVIDER_REGISTRY.keys())}")
+
+
+def get_search_provider(
+    provider_type: str = "bm25", index_dir: Optional[Path] = None, api_key: Optional[str] = None
+) -> "SearchProvider":
+    """
+    Retrieves a pre-initialized SearchProvider from the registry.
+    Prefers context-specific provider if index_dir is provided.
+    """
+    # 1. Try context-specific lookup
+    if index_dir:
+        specific_key = f"{provider_type}:{index_dir}"
+        if specific_key in _PROVIDER_REGISTRY:
+            return _PROVIDER_REGISTRY[specific_key]
+            
+    # 2. Try generic lookup
+    if provider_type in _PROVIDER_REGISTRY:
+        return _PROVIDER_REGISTRY[provider_type]
+    
+    # 3. Auto-setup fallback (if missing but we have args)
+    if index_dir and api_key:
+        logger.info(f"Provider '{provider_type}' for {index_dir} not found. Initializing...")
+        setup_providers(index_dir, api_key)
+        # Recurse once
+        if index_dir:
+            specific_key = f"{provider_type}:{index_dir}"
+            if specific_key in _PROVIDER_REGISTRY:
+                return _PROVIDER_REGISTRY[specific_key]
+    
+    # 4. Final Fallback
+    if provider_type == "vector":
+        logger.warning("VectorSearchProvider requested but not available. Falling back to Keyword.")
+        return _PROVIDER_REGISTRY.get("keyword", KeywordSearchProvider())
+        
+    return _PROVIDER_REGISTRY.get("keyword", KeywordSearchProvider())
+
 
 class SearchProvider(ABC):
 
@@ -244,25 +320,21 @@ class VectorSearchProvider(SearchProvider):
     ) -> List[Tuple[float, Dict[str, Any]]]:
         if self.vectors is None or not self.metadata:
             return []
+            
+        logger.info(f"VectorSearchProvider searching for query: '{query}'")
 
         client = self._get_client()
         from google.genai import types
 
         # 1. Embed query
         try:
-            # Try text-embedding-004, then fallback
-            try:
-                response = client.models.embed_content(
-                    model="text-embedding-004",
-                    contents=query,
-                    config=types.EmbedContentConfig(task_type="RETRIEVAL_QUERY")
+            response = client.models.embed_content(
+                model=DEFAULT_EMBEDDING_MODEL,
+                contents=query,
+                config=types.EmbedContentConfig(
+                    task_type="RETRIEVAL_QUERY"
                 )
-            except Exception:
-                response = client.models.embed_content(
-                    model="gemini-embedding-001",
-                    contents=query,
-                    config=types.EmbedContentConfig(task_type="RETRIEVAL_QUERY")
-                )
+            )
             
             query_vec = np.array(response.embeddings[0].values)
         except Exception as e:

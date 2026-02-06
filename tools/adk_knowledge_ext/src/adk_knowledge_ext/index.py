@@ -7,10 +7,7 @@ from pathlib import Path
 from typing import List, Dict, Any, Optional, Tuple
 from .search import (
     SearchProvider,
-    BM25SearchProvider,
-    KeywordSearchProvider,
-    VectorSearchProvider,
-    CompositeSearchProvider,
+    get_search_provider,
 )
 from .config import config
 
@@ -20,7 +17,7 @@ logger = logging.getLogger(__name__)
 def _initialize_search_provider(
     requested_provider: str, api_key: Optional[str], embeddings_path: Optional[Path]
 ) -> SearchProvider:
-    """Helper to determine and instantiate the correct SearchProvider."""
+    """Helper to determine and instantiate the correct SearchProvider using the registry."""
     provider_type = "bm25"  # Default baseline
 
     if requested_provider:
@@ -43,25 +40,9 @@ def _initialize_search_provider(
             logger.info("No GEMINI_API_KEY detected. Using 'bm25' search.")
 
     logger.info(f"Initializing search provider: {provider_type}")
-
-    if provider_type == "hybrid":
-        providers = [BM25SearchProvider()]
-        if embeddings_path:
-            providers.append(VectorSearchProvider(embeddings_path, api_key))
-        providers.append(KeywordSearchProvider())
-        return CompositeSearchProvider(providers)
-    elif provider_type == "vector":
-        if not embeddings_path:
-            logger.warning(
-                "VectorSearchProvider requested but no index_dir provided. Falling back to Keyword."
-            )
-            return KeywordSearchProvider()
-        else:
-            return VectorSearchProvider(embeddings_path, api_key)
-    elif provider_type == "bm25":
-        return BM25SearchProvider()
-    else:
-        return KeywordSearchProvider()
+    
+    # Use the registry factory
+    return get_search_provider(provider_type, index_dir=embeddings_path, api_key=api_key)
 
 
 class KnowledgeIndex:
@@ -98,10 +79,17 @@ class KnowledgeIndex:
                         self._fqn_map[fqn] = item
 
                 # Determine search provider
+                embeddings_path = config.EMBEDDINGS_FOLDER_PATH
+                if not embeddings_path:
+                    # Heuristic: look for vectors in the same directory as index
+                    if (index_path.parent / "targets_vectors.npy").exists():
+                        embeddings_path = index_path.parent
+                        logger.info(f"Auto-detected embeddings folder: {embeddings_path}")
+
                 self._provider = _initialize_search_provider(
                     config.ADK_SEARCH_PROVIDER.lower(),
                     config.GEMINI_API_KEY,
-                    config.EMBEDDINGS_FOLDER_PATH,
+                    embeddings_path,
                 )
                 self._provider.build_index(self._items)
 
