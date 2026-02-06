@@ -22,7 +22,6 @@ def setup_providers(index_dir: Optional[Path] = None, api_key: Optional[str] = N
     Can be called multiple times to register providers for different index directories.
     """
     global _PROVIDER_REGISTRY
-    api_key = api_key or os.environ.get("GEMINI_API_KEY")
     
     # Always register basic stateless providers if missing
     if "bm25" not in _PROVIDER_REGISTRY:
@@ -54,37 +53,36 @@ def setup_providers(index_dir: Optional[Path] = None, api_key: Optional[str] = N
 
 
 def get_search_provider(
-    provider_type: str = "bm25", index_dir: Optional[Path] = None, api_key: Optional[str] = None
+    provider_type: str, index_dir: Optional[Path] = None, api_key: Optional[str] = None
 ) -> "SearchProvider":
     """
     Retrieves a pre-initialized SearchProvider from the registry.
-    Prefers context-specific provider if index_dir is provided.
+    If the registry is empty, it attempts to auto-initialize using provided arguments.
     """
-    # 1. Try context-specific lookup
+    # Auto-setup if registry is empty
+    if not _PROVIDER_REGISTRY:
+        logger.info("Provider registry empty. Auto-initializing with available context...")
+        # Use args if provided, otherwise it will be a basic setup
+        setup_providers(index_dir, api_key)
+
+    # 1. Try context-specific lookup first
     if index_dir:
         specific_key = f"{provider_type}:{index_dir}"
         if specific_key in _PROVIDER_REGISTRY:
             return _PROVIDER_REGISTRY[specific_key]
-            
+    
     # 2. Try generic lookup
     if provider_type in _PROVIDER_REGISTRY:
         return _PROVIDER_REGISTRY[provider_type]
-    
-    # 3. Auto-setup fallback (if missing but we have args)
-    if index_dir and api_key:
-        logger.info(f"Provider '{provider_type}' for {index_dir} not found. Initializing...")
-        setup_providers(index_dir, api_key)
-        # Recurse once
-        if index_dir:
-            specific_key = f"{provider_type}:{index_dir}"
-            if specific_key in _PROVIDER_REGISTRY:
-                return _PROVIDER_REGISTRY[specific_key]
-    
-    # 4. Final Fallback
-    if provider_type == "vector":
-        logger.warning("VectorSearchProvider requested but not available. Falling back to Keyword.")
-        return _PROVIDER_REGISTRY.get("keyword", KeywordSearchProvider())
         
+    # 3. If we are here, the specific type was not in the registry
+    # (e.g. 'vector' was requested but setup failed due to no key/dir).
+    # Handle fallbacks gracefully.
+    if provider_type in ["vector", "hybrid"]:
+        logger.warning(f"{provider_type} provider not available. Falling back to bm25.")
+        return _PROVIDER_REGISTRY.get("bm25", BM25SearchProvider()) # Fallback to bm25 first
+
+    # If even bm25 is not there (which it should be after setup), last resort is keyword.
     return _PROVIDER_REGISTRY.get("keyword", KeywordSearchProvider())
 
 
@@ -280,14 +278,14 @@ class VectorSearchProvider(SearchProvider):
         self.vectors = None
         self.metadata = None
         self.index_dir = index_dir
-        self.api_key = api_key or os.environ.get("GEMINI_API_KEY")
+        self.api_key = api_key
         self._client = None
         self._items_map = {}
 
     def _get_client(self):
         if self._client is None:
             if not self.api_key:
-                raise ValueError("GEMINI_API_KEY not found.")
+                raise ValueError("GEMINI_API_KEY required but not provided to VectorSearchProvider.")
             from google import genai
             self._client = genai.Client(api_key=self.api_key)
         return self._client
