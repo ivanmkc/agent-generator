@@ -76,7 +76,8 @@ def test_debug_inspect_symbol_success_with_error_word(mock_mcp_client, runner):
     
     mock_mcp_client.call_tool.side_effect = [
         create_tool_result("[1] CLASS: google.adk.runners.InMemoryRunner"), # list_modules
-        create_tool_result("Found some stuff"), # search_knowledge
+        create_tool_result("Found some stuff"), # search_knowledge (keyword)
+        create_tool_result("Vector Search Result"), # search_knowledge (vector check)
         create_tool_result(docstring_with_error) # inspect_symbol
     ]
     
@@ -111,6 +112,7 @@ def test_debug_inspect_symbol_real_failure(mock_mcp_client, runner):
     mock_mcp_client.call_tool.side_effect = [
         create_tool_result("[1] CLASS: google.adk.runners.InMemoryRunner"), 
         create_tool_result("Found stuff"), 
+        create_tool_result("Vector check"),
         create_tool_result("Symbol 'google.adk.runners.InMemoryRunner' not found in index.") 
     ]
     
@@ -139,6 +141,7 @@ def test_debug_inspect_symbol_generic_error(mock_mcp_client, runner):
     mock_mcp_client.call_tool.side_effect = [
         create_tool_result("[1] CLASS: google.adk.runners.InMemoryRunner"), 
         create_tool_result("Found stuff"), 
+        create_tool_result("Vector check"),
         create_tool_result("Error: Something went wrong.") 
     ]
     
@@ -166,6 +169,7 @@ def test_debug_inspect_symbol_is_error(mock_mcp_client, runner):
     mock_mcp_client.call_tool.side_effect = [
         create_tool_result("[1] CLASS: google.adk.runners.InMemoryRunner"), 
         create_tool_result("Found stuff"), 
+        create_tool_result("Vector check"),
         create_tool_result("Some unexpected error occurred internally", is_error=True) 
     ]
     

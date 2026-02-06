@@ -347,48 +347,6 @@ async def test_read_source_code_dynamic_clone(test_case: GeneratorTestCase) -> N
         generator.api_key_manager.release_run(run_id)
 
 
-@pytest.mark.asyncio
-async def test_podman_server_debug(test_case: GeneratorTestCase) -> None:
-    """
-    Runs the 'codebase-knowledge-mcp-manage debug' command inside the Podman container
-    and verifies that all checks are green.
-    """
-    if test_case.id != "podman_mcp_adk_runner_ranked_knowledge_test_case":
-        pytest.skip("Debug test is specific to the primary Podman knowledge MCP runner.")
-
-    generator = test_case.generator
-    if not isinstance(generator, GeminiCliPodmanAnswerGenerator):
-        pytest.skip("Generator is not a Podman generator.")
-
-    # Ensure generator is set up (image built, container running)
-    await generator.setup()
-
-    print(f"[{test_case.id}] Running MCP server debug command in container...")
-
-    # The manage script should be in the PATH of the container
-    debug_cmd = ["codebase-knowledge-mcp-manage", "debug"]
-    
-    # Run the command inside the container
-    # We use execute_command on the generator
-    try:
-        # Podman generator has execute_command which returns (stdout, stderr, exit_code)
-        stdout, stderr, exit_code = await generator.execute_command(debug_cmd)
-        
-        full_output = stdout + "\n" + stderr
-        print(f"[{test_case.id}] Debug Output:\n{full_output}")
-
-        assert exit_code == 0, f"Debug command failed with exit code {exit_code}. Output: {full_output}"
-        
-        # Check for red/fatal markers. Our debug command uses [red] and ❌.
-        # We also look for the FATAL message we added.
-        assert "❌" not in full_output, "Debug command found one or more failed checks (❌ found in output)."
-        assert "FATAL" not in full_output, "Debug command reported a FATAL error."
-        assert "✅ Server Connection: OK" in full_output, "Server connection check failed."
-        
-        print(f"[{test_case.id}] ✅ MCP Server Debug checks passed in Podman.")
-
-    except Exception as e:
-        pytest.fail(f"[{test_case.id}] Failed to execute debug command in container: {e}")
 
 
 # --- Orchestrator Logic ---

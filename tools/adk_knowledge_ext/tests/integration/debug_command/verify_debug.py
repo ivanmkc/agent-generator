@@ -21,14 +21,26 @@ def main():
         "list_modules",
         "File System & Paths",
         "Environment Variables",
-        "Integration Status"
+        "Integration Status",
+        "✅ Server Connection: OK"
     ]
     
     failed = False
+    
+    # Check for presence of key success markers
     for check in checks:
         if check not in output:
             print(f"FAIL: Missing expected output: '{check}'")
             failed = True
+            
+    # Check for presence of error markers
+    if "❌" in output:
+        print("FAIL: Found failure marker '❌' in output.")
+        failed = True
+        
+    if "FATAL" in output:
+        print("FAIL: Found 'FATAL' in output.")
+        failed = True
             
     if failed:
         sys.exit(1)

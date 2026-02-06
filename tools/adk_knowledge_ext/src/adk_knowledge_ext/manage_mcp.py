@@ -137,12 +137,14 @@ def _get_platform_config_path(app_name: str, config_file: str) -> Path:
             return Path.home() / ".cursor" / config_file
         elif app_name == "Windsurf":
              return Path.home() / ".codeium" / "windsurf" / config_file
+
     
     # Default/Linux paths
     if app_name == "Cursor":
         return Path.home() / ".cursor" / config_file
     elif app_name == "Windsurf":
         return Path.home() / ".codeium" / "windsurf" / config_file
+
         
     folder_name = f".{app_name.lower().replace(' ', '-')}"
     return Path.home() / folder_name / config_file
@@ -220,13 +222,7 @@ IDE_CONFIGS: Dict[str, IdeConfig] = {
         cli_separator="before_command",
         start_instruction="Run [cyan]codex[/cyan] in your terminal",
     ),
-    "Roo Code": IdeConfig(
-        detect_path=Path.home() / ".roo-code",
-        config_method="json",
-        config_path=Path.home() / ".roo-code" / "mcp.json",
-        config_key="mcpServers",
-        start_instruction="Open [cyan]Roo Code[/cyan] in VS Code",
-    ),
+
 }
 
 def _get_existing_kbs_from_configs() -> List[KBDefinition]:
