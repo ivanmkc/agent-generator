@@ -40,7 +40,7 @@ uvx --from ... codebase-knowledge-mcp-manage setup \
 ```
 
 The tool will:
-1. Detect installed agents (Claude Code, Gemini CLI, Cursor, Antigravity).
+1. Detect installed agents (Claude Code, Gemini CLI, Cursor).
 2. Generate a custom `instructions/KNOWLEDGE_MCP_SERVER_INSTRUCTION.md` file.
 3. Automatically update the agent's configuration with the necessary JSON state.
 

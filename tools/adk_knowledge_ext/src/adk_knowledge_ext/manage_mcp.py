@@ -198,14 +198,6 @@ IDE_CONFIGS: Dict[str, IdeConfig] = {
         start_instruction="Open [cyan]Cursor[/cyan] app",
     ),
 
-    "Antigravity": IdeConfig(
-        detect_path=Path.home() / ".gemini" / "antigravity",
-        config_method="json",
-        config_path=Path.home() / ".gemini" / "antigravity" / "mcp_config.json",
-        config_key="mcpServers",
-        start_instruction="Open [cyan]Antigravity[/cyan] IDE",
-    ),
-
 
 }
 

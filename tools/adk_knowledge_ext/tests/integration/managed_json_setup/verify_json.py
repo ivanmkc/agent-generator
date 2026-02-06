@@ -17,7 +17,7 @@ def main():
     home = Path.home()
     ide_configs = [
         {"name": "Cursor", "dir": home / ".cursor", "file": "mcp.json"},
-        {"name": "Antigravity", "dir": home / ".gemini" / "antigravity", "file": "mcp_config.json"},
+
     ]
     
     # Initialize all IDEs with existing configs
