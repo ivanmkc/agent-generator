@@ -1297,7 +1297,18 @@ def _generate_mcp_config(
             # It's a standard bundled KB, just save the ID string
             final_kbs.append(kb.id)
         else:
-            # Custom or overridden KB, save full dict
+            # Custom or overridden KB
+            # Attempt to inherit index_url from registry if missing
+            if not kb.index_url:
+                if "repositories" in registry:
+                    for _, meta in registry["repositories"].items():
+                        if meta.get("repo_url") == kb.repo_url:
+                            v_meta = meta.get("versions", {}).get(kb.version)
+                            if v_meta and v_meta.get("index_url"):
+                                kb.index_url = v_meta["index_url"]
+                                break
+            
+            # save full dict
             final_kbs.append(kb)
 
     # Serialize to JSON or simple comma-separated list

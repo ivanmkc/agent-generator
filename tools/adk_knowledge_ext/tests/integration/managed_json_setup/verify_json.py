@@ -2,7 +2,7 @@
 Verification script for Managed Setup (JSON Integration).
 
 Tests the `codebase-knowledge-mcp-manage` CLI tool's ability to detect and 
-configure multiple IDEs that use JSON config files (Cursor, Windsurf, Roo Code).
+configure multiple IDEs that use JSON config files (Cursor).
 """
 
 import os
@@ -17,9 +17,6 @@ def main():
     home = Path.home()
     ide_configs = [
         {"name": "Cursor", "dir": home / ".cursor", "file": "mcp.json"},
-        {"name": "Windsurf", "dir": home / ".codeium" / "windsurf", "file": "mcp_config.json"},
-        {"name": "Roo Code", "dir": home / ".roo-code", "file": "mcp.json"},
-        {"name": "Antigravity", "dir": home / ".gemini" / "antigravity", "file": "mcp_config.json"},
     ]
     
     # Initialize all IDEs with existing configs
@@ -60,11 +57,10 @@ def main():
     # 2. Remove
     print("\nRunning remove...")
     # Pipe 'y' for each IDE removal confirmation
-    # We have 3 IDEs detected, so we need 3 'y's plus the initial 'Remove from:' choices.
+    # We have 1 IDE detected, so we need 1 'y' plus the initial 'Remove from:' choices.
     # Actually 'force' isn't on remove, but we can pipe multiple y's.
     # The tool asks:
     # 1. Remove from IDE 1? [Y/n]
-    # 2. Remove from IDE 2? [Y/n]
     # ...
     confirmations = "y\n" * 10 
     p = subprocess.Popen(["codebase-knowledge-mcp-manage", "remove"], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)

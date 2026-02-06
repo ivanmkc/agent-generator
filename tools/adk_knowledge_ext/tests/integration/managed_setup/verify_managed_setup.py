@@ -63,10 +63,10 @@ def main():
     ]
     run_command(cmd_index)
     
-    print("Step 4: Verifying --index-url in config (via env)...")
-    result = subprocess.run(list_cmd, capture_output=True, text=True)
-    output = result.stdout + result.stderr
-    print(f"Gemini Output:\n{output}")
+    print("Step 4: Verifying --index-url in config (via settings.json)...")
+    settings_file = Path.home() / ".gemini" / "settings.json"
+    output = settings_file.read_text() if settings_file.exists() else ""
+    print(f"Gemini Settings:\n{output}")
     
     # In new architecture, index-url is packed into the MCP_KNOWLEDGE_BASES JSON in env
     if "https://test.pypi.org/simple" in output:
@@ -94,9 +94,8 @@ def main():
     run_command(cmd_k_index)
     
     print("Step 6: Verifying MCP_KNOWLEDGE_BASES in config...")
-    result = subprocess.run(list_cmd, capture_output=True, text=True)
-    output = result.stdout + result.stderr
-    print(f"Gemini Output:\n{output}")
+    output = settings_file.read_text() if settings_file.exists() else ""
+    print(f"Gemini Settings:\n{output}")
     
     # Check for the env var and the embedded index URL
     if "MCP_KNOWLEDGE_BASES" in output and index_url in output:
@@ -142,9 +141,8 @@ def main():
 
     # 7. Verify Removal
     print("Step 9: Verifying removal...")
-    result = subprocess.run(list_cmd, capture_output=True, text=True)
-    output = result.stdout + result.stderr
-    print(f"Gemini Output:\n{output}")
+    output = settings_file.read_text() if settings_file.exists() else ""
+    print(f"Gemini Settings:\n{output}")
     
     if "codebase-knowledge" not in output:
         print("SUCCESS: Server correctly removed.")

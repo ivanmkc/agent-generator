@@ -67,7 +67,11 @@ class SourceReader:
         full_path = self.repo_root / rel_path
 
         if not full_path.exists():
-            return f"File not found on disk: {full_path}"
+            fallback_path = self.repo_root / "src" / rel_path
+            if fallback_path.exists():
+                full_path = fallback_path
+            else:
+                return f"File not found on disk: {full_path}"
 
         try:
             content = full_path.read_text(encoding="utf-8")

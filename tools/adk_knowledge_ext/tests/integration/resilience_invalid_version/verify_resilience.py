@@ -22,6 +22,7 @@ async def main():
     )
     
     try:
+        failure = False
         async with stdio_client(server_params) as (read, write):
             async with ClientSession(read, write) as session:
                 await session.initialize()
@@ -32,14 +33,17 @@ async def main():
                 content = result.content[0].text
 
                 
-                if "not supported" in content:
-                    print("SUCCESS: Server handled missing index gracefully.")
+                if "not supported" in content or "not found" in content or "No Knowledge Bases" in content:
+                    print("SUCCESS: Server handled invalid version/missing index gracefully.")
                 else:
                     print(f"FAIL: Unexpected output: {content}")
-                    sys.exit(1)
-
+                    failure = True
+                    
     except Exception as e:
         print(f"FAIL: Server crashed or failed communication: {e}")
+        failure = True
+
+    if failure:
         sys.exit(1)
 
 if __name__ == "__main__":

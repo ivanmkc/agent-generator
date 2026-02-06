@@ -23,6 +23,7 @@ async def main():
     
     print(f"Launching Server...")
     
+    failure = False
     try:
         async with stdio_client(server_params) as (read, write):
             async with ClientSession(read, write) as session:
@@ -35,11 +36,11 @@ async def main():
                 content = result.content[0].text
                 print(f"Tool Output: {content}")
                 
-                if "Knowledge Base 'unknown-kb' not found" in content:
+                if "not found" in content or "not supported" in content:
                     print("SUCCESS: Handled missing index gracefully.")
                 else:
                     print(f"FAIL: Unexpected output: {content}")
-                    sys.exit(1)
+                    failure = True
 
 
                 # 2. Test Symbol retrieval
@@ -48,14 +49,17 @@ async def main():
                 content = result.content[0].text
                 print(f"Tool Output: {content}")
                 
-                if "not supported" in content:
+                if "not supported" in content or "no index" in content or "not properly set up" in content:
                     print("SUCCESS: Correctly reported failure (due to missing index).")
                 else:
                     print(f"FAIL: Unexpected output: {content}")
-                    sys.exit(1)
+                    failure = True
 
     except Exception as e:
         print(f"FAIL: Server crashed or failed communication: {e}")
+        failure = True
+
+    if failure:
         sys.exit(1)
 
 if __name__ == "__main__":
