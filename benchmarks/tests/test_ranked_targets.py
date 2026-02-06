@@ -47,6 +47,13 @@ def test_ranked_targets_integrity():
                 errors.append(f"Missing signature for method: {fqn}")
 
         full_path = REPO_ROOT / rel_path
+        
+        # Skip external dependencies if env is missing
+        if rel_path.startswith("env/"):
+            if not full_path.exists():
+                # Just warn/skip if we are not in the same env
+                continue
+
         if not full_path.exists():
             # Fallback 1: Try adding src/ prefix (common python layout)
             src_path = REPO_ROOT / "src" / rel_path
