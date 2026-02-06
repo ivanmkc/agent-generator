@@ -1,6 +1,7 @@
 import pytest
 import numpy as np
 import json
+import yaml
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 from adk_knowledge_ext.search import VectorSearchProvider
@@ -12,9 +13,9 @@ def mock_index_dir(tmp_path):
         {"id": "class.A", "type": "CLASS", "rank": 1},
         {"id": "class.B", "type": "CLASS", "rank": 2}
     ]
-    np.save(tmp_path / "targets_vectors.npy", vectors)
-    with open(tmp_path / "targets_meta.json", "w") as f:
-        json.dump(metadata, f)
+    np.save(tmp_path / "vectors.npy", vectors)
+    with open(tmp_path / "vector_keys.yaml", "w") as f:
+        yaml.dump(metadata, f)
     return tmp_path
 
 @pytest.fixture

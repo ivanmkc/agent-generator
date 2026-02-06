@@ -4,6 +4,7 @@ import logging
 import re
 import os
 import json
+import yaml
 import numpy as np
 from typing import List, Dict, Any, Tuple, Optional
 from abc import ABC, abstractmethod
@@ -299,13 +300,13 @@ class VectorSearchProvider(SearchProvider):
         """
         # Load from disk if exists, otherwise we can't build it here (requires embeddings)
         # We assume build_vector_index.py was run.
-        vectors_path = self.index_dir / "targets_vectors.npy"
-        meta_path = self.index_dir / "targets_meta.json"
+        vectors_path = self.index_dir / "vectors.npy"
+        keys_path = self.index_dir / "vector_keys.yaml"
 
-        if vectors_path.exists() and meta_path.exists():
+        if vectors_path.exists() and keys_path.exists():
             self.vectors = np.load(vectors_path)
-            with open(meta_path, "r") as f:
-                self.metadata = json.load(f)
+            with open(keys_path, "r") as f:
+                self.metadata = yaml.safe_load(f)
             
             # Map items for quick lookup
             self._items_map = {item.get("id") or item.get("fqn"): item for item in items}

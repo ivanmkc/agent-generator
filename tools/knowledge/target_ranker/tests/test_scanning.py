@@ -5,7 +5,7 @@ import json
 import pytest
 import shutil
 from pathlib import Path
-from tools.target_ranker.scanner import scan_repository
+from tools.knowledge.target_ranker.scanner import scan_repository
 from google.adk.tools import ToolContext
 from google.adk.sessions.in_memory_session_service import InMemorySessionService
 from google.adk.sessions.session import Session
@@ -87,7 +87,7 @@ async def test_scan_repository_captures_init(temp_repo):
     assert init_fqn in children, f"__init__ not found in children: {children}"
 
     # Verify TargetRanker picks it up
-    from tools.target_ranker.ranker import TargetRanker
+    from tools.knowledge.target_ranker.ranker import TargetRanker
 
     # Create entity map for ranker
     entity_map = {e["id"]: e for e in session.state["scanned_targets"]}

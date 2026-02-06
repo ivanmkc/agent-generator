@@ -19,7 +19,7 @@ This module is typically invoked via the `Regenerate Ranked Targets` task in `.v
 To run standalone via the CLI:
 
 ```bash
-env/bin/python tools/target_ranker/run_ranker.py --repo-path repos/adk-python
+env/bin/python tools/knowledge/target_ranker/run_ranker.py --repo-path repos/adk-python
 ```
 
 ## Output
@@ -27,4 +27,4 @@ env/bin/python tools/target_ranker/run_ranker.py --repo-path repos/adk-python
 It generates artifacts in the centralized output directory (managed by `tools/constants.py`):
 *   `tmp/outputs/generated_benchmarks/ranked_targets.yaml`: Detailed metadata for agents.
 *   `tmp/outputs/generated_benchmarks/ranked_targets.md`: Human-readable summary.
-\n## Testing\n\nRun the unit tests:\n```bash\npython -m pytest tools/target_ranker/tests/\n```
+\n## Testing\n\nRun the unit tests:\n```bash\npython -m pytest tools/knowledge/target_ranker/tests/\n```

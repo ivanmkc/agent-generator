@@ -45,8 +45,8 @@ from pathlib import Path
 from collections import defaultdict
 from typing import Optional
 
-from tools.target_ranker.scanner import scan_repository
-from tools.target_ranker.models import RankedTarget, MemberInfo
+from tools.knowledge.target_ranker.scanner import scan_repository
+from tools.knowledge.target_ranker.models import RankedTarget, MemberInfo
 from google.adk.tools import ToolContext
 from google.adk.sessions.session import Session
 from google.adk.sessions.in_memory_session_service import InMemorySessionService

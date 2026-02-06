@@ -50,7 +50,7 @@ Understanding where files belong is critical.
 We use `pytest` for all testing. Strict adherence to testing is required.
 
 *   **Location:** Tests must reside in a `tests/` subdirectory relative to the code being tested.
-    *   Example: `tools/target_ranker/ranker.py` -> `tools/target_ranker/tests/test_ranker.py`
+    *   Example: `tools/knowledge/target_ranker/ranker.py` -> `tools/knowledge/target_ranker/tests/test_ranker.py`
 *   **Core Framework:** General integration tests live in `benchmarks/tests/`.
 *   **Naming:** Test files must start with `test_`.
 

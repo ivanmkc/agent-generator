@@ -5,7 +5,7 @@ import json
 from unittest.mock import MagicMock
 from google.adk.tools import ToolContext
 from google.adk.sessions import Session
-from tools.target_ranker.scanner import scan_repository
+from tools.knowledge.target_ranker.scanner import scan_repository
 
 
 @pytest.fixture

@@ -135,12 +135,17 @@ def add_version(repo_id: str, version: str, force: bool, golden: List[str]):
         
     # 2. Index
     console.print("[bold]Generating Knowledge Index...[/bold]")
-    index_filename = f"{repo_id.replace('/', '__')}__{version}.yaml"
-    INDICES_DIR.mkdir(parents=True, exist_ok=True)
-    output_path = INDICES_DIR / index_filename
+    
+    # Create hierarchical directory: indices / safe_repo_id / version
+    safe_repo_id = repo_id.replace("/", "-")
+    version_dir = INDICES_DIR / safe_repo_id / version
+    version_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Standardized filename within the version folder
+    output_path = version_dir / "ranked_targets.yaml"
     
     # Invoke run_ranker.py as a subprocess to ensure environment isolation/path handling
-    ranker_script = Path(__file__).parent / "target_ranker" / "run_ranker.py"
+    ranker_script = Path(__file__).parent / "knowledge" / "target_ranker" / "run_ranker.py"
     
     # Customize namespace if needed. Defaulting to 'google.adk' for adk-python
     namespace = "google.adk" if "adk-python" in repo_id else ""
@@ -194,15 +199,8 @@ def add_version(repo_id: str, version: str, force: bool, golden: List[str]):
     if "versions" not in repo_meta:
         repo_meta["versions"] = {}
         
-    # We use a relative path for bundled indices?
-    # Or just the filename if our server logic supports looking in data/indices/
-    # Server logic: if index_url is not http, checks _BUNDLED_DATA / idx_val.
-    # _BUNDLED_DATA is tools/adk_knowledge_ext/src/adk_knowledge_ext/data
-    # We put it in .../data/indices/...
-    # So relative path should be "indices/{filename}"
-    
     repo_meta["versions"][version] = {
-        "index_url": f"indices/{index_filename}"
+        "index_url": f"indices/{safe_repo_id}/{version}/ranked_targets.yaml"
     }
     
     save_registry(data)

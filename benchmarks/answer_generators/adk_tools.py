@@ -27,7 +27,7 @@ import functools
 import ast
 import sys
 from benchmarks.generator.benchmark_generator.models import TargetEntity
-from tools.target_ranker.models import RankedTarget
+from tools.knowledge.target_ranker.models import RankedTarget
 
 # Try to import yaml
 try:

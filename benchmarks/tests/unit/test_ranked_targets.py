@@ -3,7 +3,7 @@ from pathlib import Path
 from unittest.mock import patch, mock_open
 import yaml
 from benchmarks.answer_generators.adk_tools import AdkTools
-from tools.target_ranker.models import RankedTarget
+from tools.knowledge.target_ranker.models import RankedTarget
 
 @pytest.fixture
 
@@ -63,7 +63,7 @@ def adk_tools(mock_data, monkeypatch):
 
 
 
-    from tools.target_ranker.models import RankedTarget
+    from tools.knowledge.target_ranker.models import RankedTarget
 
 
 

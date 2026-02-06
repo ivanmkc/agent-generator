@@ -208,16 +208,16 @@
       "detail": "Regenerates usage frequency stats for ADK APIs using local tests and samples."
     },
     {
-      "label": "Regenerate Ranked Targets",
+      "label": "Regenerate Codebase Knowledge (Targets & Embeddings)",
       "type": "shell",
-      "command": "PYTHONPATH=. env/bin/python tools/target_ranker/ranker.py",
+      "command": "PYTHONPATH=. env/bin/python tools/knowledge/target_ranker/ranker.py && PYTHONPATH=. env/bin/python tools/knowledge/build_vector_index.py",
       "group": "build",
       "presentation": {
         "reveal": "always",
         "panel": "shared"
       },
       "problemMatcher": [],
-      "detail": "Regenerates ranked_targets.yaml and ranked_targets.md based on latest stats."
+      "detail": "Regenerates ranked_targets.yaml and builds the semantic vector embeddings (.npy)."
     },
     {
       "label": "Agentic: Generate Execution MCQ (Gemini 3 Pro)",

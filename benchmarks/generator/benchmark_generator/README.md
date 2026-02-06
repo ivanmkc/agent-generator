@@ -23,7 +23,7 @@ The system follows a closed-loop design with specialized pipelines for different
 The **Auditor** agent orchestrates the entire process, spending compute on high-value targets via a stateful BFS strategy.
 
 ### 1. Repository Cartography
-The `scan_repository` tool (located in `tools/target_ranker/scanner.py`) maps the repository topology using AST analysis, identifying hierarchies, dependencies, and public API surfaces.
+The `scan_repository` tool (located in `tools/knowledge/target_ranker/scanner.py`) maps the repository topology using AST analysis, identifying hierarchies, dependencies, and public API surfaces.
 *   **Enhanced Resolution**: Automatically resolves type hints to their Fully Qualified Names (FQNs) by tracing imports, parsing string forward references (e.g., `'ToolConfig'`), and handling local class definitions.
 
 ### 2. BFS Prioritization Strategy
@@ -44,7 +44,7 @@ To update the ranked target list (e.g., when new samples or framework code are a
     *   Scans `adk-samples` and `contributing/samples` to determine which APIs are actually used by developers.
     *   Output: `benchmarks/adk_stats_samples.yaml`.
 2.  **`Regenerate Ranked Targets`**:
-    *   Runs `tools/target_ranker/ranker.py`.
+    *   Runs `tools/knowledge/target_ranker/ranker.py`.
     *   Loads the stats from step 1, performs a repository scan with runtime identity resolution, and applies the BFS ranking.
     *   Output: `benchmarks.generator.benchmark_generator/data/ranked_targets.yaml` and `.md`.
 
@@ -82,7 +82,7 @@ PYTHONPATH=. env/bin/python benchmarks.generator.benchmark_generator/run_generat
 ## Structure
 
 *   `agents.py`: MAS orchestration (Sequential, Loop, and Specialized Agents).
-*   `tools.py`: Core logic (BFS Strategist, Truth Lab, Sandbox). Scanner logic is imported from `tools.target_ranker`.
+*   `tools.py`: Core logic (BFS Strategist, Truth Lab, Sandbox). Scanner logic is imported from `tools.knowledge.target_ranker`.
 *   `logger.py`: Colored console logging and structured file tracing.
 *   `irt.py`: IRT-based prioritization scoring (Legacy support).
 
@@ -91,8 +91,8 @@ PYTHONPATH=. env/bin/python benchmarks.generator.benchmark_generator/run_generat
 The system relies on a set of specialized tools to map the codebase and prioritize testing targets.
 
 ### Primary Tools
-*   **`tools/target_ranker/ranker.py`**: The main orchestrator for ranking. It triggers the repository scan, resolves inheritance hierarchies, applies filtering logic (like exclusion phrases), and generates the final reports.
-*   **`tools/target_ranker/scanner.py`**: Contains the core `scan_repository` logic. It uses a specialized AST visitor to map the framework's physical structure, extract full signatures, and identify property types.
+*   **`tools/knowledge/target_ranker/ranker.py`**: The main orchestrator for ranking. It triggers the repository scan, resolves inheritance hierarchies, applies filtering logic (like exclusion phrases), and generates the final reports.
+*   **`tools/knowledge/target_ranker/scanner.py`**: Contains the core `scan_repository` logic. It uses a specialized AST visitor to map the framework's physical structure, extract full signatures, and identify property types.
 *   **`tools/api_indexer.py`**: An AST-based usage scanner. It analyzes consumer code (samples and tests) to count how many times each class and method is called.
 
 ### Data & Artifacts (`benchmarks.generator.benchmark_generator/data/`)

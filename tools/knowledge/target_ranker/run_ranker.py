@@ -21,7 +21,7 @@ project_root = Path(__file__).resolve().parents[2]
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
-from tools.target_ranker.ranker import TargetRanker
+from tools.knowledge.target_ranker.ranker import TargetRanker
 from core.config import RANKED_TARGETS_FILE, RANKED_TARGETS_MD
 
 
