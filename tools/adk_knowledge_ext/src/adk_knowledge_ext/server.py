@@ -162,11 +162,18 @@ def _get_available_kbs() -> Dict[str, KnowledgeBaseConfig]:
             logger.warning(f"Failed to read bundled registry: {e}")
 
     # 2. Add Configured KBs from env (JSON) - Legacy Support
-    configured_kbs_json = os.environ.get("MCP_KNOWLEDGE_BASES")
+    configured_kbs_json = (os.environ.get("MCP_KNOWLEDGE_BASES") or "").strip()
     
     if configured_kbs_json:
         try:
-            items = json.loads(configured_kbs_json)
+            try:
+                items = json.loads(configured_kbs_json)
+                if isinstance(items, dict):
+                    items = [items]
+                elif isinstance(items, str):
+                    items = [items]
+            except json.JSONDecodeError:
+                items = [x.strip() for x in configured_kbs_json.split(',') if x.strip()]
             for item in items:
                 # Support string-only IDs (from registry)
                 if isinstance(item, str):
@@ -275,6 +282,12 @@ def _ensure_index(kb_id: str | None) -> str:
 
     # 1. Check if the index_url points to a local bundled file
     if index_url and not index_url.startswith("http"):
+        # Check relative to package root (e.g., data/indices/...)
+        pkg_path = Path(__file__).parent / index_url
+        if pkg_path.exists():
+            logger.info(f"Using bundled index for {resolved_id}: {pkg_path}")
+            idx.load(pkg_path)
+            return resolved_id
         # Assume it's a relative path from the 'data' directory
         bundled_path = _BUNDLED_DATA / index_url
         if bundled_path.exists():

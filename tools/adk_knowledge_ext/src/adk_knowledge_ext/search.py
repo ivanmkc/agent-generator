@@ -135,7 +135,7 @@ class BM25SearchProvider(SearchProvider):
                 fqn_parts = " ".join(re.split(r"[._]", fqn))
                 
                 # Incorporate aliases for searchability
-                aliases = item.get("aliases", [])
+                aliases = item.get("aliases") or []
                 alias_text = " ".join(aliases)
                 
                 doc_text = f"{fqn_parts} {fqn} {fqn} {fqn} {alias_text} " + (

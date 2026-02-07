@@ -22,6 +22,9 @@ import pytest
 from pathlib import Path
 from dataclasses import dataclass, field
 from typing import List, Optional, Any, Callable
+import os
+if "GEMINI_API_KEYS_POOL" not in os.environ:
+    os.environ["GEMINI_API_KEYS_POOL"] = os.environ.get("GEMINI_API_KEY", "MOCK_KEY")
 
 from core.api_key_manager import ApiKeyManager
 

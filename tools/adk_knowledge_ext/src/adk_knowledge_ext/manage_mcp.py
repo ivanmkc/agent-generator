@@ -813,6 +813,10 @@ def debug():
     # Use sys.executable to run the module
     server_cmd = [sys.executable, "-m", "adk_knowledge_ext.server"]
     
+    # Force PYTHONPATH into server_env specifically if testing fallback
+    if "PYTHONPATH" in os.environ:
+        server_env["PYTHONPATH"] = os.environ["PYTHONPATH"]
+        
     async def run_diagnostics():
         """Internal helper to run async diagnostics."""
         nonlocal critical_failure_found
@@ -820,6 +824,10 @@ def debug():
         server_env["PYTHONUNBUFFERED"] = "1"
         server_env["MCP_LOG_INDENT"] = "   "
         
+        # Ensure PYTHONPATH propagation for local testing
+        if "PYTHONPATH" in os.environ:
+            server_env["PYTHONPATH"] = os.environ["PYTHONPATH"]
+            
         server_params = StdioServerParameters(
             command=server_cmd[0],
             args=server_cmd[1:],
@@ -844,7 +852,7 @@ def debug():
                         return
 
                     # 2. Inspect KBs
-                    kbs_raw = server_env.get("MCP_KNOWLEDGE_BASES")
+                    kbs_raw = (server_env.get("MCP_KNOWLEDGE_BASES") or "").strip()
                     kbs_to_test: List[Union[str, KBDefinition]] = []
                     if kbs_raw:
                         try:
@@ -1182,11 +1190,22 @@ def debug():
 
                     # 3. Check Env Vars (KB Config)
                     if "MCP_KNOWLEDGE_BASES" in env_vars:
-                        try:
-                            kbs = json.loads(env_vars["MCP_KNOWLEDGE_BASES"])
-                            console.print(f"      - KBs Configured: {len(kbs)}")
-                        except json.JSONDecodeError:
-                            console.print(f"      - KBs Configured: [red]Invalid JSON[/red]")
+                        val = (env_vars["MCP_KNOWLEDGE_BASES"] or "").strip()
+                        if val:
+                            try:
+                                try:
+                                    kbs = json.loads(val)
+                                    if isinstance(kbs, dict):
+                                        kbs = [kbs]
+                                    elif isinstance(kbs, str):
+                                        kbs = [kbs]
+                                except json.JSONDecodeError:
+                                    kbs = [x.strip() for x in val.split(',') if x.strip()]
+                                console.print(f"      - KBs Configured: {len(kbs)}")
+                            except json.JSONDecodeError:
+                                console.print(f"      - KBs Configured: [red]Invalid JSON[/red]")
+                        else:
+                            console.print(f"      - KBs Configured: None")
                     
                 except Exception as e:
                     console.print(f"      - Config Check: [red]Error reading config: {e}[/red]")
@@ -1489,7 +1508,7 @@ def _configure_ide_json(ide_info: IdeConfig, mcp_config: McpServerConfig) -> Non
     ):
         # Get KBs from config to find repo names
         try:
-            kbs_raw = mcp_config.env.get("MCP_KNOWLEDGE_BASES")
+            kbs_raw = (mcp_config.env.get("MCP_KNOWLEDGE_BASES") or "").strip()
 
             # Robust parsing of KBs (JSON list or comma-separated string) using TypeAdapter
             kb_list_adapter = TypeAdapter(List[Union[str, KBDefinition]])

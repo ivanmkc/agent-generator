@@ -39,14 +39,14 @@ except ImportError:
 try:
     # Add the extension path relative to this file
     # benchmarks/answer_generators/adk_tools.py -> root -> tools/adk_knowledge_ext/src
-    ext_path = Path(__file__).resolve().parents[3] / "tools/adk_knowledge_ext/src"
+    ext_path = Path(__file__).resolve().parents[2] / "tools/adk_knowledge_ext/src"
     if str(ext_path) not in sys.path:
         sys.path.append(str(ext_path))
     from adk_knowledge_ext.search import get_search_provider
 
     HAS_SEARCH_PROVIDER = True
 except ImportError as e:
-    print(f"DEBUG: Failed to import adk_knowledge_ext: {e}")
+    import traceback; traceback.print_exc()
     HAS_SEARCH_PROVIDER = False
 
 
