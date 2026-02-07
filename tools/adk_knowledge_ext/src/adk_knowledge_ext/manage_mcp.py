@@ -435,6 +435,17 @@ def setup(kb_ids: Optional[str], repo_url: Optional[str], version: Optional[str]
                         for j, v_id in enumerate(versions):
                             v_meta = repo.versions[v_id]
                             desc = f" - {v_meta.description}" if v_meta.description else ""
+                            
+                            # Check if local index is broken
+                            if v_meta.index_url and not v_meta.index_url.startswith("http"):
+                                import adk_knowledge_ext.server as server
+                                pkg_path = Path(server.__file__).parent / v_meta.index_url
+                                bundled_path = server._BUNDLED_DATA / v_meta.index_url
+                                bundled_path_alt = server._BUNDLED_DATA / v_meta.index_url.split('/')[-1]
+                                
+                                if not (pkg_path.exists() or bundled_path.exists() or bundled_path_alt.exists()):
+                                    desc += " [red](broken)[/red]"
+                                    
                             console.print(f"    [{j+1}] {v_id}{desc}")
                         
                         v_choice = Prompt.ask(

@@ -330,7 +330,17 @@ def _ensure_index(kb_id: str | None) -> str:
             return resolved_id
 
     # 3. Final Failure
-    raise RuntimeError(f"Index for '{resolved_id}' ({repo_url}) not properly set up and no download URL available.")
+    error_msg = f"""Index for '{resolved_id}' ({repo_url}) not properly set up and no download URL available.
+"""
+    if index_url and not index_url.startswith("http"):
+        error_msg += f"""  - Checked package relative path: {Path(__file__).parent / index_url}
+"""
+        error_msg += f"""  - Checked bundled data path: {_BUNDLED_DATA / index_url}
+"""
+        error_msg += f"""  - Checked alt bundled path: {_BUNDLED_DATA / index_url.split('/')[-1]}
+"""
+    raise RuntimeError(error_msg)
+
 
 
 def _ensure_instructions():
