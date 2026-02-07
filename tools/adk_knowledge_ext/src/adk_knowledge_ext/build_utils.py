@@ -28,8 +28,6 @@ def bundle_indices(src_dir: Path, data_dir: Path) -> None:
     indices_dir = data_dir / "indices"
     
     # Clean previous build artifacts
-    if data_dir.exists():
-        shutil.rmtree(data_dir)
     indices_dir.mkdir(parents=True, exist_ok=True)
 
     manifest = {}
@@ -41,11 +39,13 @@ def bundle_indices(src_dir: Path, data_dir: Path) -> None:
 
     print(f"Build Hook: Loading registry from {registry_path}...")
     try:
-        registry = yaml.safe_load(registry_path.read_text())
-        for repo_url, versions in registry.items():
+        registry_data = yaml.safe_load(registry_path.read_text())
+        registry = registry_data.get('repositories', registry_data)
+        for r_id, repo_data in registry.items():
+            repo_url = repo_data.get('repo_url', r_id)
+            versions = repo_data.get('versions', {})
             repo_slug = sanitize_repo_name(repo_url)
             
-            # Create repo-specific directory
             repo_dir = indices_dir / repo_slug
             repo_dir.mkdir(parents=True, exist_ok=True)
             
@@ -62,25 +62,24 @@ def bundle_indices(src_dir: Path, data_dir: Path) -> None:
                 
                 print(f"Build Hook: Downloading index for {repo_slug} ({ver}) to {manifest_entry}...")
                 try:
-                    # Support GITHUB_TOKEN for private repos during build
                     import os
-                    curl_cmd = ["curl", "-f", "-L", "-o", str(index_path)]
-                    if os.environ.get("GITHUB_TOKEN"):
-                        curl_cmd.extend(["-H", f"Authorization: token {os.environ.get('GITHUB_TOKEN')}"])
-                    curl_cmd.append(index_url)
-                    
-                    subprocess.run(curl_cmd, check=True)
-                    
+                    # If it's an HTTP URL, download it during build
+                    if index_url and index_url.startswith("http"):
+                        curl_cmd = ["curl", "-f", "-L", "-o", str(index_path)]
+                        if os.environ.get("GITHUB_TOKEN"):
+                            curl_cmd.extend(["-H", f"Authorization: token {os.environ.get('GITHUB_TOKEN')}"])
+                        curl_cmd.append(index_url)
+                        subprocess.run(curl_cmd, check=True)
+                    else:
+                        print(f"Build Hook: Skipping download for {index_url} (local path)")
+
                     # Update manifest
                     if repo_url not in manifest:
                         manifest[repo_url] = {}
-                    
-                    # Store as dict in manifest to preserve metadata
                     manifest[repo_url][ver] = {
                         "path": manifest_entry,
                         "description": desc
                     }
-                    
                 except subprocess.CalledProcessError as e:
                     print(f"Build Hook Warning: Failed to download {index_url}: {e}")
     except Exception as e:
