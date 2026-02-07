@@ -8,14 +8,13 @@ Results are saved to `tmp/retrieval_evals/`.
 
 import asyncio
 import os
-import sys
 import pandas as pd
-from pathlib import Path
 
-# Add project root to path
-sys.path.append(str(Path(__file__).resolve().parent.parent))
+
+
 
 from tools.retrieval_benchmark_lib import RetrievalEvaluator, BM25Retriever, EmbeddingRetriever
+
 
 
 async def main():

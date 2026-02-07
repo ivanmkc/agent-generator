@@ -82,7 +82,7 @@ class KnowledgeIndex:
                 embeddings_path = config.EMBEDDINGS_FOLDER_PATH
                 if not embeddings_path:
                     # Heuristic: look for vectors in the same directory as index
-                    if (index_path.parent / "targets_vectors.npy").exists():
+                    if (index_path.parent / "vectors.npy").exists():
                         embeddings_path = index_path.parent
                         logger.info(f"Auto-detected embeddings folder: {embeddings_path}")
 

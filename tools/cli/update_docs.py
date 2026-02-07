@@ -4,17 +4,17 @@ This script aggregates generators into 'Archetypes' (grouping by configuration/i
 to create a static reference document for report generation.
 """
 
-import sys
 import os
-from pathlib import Path
+from core.config import PROJECT_ROOT
+
+
 from dotenv import load_dotenv
 
 load_dotenv()
 
-# Add project root to sys.path
-sys.path.append(str(Path(__file__).parent.parent.parent))
 
 from benchmarks.benchmark_candidates import CANDIDATE_GENERATORS
+
 from benchmarks.answer_generators.gemini_cli_docker import GeminiCliPodmanAnswerGenerator
 
 
@@ -44,7 +44,8 @@ def clean_description(desc):
 
 
 def generate_docs():
-    output_path = project_root / "ai/reports/generator_internals.md"
+    output_path = PROJECT_ROOT / "ai/reports/generator_internals.md"
+
 
     content = ["# Generator Internals (Static Reference)\n"]
     content.append(

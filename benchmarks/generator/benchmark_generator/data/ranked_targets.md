@@ -1,6 +1,6 @@
 # Ranked Target List
 
-**Total Targets:** 3240
+**Total Targets:** 1768
 **Seeds:** 52
 **Reachable:** 0
 

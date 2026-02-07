@@ -5,7 +5,7 @@ This script orchestrates the static analysis of the codebase to produce the `ran
 It combines:
 1. Static Code Analysis (Scanner) to find all classes/methods.
 2. Usage Statistics (from `adk_stats_samples.yaml`) to weight targets by importance.
-3. Co-occurrence Data (from `adk_cooccurrence.json`) to find related components.
+3. Co-occurrence Data (from `adk_cooccurrence.yaml`) to find related components.
 
 The output is used by the Benchmark Generator to prioritize relevant tests.
 """
@@ -21,7 +21,7 @@ project_root = Path(__file__).resolve().parents[2]
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
-from tools.target_ranker.ranker import TargetRanker
+from tools.knowledge.target_ranker.ranker import TargetRanker
 from core.config import RANKED_TARGETS_FILE, RANKED_TARGETS_MD
 
 

@@ -7,17 +7,18 @@ source code or dependencies have changed.
 """
 
 import asyncio
-import sys
 import os
-from pathlib import Path
+import sys
+
+
 from dotenv import load_dotenv
+
 
 load_dotenv()
 
-# Add project root to sys.path
-sys.path.append(str(Path(__file__).parent.parent.parent))
 
 from benchmarks.answer_generators.gemini_cli_docker.gemini_cli_podman_answer_generator import (
+
     GeminiCliPodmanAnswerGenerator,
 )
 from benchmarks.answer_generators.gemini_cli_docker.image_definitions import (

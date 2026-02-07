@@ -2,7 +2,7 @@
 
 import pytest
 from unittest.mock import MagicMock
-from tools.target_ranker.ranker import TargetRanker
+from tools.knowledge.target_ranker.ranker import TargetRanker
 
 
 class TestTargetRankerLogic:

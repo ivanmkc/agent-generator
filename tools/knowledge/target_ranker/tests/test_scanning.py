@@ -5,20 +5,7 @@ import json
 import pytest
 import shutil
 from pathlib import Path
-from tools.target_ranker.scanner import scan_repository
-from google.adk.tools import ToolContext
-from google.adk.sessions.in_memory_session_service import InMemorySessionService
-from google.adk.sessions.session import Session
-from google.adk.agents.invocation_context import InvocationContext
-from google.adk.agents.base_agent import BaseAgent
-
-
-class MockAgent(BaseAgent):
-
-    async def _run_async_impl(self, ctx: InvocationContext):
-        if False:
-            yield None
-
+from tools.knowledge.target_ranker.scanner import scan_repository
 
 @pytest.fixture
 def temp_repo(tmp_path):
@@ -47,33 +34,15 @@ class MyClass:
 
 @pytest.mark.asyncio
 async def test_scan_repository_captures_init(temp_repo):
-    # Setup context
-    session_service = InMemorySessionService()
-    session = await session_service.create_session(
-        session_id="test", user_id="user", app_name="app"
-    )
-
-    inv_context = InvocationContext(
-        invocation_id="test_inv",
-        agent=MockAgent(name="test_agent"),
-        session=session,
-        session_service=session_service,
-    )
-
-    tool_context = ToolContext(
-        invocation_context=inv_context,
-        function_call_id="call_id",
-        event_actions=None,
-        tool_confirmation=None,
-    )
-
-    session.state["target_namespace"] = "pkg"
-    session.state["stats_file_path"] = "nonexistent.yaml"  # No stats needed
-
     # Run scan
-    scan_repository(str(temp_repo), tool_context, namespace="pkg")
+    # Assuming namespace filter works (pkg)
+    scan_result = scan_repository(
+        repo_path=str(temp_repo), 
+        namespace="pkg"
+    )
 
-    structure_map = session.state["structure_map"]
+    structure_map = scan_result.get("structure_map", {})
+    scanned_targets = scan_result.get("scanned_targets", [])
 
     # Verify MyClass is found
     class_fqn = "pkg.module.MyClass"
@@ -83,15 +52,16 @@ async def test_scan_repository_captures_init(temp_repo):
     children = structure_map[class_fqn]["children"]
     init_fqn = f"{class_fqn}.__init__"
 
-    # This assertion is expected to fail currently
+    # This assertion is expected to fail currently (comment preserved from original)
     assert init_fqn in children, f"__init__ not found in children: {children}"
 
     # Verify TargetRanker picks it up
-    from tools.target_ranker.ranker import TargetRanker
+    from tools.knowledge.target_ranker.ranker import TargetRanker
 
     # Create entity map for ranker
-    entity_map = {e["id"]: e for e in session.state["scanned_targets"]}
+    entity_map = {e["id"]: e for e in scanned_targets}
 
+    # Ranker now doesn't need ADK context to be instantiated
     ranker = TargetRanker(repo_path=str(temp_repo))
 
     # We need to manually build adk_inheritance since we aren't running ranker.generate()

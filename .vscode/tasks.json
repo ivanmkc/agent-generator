@@ -76,7 +76,7 @@
     {
       "label": "Regenerate Generator Internals Docs",
       "type": "shell",
-      "command": "env/bin/python tools/cli/update_docs.py",
+      "command": "env/bin/python -m tools.cli.update_docs",
       "group": "build",
       "presentation": {
         "reveal": "always",
@@ -148,7 +148,7 @@
     {
       "label": "Rebuild Docker Images using Podman (Local)",
       "type": "shell",
-      "command": "env/bin/python tools/cli/rebuild_images.py",
+      "command": "env/bin/python -m tools.cli.rebuild_images",
       "group": "build",
       "presentation": {
         "reveal": "always",
@@ -208,16 +208,28 @@
       "detail": "Regenerates usage frequency stats for ADK APIs using local tests and samples."
     },
     {
-      "label": "Regenerate Ranked Targets",
+      "label": "Regenerate Codebase Knowledge (Targets & Embeddings)",
       "type": "shell",
-      "command": "PYTHONPATH=. env/bin/python tools/target_ranker/ranker.py",
+      "command": "PYTHONPATH=. env/bin/python tools/knowledge/target_ranker/run_ranker.py && PYTHONPATH=. env/bin/python tools/knowledge/build_vector_index.py",
       "group": "build",
       "presentation": {
         "reveal": "always",
         "panel": "shared"
       },
       "problemMatcher": [],
-      "detail": "Regenerates ranked_targets.yaml and ranked_targets.md based on latest stats."
+      "detail": "Regenerates ranked_targets.yaml and builds the semantic vector embeddings (.npy)."
+    },
+    {
+      "label": "Check Registry Updates",
+      "type": "shell",
+      "command": "env/bin/python -m tools.cli.manage_registry update",
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": [],
+      "detail": "Interactively checks and installs updates for registered repositories."
     },
     {
       "label": "Agentic: Generate Execution MCQ (Gemini 3 Pro)",
@@ -242,6 +254,17 @@
       },
       "problemMatcher": [],
       "detail": "Generates a comprehensive log_analysis.md using Map-Reduce LLM analysis."
+    },
+    {
+      "label": "Maintain Knowledge Base",
+      "dependsOn": [
+        "Check Registry Updates",
+        "Regenerate Codebase Knowledge (Targets & Embeddings)"
+      ],
+      "dependsOrder": "sequence",
+      "group": "build",
+      "problemMatcher": [],
+      "detail": "Serially checks for registry updates and then regenerates local codebase knowledge."
     }
   ]
 }

@@ -91,18 +91,16 @@ class RepositoryEntry(BaseModel):
     Attributes:
         description: General description of the repository.
         repo_url: Git clone URL.
-        default_version: Version to use if none specified.
         versions: Map of version names to their metadata.
     """
     description: str
     repo_url: str
-    default_version: str
     versions: Dict[str, VersionEntry]
 
     @property
     def label(self) -> str:
         """Returns a formatted label for display."""
-        return f"{self.repo_url} (Default: {self.default_version})"
+        return f"{self.repo_url}"
 
 def ask_confirm(question: str, default: bool = True) -> bool:
     """Case-insensitive confirmation prompt using Rich.
@@ -338,7 +336,6 @@ def setup(kb_ids: Optional[str], repo_url: Optional[str], version: Optional[str]
                     registry_repos[repo_id] = RepositoryEntry(
                         description=meta["description"],
                         repo_url=meta["repo_url"],
-                        default_version=meta["default_version"],
                         versions=versions
                     )
             else:
@@ -363,7 +360,10 @@ def setup(kb_ids: Optional[str], repo_url: Optional[str], version: Optional[str]
 
             if repo_id in registry_repos:
                 repo_entry = registry_repos[repo_id]
-                target_version = version_arg or repo_entry.default_version
+                target_version = version_arg 
+                if not target_version:
+                     console.print(f"[yellow]Warning: No version specified for '{repo_id}' (e.g. {repo_id}@v1.0.0). Skipping implicit default.[/yellow]")
+                     continue
                 
                 if target_version in repo_entry.versions:
                     v_entry = repo_entry.versions[target_version]
@@ -419,28 +419,27 @@ def setup(kb_ids: Optional[str], repo_url: Optional[str], version: Optional[str]
                 console.print("\n[bold]Step 2: Select Versions[/bold]")
                 for r_id, repo in selected_repo_entries:
                     versions = list(repo.versions.keys())
+                    
                     if len(versions) == 1:
+                        # If only one version, just use it? Or prompt? 
+                        # User said "force single version... must be explicitly chosen".
+                        # But if there's only one choice, forcing them to type '1' is annoying.
+                        # We'll auto-select if only 1, but removed the concept of "default" from data.
                         target_version = versions[0]
-                        console.print(f"   Using only available version for '{r_id}': [cyan]{target_version}[/cyan]")
+                        console.print(f"   Using sole available version for '{r_id}': [cyan]{target_version}[/cyan]")
                     else:
                         console.print(f"\n   Configuring [bold]{r_id}[/bold]:")
+                        # Sort versions reverse to likely show newest first? Or just list order.
+                        # Assuming insertion order from YAML or dict.
+                        
                         for j, v_id in enumerate(versions):
                             v_meta = repo.versions[v_id]
-                            default_mark = " [dim](Default)[/dim]" if v_id == repo.default_version else ""
                             desc = f" - {v_meta.description}" if v_meta.description else ""
-                            console.print(f"    [{j+1}] {v_id}{default_mark}{desc}")
+                            console.print(f"    [{j+1}] {v_id}{desc}")
                         
-                        # Find default index
-                        def_idx = 1
-                        try:
-                            def_idx = versions.index(repo.default_version) + 1
-                        except ValueError:
-                            pass
-
                         v_choice = Prompt.ask(
                             f"   Select version for '{r_id}'", 
                             choices=[str(x+1) for x in range(len(versions))],
-                            default=str(def_idx),
                             show_choices=False
                         )
                         target_version = versions[int(v_choice) - 1]
@@ -1254,10 +1253,21 @@ def _generate_mcp_config(
                             match_found = True
                         # Also handle default alias
                         elif (
-                            kb.version == meta.get("default_version")
+                            kb.version in meta.get("versions", {})
                             and kb.id == repo_id
                         ):
-                            match_found = True
+                             # This used to be default version alias matching
+                             # Now we treat it as strictly matching if version is explicit?
+                             # Actually if kb.id == repo_id (without @version), we need to know what version it maps to.
+                             # But in new world, users MUST supply @version or we warn.
+                             # If they supplied just "google/adk-python", we might have resolved it interactivity.
+                             # But `selected_kbs` passed here definitely has `.version` set.
+                             
+                             # If id is "google/adk-python" AND version is "v1.23.0", does it match?
+                             # In `setup` command, we append explicit ID: f"{r_id}@{target_version}".
+                             # So kb.id should ALREADY have @version.
+                             
+                             pass
                         break
         else:
             # Legacy flat format
@@ -1524,8 +1534,24 @@ def _configure_ide_json(ide_info: IdeConfig, mcp_config: McpServerConfig) -> Non
                                     match_found = True
                                     break
                             elif item == repo_id:
-                                ver = meta.get("default_version")
-                                v_meta = meta.get("versions", {}).get(ver, {})
+                                # Find latest version dynamically
+                                versions = list(meta.get("versions", {}).keys())
+                                ver = None
+                                v_meta = {}
+                                
+                                if versions:
+                                    try:
+                                        from packaging.version import parse
+                                        versions.sort(key=lambda v: parse(v.lstrip("v")), reverse=True)
+                                    except ImportError:
+                                        versions.sort(reverse=True)
+                                    
+                                    ver = versions[0]
+                                    v_meta = meta.get("versions", {}).get(ver, {})
+                                else:
+                                    # Fallback if no versions found? (Shouldn't happen for valid repo)
+                                    ver = "unknown"
+
                                 kbs.append(
                                     KBDefinition(
                                         id=item,

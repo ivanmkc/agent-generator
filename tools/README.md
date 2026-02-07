@@ -10,10 +10,10 @@ This directory contains helper scripts and tools for analyzing benchmarks, debug
     -   Uses a multi-agent system (Auditor, Observer, Saboteur, Referee) to generate code-based benchmarks from the repository itself.
     -   See [benchmarks.generator.benchmark_generator/README.md](benchmark_generator/README.md).
 
--   **`tools/target_ranker/`**: The Target Ranker.
+-   **`tools/knowledge/target_ranker/`**: The Target Ranker.
     -   **Mechanism**: **Deterministic Static Analysis**.
     -   Scans the repository, resolves inheritance, and ranks targets for benchmark generation based on usage statistics.
-    -   See [tools/target_ranker/README.md](target_ranker/README.md).
+    -   See [tools/knowledge/target_ranker/README.md](target_ranker/README.md).
 
 ### Analysis & Reporting
 -   **`cli/audit_failures.py`**: The "Mechanic." 
