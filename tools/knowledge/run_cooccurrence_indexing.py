@@ -1,3 +1,16 @@
+
+from typing import List, Dict, Set, Tuple
+import yaml
+from pydantic import BaseModel, Field
+
+class CooccurrenceMeta(BaseModel):
+    repo_paths: List[str] = Field(..., description="Paths scanned")
+    is_dynamic: bool = Field(True, description="Whether dynamic standard-library filtering was used")
+
+class CooccurrenceResults(BaseModel):
+    meta: CooccurrenceMeta
+    associations: List[Dict]
+
 #!/usr/bin/env python3
 """
 ADK Co-occurrence Indexer.
@@ -137,9 +150,11 @@ def analyze_repo(repo_path: Path) -> Tuple[Counter, Dict[str, Counter]]:
             visitor.visit(tree)
 
             # Filter for google.adk entities
-            relevant = {
-                ent for ent in visitor.used_entities if ent.startswith("google.adk")
-            }
+            relevant = set()
+            for ent in visitor.used_entities:
+                root = ent.split(".")[0]
+                if root and root not in sys.stdlib_module_names and not root.startswith("_"):
+                    relevant.add(ent)
             if not relevant:
                 continue
 
@@ -272,3 +287,71 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+def generate_cooccurrence(scan_targets: List[Path], output_path: str) -> None:
+    """Generates co-occurrence metrics dynamically for all targets."""
+    total_counts = Counter()
+    total_co_occurrences = defaultdict(Counter)
+
+    for target in scan_targets:
+        c, co = analyze_repo(target)
+        total_counts.update(c)
+        for key, val in co.items():
+            total_co_occurrences[key].update(val)
+
+    results = []
+    
+    # We only care about rules with sufficient support
+    MIN_SUPPORT = 2
+
+    for context, targets in total_co_occurrences.items():
+        ctx_total = total_counts[context]
+
+        if ctx_total < MIN_SUPPORT:
+            continue
+
+        for target, count in targets.items():
+            prob = count / ctx_total
+            if count >= MIN_SUPPORT:
+                results.append(
+                    {
+                        "context": context,
+                        "target": target,
+                        "probability": round(prob, 3),
+                        "support": count,
+                    }
+                )
+
+    # Sort descending by probability, then support
+    results.sort(key=lambda x: (x["probability"], x["support"]), reverse=True)
+
+    output_data = CooccurrenceResults(
+        meta=CooccurrenceMeta(
+            repo_paths=[str(p) for p in scan_targets],
+            is_dynamic=True
+        ),
+        associations=results
+    )
+
+    with open(output_path, "w") as f:
+        yaml.safe_dump(output_data.model_dump(mode='json'), f, sort_keys=False)
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Co-occurrence Probabilities.")
+    parser.add_argument(
+        "--repos",
+        type=str,
+        nargs="+",
+        required=True,
+        help="List of local repository paths to scan.",
+    )
+    parser.add_argument(
+        "--output",
+        type=str,
+        default="cooccurrence.yaml",
+        help="Output YAML file.",
+    )
+    args = parser.parse_args()
+
+    targets = [Path(p) for p in args.repos]
+    generate_cooccurrence(targets, args.output)

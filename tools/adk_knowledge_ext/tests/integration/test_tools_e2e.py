@@ -23,7 +23,7 @@ from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 
 # Ensure import works
-sys.path.append(str(Path(__file__).parent.parent / "src"))
+sys.path.append(str(Path(__file__).parents[2] / "src"))
 
 @pytest.fixture
 def test_data(tmp_path):
@@ -72,7 +72,7 @@ async def test_tool_list_modules_e2e(test_data):
         "index_url": f"file://{test_data}"
     }]
     env["MCP_KNOWLEDGE_BASES"] = json.dumps(kb_config)
-    env["PYTHONPATH"] = str(Path(__file__).parent.parent / "src")
+    env["PYTHONPATH"] = str(Path(__file__).parents[2] / "src")
     
     server_params = StdioServerParameters(
         command=sys.executable,
@@ -112,7 +112,7 @@ async def test_tool_inspect_symbol_e2e(test_data):
         "index_url": f"file://{test_data}"
     }]
     env["MCP_KNOWLEDGE_BASES"] = json.dumps(kb_config)
-    env["PYTHONPATH"] = str(Path(__file__).parent.parent / "src")
+    env["PYTHONPATH"] = str(Path(__file__).parents[2] / "src")
     
     server_params = StdioServerParameters(
         command=sys.executable,

@@ -126,8 +126,21 @@ def _get_available_kbs() -> Dict[str, KnowledgeBaseConfig]:
                 for repo_id, repo_meta in repos.items():
                     repo_url = repo_meta["repo_url"]
                     desc = repo_meta.get("description")
-                    default_ver = repo_meta.get("default_version")
                     
+                    # Find latest version for default alias
+                    # Use proper SemVer sorting
+                    latest_ver = None
+                    versions = list(repo_meta.get("versions", {}).keys())
+                    if versions:
+                         try:
+                             from packaging.version import parse
+                             versions.sort(key=lambda v: parse(v.lstrip("v")), reverse=True)
+                         except ImportError:
+                             # Fallback: split by dots, convert integers (handles 1.10 > 1.2)
+                             versions.sort(key=lambda v: tuple(int(p) if p.isdigit() else p for p in v.lstrip("v").split(".")), reverse=True)
+                         
+                         latest_ver = versions[0]
+
                     for ver, ver_meta in repo_meta.get("versions", {}).items():
                         kb_id = f"{repo_id}@{ver}"
                         kb_config = KnowledgeBaseConfig(
@@ -141,8 +154,8 @@ def _get_available_kbs() -> Dict[str, KnowledgeBaseConfig]:
                         )
                         kbs[kb_id] = kb_config
                         
-                        # Add alias for default version
-                        if ver == default_ver:
+                        # Add alias for default version (latest)
+                        if ver == latest_ver:
                             kbs[repo_id] = kb_config
 
         except Exception as e:
@@ -325,7 +338,13 @@ def _ensure_instructions():
 
     registry_lines = ["**KNOWLEDGE BASE REGISTRY:**", "(Format: `kb_id` | Description | Supported Versions)", ""]
     for repo_id, info in repos.items():
-        versions_list = sorted(list(info["versions"]), reverse=True)
+        versions_list = list(info["versions"])
+        try:
+            from packaging.version import parse
+            versions_list.sort(key=lambda v: parse(v.lstrip("v")), reverse=True)
+        except ImportError:
+            versions_list.sort(key=lambda v: tuple(int(p) if p.isdigit() else p for p in v.lstrip("v").split(".")), reverse=True)
+
         versions_str = ", ".join([f"`{v}`" for v in versions_list])
         registry_lines.append(f"*   `{repo_id}` | {info['description']}")
         registry_lines.append(f"    *   Versions: {versions_str}")

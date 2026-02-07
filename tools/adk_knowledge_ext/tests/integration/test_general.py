@@ -8,7 +8,7 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 # Add package source to path for testing
-PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent
+PROJECT_ROOT = Path(__file__).resolve().parents[4]
 EXT_SRC = PROJECT_ROOT / "tools" / "adk_knowledge_ext" / "src"
 sys.path.insert(0, str(EXT_SRC))
 

@@ -73,4 +73,6 @@ class ModelName(enum.StrEnum):
     
     # Warning: Using Gemini 3 may lead to inability to use quota for gemini-cli itself
     GEMINI_3_PRO_PREVIEW = "gemini-3-pro-preview"
+    
+    GEMINI_EMBEDDING_001 = "gemini-embedding-001"
 

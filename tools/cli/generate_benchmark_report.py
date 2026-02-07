@@ -8,8 +8,8 @@ synthesize an executive summary and actionable recommendations.
 
 import asyncio
 import os
-import sys
 import json
+
 import yaml
 from pathlib import Path
 from typing import List, Dict, Any, Optional
@@ -22,13 +22,9 @@ import pydantic
 from pydantic import BaseModel, Field
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 
-# Add project root to sys.path to allow imports from benchmarks when running directly
-# tools/cli/generate_benchmark_report.py -> tools/cli -> tools -> root
-project_root = str(Path(__file__).resolve().parent.parent.parent)
-if project_root not in sys.path:
-    sys.path.append(project_root)
 
 from google.genai import Client, types
+
 from core.api_key_manager import API_KEY_MANAGER, KeyType
 from benchmarks.data_models import (
     BenchmarkRunResult,

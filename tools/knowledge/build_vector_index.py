@@ -16,18 +16,35 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from core.config import RANKED_TARGETS_FILE
+from core.models import ModelName
+
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
+
+# ... imports ...
+
+@retry(
+    stop=stop_after_attempt(10),
+    wait=wait_exponential(multiplier=2, min=4, max=60),
+    reraise=True
+)
+def embed_batch_with_retry(client, batch_texts):
+    return client.models.embed_content(
+        model=ModelName.GEMINI_EMBEDDING_001,
+        contents=batch_texts,
+        config=types.EmbedContentConfig(task_type="RETRIEVAL_DOCUMENT")
+    )
 
 async def build_index(input_file: Path):
     api_key = os.environ.get("GEMINI_API_KEY")
     if not api_key:
         print("Error: GEMINI_API_KEY not found in environment.")
-        return
+        sys.exit(1)
 
     client = genai.Client(api_key=api_key)
 
     if not input_file.exists():
         print(f"Error: {input_file} not found.")
-        return
+        sys.exit(1)
 
     # Store embeddings based on input file location
     output_dir = input_file.parent
@@ -39,7 +56,7 @@ async def build_index(input_file: Path):
 
     if not targets:
         print("Error: No targets found in YAML.")
-        return
+        sys.exit(1)
 
     print(f"Indexing {len(targets)} targets into {output_dir}...")
 
@@ -71,26 +88,12 @@ async def build_index(input_file: Path):
         print(f"Embedding batch {i//batch_size + 1}/{(len(texts)-1)//batch_size + 1}...")
         
         try:
-            response = client.models.embed_content(
-                model="text-embedding-004",
-                contents=batch_texts,
-                config=types.EmbedContentConfig(task_type="RETRIEVAL_DOCUMENT")
-            )
+            response = embed_batch_with_retry(client, batch_texts)
             batch_vecs = [e.values for e in response.embeddings]
             all_embeddings.extend(batch_vecs)
         except Exception as e:
-            print(f"Warning: text-embedding-004 failed: {e}. Trying gemini-embedding-001...")
-            try:
-                response = client.models.embed_content(
-                    model="gemini-embedding-001",
-                    contents=batch_texts,
-                    config=types.EmbedContentConfig(task_type="RETRIEVAL_DOCUMENT")
-                )
-                batch_vecs = [e.values for e in response.embeddings]
-                all_embeddings.extend(batch_vecs)
-            except Exception as e2:
-                print(f"Error during embedding with fallback: {e2}")
-                return
+            print(f"Error during embedding: {e}")
+            sys.exit(1)
 
     # Save artifacts alongside the YAML
     np.save(vectors_path, np.array(all_embeddings))

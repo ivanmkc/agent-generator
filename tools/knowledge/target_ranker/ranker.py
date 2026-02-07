@@ -28,6 +28,7 @@ Target Ranker module.
 Orchestrates the scanning, ranking, and formatting of benchmark targets.
 """
 
+import yaml
 import json
 import yaml
 import os
@@ -43,15 +44,10 @@ import logging
 import subprocess
 from pathlib import Path
 from collections import defaultdict
-from typing import Optional
+from typing import Optional, Dict, List, Any, Set
 
 from tools.knowledge.target_ranker.scanner import scan_repository
 from tools.knowledge.target_ranker.models import RankedTarget, MemberInfo
-from google.adk.tools import ToolContext
-from google.adk.sessions.session import Session
-from google.adk.sessions.in_memory_session_service import InMemorySessionService
-from google.adk.agents.invocation_context import InvocationContext
-from google.adk.agents.base_agent import BaseAgent
 
 logger = logging.getLogger(__name__)
 
@@ -70,31 +66,21 @@ CONSTRUCTOR_EXCLUDED_FIELDS = {
 }
 
 
-class MockAgent(BaseAgent):
-
-    async def _run_async_impl(self, ctx: InvocationContext):
-        if False:
-            yield None
-
-
 class TargetRanker:
 
     def __init__(
         self,
         repo_path: str,
+        dependency_root: Optional[str] = None,
         namespace: str = "google.adk",
         stats_file: str = "ai/instructions/knowledge/adk_stats_samples.yaml",
+        cooccurrence_file: Optional[str] = None,
     ):
         self.repo_path = repo_path
+        self.dependency_root = dependency_root
         self.namespace = namespace
         self.stats_file = stats_file
-
-        # Define external dependencies to scan
-        # (path, namespace_prefix)
-        self.external_deps = [
-            ("env/lib/python3.13/site-packages/google/genai", "google.genai"),
-            ("env/lib/python3.13/site-packages/vertexai", "vertexai"),
-        ]
+        self.cooccurrence_file = cooccurrence_file
 
     def clean_text(self, text):
         if not text:
@@ -254,10 +240,6 @@ class TargetRanker:
                 for p in struct.get("props", []):
                     name = p["name"]
 
-                    # DEBUG
-                    # if name == "speech_config" or name == "max_llm_calls":
-                    #    print(f"[DEBUG] Prop {name}: {p}")
-
                     # 1. Check init_excluded flag (from ClassVar or Field(init=False))
                     if p.get("init_excluded"):
                         continue
@@ -287,6 +269,8 @@ class TargetRanker:
         output_md_path: Optional[str] = None,
     ):
         from core.config import RANKED_TARGETS_FILE, RANKED_TARGETS_MD
+        # Import scanner components dynamically or ensure they are available
+        from tools.knowledge.target_ranker.scanner import scan_repository, _scan_file_single
 
         output_yaml_path = output_yaml_path or str(RANKED_TARGETS_FILE)
         output_md_path = output_md_path or str(RANKED_TARGETS_MD)
@@ -294,84 +278,159 @@ class TargetRanker:
         # Ensure output directory exists
         Path(output_yaml_path).parent.mkdir(parents=True, exist_ok=True)
 
-        # Setup Context
-        session_service = InMemorySessionService()
-        session = await session_service.create_session(
-            session_id="gen_rank", user_id="ranker", app_name="ranker"
-        )
-
-        session.state["repo_path"] = self.repo_path
-        session.state["target_namespace"] = self.namespace
-        session.state["stats_file_path"] = self.stats_file
-
-        inv_context = InvocationContext(
-            invocation_id="rank_inv",
-            agent=MockAgent(name="ranker_agent"),
-            session=session,
-            session_service=session_service,
-        )
-
-        context = ToolContext(
-            invocation_context=inv_context,
-            function_call_id="rank_call",
-            event_actions=None,
-            tool_confirmation=None,
-        )
-
-        # --- Multi-pass Scanning ---
+        # --- Multi-pass Scanning (Usage-Based Discovery) ---
         all_targets = []
         all_structure = {}
         all_aliases = {}
-
-        # 1. Scan ADK Repo (Main)
+        
+        # 0. Setup Dependency Root
+        dependency_root_path = None
+        if self.dependency_root:
+            dependency_root_path = Path(self.dependency_root).resolve()
+            if str(dependency_root_path) not in sys.path:
+                logger.info(f"Adding dependency root to sys.path: {dependency_root_path}")
+                sys.path.insert(0, str(dependency_root_path))
+        
+        # 1. Scan ADK Repo (Seed)
         logger.info(f"Scanning ADK repo: {self.repo_path}...")
-        scan_repository(
-            repo_path=self.repo_path, tool_context=context, namespace=self.namespace
+        
+        # Load Usage Stats
+        usage_stats = {}
+        if self.stats_file and Path(self.stats_file).exists():
+            try:
+                with open(self.stats_file, "r") as f:
+                    usage_stats = yaml.safe_load(f)
+            except Exception as e:
+                logger.warning(f"Failed to load usage stats: {e}")
+
+        scan_result = scan_repository(
+            repo_path=self.repo_path,
+            namespace=self.namespace,
+            usage_stats=usage_stats
         )
-        if "scanned_targets" in session.state:
-            all_targets.extend(session.state["scanned_targets"])
-        if "structure_map" in session.state:
-            all_structure.update(session.state["structure_map"])
-        if "alias_map" in session.state:
-            all_aliases.update(session.state["alias_map"])
+        
+        if "scanned_targets" in scan_result:
+            all_targets.extend(scan_result["scanned_targets"])
+        if "structure_map" in scan_result:
+            all_structure.update(scan_result["structure_map"])
+        if "alias_map" in scan_result:
+            all_aliases.update(scan_result["alias_map"])
 
-        # 2. Scan External Dependencies
-        for dep_path, dep_ns in self.external_deps:
-            if os.path.exists(dep_path):
-                logger.info(f"Scanning external dependency: {dep_ns} at {dep_path}...")
-                # Clear previous scan results from state to avoid confusion (scan_repository overwrites)
-                session.state["scanned_targets"] = []
-                session.state["structure_map"] = {}
-                session.state["alias_map"] = {}
+        if not self.dependency_root:
+            logger.info("Skipping BFS Discovery: No dependency root provided.")
 
-                scan_repository(
-                    repo_path=dep_path,
-                    tool_context=context,
-                    namespace=dep_ns,
-                    root_namespace_prefix=dep_ns,
-                )
+        # 2. BFS Discovery of External Dependencies
+        if dependency_root_path and dependency_root_path.exists():
+            logger.info("Starting BFS Discovery for External Dependencies (Public API Only)...")
+            logger.info(f"Dependency Root: {dependency_root_path}")
+            logger.info(f"Sys Path includes dependency root: {str(dependency_root_path) in sys.path}")
+            
+            # Helper to extract potential external dependencies from structure
+            def get_dependencies_from_structure(struct_entry):
+                deps = set()
+                # Bases
+                for b in struct_entry.get("bases", []):
+                    deps.add(b)
+                # Decorators
+                for d in struct_entry.get("decorators", []):
+                    deps.add(d)
+                # Properties
+                for p in struct_entry.get("props", []):
+                    deps.add(p["type"])
+                # Parameters (if Method)
+                for pt in struct_entry.get("params", {}).values():
+                    deps.add(pt)
+                return deps
 
-                # Fix paths to be relative to project root
-                if "scanned_targets" in session.state and isinstance(
-                    session.state["scanned_targets"], list
-                ):
-                    for t in session.state["scanned_targets"]:
-                        if t.get("file_path"):
-                            t["file_path"] = os.path.join(dep_path, t["file_path"])
+            unique_processed_structs = set()
+            queue = list(all_structure.keys())
+            visited_files = set()
+            processed_fqns = set()
+            
+            import importlib
+            
+            logger.info(f"Initial Queue Size: {len(queue)}")
 
-                if "scanned_targets" in session.state:
-                    all_targets.extend(session.state["scanned_targets"])
-                if "structure_map" in session.state:
-                    all_structure.update(session.state["structure_map"])
-                if "alias_map" in session.state:
-                    all_aliases.update(session.state["alias_map"])
-            else:
-                logger.warning(f"External dependency path not found: {dep_path}")
+            while queue:
+                curr_fqn = queue.pop(0)
+                if curr_fqn in unique_processed_structs:
+                    continue
+                unique_processed_structs.add(curr_fqn)
+                
+                if curr_fqn not in all_structure:
+                    continue
+                struct = all_structure[curr_fqn]
+                
+                candidates = get_dependencies_from_structure(struct)
+                for cand in candidates:
+                    if cand in processed_fqns: continue
+                    processed_fqns.add(cand)
+                    
+                    if cand in all_structure: continue # Already have definition
+                    if cand in ("int", "str", "bool", "float", "list", "dict", "set", "Any", "Optional", "List"): continue
+                    
+                    # Resolve
+                    try:
+                        # Heuristic resolution loop
+                        parts = cand.split(".")
+                        obj = None
+                        found = False
+                        
+                        logger.debug(f"Attempting to resolve candidate: {cand}")
 
-        # Restore aggregated data to session state
-        session.state["scanned_targets"] = all_targets
-        session.state["structure_map"] = all_structure
-        session.state["alias_map"] = all_aliases
+                        for i in range(len(parts), 0, -1):
+                            mod_str = ".".join(parts[:i])
+                            try:
+                                mod = __import__(mod_str, fromlist=["*"])
+                                curr = mod
+                                ok = True
+                                for attr in parts[i:]:
+                                    if hasattr(curr, attr):
+                                        curr = getattr(curr, attr)
+                                    else:
+                                        ok = False; break
+                                if ok: obj = curr; found = True; break
+                            except Exception as e:
+                                # logger.debug(f"Failed import {mod_str}: {e}")
+                                continue
+                        
+                        if found and obj:
+                            try:
+                               f_path = inspect.getfile(obj)
+                               f_path_obj = Path(f_path).resolve()
+                               
+                               logger.debug(f"Resolved {cand} to {f_path_obj}")
+                               
+                               if str(dependency_root_path) in str(f_path_obj):
+                                   if f_path_obj not in visited_files:
+                                       visited_files.add(f_path_obj)
+                                       logger.info(f"Found External Dependency: {f_path_obj} (from {cand})")
+                                       # SCAN
+                                       new_entities = []
+                                       _scan_file_single(
+                                           full_path=f_path_obj,
+                                           root_dir=dependency_root_path,
+                                           root_namespace_prefix=None,
+                                           namespace=None,
+                                           usage_stats={}, 
+                                           structure_map=all_structure,
+                                           entities=new_entities,  # Pass temp list
+                                           alias_map=all_aliases
+                                       )
+                                       # Convert to dicts and add to all_targets
+                                       for new_e in new_entities:
+                                           new_d = new_e.model_dump()
+                                           all_targets.append(new_d)
+                                           queue.append(new_d["id"])
+                               else:
+                                   logger.debug(f"Ignored {cand}: Not in dependency root ({dependency_root_path})")
+                            except: pass
+                    except: pass
+
+        # Restore aggregated data to session state (REMOVED)
+        # session.state["scanned_targets"] = all_targets
+        # session.state["structure_map"] = all_structure
+        # session.state["alias_map"] = all_aliases
 
         targets_data = all_targets
         structure_map = all_structure
@@ -381,9 +440,7 @@ class TargetRanker:
         canonical_to_aliases = defaultdict(list)
         for alias, canonical in alias_map.items():
             canonical_to_aliases[canonical].append(alias)
-
-        logger.info(f"Total targets scanned: {len(targets_data)}")
-
+            
         # Inheritance Resolution
         logger.info("Resolving inheritance...")
         adk_inheritance = defaultdict(list)
@@ -415,14 +472,14 @@ class TargetRanker:
                     external_bases[cls_fqn].append(base)
 
         # Ranking
-        cooccurrence_path = Path("ai/instructions/knowledge/adk_cooccurrence.json")
+        cooccurrence_path = Path("ai/instructions/knowledge/adk_cooccurrence.yaml")
         entity_map = {t["id"]: t for t in targets_data}
 
         # Load co-occurrence if exists
         associations = []
         if cooccurrence_path.exists():
             with open(cooccurrence_path, "r") as f:
-                cooccurrence_data = json.load(f)
+                cooccurrence_data = yaml.safe_load(f)
                 associations = cooccurrence_data.get("associations", [])
 
         graph = defaultdict(list)
@@ -512,17 +569,17 @@ class TargetRanker:
 
                 # Inherited Members (ADK)
                 ancestors = []
-                queue = [tid]
+                queue_anc = [tid]
                 seen_ancestors = {tid}
 
-                while queue:
-                    curr = queue.pop(0)
+                while queue_anc:
+                    curr = queue_anc.pop(0)
                     parents = adk_inheritance.get(curr, [])
                     for p in parents:
                         if p not in seen_ancestors:
                             seen_ancestors.add(p)
                             ancestors.append(p)
-                            queue.append(p)
+                            queue_anc.append(p)
 
                 if ancestors:
                     inherited_methods_dict = {}
@@ -586,6 +643,7 @@ class TargetRanker:
                 )
 
         logger.info("Running integrity verification...")
+        passed = True  # Initialize to True
         try:
             # 1. Structural Integrity
             result = subprocess.run(
@@ -601,12 +659,13 @@ class TargetRanker:
             )
 
             # 2. Tool Logic Verification (Integration Test)
+            # Updated to point to the correct integration test location
             result_tools = subprocess.run(
                 [
                     sys.executable,
                     "-m",
                     "pytest",
-                    "tools/adk-knowledge-ext/tests/test_integration.py",
+                    "tools/adk_knowledge_ext/tests/integration/test_tools_e2e.py",
                 ],
                 capture_output=True,
                 text=True,
@@ -626,8 +685,6 @@ class TargetRanker:
                 check=False,
             )
 
-            passed = True
-
             if result.returncode == 0:
                 logger.info("✅ Structural integrity check passed.")
             else:
@@ -639,9 +696,20 @@ class TargetRanker:
             if result_tools.returncode == 0:
                 logger.info("✅ Tool logic verification passed.")
             else:
-                # passed = False # Don't fail the build for tool logic yet as it requires setup
-                logger.warning("⚠️ Tool logic verification failed (check logs).")
-                logger.warning(result_tools.stderr)
+                passed = False
+                logger.error("❌ Tool logic verification failed!")
+                logger.error(result_tools.stderr)
+
+            if result_aliases.returncode == 0:
+                logger.info("✅ Alias identity verification passed.")
+            else:
+                passed = False
+                logger.error("❌ Alias identity verification failed!")
+                logger.error(result_aliases.stdout)
+                logger.error(result_aliases.stderr)
+            
+            if not passed:
+                raise RuntimeError("Integrity verification failed. See logs for details.")
 
             if result_aliases.returncode == 0:
                 logger.info("✅ Alias identity verification passed.")

@@ -17,9 +17,9 @@
 import argparse
 import asyncio
 import os
-import sys
 import time
 import json
+
 import shutil
 from datetime import datetime
 from pathlib import Path
@@ -28,10 +28,9 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Add project root to sys.path
-sys.path.append(str(Path(__file__).parent.parent.parent))
 
 import pydantic
+
 import pandas as pd
 
 from benchmarks import benchmark_orchestrator

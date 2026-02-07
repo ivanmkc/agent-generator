@@ -1,10 +1,9 @@
 repositories:
-  google/adk-python:
-    description: "Google Agent Development Kit (ADK) for Python"
-    repo_url: "https://github.com/google/adk-python.git"
-    default_version: "v1.23.0"
+  test/repo:
+    repo_url: file:///private/var/folders/nh/n7l064rj4wx0z7jsyr5q4wtc00rmmq/T/tmp2ft66kcq/main_repo
+    description: Test E2E Dynamic Mode
+    sample_repos:
+    - file:///private/var/folders/nh/n7l064rj4wx0z7jsyr5q4wtc00rmmq/T/tmp2ft66kcq/sample_1
     versions:
-      v1.20.0:
-        index_url: "https://raw.githubusercontent.com/ivanmkc/agent-generator/mcp_server/benchmarks/generator/benchmark_generator/data/ranked_targets.yaml"
-      v1.23.0:
-        index_url: "indices/google-adk-python-v1.23.0.yaml"
+      v1.0.0:
+        index_url: indices/test-repo/v1.0.0/ranked_targets.yaml
