@@ -65,6 +65,7 @@ async def test_manage_registry_dynamic_cooccurrence_e2e(monkeypatch):
         
         # Also redirect the INDICES_DIR sandbox
         monkeypatch.setattr(manage_registry, "INDICES_DIR", root_path / "indices")
+        monkeypatch.setattr(manage_registry, "save_registry", lambda r: None)
         
         registry = Registry(
             repositories={
