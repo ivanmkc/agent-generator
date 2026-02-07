@@ -12,36 +12,8 @@ PROJECT_ROOT = Path(__file__).resolve().parents[4]
 EXT_SRC = PROJECT_ROOT / "tools" / "adk_knowledge_ext" / "src"
 sys.path.insert(0, str(EXT_SRC))
 
-# Mock dependencies before import
-mock_mcp = MagicMock()
-
-
-def mock_tool_decorator(*args, **kwargs):
-    def decorator(func):
-        return func
-
-    return decorator
-
-
-mock_mcp.tool.side_effect = mock_tool_decorator
-
-# Apply patches to sys.modules specifically for the import of adk_knowledge_ext
-# This prevents polluting sys.modules for subsequent tests that need the real 'mcp'
-with patch.dict(sys.modules, {
-    "mcp": MagicMock(),
-    "mcp.server": MagicMock(),
-    "mcp.server.fastmcp": MagicMock(),
-}):
-    # Configure the mock return value
-    sys.modules["mcp.server.fastmcp"].FastMCP.return_value = mock_mcp
-    
-    # Import the modules under test
-    from adk_knowledge_ext import server, index
-
-# At this point, sys.modules is restored (mcp is removed), 
-# but 'server' and 'index' variables still point to the loaded modules 
-# which hold references to the mocks. This is what we want.
-
+# Just import normally
+from adk_knowledge_ext import server, index
 
 def test_nested_symbol_lookup():
     """Reproduces the bug where nested symbols fail."""
@@ -84,7 +56,6 @@ def test_nested_symbol_lookup():
 
         assert "def send_history(self, history):" in result_read
         assert "class BaseLlmConnection" in result_read
-
 
 
 def test_real_index_integrity():

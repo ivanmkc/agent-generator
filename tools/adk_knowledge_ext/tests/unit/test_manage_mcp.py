@@ -435,7 +435,16 @@ def run_debug_with_env(runner, config_path):
         patch.dict(manage_mcp.IDE_CONFIGS, {"TestIDE": mock_ide_config}, clear=True),
         patch("adk_knowledge_ext.manage_mcp._is_mcp_configured", return_value=True),
     ):
-        result = runner.invoke(manage_mcp.debug)
+        import os
+        from pathlib import Path
+        env = os.environ.copy()
+        pkg_src = str(Path(__file__).parents[3] / "src")
+        if "PYTHONPATH" in env:
+            env["PYTHONPATH"] = f"{pkg_src}:{env['PYTHONPATH']}"
+        else:
+            env["PYTHONPATH"] = pkg_src
+        
+        result = runner.invoke(manage_mcp.debug, env=env)
         
     return strip_ansi(result.output)
 
