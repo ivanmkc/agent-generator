@@ -438,7 +438,12 @@ def run_debug_with_env(runner, config_path):
         import os
         from pathlib import Path
         env = os.environ.copy()
-        pkg_src = str(Path(__file__).parents[3] / "src")
+        
+        # In tests, we need the exact location of adk_knowledge_ext src
+        import adk_knowledge_ext
+        import os.path
+        pkg_src = os.path.dirname(os.path.dirname(os.path.abspath(adk_knowledge_ext.__file__)))
+
         if "PYTHONPATH" in env:
             env["PYTHONPATH"] = f"{pkg_src}:{env['PYTHONPATH']}"
         else:
