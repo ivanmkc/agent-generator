@@ -1,0 +1,15 @@
+benchmarks:
+- answers:
+  - answer: BaseAgent
+    answer_template: StringMatchAnswer
+    fully_qualified_class_name:
+    - google.adk.agents.base_agent.BaseAgent
+    - google.adk.agents.BaseAgent
+  benchmark_type: api_understanding
+  category: Core Class Signatures & Initialization
+  file: src/google/adk/agents/base_agent.py
+  id: api_understanding:what_is_the_foundational_class_for_all_agents_in_t
+  question: What is the foundational class for all agents in the ADK?
+  rationale: All agents must inherit from `google.adk.agents.base_agent.BaseAgent`,
+    which provides the core interface for execution and configuration.
+  template: identifier

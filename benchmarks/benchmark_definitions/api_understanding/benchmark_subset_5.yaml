@@ -1,0 +1,68 @@
+benchmarks:
+- id: api_understanding:what_is_the_foundational_class_for_all_agents_in_t
+  category: Core Class Signatures & Initialization
+  question: What is the foundational class for all agents in the ADK?
+  rationale: All agents must inherit from `google.adk.agents.base_agent.BaseAgent`, which provides the core interface for execution and configuration.
+  benchmark_type: api_understanding
+  template: identifier
+  answers:
+  - answer_template: StringMatchAnswer
+    answer: BaseAgent
+    fully_qualified_class_name:
+    - google.adk.agents.base_agent.BaseAgent
+    - google.adk.agents.BaseAgent
+  file: src/google/adk/agents/base_agent.py
+- id: api_understanding:what_is_the_mandatory_parameter_required_by_the_ba
+  category: Core Class Signatures & Initialization
+  question: What is the mandatory parameter required by the `BaseAgent` constructor?
+  rationale: Every agent must be initialized with a unique `name` (string) parameter.
+  benchmark_type: api_understanding
+  template: identifier
+  answers:
+  - answer_template: StringMatchAnswer
+    answer: name
+    fully_qualified_class_name:
+    - google.adk.agents.base_agent.BaseAgent
+    - google.adk.agents.BaseAgent
+    - google.adk.agents.base_agent_config.BaseAgentConfig
+  file: src/google/adk/agents/base_agent.py
+- id: api_understanding:which_class_is_used_to_define_a_sequence_of_agents
+  category: Core Class Signatures & Initialization
+  question: Which class is used to define a sequence of agents that run in order?
+  rationale: The `SequentialAgent` is used to define a series of `sub_agents` that will be executed one after another in the order they are provided.
+  benchmark_type: api_understanding
+  template: identifier
+  answers:
+  - answer_template: StringMatchAnswer
+    answer: SequentialAgent
+    fully_qualified_class_name:
+    - google.adk.agents.sequential_agent.SequentialAgent
+    - google.adk.agents.SequentialAgent
+    - google.adk.agents.sequential_agent_config.SequentialAgentConfig
+  file: src/google/adk/agents/sequential_agent.py
+- id: api_understanding:which_class_is_the_primary_entry_point_for_running
+  category: Core Class Signatures & Initialization
+  question: Which class is the primary entry point for running an agent and managing the execution loop?
+  rationale: The `google.adk.runners.Runner` class is the primary entry point for running an agent. It manages the execution loop and interaction with services.
+  benchmark_type: api_understanding
+  template: identifier
+  answers:
+  - answer_template: StringMatchAnswer
+    answer: Runner
+    fully_qualified_class_name:
+    - google.adk.runners.Runner
+    - google.adk.Runner
+  file: src/google/adk/runners.py
+- id: api_understanding:what_is_the_core_interface_for_all_llm_integration
+  category: Core Class Signatures & Initialization
+  question: What is the core interface for all LLM integrations?
+  rationale: All model wrappers must implement the `BaseLlm` abstract class, which defines the common interface for generating content.
+  benchmark_type: api_understanding
+  template: identifier
+  answers:
+  - answer_template: StringMatchAnswer
+    answer: BaseLlm
+    fully_qualified_class_name:
+    - google.adk.models.base_llm.BaseLlm
+    - google.adk.models.BaseLlm
+  file: src/google/adk/models/base_llm.py

@@ -264,9 +264,20 @@ class AdkTools:
         command: str | List[str],
         dir_path: Optional[str] = None,
         extra_env: Optional[Any] = None,
+        description: Optional[str] = None,
+        **kwargs: Any,
     ) -> str:
-        """Executes a shell command in the workspace asynchronously."""
+        """
+        Executes a shell command in the workspace asynchronously.
+        
+        Args:
+            command: The command to run.
+            dir_path: Optional working directory.
+            extra_env: Optional environment variables.
+            description: Optional natural language description of the command's purpose (for logging).
+        """
         try:
+            # kwargs like 'description' are ignored by the actual execution but allow the model to provide context.
             env = os.environ.copy()
             if self.venv_path:
                 venv_bin = self.venv_path / "bin"

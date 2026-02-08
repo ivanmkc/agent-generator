@@ -1,0 +1,16 @@
+benchmarks:
+- answers:
+  - answer: Runner
+    answer_template: StringMatchAnswer
+    fully_qualified_class_name:
+    - google.adk.runners.Runner
+    - google.adk.Runner
+  benchmark_type: api_understanding
+  category: Core Class Signatures & Initialization
+  file: src/google/adk/runners.py
+  id: api_understanding:which_class_is_the_primary_entry_point_for_running
+  question: Which class is the primary entry point for running an agent and managing
+    the execution loop?
+  rationale: The `google.adk.runners.Runner` class is the primary entry point for
+    running an agent. It manages the execution loop and interaction with services.
+  template: identifier

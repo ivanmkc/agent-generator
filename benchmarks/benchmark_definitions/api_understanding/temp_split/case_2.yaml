@@ -1,0 +1,16 @@
+benchmarks:
+- answers:
+  - answer: SequentialAgent
+    answer_template: StringMatchAnswer
+    fully_qualified_class_name:
+    - google.adk.agents.sequential_agent.SequentialAgent
+    - google.adk.agents.SequentialAgent
+    - google.adk.agents.sequential_agent_config.SequentialAgentConfig
+  benchmark_type: api_understanding
+  category: Core Class Signatures & Initialization
+  file: src/google/adk/agents/sequential_agent.py
+  id: api_understanding:which_class_is_used_to_define_a_sequence_of_agents
+  question: Which class is used to define a sequence of agents that run in order?
+  rationale: The `SequentialAgent` is used to define a series of `sub_agents` that
+    will be executed one after another in the order they are provided.
+  template: identifier

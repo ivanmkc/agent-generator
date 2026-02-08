@@ -1,0 +1,12 @@
+benchmarks:
+- id: configure_adk_features_mc:you_need_to_inspect_an_event_object_which_import_a
+  question: You need to inspect an `Event` object. Which import allows you to reference the `Event` class for type hinting?
+  options:
+    A: from google.adk.types import Event
+    B: from google.adk.event import Event
+    C: from google.adk.models import Event
+    D: from google.adk.core.events import Event
+    E: None of the above
+  correct_answer: E
+  explanation: The correct import is `from google.adk.events.event import Event`.
+  benchmark_type: multiple_choice

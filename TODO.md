@@ -34,11 +34,11 @@ TODO
 - [ ] Rename adk_knowledge_ext to something more fitting
 
 ## Benchmark Case Reviews & Fixes
-- [ ] **Predict Runtime Behavior Review:** `predict_runtime_behaviour` cases with `code_snippet_ref` need manual review for validity.
-- [x] **Duplicate Name Check:** Verified `predict_runtime_behavior_mc:duplicate_agent_name` matches `validate_sub_agents_unique_names` behavior (warning logged, no error raised).
-- [x] **Event Extra Fields:** Verified `predict_runtime_behavior_mc:event_extra_fields_error` matches code (Pydantic forbids extra fields).
-- [x] **Tool Injection Ambiguity:** Improved `predict_runtime_behavior_mc:tool_session_id_injection` by clarifying options and explanation.
-- [x] **Custom Agent Sub-agents:** Enforced strict `sub_agents` registration in `fix_errors:08_custom_agent` by updating the test assertions.
+- [x] **Predict Runtime Behavior Review:** `predict_runtime_behaviour` cases with `code_snippet_ref` reviewed for validity.
+- [x] **Duplicate Name Check:** Verified `predict_runtime_behavior_mc:duplicate_agent_name` matches `validate_sub_agents_unique_names` behavior (warning).
+- [x] **Event Extra Fields:** Verified `predict_runtime_behavior_mc:event_extra_fields_error`.
+- [x] **Tool Injection Ambiguity:** Improved `predict_runtime_behavior_mc:tool_session_id_injection` by making C the correct answer and clarifying the explanation.
+- [x] **Custom Agent Sub-agents:** Verified `fix_errors:08_custom_agent` correctly passes `sub_agents` to `CustomConditionalAgent` in the gold implementation.
 
 ## Codebase Maintenance
 - [ ] **Notebook CI:** Add a CI step (or pre-commit hook) to run `papermill` on visualization notebooks with dummy data to prevent regressions.
@@ -47,6 +47,28 @@ TODO
 - [ ] **Index Automation:** Create a script to rebuild `ranked_targets.yaml` for the latest `adk-python` release and update the registry. See `ai/instructions/design_docs/mcp_server/index_automation.md`.
 - [ ] **Registry Automation:** Implement `tools/manage_registry.py` based on `ai/instructions/design_docs/mcp_server/registry_architecture.md`.
 
+# On Hold (do not start)
+
+## 1. Generate a notebook that analyzes the percentage cumulative usage of ranked_targets.yaml. I want to know how many items to return on first page which will capture (>99% of usage).
+
+## 2. Vector Search for Ranked Targets (`docs/design_docs/vector_search_ranked_targets.md`)
+- [x] **Implementation:**
+    - [x] Create `tools/build_vector_index.py` to embed `ranked_targets.yaml`.
+    - [x] Implement `VectorSearchProvider` in `AdkTools`.
+    - [x] Integrate into `search_ranked_targets` (Hybrid BM25 + Vector).
+- [x] **Verification:**
+    - [x] Add `benchmark_definitions/search_relevance` to test semantic queries.
+
+## 3. Synthetic Retrieval Dataset (`docs/design_docs/synthetic_retrieval_dataset.md`)
+- [ ] **Verification:**
+    - [ ] Run the whole pipeline again on the latest dataset and ensure convergence works as expected.
+
+## 4. Question Quality Verifier (`docs/design_docs/question_quality_verifier.md`)
+- [x] **Implementation:**
+    - [x] Create `tools/verify_benchmarks.py` script.
+    - [x] Implement `VerifierAgent` using `AdkAnswerGenerator` (in `benchmarks/answer_generators/verifier_agents.py`).
+    - [x] Create a loop to run verification on all cases in `benchmarks/benchmark_definitions` (in `tools/verify_benchmarks.py`).
+    - [x] Generate `quality_report.md` (in `tools/verify_benchmarks.py`).
 
 # Completed
 

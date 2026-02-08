@@ -1,0 +1,23 @@
+benchmarks:
+- id: configure_adk_features_mc:which_is_the_correct_import_statement_for_the_runn
+  question: Which is the correct import statement for the `Runner` class?
+  options:
+    A: from google.adk.runners import Runner
+    B: from google.adk.agent_runner import Runner
+    C: from google.adk.factory import Runner
+    D: from google.adk.core import Runner
+    E: None of the above
+  correct_answer: A
+  explanation: '`Runner` is defined in `google.adk.runners` (and re-exported in `google.adk`).'
+  benchmark_type: multiple_choice
+- id: configure_adk_features_mc:when_calling_runner_run_async_which_parameter_is_u
+  question: When calling `runner.run_async()`, which parameter is used to pass the user's input message?
+  options:
+    A: message
+    B: input
+    C: new_message
+    D: content
+    E: None of the above
+  correct_answer: C
+  explanation: The parameter `new_message` is used to pass the user's input content.
+  benchmark_type: multiple_choice
