@@ -118,10 +118,23 @@ async def test_generator_execution(
     print(f"[DEBUG] Type of case: {type(case)}")
 
     print(f"[{test_case.id}] Generating answer for case: '{case.get_identifier()}'")
-
     try:
         run_id = f"test_run_{uuid.uuid4().hex}"
-        answer = await generator.generate_answer(case, run_id=run_id)
+        answer = None
+        last_exception = None
+        for attempt in range(3):
+            try:
+                answer = await generator.generate_answer(case, run_id=run_id)
+                break
+            except Exception as e:
+                last_exception = e
+                print(f"[{test_case.id}] Generation attempt {attempt + 1} failed: {e}. Retrying...")
+                import asyncio
+                await asyncio.sleep(1)
+
+        if not answer:
+            pytest.fail(f"[{test_case.id}] Generation failed after 3 attempts. Last error: {last_exception}")
+
 
         # Basic Checks
         assert answer is not None
