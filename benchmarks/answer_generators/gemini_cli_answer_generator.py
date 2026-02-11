@@ -327,7 +327,11 @@ class GeminiCliAnswerGenerator(GeminiAnswerGenerator):
             ext_res, _ = await self.run_cli_command(
                 [self.cli_path, "extensions", "list"]
             )
-            for line in ext_res.get("stdout", "").splitlines():
+            
+            combined_output = ext_res.get("stdout", "") + "\n" + ext_res.get("stderr", "")
+            for line in combined_output.splitlines():
+
+
                 # 1. Strip ANSI first so we can reliably check indentation
                 clean_line = self._strip_ansi(line)
 

@@ -20,6 +20,5 @@ RUN uvx --from /app/extensions/adk-knowledge-ext \
     codebase-knowledge-mcp-manage setup \
     --kb-ids "adk-python-v1.20.0" \
     --local "/app/extensions/adk-knowledge-ext" \
-    --quiet && \
-    rm -rf /app/extensions/adk-knowledge-ext
+    --quiet
 
