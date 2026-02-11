@@ -1,270 +1,270 @@
 {
-  "version": "2.0.0",
-  "tasks": [
-    {
-      "label": "Run All Benchmarks",
-      "type": "shell",
-      "command": "./tools/cli/run_benchmarks.sh",
-      "group": "test",
-      "presentation": {
-        "reveal": "always",
-        "panel": "new"
-      },
-      "problemMatcher": [],
-      "detail": "Executes the full set of benchmarks and saves results to a timestamped directory."
-    },
-    {
-      "label": "Run Debug Benchmark",
-      "type": "shell",
-      "command": "./tools/cli/run_benchmarks.sh --suite-filter debug",
-      "group": "test",
-      "presentation": {
-        "reveal": "always",
-        "panel": "new"
-      },
-      "problemMatcher": [],
-      "detail": "Executes only the debug benchmark suite for rapid testing."
-    },
-    {
-      "label": "Run ADK Benchmarks: fix_error suite only",
-      "type": "shell",
-      "command": "./tools/cli/run_benchmarks.sh --generator-filter ADK_ --suite-filter fix_error",
-      "group": "test",
-      "presentation": {
-        "reveal": "always",
-        "panel": "new"
-      },
-      "problemMatcher": [],
-      "detail": "Executes benchmarks for pure Python ADK-based agents (ADK_ prefix)."
-    },
-    {
-      "label": "Run ADK Benchmarks: api_understanding suite only",
-      "type": "shell",
-      "command": "./tools/cli/run_benchmarks.sh --generator-filter ADK_ --suite-filter api_understanding",
-      "group": "test",
-      "presentation": {
-        "reveal": "always",
-        "panel": "new"
-      },
-      "problemMatcher": [],
-      "detail": "Executes benchmarks for API Understanding suite only."
-    },
-    {
-      "label": "Run GeminiCliPodman Benchmarks: All suites",
-      "type": "shell",
-      "command": "./tools/cli/run_benchmarks.sh --generator-filter GeminiCliPodman",
-      "group": "test",
-      "presentation": {
-        "reveal": "always",
-        "panel": "new"
-      },
-      "problemMatcher": [],
-      "detail": "Executes benchmarks for all ADK-based agents."
-    },
-    {
-      "label": "Run Debug ADK Benchmark",
-      "type": "shell",
-      "command": "./tools/cli/run_benchmarks.sh --suite-filter debug --generator-filter ADK_",
-      "group": "test",
-      "presentation": {
-        "reveal": "always",
-        "panel": "new"
-      },
-      "problemMatcher": [],
-      "detail": "Executes only the debug benchmark suite for ADK-based agents."
-    },
-    {
-      "label": "Regenerate Generator Internals Docs",
-      "type": "shell",
-      "command": "env/bin/python -m tools.cli.update_docs",
-      "group": "build",
-      "presentation": {
-        "reveal": "always",
-        "panel": "shared"
-      },
-      "problemMatcher": [],
-      "detail": "Updates benchmarks/generator_internals.md based on current code definitions."
-    },
-    {
-      "label": "Run All Tests",
-      "type": "shell",
-      "command": "env/bin/python -m pytest -n auto -v benchmarks/ tools/ --import-mode=importlib",
-      "group": "test",
-      "presentation": {
-        "reveal": "always",
-        "panel": "new"
-      },
-      "problemMatcher": [],
-      "detail": "Runs all pytest tests located in the benchmarks and tools directories."
-    },
-    {
-      "label": "Unit/Integration Tests",
-      "type": "shell",
-      "command": "env/bin/python -m pytest -n auto -v --import-mode=importlib benchmarks/tests/unit/ benchmarks/tests/integration/",
-      "group": "test",
-      "presentation": {
-        "reveal": "always",
-        "panel": "new"
-      },
-      "problemMatcher": [],
-      "detail": "Runs only the unit and integration tests, excluding other test files."
-    },
-    {
-      "label": "Integration Test: Unified Generators",
-      "type": "shell",
-      "command": "env/bin/python benchmarks/tests/integration/test_unified_generators.py",
-      "group": "test",
-      "presentation": {
-        "reveal": "always",
-        "panel": "new"
-      },
-      "problemMatcher": [],
-      "detail": "Runs the specific integration test for unified generators."
-    },
-    {
-      "label": "Integration Test: ADK-based Generators",
-      "type": "shell",
-      "command": "env/bin/python -m pytest -v --import-mode=importlib benchmarks/tests/integration/test_unified_generators.py -k \"structured_workflow_adk_test_case or workflow_adk_test_case or adk_agent_test_case\"",
-      "group": "test",
-      "presentation": {
-        "reveal": "always",
-        "panel": "new"
-      },
-      "problemMatcher": [],
-      "detail": "Runs unified integration tests, filtered for ADK-based generators."
-    },
-    {
-      "label": "Profile Integration Tests",
-      "type": "shell",
-      "command": "env/bin/python -m pytest --profile --import-mode=importlib benchmarks/tests/integration/",
-      "group": "test",
-      "presentation": {
-        "reveal": "always",
-        "panel": "new"
-      },
-      "problemMatcher": [],
-      "detail": "Runs integration tests with profiling enabled."
-    },
-    {
-      "label": "Rebuild Docker Images using Podman (Local)",
-      "type": "shell",
-      "command": "env/bin/python -m tools.cli.rebuild_images",
-      "group": "build",
-      "presentation": {
-        "reveal": "always",
-        "panel": "new"
-      },
-      "problemMatcher": [],
-      "detail": "Rebuilds all local Gemini CLI Docker images using Podman."
-    },
-    {
-      "label": "Viewer",
-      "type": "shell",
-      "command": "env/bin/python -m streamlit run tools/viewer/view_benchmarks.py",
-      "options": {
-        "cwd": "${workspaceFolder}"
-      },
-      "group": {
-        "kind": "build",
-        "isDefault": false
-      },
-      "problemMatcher": [],
-      "detail": "Starts the Streamlit app to view benchmark results and history."
-    },
-    {
-      "label": "Run VibeShare Analysis & Visualization",
-      "type": "shell",
-      "command": "env/bin/python -m vibeshare.analyze_vibeshare && env/bin/python -m papermill vibeshare/visualization.ipynb vibeshare/visualization.ipynb",
-      "group": "test",
-      "presentation": {
-        "reveal": "always",
-        "panel": "new"
-      },
-      "problemMatcher": [],
-      "detail": "Runs VibeShare analysis and updates the visualization notebook in-place."
-    },
-    {
-      "label": "Index Co-occurrence Data",
-      "type": "shell",
-      "command": "env/bin/python tools/knowledge/run_cooccurrence_indexing.py --repo-paths ../adk-python/contributing/samples ../adk-python/tests/integration --output ai/instructions/knowledge/adk_cooccurrence.json",
-      "group": "build",
-      "presentation": {
-        "reveal": "always",
-        "panel": "shared"
-      },
-      "problemMatcher": [],
-      "detail": "Generates the co-occurrence matrix from local adk-python integration tests and samples."
-    },
-    {
-      "label": "Recalculate API Usage Stats",
-      "type": "shell",
-      "command": "env/bin/python tools/knowledge/run_api_indexing.py --config indexer_config_comprehensive.yaml --output ai/instructions/knowledge/adk_stats_samples.yaml",
-      "group": "build",
-      "presentation": {
-        "reveal": "always",
-        "panel": "shared"
-      },
-      "problemMatcher": [],
-      "detail": "Regenerates usage frequency stats for ADK APIs using local tests and samples."
-    },
-    {
-      "label": "Regenerate Codebase Knowledge (Targets & Embeddings)",
-      "type": "shell",
-      "command": "PYTHONPATH=. env/bin/python tools/knowledge/target_ranker/run_ranker.py && PYTHONPATH=. env/bin/python tools/knowledge/build_vector_index.py",
-      "group": "build",
-      "presentation": {
-        "reveal": "always",
-        "panel": "shared"
-      },
-      "problemMatcher": [],
-      "detail": "Regenerates ranked_targets.yaml and builds the semantic vector embeddings (.npy)."
-    },
-    {
-      "label": "Check Registry Updates",
-      "type": "shell",
-      "command": "env/bin/python -m tools.cli.manage_registry update",
-      "group": "build",
-      "presentation": {
-        "reveal": "always",
-        "panel": "shared"
-      },
-      "problemMatcher": [],
-      "detail": "Interactively checks and installs updates for registered repositories."
-    },
-    {
-      "label": "Agentic: Generate Execution MCQ (Gemini 3 Pro)",
-      "type": "shell",
-      "command": "PYTHONPATH=. env/bin/python benchmarks/generator/benchmark_generator/run_generator.py --type agentic_adk --output-dir benchmarks/benchmark_definitions/agentic_generated --model-name gemini-3-pro-preview --repo-path ../adk-python --concurrency 3 --session-db data/agentic_sessions.db --namespace google.adk --cooccurrence-file ai/instructions/knowledge/adk_cooccurrence.json --mode execution_mcq",
-      "group": "build",
-      "presentation": {
-        "reveal": "always",
-        "panel": "shared"
-      },
-      "problemMatcher": [],
-      "detail": "Generates repository-specific execution benchmarks using Gemini 3 Pro (High Quality)."
-    },
-    {
-      "label": "Generate Executive Report (Latest Run)",
-      "type": "shell",
-      "command": "export PYTHONPATH=$PYTHONPATH:. && env/bin/python tools/cli/generate_benchmark_report.py --model-name gemini-3-pro-preview",
-      "group": "build",
-      "presentation": {
-        "reveal": "always",
-        "panel": "shared"
-      },
-      "problemMatcher": [],
-      "detail": "Generates a comprehensive log_analysis.md using Map-Reduce LLM analysis."
-    },
-    {
-      "label": "Maintain Knowledge Base",
-      "dependsOn": [
-        "Check Registry Updates",
-        "Regenerate Codebase Knowledge (Targets & Embeddings)"
-      ],
-      "dependsOrder": "sequence",
-      "group": "build",
-      "problemMatcher": [],
-      "detail": "Serially checks for registry updates and then regenerates local codebase knowledge."
-    }
-  ]
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Run All Benchmarks",
+            "type": "shell",
+            "command": "./tools/cli/run_benchmarks.sh",
+            "group": "test",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": [],
+            "detail": "Executes the full set of benchmarks and saves results to a timestamped directory."
+        },
+        {
+            "label": "Run Debug Benchmark",
+            "type": "shell",
+            "command": "./tools/cli/run_benchmarks.sh --suite-filter debug",
+            "group": "test",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": [],
+            "detail": "Executes only the debug benchmark suite for rapid testing."
+        },
+        {
+            "label": "Run ADK Benchmarks: fix_error suite only",
+            "type": "shell",
+            "command": "./tools/cli/run_benchmarks.sh --generator-filter ADK_ --suite-filter fix_error",
+            "group": "test",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": [],
+            "detail": "Executes benchmarks for pure Python ADK-based agents (ADK_ prefix)."
+        },
+        {
+            "label": "Run ADK Benchmarks: api_understanding suite only",
+            "type": "shell",
+            "command": "./tools/cli/run_benchmarks.sh --generator-filter ADK_ --suite-filter api_understanding",
+            "group": "test",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": [],
+            "detail": "Executes benchmarks for API Understanding suite only."
+        },
+        {
+            "label": "Run GeminiCliPodman Benchmarks: All suites",
+            "type": "shell",
+            "command": "./tools/cli/run_benchmarks.sh --generator-filter GeminiCliPodman",
+            "group": "test",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": [],
+            "detail": "Executes benchmarks for all ADK-based agents."
+        },
+        {
+            "label": "Run Debug ADK Benchmark",
+            "type": "shell",
+            "command": "./tools/cli/run_benchmarks.sh --suite-filter debug --generator-filter ADK_",
+            "group": "test",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": [],
+            "detail": "Executes only the debug benchmark suite for ADK-based agents."
+        },
+        {
+            "label": "Regenerate Generator Internals Docs",
+            "type": "shell",
+            "command": "uv run python -m tools.cli.update_docs",
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            },
+            "problemMatcher": [],
+            "detail": "Updates benchmarks/generator_internals.md based on current code definitions."
+        },
+        {
+            "label": "Run All Tests",
+            "type": "shell",
+            "command": "uv run pytest -n auto -v benchmarks/ tools/ --import-mode=importlib",
+            "group": "test",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": [],
+            "detail": "Runs all pytest tests located in the benchmarks and tools directories."
+        },
+        {
+            "label": "Unit/Integration Tests",
+            "type": "shell",
+            "command": "uv run pytest -n auto -v --import-mode=importlib benchmarks/tests/unit/ benchmarks/tests/integration/",
+            "group": "test",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": [],
+            "detail": "Runs only the unit and integration tests, excluding other test files."
+        },
+        {
+            "label": "Integration Test: Unified Generators",
+            "type": "shell",
+            "command": "uv run pytest benchmarks/tests/integration/test_unified_generators.py",
+            "group": "test",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": [],
+            "detail": "Runs the specific integration test for unified generators."
+        },
+        {
+            "label": "Integration Test: ADK-based Generators",
+            "type": "shell",
+            "command": "uv run pytest -v --import-mode=importlib benchmarks/tests/integration/test_unified_generators.py -k \"structured_workflow_adk_test_case or workflow_adk_test_case or adk_agent_test_case\"",
+            "group": "test",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": [],
+            "detail": "Runs unified integration tests, filtered for ADK-based generators."
+        },
+        {
+            "label": "Profile Integration Tests",
+            "type": "shell",
+            "command": "uv run pytest --profile --import-mode=importlib benchmarks/tests/integration/",
+            "group": "test",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": [],
+            "detail": "Runs integration tests with profiling enabled."
+        },
+        {
+            "label": "Rebuild Docker Images using Podman (Local)",
+            "type": "shell",
+            "command": "uv run python -m tools.cli.rebuild_images",
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": [],
+            "detail": "Rebuilds all local Gemini CLI Docker images using Podman."
+        },
+        {
+            "label": "Viewer",
+            "type": "shell",
+            "command": "uv run python -m streamlit run tools/viewer/view_benchmarks.py",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            },
+            "problemMatcher": [],
+            "detail": "Starts the Streamlit app to view benchmark results and history."
+        },
+        {
+            "label": "Run VibeShare Analysis & Visualization",
+            "type": "shell",
+            "command": "uv run python -m vibeshare.analyze_vibeshare && uv run python -m papermill vibeshare/visualization.ipynb vibeshare/visualization.ipynb",
+            "group": "test",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": [],
+            "detail": "Runs VibeShare analysis and updates the visualization notebook in-place."
+        },
+        {
+            "label": "Index Co-occurrence Data",
+            "type": "shell",
+            "command": "uv run python tools/knowledge/run_cooccurrence_indexing.py --repo-paths ../adk-python/contributing/samples ../adk-python/tests/integration --output ai/instructions/knowledge/adk_cooccurrence.json",
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            },
+            "problemMatcher": [],
+            "detail": "Generates the co-occurrence matrix from local adk-python integration tests and samples."
+        },
+        {
+            "label": "Recalculate API Usage Stats",
+            "type": "shell",
+            "command": "uv run python tools/knowledge/run_api_indexing.py --config indexer_config_comprehensive.yaml --output ai/instructions/knowledge/adk_stats_samples.yaml",
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            },
+            "problemMatcher": [],
+            "detail": "Regenerates usage frequency stats for ADK APIs using local tests and samples."
+        },
+        {
+            "label": "Regenerate Codebase Knowledge (Targets & Embeddings)",
+            "type": "shell",
+            "command": "PYTHONPATH=. uv run python tools/knowledge/target_ranker/run_ranker.py && PYTHONPATH=. uv run python tools/knowledge/build_vector_index.py",
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            },
+            "problemMatcher": [],
+            "detail": "Regenerates ranked_targets.yaml and builds the semantic vector embeddings (.npy)."
+        },
+        {
+            "label": "Check Registry Updates",
+            "type": "shell",
+            "command": "uv run python -m tools.cli.manage_registry update",
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            },
+            "problemMatcher": [],
+            "detail": "Interactively checks and installs updates for registered repositories."
+        },
+        {
+            "label": "Agentic: Generate Execution MCQ (Gemini 3 Pro)",
+            "type": "shell",
+            "command": "PYTHONPATH=. uv run python benchmarks/generator/benchmark_generator/run_generator.py --type agentic_adk --output-dir benchmarks/benchmark_definitions/agentic_generated --model-name gemini-3-pro-preview --repo-path ../adk-python --concurrency 3 --session-db data/agentic_sessions.db --namespace google.adk --cooccurrence-file ai/instructions/knowledge/adk_cooccurrence.json --mode execution_mcq",
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            },
+            "problemMatcher": [],
+            "detail": "Generates repository-specific execution benchmarks using Gemini 3 Pro (High Quality)."
+        },
+        {
+            "label": "Generate Executive Report (Latest Run)",
+            "type": "shell",
+            "command": "export PYTHONPATH=$PYTHONPATH:. && uv run python tools/cli/generate_benchmark_report.py --model-name gemini-3-pro-preview",
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            },
+            "problemMatcher": [],
+            "detail": "Generates a comprehensive log_analysis.md using Map-Reduce LLM analysis."
+        },
+        {
+            "label": "Maintain Knowledge Base",
+            "dependsOn": [
+                "Check Registry Updates",
+                "Regenerate Codebase Knowledge (Targets & Embeddings)"
+            ],
+            "dependsOrder": "sequence",
+            "group": "build",
+            "problemMatcher": [],
+            "detail": "Serially checks for registry updates and then regenerates local codebase knowledge."
+        }
+    ]
 }
