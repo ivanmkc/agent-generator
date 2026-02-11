@@ -74,7 +74,7 @@ class AdkTools:
                     api_key = os.environ.get("GEMINI_API_KEY")
                     self._search_provider = get_search_provider("hybrid", index_dir=index_dir, api_key=api_key)
                     # Convert Pydantic models to dicts for the provider
-                    self._search_provider.build_index([t.model_dump(exclude_unset=True) for t in targets])
+                    self._search_provider.build_index(targets)
                 else:
                     print("DEBUG: Targets or path missing for search provider")
             except Exception as e:

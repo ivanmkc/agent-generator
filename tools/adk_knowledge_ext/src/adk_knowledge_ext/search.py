@@ -5,6 +5,7 @@ import re
 import os
 import json
 import yaml
+from adk_knowledge_ext.models import RankedTarget
 import numpy as np
 from typing import List, Dict, Any, Tuple, Optional
 from abc import ABC, abstractmethod
@@ -90,14 +91,14 @@ def get_search_provider(
 class SearchProvider(ABC):
 
     @abstractmethod
-    def build_index(self, items: List[Dict[str, Any]]):
+    def build_index(self, items: List[RankedTarget]):
         """Builds the search index from the list of items."""
         pass
 
     @abstractmethod
     async def search(
         self, query: str, page: int = 1, page_size: int = 10
-    ) -> List[Tuple[float, Dict[str, Any]]]:
+    ) -> List[Tuple[float, RankedTarget]]:
         """Searches for the query and returns paginated (score, item) tuples."""
         pass
 
@@ -115,7 +116,7 @@ class BM25SearchProvider(SearchProvider):
         self._corpus_map = []  # Maps corpus index to original item index
         self._items = []
 
-    def build_index(self, items: List[Dict[str, Any]]):
+    def build_index(self, items: List[RankedTarget]):
         try:
             from rank_bm25 import BM25Okapi
         except ImportError:
@@ -129,17 +130,17 @@ class BM25SearchProvider(SearchProvider):
         self._corpus_map = []
 
         for i, item in enumerate(items):
-            fqn = item.get("id") or item.get("fqn") or item.get("name")
+            fqn = getattr(item, "id", None) or getattr(item, "fqn", None) or getattr(item, "name", None)
             if fqn:
                 # Tokenize FQN by dot and underscore to expose class names
                 fqn_parts = " ".join(re.split(r"[._]", fqn))
                 
                 # Incorporate aliases for searchability
-                aliases = item.get("aliases") or []
+                aliases = item.aliases or []
                 alias_text = " ".join(aliases)
                 
                 doc_text = f"{fqn_parts} {fqn} {fqn} {fqn} {alias_text} " + (
-                    item.get("docstring") or ""
+                    item.docstring or ""
                 )
                 tokenized_corpus.append(doc_text.lower().split())
                 self._corpus_map.append(i)
@@ -157,7 +158,7 @@ class BM25SearchProvider(SearchProvider):
 
     async def search(
         self, query: str, page: int = 1, page_size: int = 10
-    ) -> List[Tuple[float, Dict[str, Any]]]:
+    ) -> List[Tuple[float, RankedTarget]]:
         if not self._bm25_index:
             return []
 
@@ -172,7 +173,7 @@ class BM25SearchProvider(SearchProvider):
                 scored_items.append((score, item))
 
         scored_items.sort(
-            key=lambda x: (-x[0], x[1].get("rank", 9999), x[1].get("id", ""))
+            key=lambda x: (-x[0], getattr(x[1], "rank", 9999), (x[1].id or ""))
         )
 
         start_idx = (page - 1) * page_size
@@ -199,7 +200,7 @@ class KeywordSearchProvider(SearchProvider):
     def __init__(self):
         self._items = []
 
-    def build_index(self, items: List[Dict[str, Any]]):
+    def build_index(self, items: List[RankedTarget]):
         """
         Stores the list of items in memory for linear scanning.
         
@@ -212,7 +213,7 @@ class KeywordSearchProvider(SearchProvider):
 
     async def search(
         self, query: str, page: int = 1, page_size: int = 10
-    ) -> List[Tuple[float, Dict[str, Any]]]:
+    ) -> List[Tuple[float, RankedTarget]]:
         """
         Performs a linear scan search over the indexed items.
 
@@ -228,12 +229,12 @@ class KeywordSearchProvider(SearchProvider):
         keywords = query.lower().split()
 
         for item in self._items:
-            fqn_raw = item.get("id") or item.get("fqn") or item.get("name") or ""
+            fqn_raw = item.id or item.fqn or item.name or ""
             fqn = fqn_raw.lower()
-            summary = item.get("docstring", "").lower()
+            summary = (item.docstring or "").lower()
             
             # Incorporate aliases
-            aliases = [a.lower() for a in item.get("aliases", [])]
+            aliases = [a.lower() for a in (item.aliases or [])]
 
             score = 0
             for kw in keywords:
@@ -256,7 +257,7 @@ class KeywordSearchProvider(SearchProvider):
             if score > 0:
                 matches.append((score, item))
 
-        matches.sort(key=lambda x: (-x[0], x[1].get("rank", 9999), x[1].get("id", "")))
+        matches.sort(key=lambda x: (-x[0], getattr(x[1], "rank", 9999), (x[1].id or "")))
 
         start_idx = (page - 1) * page_size
         end_idx = start_idx + page_size
@@ -291,7 +292,7 @@ class VectorSearchProvider(SearchProvider):
             self._client = genai.Client(api_key=self.api_key)
         return self._client
 
-    def build_index(self, items: List[Dict[str, Any]]):
+    def build_index(self, items: List[RankedTarget]):
         """
         Loads the vector index artifacts from the specified directory.
         
@@ -309,14 +310,14 @@ class VectorSearchProvider(SearchProvider):
                 self.metadata = yaml.safe_load(f)
             
             # Map items for quick lookup
-            self._items_map = {item.get("id") or item.get("fqn"): item for item in items}
+            self._items_map = {item.id or item.fqn: item for item in items}
             logger.info(f"Vector Index loaded with {len(self.vectors)} items.")
         else:
             logger.warning(f"Vector index files not found in {self.index_dir}")
 
     async def search(
         self, query: str, page: int = 1, page_size: int = 10
-    ) -> List[Tuple[float, Dict[str, Any]]]:
+    ) -> List[Tuple[float, RankedTarget]]:
         if self.vectors is None or not self.metadata:
             return []
             
@@ -380,13 +381,13 @@ class CompositeSearchProvider(SearchProvider):
     def __init__(self, providers: List[SearchProvider]):
         self._providers = providers
 
-    def build_index(self, items: List[Dict[str, Any]]):
+    def build_index(self, items: List[RankedTarget]):
         for provider in self._providers:
             provider.build_index(items)
 
     async def search(
         self, query: str, page: int = 1, page_size: int = 10
-    ) -> List[Tuple[float, Dict[str, Any]]]:
+    ) -> List[Tuple[float, RankedTarget]]:
         for provider in self._providers:
             provider_name = provider.__class__.__name__
             if await provider.has_matches(query):
