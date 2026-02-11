@@ -112,7 +112,7 @@
         {
             "label": "Integration Test: Unified Generators",
             "type": "shell",
-            "command": "uv run pytest benchmarks/tests/integration/test_unified_generators.py",
+            "command": "uv run python benchmarks/tests/integration/test_unified_generators.py",
             "group": "test",
             "presentation": {
                 "reveal": "always",
