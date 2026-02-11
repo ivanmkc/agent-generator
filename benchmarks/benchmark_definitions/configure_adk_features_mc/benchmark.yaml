@@ -171,10 +171,10 @@ benchmarks:
     A: ApiTool
     B: SpecTool
     C: SwaggerTool
-    D: OpenApiTool
+    D: OpenAPIToolset
     E: None of the above
   correct_answer: D
-  explanation: '`OpenApiTool` is designed to wrap OpenAPI specs into ADK-compatible tools.'
+  explanation: '`OpenAPIToolset` is designed to wrap OpenAPI specs into ADK-compatible tools.'
   benchmark_type: multiple_choice
 - id: configure_adk_features_mc:if_you_want_to_use_a_google_search_tool_that_retur
   question: If you want to use a Google Search tool that returns structured results, which tool should you use?
@@ -223,7 +223,7 @@ benchmarks:
 - id: configure_adk_features_mc:how_do_you_specify_that_a_tool_function_should_not
   question: How do you specify that a function tool should *not* return its output to the model, but instead save it directly to the session state?
   options:
-    A: Modify the `session.state` directly within the tool (via `tool_context`) and return `None`.
+    A: Use a `LongRunningFunctionTool`, modify the `session.state` directly within the tool (via `tool_context`) and return `None`.
     B: Use the `side_effect=True` decorator.
     C: This is not possible; all tool outputs go to the model.
     D: Use `agent.set_tool_behavior('side_effect')`.
@@ -272,7 +272,7 @@ benchmarks:
     C: FilePersistencePlugin
     D: ArtifactSaverPlugin
     E: None of the above
-  correct_answer: E
+  correct_answer: A
   explanation: The correct plugin class is `SaveFilesAsArtifactsPlugin`.
   benchmark_type: multiple_choice
 - id: configure_adk_features_mc:when_using_llmagent_with_a_model_that_supports_nat
@@ -793,7 +793,7 @@ benchmarks:
   explanation: '`App` is for Configuring the application container.'
   benchmark_type: multiple_choice
 - id: configure_adk_features_mc:what_does_contextcacheconfig_ttl_control
-  question: What does `ContextCacheConfig.ttl` control?
+  question: What does `ContextCacheConfig.ttl_seconds` control?
   options:
     A: Network timeout.
     B: Cache duration/threshold.
@@ -804,7 +804,7 @@ benchmarks:
   explanation: Configures context caching policies.
   benchmark_type: multiple_choice
 - id: configure_adk_features_mc:what_does_contextcacheconfig_token_count_threshold
-  question: What does `ContextCacheConfig.token_count_threshold` control?
+  question: What does `ContextCacheConfig.min_tokens` control?
   options:
     A: Memory size.
     B: CPU usage.

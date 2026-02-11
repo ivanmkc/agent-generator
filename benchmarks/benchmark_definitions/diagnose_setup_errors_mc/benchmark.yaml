@@ -1,7 +1,7 @@
 # Requirement: All multiple-choice questions must include a 'None of the above' option.
 benchmarks:
 - id: diagnose_setup_errors_mc:missing_model_arg
-  question: What is the primary reason this `LlmAgent` instantiation fails?
+  question: Which argument is missing but required for the agent to function correctly?
   code_snippet_ref:
     file: benchmarks/benchmark_definitions/diagnose_setup_errors_mc/snippets.py
     section: missing_model_arg
@@ -15,18 +15,18 @@ benchmarks:
   explanation: LlmAgent requires a `model` argument to function.
   benchmark_type: multiple_choice
 - id: diagnose_setup_errors_mc:raw_function_tool
-  question: You want to give your agent access to a Python function named `calculate_tax`. Why does this fail or behave incorrectly?
+  question: How are raw Python functions handled when passed to the `tools` list of an `LlmAgent`?
   code_snippet_ref:
     file: benchmarks/benchmark_definitions/diagnose_setup_errors_mc/snippets.py
     section: raw_function_tool
   options:
-    A: Tools must be defined in a separate file.
-    B: The function must be a static method of a class.
-    C: The argument name should be `functions`, not `tools`.
-    D: Raw Python functions must be wrapped in `FunctionTool`.
+    A: They are rejected (TypeError).
+    B: They are executed as-is without wrapper.
+    C: They are converted to static methods.
+    D: They are automatically wrapped in `FunctionTool`.
     E: None of the above
   correct_answer: D
-  explanation: Raw functions must be wrapped using `FunctionTool`.
+  explanation: The `LlmAgent` automatically wraps raw functions in `FunctionTool`.
   benchmark_type: multiple_choice
 - id: diagnose_setup_errors_mc:sequential_agent_tools
   question: How should sub-agents be passed to `SequentialAgent`?
@@ -99,7 +99,7 @@ benchmarks:
   options:
     A: from google.adk.utils import FunctionTool
     B: from google.adk.agents import FunctionTool
-    C: from google.adk.tools import FunctionTool
+    C: from google.adk.core import FunctionTool
     D: from google.adk.tools.function_tool import FunctionTool
     E: None of the above
   correct_answer: D
@@ -348,11 +348,11 @@ benchmarks:
     C: 'ValidationError: parent_agent is init=False.'
     D: 'TypeError: Unexpected argument.'
     E: None of the above
-  correct_answer: D
-  explanation: The `parent_agent` field is marked `init=False`, so Pydantic prevents setting it in __init__.
+  correct_answer: B
+  explanation: Empirical testing confirms no error is raised when setting `parent_agent` in `__init__`.
   benchmark_type: multiple_choice
 - id: diagnose_setup_errors_mc:cache_ttl_string
-  question: You initialize `ContextCacheConfig` with `ttl_seconds` as a string. What error occurs?
+  question: You initialize `ContextCacheConfig` with `ttl_seconds='invalid_string'`. What error occurs?
   code_snippet_ref:
     file: benchmarks/benchmark_definitions/diagnose_setup_errors_mc/snippets.py
     section: cache_ttl_string
@@ -376,11 +376,11 @@ benchmarks:
     C: No error.
     D: ValidationError
     E: None of the above
-  correct_answer: D
-  explanation: Pydantic validation ensures `overlap_size` has the correct type/constraints.
+  correct_answer: C
+  explanation: Empirical testing confirms no error is raised for negative `overlap_size`.
   benchmark_type: multiple_choice
 - id: diagnose_setup_errors_mc:compaction_interval_zero
-  question: You initialize `EventsCompactionConfig` with `compaction_interval=0`. What error occurs?
+  question: You initialize `EventsCompactionConfig` with `compaction_interval=0` and `overlap_size=0`. What error occurs?
   code_snippet_ref:
     file: benchmarks/benchmark_definitions/diagnose_setup_errors_mc/snippets.py
     section: compaction_interval_zero
@@ -408,18 +408,18 @@ benchmarks:
   explanation: Pydantic validation ensures `summarizer` has the correct type/constraints.
   benchmark_type: multiple_choice
 - id: diagnose_setup_errors_mc:parallel_max_workers_string
-  question: You initialize `ParallelAgent` with `max_workers='10'` (string). What error occurs?
+  question: You initialize `ParallelAgent` with `max_workers='10'`. What error occurs?
   code_snippet_ref:
     file: benchmarks/benchmark_definitions/diagnose_setup_errors_mc/snippets.py
     section: parallel_max_workers_string
   options:
     A: ValueError.
     B: No error.
-    C: 'ValidationError: Input should be a valid integer.'
+    C: 'ValidationError: Extra inputs are not permitted.'
     D: TypeError.
     E: None of the above
   correct_answer: C
-  explanation: max_workers must be an integer.
+  explanation: The `max_workers` parameter is not defined in `ParallelAgent`.
   benchmark_type: multiple_choice
 - id: diagnose_setup_errors_mc:which_of_the_following_is_a_valid_agent_name_a_my_
   question: 'Which of the following is a VALID agent name?
