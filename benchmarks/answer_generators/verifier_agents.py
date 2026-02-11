@@ -59,7 +59,7 @@ class ClaimAnalystAgent(LlmAgent):
                 "   Format: `[{\\\"option\\\": \\\"A\\\", \\\"hypothesis\\\": \\\"...\\\", \\\"code_hint\\\": \\\"...\\\"}, ...]`\n"
                 "\n"
                 "CRITICAL: Do not try to solve the question yet. Just define what needs to be proved.\n"
-                "Provide a brief rationale before the JSON."
+                "Provide a brief rationale before the JSON.\n                CRITICAL: Do not attempt to use tools you do not have mapping to like run_programming_task. Only use mapped tools like search_files, read_file."
             )
         )
 

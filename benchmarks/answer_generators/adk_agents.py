@@ -248,6 +248,8 @@ class SetupAgentCodeBased(Agent):
         await self._tools_helper.run_shell_command(mkdir_command)
 
         # 3. Save the workspace directory to session state
+        if hasattr(self, "_tools_helper"):
+            self._tools_helper._active_task_dir = workspace_dir
         save_workspace_dir(str(workspace_dir), ctx)
         ctx.session.state["user_request"] = user_request
 

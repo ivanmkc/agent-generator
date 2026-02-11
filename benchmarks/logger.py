@@ -42,7 +42,7 @@ class BenchmarkLogger(abc.ABC):
     """Abstract base class for benchmark loggers."""
 
     @abc.abstractmethod
-    def log_message(self, message: str) -> None:
+    def log_message(self, message: str, color: str = "") -> None:
         """Logs a general message."""
         pass
 
@@ -97,15 +97,20 @@ class ConsoleBenchmarkLogger(BenchmarkLogger):
 
     @contextlib.contextmanager
     def section(self, name: str):
-        self._print(f"▶ {name}", Fore.CYAN + Style.BRIGHT)
+        # Match the "▶ Verifying Case:" blue formatting from verifier
+        if name.startswith("Case: "):
+            self._print(f"\n  ▶ {name}", Fore.BLUE + Style.BRIGHT)
+        else:
+            self._print(f"\n=== {name} ===", Fore.CYAN + Style.BRIGHT)
+            
         self._indent_level += 1
         try:
             yield
         finally:
             self._indent_level -= 1
 
-    def log_message(self, message: str) -> None:
-        self._print(message)
+    def log_message(self, message: str, color: str = "") -> None:
+        self._print(message, color)
 
     def log_generation_failure(
         self, benchmark_name: str, error_message: str, prompt: str
@@ -128,20 +133,17 @@ class ConsoleBenchmarkLogger(BenchmarkLogger):
     ) -> None:
         is_pass = result == "pass"
         status_color = Fore.GREEN if is_pass else Fore.RED
-        status_icon = "✔" if is_pass else "✘"
+        status_icon = "✅" if is_pass else "❌"
 
         # We assume this is called inside a 'Benchmark Suite' section or similar context
         # But since cases run in parallel, we want a self-contained block for the case.
 
         # Indent specifically for this case block
-        with self.section(f"Case: {id} (Suite: {suite})"):
+        with self.section(f"Case: {id} ({benchmark_name})"):
             # Log attempts if provided
             if generation_attempts:
+                self._print(f"Attempts: {len(generation_attempts)}", Fore.LIGHTBLACK_EX)
                 for attempt in generation_attempts:
-                    # attempt is a GenerationAttempt object or dict. Assuming object based on orchestrator.
-                    # We need to handle if it's a dict or object.
-                    # Based on codebase, it's a Pydantic model usually, but let's be safe.
-
                     attr_getter = (
                         lambda x, k: getattr(x, k) if hasattr(x, k) else x.get(k)
                     )
@@ -154,18 +156,19 @@ class ConsoleBenchmarkLogger(BenchmarkLogger):
                     key_str = f" (Key: {a_key})" if a_key else ""
 
                     if a_status == "success":
-                        self._print(f"Attempt {a_num}: Success{key_str}", Fore.GREEN)
+                        self._print(f"  Attempt {a_num}: Success{key_str}", Fore.GREEN)
                     else:
                         self._print(
-                            f"Attempt {a_num}: Failed - {a_error}{key_str}", Fore.YELLOW
+                            f"  Attempt {a_num}: Failed - {a_error}{key_str}", Fore.YELLOW
                         )
 
             if validation_error:
-                self._print(f"Validation Error: {validation_error}", Fore.RED)
-
-            self._print(f"Result: {result.upper()} {status_icon}", status_color)
+                self._print(f"Validation Error: {validation_error}", Fore.YELLOW)
+                
             if not is_pass and temp_test_file:
-                self._print(f"Reproduce: {temp_test_file}", Fore.LIGHTBLACK_EX)
+                self._print(f"Artifacts: {temp_test_file}", Fore.LIGHTBLACK_EX)
+
+            self._print(f"{status_icon} Result: {result.upper()}", status_color)
 
     def log_summary_table(self, results: List[BenchmarkRunResult]) -> None:
         """Prints a summary table to the console."""
@@ -256,7 +259,7 @@ class TraceMarkdownLogger(BenchmarkLogger):
             f.write(f"\n## Section: {name}\n\n")
         yield
 
-    def log_message(self, message: str) -> None:
+    def log_message(self, message: str, color: str = "") -> None:
         with open(self.output_file, "a", encoding="utf-8") as f:
             f.write(f"- {message}\n")
 
@@ -436,7 +439,7 @@ class YamlTraceLogger(BenchmarkLogger):
         yield
         self._log_event("section_end", {"name": name})
 
-    def log_message(self, message: str) -> None:
+    def log_message(self, message: str, color: str = "") -> None:
         self._log_event("message", {"message": message})
 
     def log_generation_failure(
@@ -523,9 +526,9 @@ class CompositeLogger(BenchmarkLogger):
     def __init__(self, loggers: List[BenchmarkLogger]):
         self.loggers = loggers
 
-    def log_message(self, message: str) -> None:
+    def log_message(self, message: str, color: str = "") -> None:
         for logger in self.loggers:
-            logger.log_message(message)
+            logger.log_message(message, color)
 
     def log_generation_failure(
         self, benchmark_name: str, error_message: str, prompt: str

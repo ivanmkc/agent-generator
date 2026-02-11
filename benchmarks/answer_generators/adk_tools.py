@@ -74,8 +74,7 @@ class AdkTools:
                     api_key = os.environ.get("GEMINI_API_KEY")
                     self._search_provider = get_search_provider("hybrid", index_dir=index_dir, api_key=api_key)
                     # Convert Pydantic models to dicts for the provider
-                    items = [t.model_dump() for t in targets]
-                    self._search_provider.build_index(items)
+                    self._search_provider.build_index(targets)
                 else:
                     print("DEBUG: Targets or path missing for search provider")
             except Exception as e:
@@ -587,9 +586,14 @@ class AdkTools:
             output = [f"--- Search Results for '{q_str}' (Page {page}) ---"]
 
             for score, item in matches:
-                fqn = item.get("id") or item.get("fqn")
-                rank = item.get("rank", "?")
-                doc = item.get("docstring") or "No description."
+                if isinstance(item, dict):
+                    fqn = item.get("id") or item.get("fqn")
+                    rank = item.get("rank", "?")
+                    doc = item.get("docstring") or "No description."
+                else:
+                    fqn = getattr(item, "id", None) or getattr(item, "fqn", None)
+                    rank = getattr(item, "rank", "?")
+                    doc = getattr(item, "docstring", None) or "No description."
                 doc_summary = doc.split("\n")[0].strip()
                 if len(doc_summary) > 80:
                     doc_summary = doc_summary[:77] + "... "
