@@ -1,6 +1,7 @@
 """Index module."""
 
 import yaml
+from adk_knowledge_ext.models import RankedTarget
 import logging
 import os
 from pathlib import Path
@@ -70,11 +71,11 @@ class KnowledgeIndex:
                 self._items = data if isinstance(data, list) else []
 
                 # Sort by rank (ascending)
-                self._items.sort(key=lambda x: x.get("rank", 9999))
+                self._items.sort(key=lambda x: x.get("rank", 9999) if isinstance(x, dict) else getattr(x, "rank", 9999))
 
                 self._fqn_map = {}
                 for item in self._items:
-                    fqn = item.get("id") or item.get("fqn") or item.get("name")
+                    fqn = (item.get("id") or item.get("fqn") or item.get("name")) if isinstance(item, dict) else (item.id or item.fqn or item.name)
                     if fqn:
                         self._fqn_map[fqn] = item
 

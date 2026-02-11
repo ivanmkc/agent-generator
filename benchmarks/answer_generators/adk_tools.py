@@ -73,7 +73,7 @@ class AdkTools:
                     # Default to hybrid which now includes vector if index exists in same dir
                     api_key = os.environ.get("GEMINI_API_KEY")
                     self._search_provider = get_search_provider("hybrid", index_dir=index_dir, api_key=api_key)
-                    # Convert Pydantic models to dicts for the provider
+                    
                     self._search_provider.build_index(targets)
                 else:
                     print("DEBUG: Targets or path missing for search provider")

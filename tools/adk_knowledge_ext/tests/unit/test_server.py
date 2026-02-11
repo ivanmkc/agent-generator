@@ -9,6 +9,7 @@ This module consolidates tests for:
 """
 
 import pytest
+from adk_knowledge_ext.models import RankedTarget
 import sys
 import yaml
 
@@ -177,7 +178,7 @@ async def test_bm25_fallback_to_keyword():
         
     with patch.object(BM25SearchProvider, 'build_index', new=_mock_build_index):
         # Should not crash when building index
-        provider.build_index([{"id": "test"}])
+        provider.build_index([RankedTarget(id="test", name="test", group="test", type="test", rank=1, usage_score=1)])
         
         # Since _corpus_map is empty, search will return [] unharmed natively.
         results = await provider.search("test")
