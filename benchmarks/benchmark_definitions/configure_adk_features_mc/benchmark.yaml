@@ -220,17 +220,6 @@ benchmarks:
   correct_answer: A
   explanation: '`ParallelAgent` aggregates results from all its sub-agents.'
   benchmark_type: multiple_choice
-- id: configure_adk_features_mc:how_do_you_specify_that_a_tool_function_should_not
-  question: How do you specify that a function tool should *not* return its output to the model, but instead save it directly to the session state?
-  options:
-    A: Use a `LongRunningFunctionTool`, modify the `session.state` directly within the tool (via `tool_context`) and return `None`.
-    B: Use the `side_effect=True` decorator.
-    C: This is not possible; all tool outputs go to the model.
-    D: Use `agent.set_tool_behavior('side_effect')`.
-    E: None of the above
-  correct_answer: A
-  explanation: Tools can modify state via `tool_context`. If a tool returns `None`, the ADK identifies this as a 'silent' or side-effect-only tool call, and the model is not notified of any return value beyond the successful execution of the call.
-  benchmark_type: multiple_choice
 - id: configure_adk_features_mc:which_component_is_responsible_for_truncating_conv
   question: Which component is responsible for truncating conversation history to fit within the model's context window?
   options:
