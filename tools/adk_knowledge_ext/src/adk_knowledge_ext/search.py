@@ -7,6 +7,7 @@ import json
 import yaml
 import numpy as np
 from typing import List, Dict, Any, Tuple, Optional
+from adk_knowledge_ext.models import RankedTarget
 from abc import ABC, abstractmethod
 from pathlib import Path
 
@@ -129,17 +130,17 @@ class BM25SearchProvider(SearchProvider):
         self._corpus_map = []
 
         for i, item in enumerate(items):
-            fqn = item.get("id") or item.get("fqn") or item.get("name")
+            fqn = item.get("id") or item.get("fqn") or item.get("name") if isinstance(item, dict) else item.id or item.fqn or item.name
             if fqn:
                 # Tokenize FQN by dot and underscore to expose class names
                 fqn_parts = " ".join(re.split(r"[._]", fqn))
                 
                 # Incorporate aliases for searchability
-                aliases = item.get("aliases") or []
+                aliases = (item.get("aliases") if isinstance(item, dict) else item.aliases) or []
                 alias_text = " ".join(aliases)
                 
                 doc_text = f"{fqn_parts} {fqn} {fqn} {fqn} {alias_text} " + (
-                    item.get("docstring") or ""
+                    (item.get("docstring") if isinstance(item, dict) else item.docstring) or ""
                 )
                 tokenized_corpus.append(doc_text.lower().split())
                 self._corpus_map.append(i)
@@ -172,7 +173,7 @@ class BM25SearchProvider(SearchProvider):
                 scored_items.append((score, item))
 
         scored_items.sort(
-            key=lambda x: (-x[0], x[1].get("rank", 9999), x[1].get("id", ""))
+            key=lambda x: (-x[0], (x[1].get("rank", 9999) if isinstance(x[1], dict) else getattr(x[1], "rank", 9999)), (x[1].get("id", "") if isinstance(x[1], dict) else (x[1].id or "")))
         )
 
         start_idx = (page - 1) * page_size
@@ -228,12 +229,12 @@ class KeywordSearchProvider(SearchProvider):
         keywords = query.lower().split()
 
         for item in self._items:
-            fqn_raw = item.get("id") or item.get("fqn") or item.get("name") or ""
+            fqn_raw = (item.get("id") or item.get("fqn") or item.get("name")) if isinstance(item, dict) else (item.id or item.fqn or item.name) or ""
             fqn = fqn_raw.lower()
-            summary = item.get("docstring", "").lower()
+            summary = (item.get("docstring", "") if isinstance(item, dict) else (item.docstring or "")).lower()
             
             # Incorporate aliases
-            aliases = [a.lower() for a in item.get("aliases", [])]
+            aliases = [a.lower() for a in (item.get("aliases", []) if isinstance(item, dict) else (item.aliases or []))]
 
             score = 0
             for kw in keywords:
@@ -256,7 +257,7 @@ class KeywordSearchProvider(SearchProvider):
             if score > 0:
                 matches.append((score, item))
 
-        matches.sort(key=lambda x: (-x[0], x[1].get("rank", 9999), x[1].get("id", "")))
+        matches.sort(key=lambda x: (-x[0], (x[1].get("rank", 9999) if isinstance(x[1], dict) else getattr(x[1], "rank", 9999)), (x[1].get("id", "") if isinstance(x[1], dict) else (x[1].id or ""))))
 
         start_idx = (page - 1) * page_size
         end_idx = start_idx + page_size
@@ -309,7 +310,7 @@ class VectorSearchProvider(SearchProvider):
                 self.metadata = yaml.safe_load(f)
             
             # Map items for quick lookup
-            self._items_map = {item.get("id") or item.get("fqn"): item for item in items}
+            self._items_map = { (item.get("id") or item.get("fqn")) if isinstance(item, dict) else (item.id or item.fqn): item for item in items }
             logger.info(f"Vector Index loaded with {len(self.vectors)} items.")
         else:
             logger.warning(f"Vector index files not found in {self.index_dir}")

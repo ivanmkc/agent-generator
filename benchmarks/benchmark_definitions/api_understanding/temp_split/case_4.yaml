@@ -1,0 +1,15 @@
+benchmarks:
+- answers:
+  - answer: BaseLlm
+    answer_template: StringMatchAnswer
+    fully_qualified_class_name:
+    - google.adk.models.base_llm.BaseLlm
+    - google.adk.models.BaseLlm
+  benchmark_type: api_understanding
+  category: Core Class Signatures & Initialization
+  file: src/google/adk/models/base_llm.py
+  id: api_understanding:what_is_the_core_interface_for_all_llm_integration
+  question: What is the core interface for all LLM integrations?
+  rationale: All model wrappers must implement the `BaseLlm` abstract class, which
+    defines the common interface for generating content.
+  template: identifier

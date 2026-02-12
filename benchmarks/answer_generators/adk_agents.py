@@ -36,7 +36,7 @@ from google.adk.utils.output_schema_utils import can_use_output_schema_with_tool
 from benchmarks.answer_generators.adk_tools import AdkTools
 from benchmarks.answer_generators.adk_answer_generator import AdkAnswerGenerator
 from benchmarks.answer_generators.adk_context import adk_execution_context
-from core.api_key_manager import ApiKeyManager
+from core.api_key_manager import ApiKeyManager, KeyType
 from benchmarks.answer_generators.adk_schemas import (
     CandidateSolution,
     FinalResponse,
@@ -51,6 +51,88 @@ from benchmarks.answer_generators.adk_schemas import (
 DEFAULT_MODEL_NAME = "gemini-2.5-pro"
 
 
+class RetryModelsWrapper:
+    def __init__(self, client_wrapper):
+        self._client_wrapper = client_wrapper
+
+    async def generate_content(self, *args, **kwargs):
+        return await self._client_wrapper._execute_with_retry("generate_content", *args, **kwargs)
+
+    def __getattr__(self, name):
+         return getattr(self._client_wrapper.current_client.aio.models, name)
+
+class RetryAioWrapper:
+    def __init__(self, client_wrapper):
+        self.models = RetryModelsWrapper(client_wrapper)
+        self._client_wrapper = client_wrapper
+    
+    def __getattr__(self, name):
+        return getattr(self._client_wrapper.current_client.aio, name)
+
+class SmartRetryClient:
+    def __init__(self, api_key_manager: ApiKeyManager, initial_key: str, initial_key_id: str | None, parent: 'RotatingKeyGemini'):
+        self.api_key_manager = api_key_manager
+        self.current_key = initial_key
+        self.current_key_id = initial_key_id
+        self.parent = parent
+        self.aio = RetryAioWrapper(self)
+        self.current_client = self._create_client(initial_key)
+        
+    @property
+    def models(self):
+        return self.current_client.models
+    
+    def __getattr__(self, name):
+        return getattr(self.current_client, name)
+
+    def _create_client(self, key: str) -> Client:
+        return Client(
+            api_key=key,
+            http_options=types.HttpOptions(
+                headers=self.parent._tracking_headers(),
+                retry_options=self.parent.retry_options,
+            ),
+        )
+
+    async def _execute_with_retry(self, method_name: str, *args, **kwargs):
+        max_retries = 10
+        attempt = 0
+        while True:
+            try:
+                method = getattr(self.current_client.aio.models, method_name)
+                return await method(*args, **kwargs)
+            except Exception as e:
+                is_429 = "429" in str(e) or "RESOURCE_EXHAUSTED" in str(e)
+                if not is_429 or attempt >= max_retries:
+                    if is_429:
+                        print(f"Exhausted retries on 429: {e}")
+                    raise e
+                
+                attempt += 1
+                # Report failure
+                await self.api_key_manager.report_result(
+                    KeyType.GEMINI_API, 
+                    self.current_key_id, 
+                    success=False, 
+                    error_message=str(e)
+                )
+                
+                # Get new key
+                new_key, new_id = await self.api_key_manager.get_next_key_with_id()
+                if not new_key:
+                     raise ValueError("Exhausted all API keys during retry.")
+                
+                self.current_key = new_key
+                self.current_key_id = new_id
+                self.current_client = self._create_client(new_key)
+                
+                # Update context if possible (best effort)
+                ctx = adk_execution_context.get()
+                if ctx:
+                    ctx["api_key"] = new_key
+                    ctx["key_id"] = new_id
+
+
 class RotatingKeyGemini(Gemini):
     """
     A Gemini model that rotates through a pool of API keys for each request.
@@ -61,7 +143,14 @@ class RotatingKeyGemini(Gemini):
 
     _api_key_manager: ApiKeyManager = PrivateAttr()
     _lock: threading.Lock = PrivateAttr()
-    _client_cache: dict[str, Client] = PrivateAttr(default_factory=dict)
+    # Cache key -> SmartRetryClient to avoid recreating wrapper overhead, 
+    # though wrapper state mutates so caching by key ID is tricky if key changes.
+    # Actually, SmartRetryClient manages its own key rotation. 
+    # We should cache one SmartRetryClient per run/context?
+    # Simple approach: Don't cache wrapper for now, or cache by context token?
+    # verify_benchmark runs one generator per call.
+    
+    _client_cache: dict[str, Any] = PrivateAttr(default_factory=dict)
 
     def __init__(self, api_key_manager: ApiKeyManager, **kwargs):
         super().__init__(**kwargs)
@@ -73,15 +162,17 @@ class RotatingKeyGemini(Gemini):
     def api_client(self) -> Client:
         """Overrides the standard client to provide one with a rotated key."""
         current_key = None
+        current_key_id = None
 
         # 1. Check for context-scoped key (set by AdkAnswerGenerator)
         ctx = adk_execution_context.get()
         if ctx and "api_key" in ctx:
             current_key = ctx["api_key"]
+            current_key_id = ctx.get("key_id")
         else:
             # 2. Fallback to internal rotation (if running outside a generator context)
             with self._lock:
-                current_key, _ = self._api_key_manager.get_next_key_with_id()
+                current_key, current_key_id = self._api_key_manager.get_next_key_with_id()
 
         # Guard statement: If no current_key from either source, raise error.
         if not current_key:
@@ -89,18 +180,11 @@ class RotatingKeyGemini(Gemini):
                 "No API keys available from ApiKeyManager or Context. Please ensure keys are configured or present in context."
             )
 
-        with self._lock:
-            # Check cache
-            if current_key not in self._client_cache:
-                self._client_cache[current_key] = Client(
-                    api_key=current_key,
-                    http_options=types.HttpOptions(
-                        headers=self._tracking_headers(),
-                        retry_options=self.retry_options,
-                    ),
-                )
+        # Return SmartRetryClient
+        # We don't cache this strictly by key because the wrapper handles rotation internally.
+        # But constructing it every time is fine (lightweight).
+        return SmartRetryClient(self._api_key_manager, current_key, current_key_id, self)
 
-            return self._client_cache[current_key]
 
 
 def get_workspace_dir(ctx: InvocationContext) -> str:
@@ -164,6 +248,8 @@ class SetupAgentCodeBased(Agent):
         await self._tools_helper.run_shell_command(mkdir_command)
 
         # 3. Save the workspace directory to session state
+        if hasattr(self, "_tools_helper"):
+            self._tools_helper._active_task_dir = workspace_dir
         save_workspace_dir(str(workspace_dir), ctx)
         ctx.session.state["user_request"] = user_request
 

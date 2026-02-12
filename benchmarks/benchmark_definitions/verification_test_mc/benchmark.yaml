@@ -1,0 +1,10 @@
+benchmarks:
+  - id: "verification_test_mc:agent_init"
+    question: "In the ADK framework, which argument is used to set the identifier of an LlmAgent during initialization?"
+    options:
+      A: "name"
+      B: "agent_id"
+      C: "identifier"
+      D: "label"
+    correct_answer: "A"
+    explanation: "The LlmAgent class (and its base Agent class) uses the 'name' parameter for identification."

@@ -1,0 +1,15 @@
+benchmarks:
+- id: diagnose_setup_errors_mc:raw_function_tool
+  question: You want to give your agent access to a Python function named `calculate_tax`. Why does this fail or behave incorrectly?
+  code_snippet_ref:
+    file: benchmarks/benchmark_definitions/diagnose_setup_errors_mc/snippets.py
+    section: raw_function_tool
+  options:
+    A: Tools must be defined in a separate file.
+    B: The function must be a static method of a class.
+    C: The argument name should be `functions`, not `tools`.
+    D: Raw Python functions must be wrapped in `FunctionTool`.
+    E: None of the above
+  correct_answer: D
+  explanation: Raw functions must be wrapped using `FunctionTool`.
+  benchmark_type: multiple_choice

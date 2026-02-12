@@ -73,9 +73,8 @@ class AdkTools:
                     # Default to hybrid which now includes vector if index exists in same dir
                     api_key = os.environ.get("GEMINI_API_KEY")
                     self._search_provider = get_search_provider("hybrid", index_dir=index_dir, api_key=api_key)
-                    # Convert Pydantic models to dicts for the provider
-                    items = [t.model_dump() for t in targets]
-                    self._search_provider.build_index(items)
+                    
+                    self._search_provider.build_index(targets)
                 else:
                     print("DEBUG: Targets or path missing for search provider")
             except Exception as e:
@@ -264,9 +263,20 @@ class AdkTools:
         command: str | List[str],
         dir_path: Optional[str] = None,
         extra_env: Optional[Any] = None,
+        description: Optional[str] = None,
+        **kwargs: Any,
     ) -> str:
-        """Executes a shell command in the workspace asynchronously."""
+        """
+        Executes a shell command in the workspace asynchronously.
+        
+        Args:
+            command: The command to run.
+            dir_path: Optional working directory.
+            extra_env: Optional environment variables.
+            description: Optional natural language description of the command's purpose (for logging).
+        """
         try:
+            # kwargs like 'description' are ignored by the actual execution but allow the model to provide context.
             env = os.environ.copy()
             if self.venv_path:
                 venv_bin = self.venv_path / "bin"
@@ -576,9 +586,14 @@ class AdkTools:
             output = [f"--- Search Results for '{q_str}' (Page {page}) ---"]
 
             for score, item in matches:
-                fqn = item.get("id") or item.get("fqn")
-                rank = item.get("rank", "?")
-                doc = item.get("docstring") or "No description."
+                if isinstance(item, dict):
+                    fqn = item.get("id") or item.get("fqn")
+                    rank = item.get("rank", "?")
+                    doc = item.get("docstring") or "No description."
+                else:
+                    fqn = getattr(item, "id", None) or getattr(item, "fqn", None)
+                    rank = getattr(item, "rank", "?")
+                    doc = getattr(item, "docstring", None) or "No description."
                 doc_summary = doc.split("\n")[0].strip()
                 if len(doc_summary) > 80:
                     doc_summary = doc_summary[:77] + "... "

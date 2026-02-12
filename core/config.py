@@ -22,6 +22,7 @@ DATA_DIR = PROJECT_ROOT / "data"
 
 # Sub-directories for specific artifacts
 BENCHMARK_RUNS_DIR = OUTPUT_ROOT / "benchmark_runs"
+VERIFICATION_RUNS_DIR = OUTPUT_ROOT / "benchmark_case_verification_runs"
 GENERATED_BENCHMARKS_DIR = OUTPUT_ROOT / "generated_benchmarks"
 REPORTS_DIR = OUTPUT_ROOT / "reports"
 
@@ -63,6 +64,7 @@ def ensure_output_dirs():
     OUTPUT_ROOT.mkdir(parents=True, exist_ok=True)
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     BENCHMARK_RUNS_DIR.mkdir(parents=True, exist_ok=True)
+    VERIFICATION_RUNS_DIR.mkdir(parents=True, exist_ok=True)
     GENERATED_BENCHMARKS_DIR.mkdir(parents=True, exist_ok=True)
     REPORTS_DIR.mkdir(parents=True, exist_ok=True)
 

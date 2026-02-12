@@ -9,6 +9,7 @@ This module consolidates tests for:
 """
 
 import pytest
+from adk_knowledge_ext.models import RankedTarget
 import sys
 import yaml
 
@@ -167,7 +168,7 @@ async def test_search_fqn_suffix():
 @pytest.mark.asyncio
 async def test_bm25_fallback_to_keyword():
     """Verifies that BM25SearchProvider handles missing rank_bm25 gracefully (logs warning, doesn't crash)."""
-    provider = _initialize_search_provider("bm25", None, None)
+    provider = BM25SearchProvider()
     assert isinstance(provider, BM25SearchProvider)
     
     # Simulate a missing dependency safely by replacing the method entirely
@@ -177,7 +178,8 @@ async def test_bm25_fallback_to_keyword():
         
     with patch.object(BM25SearchProvider, 'build_index', new=_mock_build_index):
         # Should not crash when building index
-        provider.build_index([{"id": "test"}])
+        provider.build_index([RankedTarget(id="test", name="test", group="test", type="test", rank=1, usage_score=1)])
+        provider._items = []
         
         # Since _corpus_map is empty, search will return [] unharmed natively.
         results = await provider.search("test")

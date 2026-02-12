@@ -1,0 +1,15 @@
+benchmarks:
+- answers:
+  - answer: name
+    answer_template: StringMatchAnswer
+    fully_qualified_class_name:
+    - google.adk.agents.base_agent.BaseAgent
+    - google.adk.agents.BaseAgent
+    - google.adk.agents.base_agent_config.BaseAgentConfig
+  benchmark_type: api_understanding
+  category: Core Class Signatures & Initialization
+  file: src/google/adk/agents/base_agent.py
+  id: api_understanding:what_is_the_mandatory_parameter_required_by_the_ba
+  question: What is the mandatory parameter required by the `BaseAgent` constructor?
+  rationale: Every agent must be initialized with a unique `name` (string) parameter.
+  template: identifier

@@ -138,7 +138,7 @@ benchmarks:
     D: It automatically injects `session_id` if the argument name matches.
     E: None of the above
   correct_answer: C
-  explanation: ADK does not automatically inject `session_id`. Instead, the tool must accept a `tool_context` argument and access the session ID from it.
+  explanation: ADK does not automatically inject `session_id` by name; it must be retrieved from the `tool_context` parameter (specifically `tool_context.session.id`).
   benchmark_type: multiple_choice
 - id: predict_runtime_behavior_mc:agent_name_mutability
   question: Is the `name` attribute mutable?
@@ -208,7 +208,7 @@ benchmarks:
     D: '53'
     E: None of the above
   correct_answer: C
-  explanation: FunctionTool wraps the function and returns the result. `run_async` returns a ToolResult object.
+  explanation: FunctionTool expects the parameter name to be `func`, not `fn`.
   benchmark_type: multiple_choice
 - id: predict_runtime_behavior_mc:llm_agent_name_validation
   question: What error message substring is expected when running the code?
@@ -236,5 +236,5 @@ benchmarks:
     D: The `author` field cannot be inferred.
     E: None of the above
   correct_answer: B
-  explanation: The `Event` class is a strict Pydantic model and forbids extra fields like `random_field`.
+  explanation: The `Event` class forbids extra fields and requires specific mandatory fields like `author`.
   benchmark_type: multiple_choice

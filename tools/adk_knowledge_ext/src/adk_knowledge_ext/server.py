@@ -487,11 +487,11 @@ def read_source_code(kb_id: str = None, fqn: str = "") -> str:
     if not target:
         return f"Symbol '{fqn}' not found in index '{resolved_id}'."
 
-    rel_path = target.get("file_path")
+    rel_path = (target.get("file_path") if isinstance(target, dict) else getattr(target, "file_path", None))
     if not rel_path:
         return f"No file path recorded for {fqn} in '{resolved_id}'."
 
-    target_fqn = target.get("id") or target.get("fqn") or target.get("name")
+    target_fqn = ((target.get("id") or target.get("fqn") or target.get("name")) if isinstance(target, dict) else (getattr(target, "id", None) or getattr(target, "fqn", None) or getattr(target, "name", None)))
     
     reader = _get_reader(kb_meta.repo_url, kb_meta.version)
     return reader.read_source(rel_path, target_fqn, suffix)
@@ -519,20 +519,21 @@ def inspect_symbol(kb_id: str = None, fqn: str = "") -> str:
     if not target:
         return f"Symbol '{fqn}' not found in index '{resolved_id}'."
 
-    output = yaml.safe_dump(target, sort_keys=False)
+    output = yaml.safe_dump(target.model_dump(exclude_unset=True) if hasattr(target, "model_dump") else target, sort_keys=False)
 
     if suffix:
         source_snippet = ""
-        rel_path = target.get("file_path")
+        rel_path = (target.get("file_path") if isinstance(target, dict) else getattr(target, "file_path", None))
         if rel_path:
-            target_fqn = target.get("id") or target.get("fqn") or target.get("name")
+            target_fqn = ((target.get("id") or target.get("fqn") or target.get("name")) if isinstance(target, dict) else (getattr(target, "id", None) or getattr(target, "fqn", None) or getattr(target, "name", None)))
             try:
                 reader = _get_reader(kb_meta.repo_url, kb_meta.version)
                 source_snippet = reader.read_source(rel_path, target_fqn, suffix)
             except Exception as e:
                 source_snippet = f"(Could not retrieve source: {e})"
 
-        return f"Note: Symbol '{fqn}' is not explicitly indexed. Showing parent symbol '{target.get('id') or target.get('fqn')}'.\n\n{output}\n\n{source_snippet}"
+        parent_id = target.get("id") if isinstance(target, dict) else getattr(target, "id", None)
+        return f"Note: Symbol '{fqn}' is not explicitly indexed. Showing parent symbol '{parent_id}'.\n\n{output}\n\n{source_snippet}"
 
     return output
 

@@ -61,3 +61,15 @@ To verify that the API references in the benchmark YAML files are valid:
    ```
 
 This will produce `extracted_apis_llm.yaml` and `api_verification_report.yaml`.
+
+### Autonomous Benchmark Verification (`tools/verify_benchmarks.py`)
+To empirically prove and grade benchmark questions (like Multiple Choice) using isolated sandboxes and an LLM verification pipeline:
+
+```bash
+uv run python tools/verify_benchmarks.py --suite-filter mc --concurrency 5
+```
+
+Features:
+- **Sandbox Isolation:** Each case runs in a deeply isolated `pytest` temp directory.
+- **Claim-Level Profiling:** Evaluates each distractor choice explicitly using generated code proofs.
+- **Categorical Output:** Automatically aggregates all validation runs into a `run_report_grouped.md` highlighting `Valid`, `Incorrect`, and `Ambiguous` queries.

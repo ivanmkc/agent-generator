@@ -1,0 +1,15 @@
+benchmarks:
+- id: diagnose_setup_errors_mc:missing_model_arg
+  question: What is the primary reason this `LlmAgent` instantiation fails?
+  code_snippet_ref:
+    file: benchmarks/benchmark_definitions/diagnose_setup_errors_mc/snippets.py
+    section: missing_model_arg
+  options:
+    A: The `instruction` argument must be a list of strings.
+    B: The `LlmAgent` class is missing the required `model` argument.
+    C: The `name` argument must be unique across the entire project.
+    D: You must always provide a `tools` list, even if empty.
+    E: None of the above
+  correct_answer: B
+  explanation: LlmAgent requires a `model` argument to function.
+  benchmark_type: multiple_choice

@@ -418,7 +418,8 @@ async def run_benchmarks(
                         f"completed in {elapsed_minutes:.1f} minutes."
                     )
                     if logger:
-                        logger.log_message(msg)
+                        from colorama import Fore
+                        logger.log_message(msg, color=Fore.GREEN)
                     else:
                         print(f"  {msg}")
                     last_log_time = current_time
