@@ -26,7 +26,7 @@ sys.path.append(str(project_root))
 from benchmarks.answer_generators.verifier_pipeline import create_verifier_adk_generator
 from core.api_key_manager import ApiKeyManager, KeyType
 from benchmarks.answer_generators.adk_context import adk_execution_context
-from core.config import DATA_DIR, PROJECT_ROOT, MOST_POWERFUL_MODEL, OUTPUT_ROOT
+from core.config import DATA_DIR, PROJECT_ROOT, MOST_POWERFUL_MODEL, OUTPUT_ROOT, VERIFICATION_RUNS_DIR
 from dotenv import load_dotenv
 load_dotenv()
 try:
@@ -412,7 +412,7 @@ async def main():
             return
         print(f"Resuming run from: {run_dir}")
     elif args.resume_latest:
-        runs_root = DATA_DIR / "benchmark_case_verification_runs"
+        runs_root = VERIFICATION_RUNS_DIR
         if runs_root.exists():
             subdirs = [d for d in runs_root.iterdir() if d.is_dir()]
             if subdirs:
@@ -444,7 +444,7 @@ async def main():
         # Create New Timestamped Run Directory
         import datetime as _dt
         timestamp = _dt.datetime.now().strftime("%Y%m%d_%H%M%S")
-        run_dir = DATA_DIR / "benchmark_case_verification_runs" / timestamp
+        run_dir = VERIFICATION_RUNS_DIR / timestamp
         run_dir.mkdir(parents=True, exist_ok=True)
         print(f"Starting verification run at: {run_dir}")
     
