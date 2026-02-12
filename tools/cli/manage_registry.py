@@ -28,6 +28,7 @@ from core.config import PROJECT_ROOT
 
 from tools.knowledge.target_ranker.ranker import TargetRanker
 from tools.knowledge.build_vector_index import build_index
+from tools.knowledge.run_cooccurrence_indexing import generate_cooccurrence
 
 console = Console()
 
@@ -353,9 +354,6 @@ async def process_version_update(
     cooccurrence_path = version_dir / "adk_cooccurrence.yaml"
     
     try:
-        from tools.knowledge.run_cooccurrence_indexing import generate_cooccurrence
-        
-        
         console.print("[dim]Dynamic discovery enabled (ignoring stdlib)...[/dim]")
         
         console.print(f"[dim]Passing {len(scan_targets)} localized targets to metrics indexer...[/dim]")

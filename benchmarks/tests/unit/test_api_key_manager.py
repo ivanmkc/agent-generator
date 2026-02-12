@@ -41,7 +41,7 @@ def mock_persistence():
 @pytest.mark.asyncio
 async def test_single_gemini_key_fallback():
     os.environ["GEMINI_API_KEY"] = "single-gemini-key"
-    manager = ApiKeyManager()
+    manager = ApiKeyManager(pool_only=False)
     assert manager.get_key_count(KeyType.GEMINI_API) == 1
     assert await manager.get_next_key(KeyType.GEMINI_API) == "single-gemini-key"
     assert await manager.get_next_key(KeyType.GEMINI_API) == "single-gemini-key"
@@ -50,7 +50,7 @@ async def test_single_gemini_key_fallback():
 @pytest.mark.asyncio
 async def test_gemini_keys_pool():
     os.environ["GEMINI_API_KEYS_POOL"] = "key1,key2,key3"
-    manager = ApiKeyManager()
+    manager = ApiKeyManager(pool_only=False)
     assert manager.get_key_count(KeyType.GEMINI_API) == 3
     assert await manager.get_next_key(KeyType.GEMINI_API) == "key1"
     assert await manager.get_next_key(KeyType.GEMINI_API) == "key2"
@@ -62,7 +62,7 @@ async def test_gemini_keys_pool():
 async def test_gemini_pool_takes_precedence_over_single_key():
     os.environ["GEMINI_API_KEY"] = "single-gemini-key-should-be-ignored"
     os.environ["GEMINI_API_KEYS_POOL"] = "keyA,keyB"
-    manager = ApiKeyManager()
+    manager = ApiKeyManager(pool_only=False)
     assert manager.get_key_count(KeyType.GEMINI_API) == 2
     assert await manager.get_next_key(KeyType.GEMINI_API) == "keyA"
     assert await manager.get_next_key(KeyType.GEMINI_API) == "keyB"
@@ -70,7 +70,7 @@ async def test_gemini_pool_takes_precedence_over_single_key():
 
 @pytest.mark.asyncio
 async def test_no_gemini_keys():
-    manager = ApiKeyManager()
+    manager = ApiKeyManager(pool_only=False)
     assert manager.get_key_count(KeyType.GEMINI_API) == 0
     assert await manager.get_next_key(KeyType.GEMINI_API) is None
 
@@ -79,7 +79,7 @@ async def test_no_gemini_keys():
 async def test_multiple_key_types():
     os.environ["GEMINI_API_KEY"] = "gemini-single"
     os.environ["CONTEXT7_API_KEYS_POOL"] = "ctxkey1,ctxkey2"
-    manager = ApiKeyManager()
+    manager = ApiKeyManager(pool_only=False)
 
     assert manager.get_key_count(KeyType.GEMINI_API) == 1
     assert await manager.get_next_key(KeyType.GEMINI_API) == "gemini-single"
@@ -92,7 +92,7 @@ async def test_multiple_key_types():
 
 @pytest.mark.asyncio
 async def test_key_types_with_no_keys():
-    manager = ApiKeyManager()
+    manager = ApiKeyManager(pool_only=False)
     assert manager.get_key_count(KeyType.CONTEXT7_API) == 0
     assert await manager.get_next_key(KeyType.CONTEXT7_API) is None
 
@@ -100,7 +100,7 @@ async def test_key_types_with_no_keys():
 @pytest.mark.asyncio
 async def test_key_with_empty_string_in_pool():
     os.environ["GEMINI_API_KEYS_POOL"] = ",key1,,key2,"
-    manager = ApiKeyManager()
+    manager = ApiKeyManager(pool_only=False)
     assert manager.get_key_count(KeyType.GEMINI_API) == 2
     assert await manager.get_next_key(KeyType.GEMINI_API) == "key1"
     assert await manager.get_next_key(KeyType.GEMINI_API) == "key2"

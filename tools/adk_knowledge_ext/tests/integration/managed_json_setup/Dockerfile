@@ -5,7 +5,11 @@ WORKDIR /app
 # 0. Install System Deps
 RUN apt-get update && apt-get install -y git curl && rm -rf /var/lib/apt/lists/*
 
-# 1. Install Dependencies
+# 1. Install uv
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+ENV PATH="/root/.local/bin:$PATH"
+
+# 2. Install Dependencies
 COPY tools/adk_knowledge_ext /tmp/pkg
 RUN pip install /tmp/pkg
 

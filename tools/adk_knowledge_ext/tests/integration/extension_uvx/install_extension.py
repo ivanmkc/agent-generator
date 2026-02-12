@@ -5,13 +5,22 @@ from pathlib import Path
 def install():
     print("--- Simulating Extension Installation ---")
     
-    ext_path = Path("/tmp/pkg/codebase-extension.json")
-    if not ext_path.exists():
-        print(f"Extension definition not found at {ext_path}")
-        exit(1)
-        
-    with open(ext_path, "r") as f:
-        ext_data = json.load(f)
+    # Simulating the data that would normally be in codebase-extension.json
+    ext_data = {
+      "mcpServers": {
+        "test-codebase": {
+          "command": "uvx",
+          "args": [
+            "--from",
+            "/tmp/pkg",
+            "codebase-knowledge-mcp"
+          ],
+          "env": {
+            "ADK_SEARCH_PROVIDER": "bm25"
+          }
+        }
+      }
+    }
         
     servers = ext_data.get("mcpServers", {})
     

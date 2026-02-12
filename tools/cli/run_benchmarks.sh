@@ -26,14 +26,14 @@ export PYTHONPATH=$PYTHONPATH:.
 
 # 3. Run the Python benchmark script directly
 log "Running Python benchmark script..."
-python3 -u tools/cli/run_benchmarks.py "$@" 2>&1 | tee -a "$LOG_FILE"
+uv run python -u tools/cli/run_benchmarks.py "$@" 2>&1 | tee -a "$LOG_FILE"
 
 # 4. Generate Visualization Report via Papermill
 log "Generating visualization report..."
-python3 -m papermill tools/analysis/notebooks/benchmark_performance_summary.ipynb "$OUTPUT_DIR/benchmark_performance_summary.ipynb" \
+uv run python -m papermill tools/analysis/notebooks/benchmark_performance_summary.ipynb "$OUTPUT_DIR/benchmark_performance_summary.ipynb" \
   -p RUN_DIR "$OUTPUT_DIR" \
   --cwd . \
-  -k python3 \
+  -k case_quality \
   2>&1 | tee -a "$LOG_FILE"
 
 log "Benchmark execution complete."

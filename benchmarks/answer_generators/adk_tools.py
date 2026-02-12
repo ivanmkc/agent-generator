@@ -610,8 +610,10 @@ class AdkTools:
                 return "Error: ranked_targets.yaml not found or empty."
 
             if isinstance(query, list):
+                display_queries = [str(q) for q in query]
                 queries = [str(q).lower() for q in query]
             else:
+                display_queries = [str(query)]
                 queries = [str(query).lower()]
 
             results = []
@@ -623,7 +625,7 @@ class AdkTools:
                     results.append(item)
 
             if not results:
-                q_str = ", ".join(queries)
+                q_str = ", ".join(display_queries)
                 return f"No targets found matching: {q_str}."
 
             total_items = len(results)
@@ -635,12 +637,12 @@ class AdkTools:
             end_idx = start_idx + page_size
 
             if start_idx >= total_items:
-                q_str = ", ".join(queries)
+                q_str = ", ".join(display_queries)
                 return f"Page {page} is out of range for search '{q_str}'. Total results: {total_items} (max page {max_page})."
 
             page_items = results[start_idx:end_idx]
 
-            q_str = ", ".join(queries)
+            q_str = ", ".join(display_queries)
             output = [
                 f"--- Search Results for '{q_str}' (Page {page} of {max_page}, Total: {total_items}) ---"
             ]
