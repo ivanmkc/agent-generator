@@ -1,3 +1,29 @@
+[project]
+name = "case-quality"
+version = "0.1.0"
+description = "Agentic Benchmark Suite"
+requires-python = ">=3.11"
+dependencies = [
+    "pytest-xdist",
+    "pytest-asyncio",
+    "pytest-profiling",
+    "google-adk==1.20.0",
+    "google-cloud-build",
+    "google-cloud-run",
+    "litellm",
+    "papermill",
+    "streamlit",
+    "pandas",
+    "plotly",
+    "colorama",
+    "PyYAML",
+    "google-cloud-storage",
+    "rank-bm25",
+    "python-dotenv",
+    "questionary",
+    "ipykernel",
+]
+
 [tool.pytest.ini_options]
 testpaths = ["benchmarks/tests"]
 asyncio_default_fixture_loop_scope = "module"

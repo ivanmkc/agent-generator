@@ -13,7 +13,7 @@ fi
 IMAGE_NAME="gcr.io/$PROJECT_ID/adk-benchmark-viewer"
 
 echo "Building Docker image..."
-docker build -t $IMAGE_NAME -f tools/Dockerfile.viewer .
+docker build -t $IMAGE_NAME -f tools/viewer/Dockerfile.viewer .
 
 echo "Pushing Docker image..."
 docker push $IMAGE_NAME
