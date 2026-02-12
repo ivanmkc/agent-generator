@@ -18,7 +18,7 @@ COPY tools/adk_knowledge_ext /app/extensions/adk-knowledge-ext
 # Setup Gemini CLI with MCP (Local Mode via uvx)
 RUN uvx --from /app/extensions/adk-knowledge-ext \
     codebase-knowledge-mcp-manage setup \
-    --kb-ids "adk-python-v1.20.0" \
+    --kb-ids "google/adk-python@v1.20.0" \
     --local "/app/extensions/adk-knowledge-ext" \
     --quiet
 

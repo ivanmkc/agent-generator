@@ -163,6 +163,31 @@ ADK_BASE_AGENT_QUESTION_CASE_INTERMEDIATE = ApiUnderstandingBenchmarkCase(
     file=Path("src/google/adk/agents/llm_agent.py"),
 )
 
+# An intermediate case for checking ADK internals (requires deeper lookup)
+ADK_BASE_AGENT_QUESTION_CASE_ADVANCED = ApiUnderstandingBenchmarkCase(
+    id="test:adk_base_agent_advanced",
+    category="Advanced Symbol Inspection",
+    question=(
+        "In `google.adk.agents.llm_agent.LlmAgent`, what is the exact string passed as the first argument to "
+        "`logger.debug` when skipping an output save because the event was authored by another agent? "
+        "You must inspect the source code of `LlmAgent.__maybe_save_output_to_state` to find this."
+    ),
+    rationale=(
+        "This requires inspecting the actual AST source code implementation of a private method since "
+        "the internal string literals are not exposed in standard module docstrings or signature summaries."
+    ),
+    template="identifier",
+    answers=[
+        {
+            "answer_template": "StringMatchAnswer",
+            "answer": "Skipping output save for agent %s: event authored by %s",
+            "fully_qualified_class_name": ["google.adk.agents.llm_agent.LlmAgent"],
+        }
+    ],
+    file=Path("src/google/adk/agents/llm_agent.py"),
+)
+
+
 # A case for testing the dynamic ADK agent runner MCP tool
 MCP_ADK_RUNNER_CASE = FixErrorBenchmarkCase(
     id="test:mcp_adk_runner",

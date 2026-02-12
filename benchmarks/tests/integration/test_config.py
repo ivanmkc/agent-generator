@@ -21,6 +21,7 @@ from typing import Dict
 from pathlib import Path
 from benchmarks.tests.integration.predefined_cases import (
     ADK_BASE_AGENT_QUESTION_CASE_INTERMEDIATE,
+    ADK_BASE_AGENT_QUESTION_CASE_ADVANCED,
     MCP_ADK_RUNNER_CASE,
     STRUCTURED_WORKFLOW_CASE,
     ADK_SKILL_KNOWLEDGE_CASE,
@@ -134,8 +135,8 @@ GENERATOR_METADATA: Dict[str, AnyGeneratorConfig] = {
         ),
         image_name="gemini-cli:mcp_adk_agent_runner_ranked_knowledge",
         expected_mcp_servers=["codebase-knowledge"],
-        custom_case=ADK_BASE_AGENT_QUESTION_CASE_INTERMEDIATE,
-        expected_tool_uses=["list_modules"],
+        custom_case=ADK_BASE_AGENT_QUESTION_CASE_ADVANCED,
+        expected_tool_uses=["read_source_code"],
         expected_context_files=["/workdir/.gemini/instructions/KNOWLEDGE_MCP_SERVER_INSTRUCTION.md"],
         extra_env={"ADK_SEARCH_PROVIDER": "vector"},
     ),
@@ -146,8 +147,8 @@ GENERATOR_METADATA: Dict[str, AnyGeneratorConfig] = {
         ),
         image_name="gemini-cli:mcp_adk_agent_runner_remote_main",
         expected_mcp_servers=["codebase-knowledge"],
-        custom_case=ADK_BASE_AGENT_QUESTION_CASE_INTERMEDIATE,
-        expected_tool_uses=["list_modules"],
+        custom_case=ADK_BASE_AGENT_QUESTION_CASE_ADVANCED,
+        expected_tool_uses=["read_source_code"],
         expected_context_files=["/workdir/.gemini/instructions/KNOWLEDGE_MCP_SERVER_INSTRUCTION.md"],
     ),
     "podman_adk_skill_test_case": PodmanGeneratorConfig(
