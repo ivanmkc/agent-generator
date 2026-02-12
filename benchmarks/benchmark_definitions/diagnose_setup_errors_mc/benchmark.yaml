@@ -11,8 +11,8 @@ benchmarks:
     C: The `name` argument must be unique across the entire project.
     D: You must always provide a `tools` list, even if empty.
     E: None of the above
-  correct_answer: B
-  explanation: LlmAgent requires a `model` argument to function.
+  correct_answer: E
+  explanation: LlmAgent requires a `model` argument to function correctly, but the class definition provides a default empty string, so initialization does not fail. Options A-D are incorrect descriptions of the initialization failure.
   benchmark_type: multiple_choice
 - id: diagnose_setup_errors_mc:raw_function_tool
   question: How are raw Python functions handled when passed to the `tools` list of an `LlmAgent`?
@@ -23,10 +23,10 @@ benchmarks:
     A: They are rejected (TypeError).
     B: They are executed as-is without wrapper.
     C: They are converted to static methods.
-    D: They are automatically wrapped in `FunctionTool`.
+    D: Raw Python functions must be wrapped in `FunctionTool`.
     E: None of the above
-  correct_answer: D
-  explanation: The `LlmAgent` automatically wraps raw functions in `FunctionTool`.
+  correct_answer: E
+  explanation: The `LlmAgent` automatically wraps raw functions in `FunctionTool`, so manual wrapping is not required and the other options are false.
   benchmark_type: multiple_choice
 - id: diagnose_setup_errors_mc:sequential_agent_tools
   question: How should sub-agents be passed to `SequentialAgent`?
@@ -100,10 +100,10 @@ benchmarks:
     A: from google.adk.utils import FunctionTool
     B: from google.adk.agents import FunctionTool
     C: from google.adk.core import FunctionTool
-    D: from google.adk.tools.function_tool import FunctionTool
+    D: from google.adk.tools import FunctionTool
     E: None of the above
   correct_answer: D
-  explanation: FunctionTool is imported from `google.adk.tools.function_tool`.
+  explanation: FunctionTool is exported from `google.adk.tools`.
   benchmark_type: multiple_choice
 - id: diagnose_setup_errors_mc:your_root_agent_has_a_specialist_agent_in_its_sub_
   question: Your root agent has a `specialist_agent` in its `sub_agents` list, but it never delegates to it, even when asked. What is the most likely missing component in the **specialist's** definition?
@@ -352,7 +352,7 @@ benchmarks:
   explanation: Empirical testing confirms no error is raised when setting `parent_agent` in `__init__`.
   benchmark_type: multiple_choice
 - id: diagnose_setup_errors_mc:cache_ttl_string
-  question: You initialize `ContextCacheConfig` with `ttl_seconds='invalid_string'`. What error occurs?
+  question: You initialize `ContextCacheConfig` with `ttl_seconds` as a non-numeric string (e.g., 'invalid'). What error occurs?
   code_snippet_ref:
     file: benchmarks/benchmark_definitions/diagnose_setup_errors_mc/snippets.py
     section: cache_ttl_string
@@ -363,7 +363,7 @@ benchmarks:
     D: No error.
     E: None of the above
   correct_answer: B
-  explanation: '`ttl` must be an integer (seconds).'
+  explanation: '`ttl_seconds` must be an integer; a non-numeric string will raise a ValidationError.'
   benchmark_type: multiple_choice
 - id: diagnose_setup_errors_mc:compaction_overlap_negative
   question: You initialize `EventsCompactionConfig` with `overlap_size=-1`. What error occurs?
@@ -415,11 +415,11 @@ benchmarks:
   options:
     A: ValueError.
     B: No error.
-    C: 'ValidationError: Extra inputs are not permitted.'
+    C: 'ValidationError: Input should be a valid integer.'
     D: TypeError.
     E: None of the above
-  correct_answer: C
-  explanation: The `max_workers` parameter is not defined in `ParallelAgent`.
+  correct_answer: E
+  explanation: The `max_workers` parameter is not defined in `ParallelAgent`, so a ValidationError for extra fields is raised, not a type error for an integer.
   benchmark_type: multiple_choice
 - id: diagnose_setup_errors_mc:which_of_the_following_is_a_valid_agent_name_a_my_
   question: 'Which of the following is a VALID agent name?
