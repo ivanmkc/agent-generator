@@ -1,0 +1,13 @@
+https://github.com/google/adk-python:
+  v1.20.0:
+    path: indices/github-com-google-adk-python/v1.20.0.yaml
+    description: null
+  v1.23.0:
+    path: indices/github-com-google-adk-python/v1.23.0.yaml
+    description: null
+  v1.24.0:
+    path: indices/github-com-google-adk-python/v1.24.0.yaml
+    description: null
+  v1.24.1:
+    path: indices/github-com-google-adk-python/v1.24.1.yaml
+    description: null
