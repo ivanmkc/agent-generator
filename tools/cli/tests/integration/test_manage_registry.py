@@ -178,12 +178,13 @@ def test_update_interactive_none(mock_checkbox, mock_load, mock_find, mock_proce
 @patch("tools.cli.manage_registry.load_registry")
 @patch("tools.cli.manage_registry.TargetRanker")
 @patch("tools.cli.manage_registry.build_index")
+@patch("tools.cli.manage_registry.generate_cooccurrence")
 @patch("tools.cli.manage_registry.shutil.rmtree")
 @patch("tools.cli.manage_registry.subprocess.run")
 @patch("tools.cli.manage_registry.Path.mkdir")
 @patch("tools.cli.manage_registry.Path.exists")
 async def test_process_version_update_adds_version(
-    mock_exists, mock_mkdir, mock_run, mock_rmtree, mock_build, mock_ranker, mock_load, mock_save
+    mock_exists, mock_mkdir, mock_run, mock_rmtree, mock_cooccurrence, mock_build, mock_ranker, mock_load, mock_save
 ):
     """
     Tests that `process_version_update` correctly adds new versions to the registry.

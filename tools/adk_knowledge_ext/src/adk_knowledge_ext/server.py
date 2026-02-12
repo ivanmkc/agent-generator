@@ -228,35 +228,35 @@ def _validate_kb(kb_id: str | None) -> KnowledgeBaseConfig:
     """Validates kb_id and returns its metadata. Raises if invalid."""
     kbs = _get_available_kbs()
     
-    # Smart Defaulting
-    if not kb_id or kb_id in ("default", "adk", "active"):
-        # If explicitly requesting default, or omitting it, pick the active/env one first
-        # Search for one marked as source='env'
-        for k, v in kbs.items():
-            if v.source == "env":
-                logger.debug(f"Resolved kb_id='{kb_id}' to default env KB: '{k}'")
-                return v
+    # 1. Handle Explicit Request
+    if kb_id and kb_id not in ("default", "adk", "active"):
+        if kb_id in kbs:
+            return kbs[kb_id]
         
-        # Fallback to the first one available
-        if kbs:
-            first_key = next(iter(kbs))
-            logger.debug(f"Resolved kb_id='{kb_id}' to first available KB: '{first_key}'")
-            return kbs[first_key]
-            
-        raise ValueError("No Knowledge Bases loaded. Cannot resolve default kb_id.")
+        # Helpful rejection for non-existent KB
+        import difflib
+        suggestions = difflib.get_close_matches(kb_id, kbs.keys(), n=3, cutoff=0.5)
+        
+        msg = f"Knowledge Base '{kb_id}' not found."
+        if suggestions:
+            msg += f"\n\nDid you mean:\n" + "\n".join([f"- '{s}'" for s in suggestions])
+        
+        raise ValueError(msg)
 
-    if kb_id in kbs:
-        return kbs[kb_id]
+    # 2. Smart Defaulting (when kb_id is None or 'default' etc.)
+    # Search for one marked as source='env'
+    for k, v in kbs.items():
+        if v.source == "env":
+            logger.debug(f"Resolved kb_id='{kb_id}' to default env KB: '{k}'")
+            return v
     
-    # Helpful rejection
-    import difflib
-    suggestions = difflib.get_close_matches(kb_id, kbs.keys(), n=3, cutoff=0.5)
-    
-    msg = f"Knowledge Base '{kb_id}' not found."
-    if suggestions:
-        msg += f"\n\nDid you mean:\n" + "\n".join([f"- '{s}'" for s in suggestions])
-    
-    raise ValueError(msg)
+    # Fallback to the first one available
+    if kbs:
+        first_key = next(iter(kbs))
+        logger.debug(f"Resolved kb_id='{kb_id}' to first available KB: '{first_key}'")
+        return kbs[first_key]
+        
+    raise ValueError("No Knowledge Bases loaded. Cannot resolve default kb_id.")
 
 
 def _ensure_index(kb_id: str | None) -> str:
@@ -404,21 +404,24 @@ def list_modules(kb_id: str = None, page: int = 1, page_size: int = 20) -> str:
         page: Page number (1-based).
         page_size: Number of items per page.
     """
-    resolved_id = _ensure_index(kb_id)
-    _ensure_instructions()
-    items = get_index(resolved_id).list_items(page, page_size)
+    try:
+        resolved_id = _ensure_index(kb_id)
+        _ensure_instructions()
+        items = get_index(resolved_id).list_items(page, page_size)
 
-    if not items:
-        return f"No items found for page {page} in '{resolved_id}'."
+        if not items:
+             return f"Error: No items found for page {page} in '{resolved_id}'. Index might be empty or not properly set up."
 
-    lines = [f"--- Ranked Modules in '{resolved_id}' (Page {page}) ---"]
-    for item in items:
-        rank = item.get("rank", "?")
-        fqn = item.get("id") or item.get("fqn") or item.get("name") or "unknown"
-        type_ = item.get("type", "UNKNOWN")
-        lines.append(f"[{rank}] {type_}: {fqn}")
+        lines = [f"--- Ranked Modules in '{resolved_id}' (Page {page}) ---"]
+        for item in items:
+            rank = item.get("rank", "?")
+            fqn = item.get("id") or item.get("fqn") or item.get("name") or "unknown"
+            type_ = item.get("type", "UNKNOWN")
+            lines.append(f"[{rank}] {type_}: {fqn}")
 
-    return "\n".join(lines)
+        return "\n".join(lines)
+    except Exception as e:
+        return f"Error executing tool list_modules: {e}"
 
 
 @mcp.tool()

@@ -58,6 +58,75 @@ except ImportError:
     pass
 
 
+@pytest.mark.asyncio
+async def test_generator_capabilities(test_case: GeneratorTestCase) -> None:
+    """
+    Verifies that the generator discovers extensions and MCP tools if supported.
+    """
+    generator = test_case.generator
+
+    # Track if we performed any checks to decide whether to skip at the end
+    checks_performed = False
+
+    # 1. Gemini CLI Extensions Check
+    if isinstance(generator, GeminiCliAnswerGenerator):
+        checks_performed = True
+        print(f"[{test_case.id}] Fetching Gemini CLI extensions...")
+        actual_exts = await generator.get_gemini_cli_extensions()
+        print(f"[{test_case.id}] Discovered extensions: {actual_exts}")
+
+        for expected in test_case.expected_gemini_cli_extensions:
+            assert any(
+                expected in t for t in actual_exts
+            ), f"[{test_case.id}] Expected CLI extension '{expected}' not found. Available: {actual_exts}"
+    elif test_case.expected_gemini_cli_extensions:
+        pytest.fail(
+            f"[{test_case.id}] Configured to expect extensions {test_case.expected_gemini_cli_extensions}, but generator does not support 'get_gemini_cli_extensions'."
+        )
+
+    # 2. MCP Tools Check
+    if hasattr(generator, "get_mcp_servers"):
+        checks_performed = True
+        print(f"[{test_case.id}] Fetching MCP tools...")
+        actual_mcp = await generator.get_mcp_servers()
+        print(f"[{test_case.id}] Discovered MCP servers: {actual_mcp}")
+
+        for expected in test_case.expected_mcp_servers:
+            assert any(
+                expected in t for t in actual_mcp
+            ), f"[{test_case.id}] Expected MCP tool '{expected}' not found. Available: {actual_mcp}"
+    elif test_case.expected_mcp_servers:
+        pytest.fail(
+            f"[{test_case.id}] Configured to expect MCP servers {test_case.expected_mcp_servers}, but generator does not support 'get_mcp_servers'."
+        )
+
+    if not checks_performed:
+        pytest.skip(
+            f"Generator {test_case.id} supports neither CLI extensions nor MCP tool discovery."
+        )
+
+
+@pytest.mark.asyncio
+async def test_generator_execution(
+    test_case: GeneratorTestCase, tmp_path: Path
+) -> None:
+    """
+    Runs a real generation request using the specific case defined in TestCase.
+    """
+    generator = test_case.generator
+    case = test_case.custom_case
+    print(f"[DEBUG] Type of case: {type(case)}")
+
+    print(f"[{test_case.id}] Generating answer for case: '{case.get_identifier()}'")
+    try:
+        run_id = f"test_run_{uuid.uuid4().hex}"
+        answer = None
+        last_exception = None
+        for attempt in range(3):
+            try:
+                answer = await generator.generate_answer(case, run_id=run_id)
+                break
+            except Exception as e:
                 last_exception = e
                 print(f"[{test_case.id}] Generation attempt {attempt + 1} failed: {e}. Retrying...")
                 import asyncio
@@ -113,6 +182,33 @@ except ImportError:
         pytest.fail(f"[{test_case.id}] Generation failed: {e}")
 
 
+@pytest.mark.asyncio
+async def test_generator_memory_context(test_case: GeneratorTestCase) -> None:
+    """
+    Verifies that the generator loads the expected context files by inspecting debug logs.
+    """
+    generator = test_case.generator
+
+    # Check if this test case expects any context files
+    if not test_case.expected_context_files:
+        # Skip memory context test for MCP generators that don't explicitly define expected files
+        pytest.skip(f"No expected context files defined for {test_case.id}")
+
+    # Ensure generator is set up (e.g., container running)
+    await generator.setup()
+
+    # We need a CLI generator to run commands and get debug logs
+    if not isinstance(generator, GeminiCliAnswerGenerator):
+        pytest.skip(f"Generator {test_case.id} does not support run_cli_command.")
+
+    print(f"[{test_case.id}] Running gemini --debug to inspect memory context...")
+
+    # Run a simple command with --debug to trigger context loading logs
+    # Using a trivial command like 'hello' as the prompt to minimize side effects
+    command_parts = [generator.cli_path, "--debug", "hello"]
+    try:
+        response_dict, logs = await generator.run_cli_command(command_parts)
+    except Exception as e:
         pytest.fail(f"[{test_case.id}] Failed to run debug command: {e}")
 
     # Combine all log content for easier searching
@@ -151,6 +247,42 @@ except ImportError:
         ), f"Expected context file '{expected_file}' not found in loaded memory paths. Available: {loaded_paths}"
 
 
+# --- Orchestrator Logic ---
+
+
+async def run_orchestrator():
+    """
+    Main orchestration loop to run tests sequentially by generator.
+    """
+    from benchmarks.tests.integration.test_config import GENERATOR_METADATA
+
+    # Configuration for generators that need sequential execution
+    # We filter specifically for Podman which requires orchestration
+    generators = [
+        config for config in GENERATOR_METADATA.values() 
+        if config.type in ["podman"]
+    ]
+
+    print("=== Starting Sequential Integration Test Suite ===")
+
+    for config in generators:
+        gen_id = config.id
+        gen_type = config.type
+        print(f"\n>>> Preparing Generator: {gen_id} ({gen_type})")
+
+        generator = None
+        # Instantiate via config factory
+        from core.api_key_manager import ApiKeyManager
+
+        project_id = os.environ.get("GOOGLE_CLOUD_PROJECT", None)
+
+        try:
+            generator = config.create_generator(
+                model_name="gemini-2.5-flash",
+                project_id=project_id,
+                api_key_manager=ApiKeyManager(),
+            )
+        except Exception as e:
             print(f"!!! [{gen_id}] Initialization FAILED: {e}")
             continue
 

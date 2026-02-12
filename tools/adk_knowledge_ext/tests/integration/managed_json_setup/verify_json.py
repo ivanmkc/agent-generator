@@ -9,6 +9,7 @@ import os
 import sys
 import json
 import subprocess
+import shutil
 from pathlib import Path
 
 def main():
@@ -30,13 +31,25 @@ def main():
 
     # 1. Setup
     print("\nRunning setup for all detected IDEs...")
-    # Use uvx to run the tool from the current directory (which should be the package root in tests)
-    # We assume CWD is the package root or we point to it.
-    # In integration tests, we can use '.' if we run from root.
+    
+    # Ensure uvx is in PATH, try to find it if not
+    uvx_path = shutil.which("uvx")
+    if not uvx_path:
+        # Check common locations
+        common_paths = [Path.home() / ".local/bin/uvx", Path("/usr/local/bin/uvx")]
+        for p in common_paths:
+            if p.exists():
+                uvx_path = str(p)
+                break
+    
+    if not uvx_path:
+        print("FAIL: uvx not found in PATH or common locations")
+        sys.exit(1)
+
     cmd = [
-        "uvx", "--from", ".",
+        uvx_path, "--from", ".",
         "codebase-knowledge-mcp-manage", "setup",
-        "--repo-url", "https://github.com/google/adk-python.git", # Use a real repo for better testing
+        "--repo-url", "https://github.com/google/adk-python.git",
         "--version", "v1.20.0",
         "--local",
         "--force"
@@ -70,7 +83,7 @@ def main():
     # ...
     # ...
     confirmations = "y\n" * 10 
-    remove_cmd = ["uvx", "--from", ".", "codebase-knowledge-mcp-manage", "remove"]
+    remove_cmd = [uvx_path, "--from", ".", "codebase-knowledge-mcp-manage", "remove"]
     p = subprocess.Popen(remove_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     stdout, stderr = p.communicate(input=confirmations)
     

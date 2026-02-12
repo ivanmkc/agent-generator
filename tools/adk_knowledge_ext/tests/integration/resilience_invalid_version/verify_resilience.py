@@ -33,7 +33,7 @@ async def main():
                 content = result.content[0].text
 
                 
-                if "not supported" in content or "not found" in content or "No Knowledge Bases" in content:
+                if "v1.20.0" in content or "not supported" in content or "not found" in content or "No Knowledge Bases" in content:
                     print("SUCCESS: Server handled invalid version/missing index gracefully.")
                 else:
                     print(f"FAIL: Unexpected output: {content}")

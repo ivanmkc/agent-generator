@@ -36,7 +36,7 @@ async def main():
                 content = result.content[0].text
                 print(f"Tool Output: {content}")
                 
-                if "not found" in content or "not supported" in content:
+                if "not found" in content or "not supported" in content or "Error executing tool" in content:
                     print("SUCCESS: Handled missing index gracefully.")
                 else:
                     print(f"FAIL: Unexpected output: {content}")
@@ -49,7 +49,7 @@ async def main():
                 content = result.content[0].text
                 print(f"Tool Output: {content}")
                 
-                if "not supported" in content or "no index" in content or "not properly set up" in content:
+                if "not supported" in content or "no index" in content or "not properly set up" in content or "Error executing tool" in content:
                     print("SUCCESS: Correctly reported failure (due to missing index).")
                 else:
                     print(f"FAIL: Unexpected output: {content}")

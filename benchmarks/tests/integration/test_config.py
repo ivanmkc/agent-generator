@@ -78,6 +78,17 @@ GENERATOR_METADATA: Dict[str, AnyGeneratorConfig] = {
         ],
         custom_case=STRUCTURED_WORKFLOW_CASE,
     ),
+    "podman_adk_mcp_experiment_test_case": PodmanGeneratorConfig(
+        id="podman_adk_mcp_experiment_test_case",
+        dockerfile_dir=Path(
+            "benchmarks/answer_generators/gemini_cli_docker/adk_mcp_experiment"
+        ),
+        image_name="gemini-cli:adk_mcp_experiment",
+        # Verify that the MCP server is registered and tools are available
+        custom_case=ADK_BASE_AGENT_QUESTION_CASE_INTERMEDIATE,
+        expected_tool_uses=['list_modules', 'inspect_symbol'],
+        expected_mcp_servers=["adk-mcp"],
+    ),
     "podman_base_test_case": PodmanGeneratorConfig(
         id="podman_base_test_case",
         dockerfile_dir=Path(
@@ -126,18 +137,6 @@ GENERATOR_METADATA: Dict[str, AnyGeneratorConfig] = {
         # Expect get_module_help, though prompt is probabilistic.
         # But instructions prioritize it, so it should appear.
         expected_tool_uses=["get_module_help", "run_adk_agent"],
-    ),
-    "podman_mcp_adk_runner_ranked_knowledge_test_case": PodmanGeneratorConfig(
-        id="podman_mcp_adk_runner_ranked_knowledge_test_case",
-        dockerfile_dir=Path(
-            "benchmarks/answer_generators/gemini_cli_docker/mcp_adk_agent_runner_ranked_knowledge"
-        ),
-        image_name="gemini-cli:mcp_adk_agent_runner_ranked_knowledge",
-        expected_mcp_servers=["codebase-knowledge"],
-        custom_case=ADK_BASE_AGENT_QUESTION_CASE_INTERMEDIATE,
-        expected_tool_uses=["list_modules"],
-        expected_context_files=["/workdir/.gemini/instructions/KNOWLEDGE_MCP_SERVER_INSTRUCTION.md"],
-        extra_env={"ADK_SEARCH_PROVIDER": "vector"},
     ),
     "podman_mcp_adk_runner_remote_main_test_case": PodmanGeneratorConfig(
         id="podman_mcp_adk_runner_remote_main_test_case",
