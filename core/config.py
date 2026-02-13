@@ -53,10 +53,31 @@ API_METADATA_FILE = DATA_DIR / "api_metadata.yaml"
 # This path might be for the final report.
 VIBESHARE_RESULTS_FILE = OUTPUT_ROOT / "vibeshare_results.json"
 
+def _resolve_ranked_targets_path(extension: str = "yaml") -> Path:
+    """Dynamically resolves the path to the latest ranked_targets index using adk_knowledge_ext API."""
+    try:
+        # Add tools to path if not already there
+        ext_src = PROJECT_ROOT / "tools/adk_knowledge_ext/src"
+        if str(ext_src) not in sys.path:
+            sys.path.append(str(ext_src))
+            
+        from adk_knowledge_ext.server import resolve_index_path
+        
+        # Resolve path for default KB
+        path = resolve_index_path(None)
+        
+        if extension == "md":
+            path = path.with_suffix(".md")
+            
+        return path.resolve()
+    except Exception:
+        # Fallback to legacy location if API resolution fails
+        return PROJECT_ROOT / f"benchmarks/generator/benchmark_generator/data/ranked_targets.{extension}"
+
 # "ranked_targets.yaml": The "Golden" list of API targets to benchmark.
-# Points to the source directory so changes are committed.
-RANKED_TARGETS_FILE = PROJECT_ROOT / "benchmarks/generator/benchmark_generator/data/ranked_targets.yaml"
-RANKED_TARGETS_MD = PROJECT_ROOT / "benchmarks/generator/benchmark_generator/data/ranked_targets.md"
+# Points to the versioned registry in adk-knowledge-ext.
+RANKED_TARGETS_FILE = _resolve_ranked_targets_path("yaml")
+RANKED_TARGETS_MD = _resolve_ranked_targets_path("md")
 
 
 # Ensure dirs exist

@@ -17,6 +17,7 @@ from tools.retrieval_dataset_generation.retrieval_engine import (
     RetrievalCase,
     RetrievalContext,
 )
+from core.config import RANKED_TARGETS_FILE
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
@@ -142,7 +143,7 @@ class RetrievalDataExtractor:
 
 if __name__ == "__main__":
     extractor = RetrievalDataExtractor(
-        ranked_targets_path="benchmarks.generator.benchmark_generator/data/ranked_targets.yaml",
+        ranked_targets_path=str(RANKED_TARGETS_FILE),
         benchmarks_root="benchmarks",
     )
     extractor.load_ranked_targets()

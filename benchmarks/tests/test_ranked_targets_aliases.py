@@ -6,7 +6,9 @@ from pathlib import Path
 
 # Paths
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-RANKED_TARGETS_PATH = PROJECT_ROOT / "benchmarks/generator/benchmark_generator/data/ranked_targets.yaml"
+sys.path.append(str(PROJECT_ROOT))
+from core.config import RANKED_TARGETS_FILE
+RANKED_TARGETS_PATH = RANKED_TARGETS_FILE
 
 def get_object_from_fqn(fqn):
     """

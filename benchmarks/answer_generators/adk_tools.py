@@ -28,6 +28,7 @@ import ast
 import sys
 from benchmarks.generator.benchmark_generator.models import TargetEntity
 from tools.knowledge.target_ranker.models import RankedTarget
+from core.config import RANKED_TARGETS_FILE
 
 # Try to import yaml
 try:
@@ -94,12 +95,15 @@ class AdkTools:
                 pass
 
     def _load_coocc_index(self):
-        """Loads the co-occurrence matrix from benchmarks/adk_cooccurrence.json."""
-        coocc_path = Path("benchmarks/adk_cooccurrence.json")
-        if coocc_path.exists():
+        """Loads the co-occurrence matrix from the same directory as ranked_targets.yaml."""
+        if not RANKED_TARGETS_FILE:
+            return
+            
+        coocc_path = RANKED_TARGETS_FILE.parent / "adk_cooccurrence.yaml"
+        if coocc_path.exists() and yaml:
             try:
                 with open(coocc_path, "r", encoding="utf-8") as f:
-                    self._coocc_index = json.load(f)
+                    self._coocc_index = yaml.safe_load(f)
             except Exception:
                 pass
 
@@ -429,27 +433,9 @@ class AdkTools:
         return "\n".join(output)
 
     def _load_ranked_targets(self) -> List[RankedTarget]:
-        candidates = [
-            self.workspace_root
-            / "tmp/outputs/generated_benchmarks/ranked_targets.yaml",
-            self.workspace_root
-            / "benchmarks/generator/benchmark_generator/data/ranked_targets.yaml",
-            self.workspace_root / "ranked_targets.yaml",
-            Path("tmp/outputs/generated_benchmarks/ranked_targets.yaml"),
-            Path("benchmarks/generator/benchmark_generator/data/ranked_targets.yaml"),
-            Path("ranked_targets.yaml"),
-            Path(__file__).resolve().parent.parent.parent / "ranked_targets.yaml",
-            Path(__file__).resolve().parent.parent
-            / "benchmark_generator/data/ranked_targets.yaml",
-        ]
+        index_path = RANKED_TARGETS_FILE
 
-        index_path = None
-        for p in candidates:
-            if p.exists():
-                index_path = p
-                break
-
-        if not index_path:
+        if not index_path or not index_path.exists():
             return []
 
         self._ranked_targets_path = index_path

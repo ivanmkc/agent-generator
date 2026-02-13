@@ -13,7 +13,7 @@ The pipeline consists of two primary stages, which can be executed sequentially 
 - Acts as a "Cartographer" for the codebase.
 - Uses AST to scan Python files, resolve inheritance (MRO), and extract signatures and docstrings.
 - Calculates and assigns a "Rank" to each symbol based on its usage frequency in the source code / tests.
-- **Output:** `benchmarks/generator/benchmark_generator/data/ranked_targets.yaml` and `ranked_targets.md`.
+- **Output:** Versioned indices in `tools/adk_knowledge_ext/src/adk_knowledge_ext/data/indices/` (e.g. `google-adk-python/v1.24.1/ranked_targets.yaml`).
 
 ### 2. Semantic Indexing (`build_vector_index.py`)
 **Entrypoint:** `tools/knowledge/build_vector_index.py`

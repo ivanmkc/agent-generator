@@ -14,7 +14,7 @@ import pandas as pd
 
 
 from tools.retrieval_benchmark_lib import RetrievalEvaluator, BM25Retriever, EmbeddingRetriever
-
+from core.config import RANKED_TARGETS_FILE
 
 
 async def main():
@@ -25,7 +25,7 @@ async def main():
 
     evaluator = RetrievalEvaluator(
         dataset_path="retrieval_dataset.yaml",
-        targets_path="benchmarks.generator.benchmark_generator/data/ranked_targets.yaml",
+        targets_path=str(RANKED_TARGETS_FILE),
     )
 
     print(

@@ -4,8 +4,13 @@ import yaml
 import pytest
 from pathlib import Path
 import ast
+import sys
 
-RANKED_TARGETS_PATH = Path("benchmarks/generator/benchmark_generator/data/ranked_targets.yaml")
+# Add root to sys.path for core imports
+sys.path.append(str(Path(__file__).resolve().parent.parent.parent))
+from core.config import RANKED_TARGETS_FILE
+
+RANKED_TARGETS_PATH = RANKED_TARGETS_FILE
 REPO_ROOT = Path("repos/adk-python")
 
 
