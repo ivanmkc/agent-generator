@@ -1475,108 +1475,111 @@ def main():
                 st.info("No detailed attempt history available.")
 
         # Tab 1..N: Individual Attempts
-        for i, attempt in enumerate(generation_attempts):
-            with main_tabs[i + 1]:
-                # Inject AI Root Cause Analysis
-                if forensic_data and composite_key in forensic_data.attempts:
-                    attempts_list = forensic_data.attempts[composite_key]
-                    if i < len(attempts_list):
-                        insight = attempts_list[i]
-                        insight_type = (
-                            "error" if attempt.status != "success" else "info"
-                        )
+        with Profiler("render_attempts_loop"):
+            for i, attempt in enumerate(generation_attempts):
+                with main_tabs[i + 1]:
+                    # Inject AI Root Cause Analysis
+                    with Profiler(f"render_insights_{i}"):
+                        if forensic_data and composite_key in forensic_data.attempts:
+                            attempts_list = forensic_data.attempts[composite_key]
+                            if i < len(attempts_list):
+                                insight = attempts_list[i]
+                                insight_type = (
+                                    "error" if attempt.status != "success" else "info"
+                                )
 
-                        content = (
-                            f"- **Root Cause:** {insight.root_cause_category}\n"
-                            f"- **Failure Point:** {insight.dag_failure_point}\n"
-                            f"- **Explanation:** {insight.explanation}"
-                        )
+                                content = (
+                                    f"- **Root Cause:** {insight.root_cause_category}\n"
+                                    f"- **Failure Point:** {insight.dag_failure_point}\n"
+                                    f"- **Explanation:** {insight.explanation}"
+                                )
 
-                        render_ai_insight(
-                            "AI Root Cause Analysis", content, type=insight_type
-                        )
+                                render_ai_insight(
+                                    "AI Root Cause Analysis", content, type=insight_type
+                                )
 
-                st.markdown(f"### Details for Attempt {attempt.attempt_number}")
+                    st.markdown(f"### Details for Attempt {attempt.attempt_number}")
 
-                # Context variables for this attempt
-                active_trace_logs = attempt.trace_logs or []
-                active_answer = attempt.answer or ""
-                active_usage = attempt.usage_metadata
+                    # Context variables for this attempt
+                    active_trace_logs = attempt.trace_logs or []
+                    active_answer = attempt.answer or ""
+                    active_usage = attempt.usage_metadata
 
-                total_tokens = active_usage.total_tokens if active_usage else "N/A"
-                # Safe access thanks to default_factory=dict
-                loop_exit = (
-                    active_usage.extra_tags.get("loop_exit_reason")
-                    if active_usage
-                    else None
-                )
-                exit_str = f" | Exit: {loop_exit}" if loop_exit else ""
-
-                st.caption(
-                    f"Generation Status: {attempt.status} | Duration: {attempt.duration:.2f}s | Tokens: {total_tokens}{exit_str}"
-                )
-
-                # Nested Tabs for deep dive
-                sub_tabs = st.tabs(
-                    [
-                        "Diff & Code",
-                        "Trace Logs",
-                        "CLI Output",
-                        "Raw Events",
-                        "Errors",
-                        "Metadata",
-                    ]
-                )
-
-                # 1. Diff & Code
-                with sub_tabs[0]:
-                    st.markdown("#### Generated Code vs Ground Truth")
-                    st.markdown(
-                        "Compares the generated answer against the ground truth."
+                    total_tokens = active_usage.total_tokens if active_usage else "N/A"
+                    # Safe access thanks to default_factory=dict
+                    loop_exit = (
+                        active_usage.extra_tags.get("loop_exit_reason")
+                        if active_usage
+                        else None
                     )
-                    selected_code = str(active_answer)
-                    view_mode = st.radio(
-                        "Diff View",
-                        ["Side-by-Side", "Unified Diff", "Original (Unfixed)"],
-                        horizontal=True,
-                        key=f"diff_mode_{i}",
+                    exit_str = f" | Exit: {loop_exit}" if loop_exit else ""
+
+                    st.caption(
+                        f"Generation Status: {attempt.status} | Duration: {attempt.duration:.2f}s | Tokens: {total_tokens}{exit_str}"
                     )
 
-                    if view_mode == "Side-by-Side":
-                        sc1, sc2 = st.columns(2)
-                        with sc1:
-                            st.caption("Generated Answer")
-                            if selected_code:
-                                st.code(selected_code, language="python")
-                            else:
-                                st.info("No answer produced for this attempt.")
-                        with sc2:
-                            st.caption("Ground Truth")
-                            st.code(result_obj.ground_truth or "", language="python")
-                    elif view_mode == "Unified Diff":
-                        st.caption(
-                            f"Unified Diff (Attempt {attempt.attempt_number} vs Ground Truth)"
+                    # Nested Tabs for deep dive
+                    sub_tabs = st.tabs(
+                        [
+                            "Diff & Code",
+                            "Trace Logs",
+                            "CLI Output",
+                            "Raw Events",
+                            "Errors",
+                            "Metadata",
+                        ]
+                    )
+
+                    # 1. Diff & Code
+                    with sub_tabs[0]:
+                        st.markdown("#### Generated Code vs Ground Truth")
+                        st.markdown(
+                            "Compares the generated answer against the ground truth."
                         )
-                        render_diff(selected_code, str(result_obj.ground_truth or ""))
-                    else:
-                        st.caption("Original (Unfixed) Code")
-                        if result_obj.unfixed_code:
-                            st.code(result_obj.unfixed_code, language="python")
-                        else:
-                            st.info(
-                                "Original (unfixed) code is not available for this benchmark type or was not recorded."
+                        selected_code = str(active_answer)
+                        view_mode = st.radio(
+                            "Diff View",
+                            ["Side-by-Side", "Unified Diff", "Original (Unfixed)"],
+                            horizontal=True,
+                            key=f"diff_mode_{i}",
+                        )
+
+                        if view_mode == "Side-by-Side":
+                            sc1, sc2 = st.columns(2)
+                            with sc1:
+                                st.caption("Generated Answer")
+                                if selected_code:
+                                    st.code(selected_code, language="python")
+                                else:
+                                    st.info("No answer produced for this attempt.")
+                            with sc2:
+                                st.caption("Ground Truth")
+                                st.code(result_obj.ground_truth or "", language="python")
+                        elif view_mode == "Unified Diff":
+                            st.caption(
+                                f"Unified Diff (Attempt {attempt.attempt_number} vs Ground Truth)"
                             )
+                            render_diff(selected_code, str(result_obj.ground_truth or ""))
+                        else:
+                            st.caption("Original (Unfixed) Code")
+                            if result_obj.unfixed_code:
+                                st.code(result_obj.unfixed_code, language="python")
+                            else:
+                                st.info(
+                                    "Original (unfixed) code is not available for this benchmark type or was not recorded."
+                                )
 
-                # 2. Trace Logs
-                with sub_tabs[1]:
-                    st.markdown("#### Attempt Trace Logs")
-                    st.markdown(
-                        "Chronological trace of tool calls and model responses."
-                    )
-                    if not active_trace_logs:
-                        st.warning("No trace logs available for this attempt.")
-                    else:
-                        render_logs(active_trace_logs, key=i)
+                    # 2. Trace Logs
+                    with sub_tabs[1]:
+                        st.markdown("#### Attempt Trace Logs")
+                        st.markdown(
+                            "Chronological trace of tool calls and model responses."
+                        )
+                        if not active_trace_logs:
+                            st.warning("No trace logs available for this attempt.")
+                        else:
+                            with Profiler(f"render_logs_{i}"):
+                                render_logs(active_trace_logs, key=i)
 
                 # 3. CLI Output
                 with sub_tabs[2]:
@@ -1587,20 +1590,21 @@ def main():
                         for e in active_trace_logs
                         if e.type in ["CLI_STDOUT_FULL", "CLI_STDOUT_RAW", "CLI_STDERR"]
                     ]
-                    cli_events = merge_consecutive_events(
-                        [e.model_dump() for e in cli_events]
-                    )
-
+                    
                     if not cli_events:
                         st.info("No CLI output recorded.")
                     else:
+                        # Optimize: Merge all into one block to avoid DOM overload (100+ st.code blocks freeze UI)
+                        full_log_parts = []
                         for event in cli_events:
-                            e_type = event.get("type")
-                            content = event.get("content", "")
-                            if e_type == "CLI_STDERR":
-                                st.error(content, icon="⚠️")
+                            content = event.content or ""
+                            if event.type == "CLI_STDERR":
+                                full_log_parts.append(f"⚠️ [STDERR]\n{content}")
                             else:
-                                st.code(content, language="text")
+                                full_log_parts.append(content)
+                        
+                        full_log = "\n".join(full_log_parts)
+                        st.code(full_log, language="text")
 
                 # 4. Raw Events
                 with sub_tabs[3]:
