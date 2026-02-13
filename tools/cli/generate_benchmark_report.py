@@ -9,6 +9,7 @@ synthesize an executive summary and actionable recommendations.
 import asyncio
 import os
 import json
+import gzip
 
 import yaml
 from pathlib import Path
@@ -906,31 +907,42 @@ class LogAnalyzer:
         run_dir = log_path.parent
         generator_context = await self._load_static_context(run_dir)
         
-        # Try YAML first (Standard Format)
-        results_path = run_dir / "results.yaml"
         data = None
-        
-        if results_path.exists():
+
+        # Try Gzipped JSON first (Primary)
+        path_gz = run_dir / "results.json.gz"
+        if path_gz.exists():
             try:
-                try:
-                    from yaml import CLoader as Loader
-                except ImportError:
-                    from yaml import Loader
-                with open(results_path, "r", encoding="utf-8") as f:
-                    data = yaml.load(f, Loader=Loader)
-            except Exception as e:
-                return f"Error loading results.yaml: {e}"
-        else:
-            # Fallback to JSON (Legacy)
-            results_path = run_dir / "results.json"
-            if not results_path.exists():
-                return "No results.yaml or results.json found."
-            
-            try:
-                with open(results_path, "r", encoding="utf-8") as f:
+                with gzip.open(path_gz, "rt", encoding="utf-8") as f:
                     data = json.load(f)
             except Exception as e:
-                return f"Error loading results.json: {e}"
+                return f"Error loading results.json.gz: {e}"
+
+        if not data:
+            # Try JSON (Preferred for performance)
+            results_path = run_dir / "results.json"
+            if results_path.exists():
+                try:
+                    with open(results_path, "r", encoding="utf-8") as f:
+                        data = json.load(f)
+                except Exception as e:
+                    return f"Error loading results.json: {e}"
+
+        if not data:
+            # Fallback to YAML (Legacy/Standard)
+            results_yaml_path = run_dir / "results.yaml"
+            if results_yaml_path.exists():
+                try:
+                    try:
+                        from yaml import CLoader as Loader
+                    except ImportError:
+                        from yaml import Loader
+                    with open(results_yaml_path, "r", encoding="utf-8") as f:
+                        data = yaml.load(f, Loader=Loader)
+                except Exception as e:
+                    return f"Error loading results.yaml: {e}"
+            else:
+                return "No results.json.gz, results.json, or results.yaml found."
 
         try:
             TypeAdapter = pydantic.TypeAdapter(List[BenchmarkRunResult])

@@ -10,6 +10,7 @@ It serves as the data layer for the CLI reporting tools and the Streamlit viewer
 
 import json
 import yaml
+import gzip
 import pathlib
 from typing import List, Dict, Any
 from collections import defaultdict
@@ -33,24 +34,38 @@ class BenchmarkRunAnalysis:
     def _load_and_process(self):
         data = []
         
-        # Try YAML first
-        yaml_path = self.run_dir / "results.yaml"
-        if yaml_path.exists():
+        # Try Gzipped JSON first (Primary)
+        path_gz = self.run_dir / "results.json.gz"
+        if path_gz.exists():
             try:
-                try:
-                    from yaml import CLoader as Loader
-                except ImportError:
-                    from yaml import Loader
-                with open(yaml_path, "r") as f:
-                    data = yaml.load(f, Loader=Loader)
+                with gzip.open(path_gz, "rt", encoding="utf-8") as f:
+                    data = json.load(f)
             except Exception as e:
-                print(f"Error loading results.yaml: {e}")
-        else:
-            # Fallback to JSON
+                print(f"Error loading results.json.gz: {e}")
+
+        if not data:
+            # Fallback to JSON (Legacy)
             json_path = self.run_dir / "results.json"
             if json_path.exists():
-                with open(json_path, "r") as f:
-                    data = json.load(f)
+                try:
+                    with open(json_path, "r") as f:
+                        data = json.load(f)
+                except Exception as e:
+                    print(f"Error loading results.json: {e}")
+
+        # Fallback to YAML (Legacy/Standard)
+        if not data:
+            yaml_path = self.run_dir / "results.yaml"
+            if yaml_path.exists():
+                try:
+                    try:
+                        from yaml import CLoader as Loader
+                    except ImportError:
+                        from yaml import Loader
+                    with open(yaml_path, "r") as f:
+                        data = yaml.load(f, Loader=Loader)
+                except Exception as e:
+                    print(f"Error loading results.yaml: {e}")
         
         if not data:
             print(f"Warning: No valid results found in {self.run_dir}")

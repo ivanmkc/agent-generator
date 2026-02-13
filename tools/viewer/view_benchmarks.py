@@ -15,6 +15,8 @@ import json
 import yaml
 import os
 import sys
+import time
+import gzip
 from pathlib import Path
 import difflib
 import re
@@ -41,6 +43,22 @@ except ImportError:
 
 # --- Constants ---
 BENCHMARK_GCS_BUCKET = os.environ.get("BENCHMARK_GCS_BUCKET")
+
+
+# --- Profiler ---
+class Profiler:
+    """Context manager for timing code blocks and logging results."""
+
+    def __init__(self, name: str):
+        self.name = name
+
+    def __enter__(self):
+        self.start_time = time.perf_counter()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        duration = time.perf_counter() - self.start_time
+        print(f"[Profiler] {self.name}: {duration:.4f}s", file=sys.stderr)
 
 
 # --- Artifact Manager ---
@@ -143,15 +161,32 @@ def load_run_options():
 
 @st.cache_data
 def load_results(run_id) -> List[BenchmarkRunResult]:
-    """Loads results.yaml for a given run ID into a list of BenchmarkRunResult objects."""
-    path = artifact_manager.get_file(run_id, "results.yaml")
-    if not path:
-        # Fallback to legacy results.json if yaml doesn't exist
-        path_json = artifact_manager.get_file(run_id, "results.json")
-        if path_json:
+    """Loads results.json.gz (preferred), results.json, or results.yaml for a given run ID."""
+    
+    # 1. Try Gzipped JSON (Primary, fast & small)
+    path_gz = artifact_manager.get_file(run_id, "results.json.gz")
+    if path_gz:
+        try:
+            with gzip.open(path_gz, "rt", encoding="utf-8") as f:
+                data = json.load(f)
+            return TypeAdapter(List[BenchmarkRunResult]).validate_python(data)
+        except Exception as e:
+            print(f"Error loading results.json.gz: {e}")
+            # Fallback
+
+    # 2. Try JSON (Legacy but fast)
+    path_json = artifact_manager.get_file(run_id, "results.json")
+    if path_json:
+        try:
             with open(path_json, "r") as f:
                 data = json.load(f)
             return TypeAdapter(List[BenchmarkRunResult]).validate_python(data)
+        except Exception as e:
+            print(f"Error loading results.json: {e}")
+            # Fallback
+
+    path_yaml = artifact_manager.get_file(run_id, "results.yaml")
+    if not path_yaml:
         return []
 
     # Use LibYAML for speed if available
@@ -160,7 +195,7 @@ def load_results(run_id) -> List[BenchmarkRunResult]:
     except ImportError:
         from yaml import Loader
 
-    with open(path, "r") as f:
+    with open(path_yaml, "r") as f:
         data = yaml.load(f, Loader=Loader)
 
     # Validate and parse into objects
@@ -721,7 +756,9 @@ def main():
     )
 
     # 1. Run Selection (Sidebar)
-    runs = load_run_options()
+    with Profiler("load_run_options"):
+        runs = load_run_options()
+
     if not runs:
         st.error("No benchmark runs found in `benchmark_runs/`.")
         return
@@ -739,18 +776,21 @@ def main():
     selected_run = selected_run_obj["id"]
 
     # 2. Load Data
-    results_list = load_results(selected_run)
+    with Profiler("load_results"):
+        results_list = load_results(selected_run)
+
     if not results_list:
         st.warning(f"No results found in {selected_run}/results.yaml. The benchmark run might have failed early or produced no output.")
         return
 
     # Convert to DataFrame for UI logic
-    df = pd.DataFrame([r.model_dump(mode="json") for r in results_list])
+    with Profiler("create_dataframe"):
+        df = pd.DataFrame([r.model_dump(mode="json") for r in results_list])
 
-    if "suite" in df.columns:
-        df["suite"] = df["suite"].apply(
-            lambda x: Path(x).parent.name if "/" in x else x
-        )
+        if "suite" in df.columns:
+            df["suite"] = df["suite"].apply(
+                lambda x: Path(x).parent.name if "/" in x else x
+            )
 
     # 3. Sidebar Filters
     st.sidebar.subheader("Global Filters")
@@ -774,20 +814,21 @@ def main():
     )
 
     # 4. Filter Data (Preliminary)
-    filtered_df = df.copy()
-    if selected_suite != "All" and "suite" in filtered_df.columns:
-        filtered_df = filtered_df[filtered_df["suite"] == selected_suite]
-    if selected_status != "All" and "status" in filtered_df.columns:
-        filtered_df = filtered_df[filtered_df["status"] == selected_status]
-    if exclude_system_failures and "status" in filtered_df.columns:
-        filtered_df = filtered_df[
-            ~filtered_df["status"].isin(
-                [
-                    BenchmarkResultType.FAIL_SETUP.value,
-                    BenchmarkResultType.FAIL_GENERATION.value,
-                ]
-            )
-        ]
+    with Profiler("filter_data"):
+        filtered_df = df.copy()
+        if selected_suite != "All" and "suite" in filtered_df.columns:
+            filtered_df = filtered_df[filtered_df["suite"] == selected_suite]
+        if selected_status != "All" and "status" in filtered_df.columns:
+            filtered_df = filtered_df[filtered_df["status"] == selected_status]
+        if exclude_system_failures and "status" in filtered_df.columns:
+            filtered_df = filtered_df[
+                ~filtered_df["status"].isin(
+                    [
+                        BenchmarkResultType.FAIL_SETUP.value,
+                        BenchmarkResultType.FAIL_GENERATION.value,
+                    ]
+                )
+            ]
 
     if filtered_df.empty:
         st.info("No data matches the current filters.")
@@ -947,46 +988,74 @@ def main():
             "Metrics are calculated as follows:\n- **Accuracy (System Failures = Fail):** `Passed / Total`. This metric treats any system failure (`FAIL_SETUP`, `FAIL_GENERATION`) as a failure, reflecting the overall system's reliability and correctness.\n- **Accuracy:** `Passed / (Total - System Failures)`. This metric excludes system failures from the total, focusing on the model's performance on valid attempts (i.e., those not encountering setup or generation issues)."
         )
 
+        # Prepare data for aggregation
+        analysis_df = filtered_df.copy()
+
+        # Extract total_tokens if not present as top-level
+        if "total_tokens" not in analysis_df.columns:
+
+            def get_tokens(meta):
+                if isinstance(meta, dict):
+                    return meta.get("total_tokens") or 0
+                return 0
+
+            if "usage_metadata" in analysis_df.columns:
+                analysis_df["total_tokens"] = analysis_df["usage_metadata"].apply(
+                    get_tokens
+                )
+            else:
+                analysis_df["total_tokens"] = 0
+
+        # Calculate success metrics (None for failures so mean ignores them)
+        analysis_df["success_tokens"] = analysis_df.apply(
+            lambda x: x["total_tokens"] if x["result"] == 1 else None, axis=1
+        )
+        analysis_df["success_latency"] = analysis_df.apply(
+            lambda x: x["latency"] if x["result"] == 1 else None, axis=1
+        )
+
         # 1. Granular Stats (Generator + Suite)
         granular = (
-            filtered_df.groupby(["answer_generator", "suite"])
+            analysis_df.groupby(["answer_generator", "suite"])
             .agg(
                 total=("result", "count"),
                 passed=("result", "sum"),
                 system_failures=(
                     "status",
-                    lambda x:
-                        (
-                            x.isin(
-                                [
-                                    BenchmarkResultType.FAIL_SETUP.value,
-                                    BenchmarkResultType.FAIL_GENERATION.value,
-                                ]
-                            )
-                        ).sum(),
+                    lambda x: (
+                        x.isin(
+                            [
+                                BenchmarkResultType.FAIL_SETUP.value,
+                                BenchmarkResultType.FAIL_GENERATION.value,
+                            ]
+                        )
+                    ).sum(),
                 ),
+                avg_tokens=("success_tokens", "mean"),
+                avg_latency=("success_latency", "mean"),
             )
             .reset_index()
         )
 
         # 2. Aggregate Stats (Generator only)
         aggregate = (
-            filtered_df.groupby("answer_generator")
+            analysis_df.groupby("answer_generator")
             .agg(
                 total=("result", "count"),
                 passed=("result", "sum"),
                 system_failures=(
                     "status",
-                    lambda x:
-                        (
-                            x.isin(
-                                [
-                                    BenchmarkResultType.FAIL_SETUP.value,
-                                    BenchmarkResultType.FAIL_GENERATION.value,
-                                ]
-                            )
-                        ).sum(),
+                    lambda x: (
+                        x.isin(
+                            [
+                                BenchmarkResultType.FAIL_SETUP.value,
+                                BenchmarkResultType.FAIL_GENERATION.value,
+                            ]
+                        )
+                    ).sum(),
                 ),
+                avg_tokens=("success_tokens", "mean"),
+                avg_latency=("success_latency", "mean"),
             )
             .reset_index()
         )
@@ -1014,6 +1083,13 @@ def main():
         ].map("{:.1f}%".format)
         unified["Accuracy"] = unified["Accuracy"].map("{:.1f}%".format)
 
+        unified["Avg Tokens (Success)"] = unified["avg_tokens"].apply(
+            lambda x: f"{x:.0f}" if pd.notnull(x) else "N/A"
+        )
+        unified["Avg Latency (Success)"] = unified["avg_latency"].apply(
+            lambda x: f"{x:.2f}s" if pd.notnull(x) else "N/A"
+        )
+
         # 5. Sort (Generator, then Suite with (All Suites) first)
         unified = unified.sort_values(by=["answer_generator", "suite"])
 
@@ -1027,6 +1103,8 @@ def main():
                     "total",
                     "Accuracy (System Failures = Fail)",
                     "Accuracy",
+                    "Avg Tokens (Success)",
+                    "Avg Latency (Success)",
                 ]
             ],
             use_container_width=True,
@@ -1044,6 +1122,14 @@ def main():
                 "Accuracy": st.column_config.TextColumn(
                     "Accuracy",
                     help="Passed / (Total - System Failures). Ignores system failures to measure model intelligence on valid attempts.",
+                ),
+                "Avg Tokens (Success)": st.column_config.TextColumn(
+                    "Avg Tokens (Success)",
+                    help="Average total tokens used for successful runs only.",
+                ),
+                "Avg Latency (Success)": st.column_config.TextColumn(
+                    "Avg Latency (Success)",
+                    help="Average latency (seconds) for successful runs only.",
                 ),
             },
         )
