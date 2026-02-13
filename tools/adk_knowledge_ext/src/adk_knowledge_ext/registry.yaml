@@ -3,7 +3,7 @@ repositories:
     repo_url: https://github.com/google/adk-python
     description: Google Agentic Development Kit (ADK) for Python
     sample_repos:
-      - https://github.com/google/adk-samples/tree/main/python/agents
+    - https://github.com/google/adk-samples/tree/main/python/agents
     versions:
       v1.20.0:
         index_url: data/indices/google-adk-python/v1.20.0/ranked_targets.yaml

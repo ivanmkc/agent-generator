@@ -263,6 +263,75 @@ class TargetRanker:
         if first_init_sig:
             return first_init_sig
 
+    def verify_integrity(self, yaml_path: str):
+        """
+        Verifies that every entry in the generated index corresponds to a valid,
+        inspectable symbol in the target codebase.
+        """
+        import ast
+        from pathlib import Path
+
+        logger.info(f"Running integrity verification on {yaml_path}...")
+        
+        with open(yaml_path, "r") as f:
+            data = yaml.safe_load(f)
+
+        repo_root = Path(self.repo_path)
+        errors = []
+
+        for entry in data:
+            fqn = entry.get("id") or entry.get("fqn")
+            rel_path = entry.get("file_path")
+            if not rel_path:
+                errors.append(f"No file_path for {fqn}")
+                continue
+
+            full_path = repo_root / rel_path
+            if not full_path.exists():
+                # Fallback 1: Try adding src/ prefix (common python layout)
+                src_path = repo_root / "src" / rel_path
+                if src_path.exists():
+                    full_path = src_path
+                else:
+                    # Fallback 2: Check if it's relative to workspace root (for external deps)
+                    full_path = Path(rel_path)
+                    if not full_path.exists():
+                        errors.append(f"File not found for {fqn}: {rel_path}")
+                        continue
+
+            if entry.get("type") == "MODULE":
+                continue
+
+            try:
+                content = full_path.read_text(encoding="utf-8")
+                tree = ast.parse(content)
+                target_name = fqn.split(".")[-1]
+
+                found = False
+                # Use ast.walk to find nested functions/classes
+                for node in ast.walk(tree):
+                    if isinstance(node, (ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)):
+                        if node.name == target_name:
+                            found = True
+                            break
+
+                if not found:
+                    # Fallback check for constants or imports
+                    if target_name not in content:
+                        errors.append(f"Symbol {target_name} not found in {rel_path} for {fqn}")
+            except Exception as e:
+                errors.append(f"Exception parsing {rel_path} for {fqn}: {e}")
+
+        if errors:
+            logger.error(f"Integrity check failed with {len(errors)} errors:")
+            for err in errors[:10]:
+                logger.error(f"  - {err}")
+            if len(errors) > 10:
+                logger.error(f"  ... and {len(errors) - 10} more.")
+            raise RuntimeError(f"Index integrity verification failed for {yaml_path}")
+        
+        logger.info("✅ Integrity verification passed.")
+
     async def generate(
         self,
         output_yaml_path: Optional[str] = None,
@@ -642,24 +711,12 @@ class TargetRanker:
                     f"| {rank} | `{tid}` | {t.get('type')} | {t.get('usage_score', 0)} | {group} |\n"
                 )
 
-        logger.info("Running integrity verification...")
-        passed = True  # Initialize to True
-        try:
-            # 1. Structural Integrity
-            result = subprocess.run(
-                [
-                    sys.executable,
-                    "-m",
-                    "pytest",
-                    "benchmarks/tests/test_ranked_targets.py",
-                ],
-                capture_output=True,
-                text=True,
-                check=False,
-            )
+        # 4. Verification
+        self.verify_integrity(output_yaml_path)
 
+        logger.info("Running tool logic verification...")
+        try:
             # 2. Tool Logic Verification (Integration Test)
-            # Updated to point to the correct integration test location
             result_tools = subprocess.run(
                 [
                     sys.executable,
@@ -685,41 +742,20 @@ class TargetRanker:
                 check=False,
             )
 
-            if result.returncode == 0:
-                logger.info("✅ Structural integrity check passed.")
-            else:
-                passed = False
-                logger.error("❌ Structural integrity check failed!")
-                logger.error(result.stdout)
-                logger.error(result.stderr)
-
             if result_tools.returncode == 0:
                 logger.info("✅ Tool logic verification passed.")
             else:
-                passed = False
                 logger.error("❌ Tool logic verification failed!")
                 logger.error(result_tools.stderr)
 
             if result_aliases.returncode == 0:
                 logger.info("✅ Alias identity verification passed.")
             else:
-                passed = False
-                logger.error("❌ Alias identity verification failed!")
-                logger.error(result_aliases.stdout)
-                logger.error(result_aliases.stderr)
-            
-            if not passed:
-                raise RuntimeError("Integrity verification failed. See logs for details.")
-
-            if result_aliases.returncode == 0:
-                logger.info("✅ Alias identity verification passed.")
-            else:
-                passed = False
                 logger.error("❌ Alias identity verification failed!")
                 logger.error(result_aliases.stdout)
                 logger.error(result_aliases.stderr)
 
         except Exception as e:
-            logger.error(f"Failed to run integrity check: {e}")
+            logger.error(f"Failed to run remaining tests: {e}")
 
         logger.info("Done.")

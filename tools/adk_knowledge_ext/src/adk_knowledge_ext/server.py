@@ -250,6 +250,12 @@ def _validate_kb(kb_id: str | None) -> KnowledgeBaseConfig:
             logger.debug(f"Resolved kb_id='{kb_id}' to default env KB: '{k}'")
             return v
     
+    # Prefer aliases (keys without @) as they point to the latest versions
+    for k, v in kbs.items():
+        if "@" not in k:
+            logger.debug(f"Resolved kb_id='{kb_id}' to default alias: '{k}'")
+            return v
+
     # Fallback to the first one available
     if kbs:
         first_key = next(iter(kbs))

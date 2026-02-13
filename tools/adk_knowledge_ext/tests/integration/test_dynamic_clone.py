@@ -21,7 +21,7 @@ async def test_read_source_code_dynamic_clone():
     prompt = (
         "Please read the source code for the class `google.adk.agents.base_agent.BaseAgent` "
         "using the `read_source_code` tool. I need to see the class definition. "
-        "Use kb_id='adk-python-v1.20.0'."
+        "Use kb_id='custom/adk-python@v1.20.0'."
     )
     
     # Create an isolated temporary workspace for the CLI to use with the MCP server
@@ -74,6 +74,7 @@ async def test_read_source_code_dynamic_clone():
         assert "read_source_code" in result.stderr, "Extracted read_source_code tool call missing from executing logs"
         
         # Alternatively, parse the final JSON response for the class definition
+        response_dict = {}
         try:
             # We look for the last complete JSON object in stdout as the stream output
             # could be messy if multiple prints happen.
@@ -84,6 +85,6 @@ async def test_read_source_code_dynamic_clone():
                     break
         except Exception:
             pass # Fall back to raw string check
-            
+
         assert "class BaseAgent" in result.stdout or "class BaseAgent" in result.stderr or "class BaseAgent" in response_dict.get("response", ""), "Could not find 'class BaseAgent' in the output, dynamic clone failed to read the file."
 

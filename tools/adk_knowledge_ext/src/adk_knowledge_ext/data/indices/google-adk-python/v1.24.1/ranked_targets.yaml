@@ -760,8 +760,8 @@
     BaseModel:
     - signature: 'model_config: pydantic.ConfigDict'
   omitted_inherited_members_from:
-  - pydantic.BaseModel
   - ABC
+  - pydantic.BaseModel
 - rank: 12
   id: google.adk.sessions.in_memory_session_service.InMemorySessionService
   name: InMemorySessionService
