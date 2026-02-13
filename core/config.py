@@ -17,7 +17,10 @@ import enum
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 # Centralized Output Directory
-OUTPUT_ROOT = PROJECT_ROOT / "tmp/outputs"
+# Changed to point outside the repo by default to allow sharing artifacts across multiple worktrees.
+# Can be overridden by ADK_ARTIFACTS_DIR environment variable.
+_default_output = Path.home() / ".agent_generator"
+OUTPUT_ROOT = Path(os.environ.get("ADK_ARTIFACTS_DIR", _default_output))
 DATA_DIR = PROJECT_ROOT / "data"
 
 # Sub-directories for specific artifacts

@@ -8,7 +8,10 @@ cd "$PROJECT_ROOT" || exit 1
 
 # 1. Generate a shared timestamp/directory
 TIMESTAMP=$(date +"%Y-%m-%d_%H-%M-%S")
-OUTPUT_DIR="tmp/outputs/benchmark_runs/$TIMESTAMP"
+# Use ADK_ARTIFACTS_DIR env var if set, otherwise default to ~/.agent_generator
+# This allows multiple worktrees to share benchmark artifacts.
+BASE_OUTPUT_DIR="${ADK_ARTIFACTS_DIR:-$HOME/.agent_generator}"
+OUTPUT_DIR="$BASE_OUTPUT_DIR/benchmark_runs/$TIMESTAMP"
 mkdir -p "$OUTPUT_DIR"
 LOG_FILE="$OUTPUT_DIR/benchmark_run.log"
 

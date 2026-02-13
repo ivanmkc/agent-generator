@@ -140,8 +140,12 @@ artifact_manager = ArtifactManager(bucket_name=BENCHMARK_GCS_BUCKET)
 
 def get_run_status(run_id: str) -> str:
     """Determines the status of a run based on file existence."""
-    # Check for results.yaml or results.json (Completed)
-    if artifact_manager.get_file(run_id, "results.yaml") or artifact_manager.get_file(run_id, "results.json"):
+    # Check for results.json.gz, results.json, or results.yaml (Completed)
+    if (
+        artifact_manager.get_file(run_id, "results.json.gz")
+        or artifact_manager.get_file(run_id, "results.json")
+        or artifact_manager.get_file(run_id, "results.yaml")
+    ):
         return "Completed"
     # Check for trace.yaml (In Progress or Failed)
     if artifact_manager.get_file(run_id, "trace.yaml"):
@@ -851,7 +855,8 @@ def main():
 
     # --- Display Selected Generator Description in Sidebar (Above Radio) ---
     # Peek at session state to determine what will likely be selected
-    current_idx = st.session_state.get("gen_radio", 0)
+    current_idx = st.session_state.get("gen_radio_idx", 0)
+    
     if current_idx >= len(available_generators):
         current_idx = 0
 
@@ -871,7 +876,7 @@ def main():
         "Select Generator",
         options=range(len(available_generators)),
         format_func=lambda i: gen_labels[i],
-        key="gen_radio",
+        key="gen_radio_idx",
         label_visibility="collapsed",
     )
 
@@ -1084,7 +1089,7 @@ def main():
         unified["Accuracy"] = unified["Accuracy"].map("{:.1f}%".format)
 
         unified["Avg Tokens (Success)"] = unified["avg_tokens"].apply(
-            lambda x: f"{x:.0f}" if pd.notnull(x) else "N/A"
+            lambda x: f"{x:,.0f}" if pd.notnull(x) else "N/A"
         )
         unified["Avg Latency (Success)"] = unified["avg_latency"].apply(
             lambda x: f"{x:.2f}s" if pd.notnull(x) else "N/A"
@@ -1093,20 +1098,29 @@ def main():
         # 5. Sort (Generator, then Suite with (All Suites) first)
         unified = unified.sort_values(by=["answer_generator", "suite"])
 
+        display_df = unified[
+            [
+                "answer_generator",
+                "suite",
+                "passed",
+                "system_failures",
+                "total",
+                "Accuracy (System Failures = Fail)",
+                "Accuracy",
+                "Avg Tokens (Success)",
+                "Avg Latency (Success)",
+            ]
+        ]
+
+        def highlight_rows(row):
+            if row["suite"] == " (All Suites)":
+                return [
+                    "background-color: rgba(128, 128, 128, 0.1); font-weight: bold"
+                ] * len(row)
+            return [""] * len(row)
+
         st.dataframe(
-            unified[
-                [
-                    "answer_generator",
-                    "suite",
-                    "passed",
-                    "system_failures",
-                    "total",
-                    "Accuracy (System Failures = Fail)",
-                    "Accuracy",
-                    "Avg Tokens (Success)",
-                    "Avg Latency (Success)",
-                ]
-            ],
+            display_df.style.apply(highlight_rows, axis=1),
             use_container_width=True,
             hide_index=True,
             column_config={
