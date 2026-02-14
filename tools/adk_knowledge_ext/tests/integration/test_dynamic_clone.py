@@ -5,6 +5,9 @@ import json
 import uuid
 import tempfile
 from pathlib import Path
+from unittest.mock import patch
+from click.testing import CliRunner
+from adk_knowledge_ext import manage_mcp
 
 # Tests the Codebase Knowledge MCP Server's dynamic clone capability via the CLI
 
@@ -35,10 +38,15 @@ async def test_read_source_code_dynamic_clone():
         # We find the absolute path to the currently running extension
         ext_dir = Path(__file__).parent.parent.parent.absolute()
         
-        setup_cmd = [
-            "uvx", "--index-strategy", "unsafe-best-match",
-            "--from", str(ext_dir),
-            "codebase-knowledge-mcp-manage", "setup",
+        print(f"Setting up isolated codebase-knowledge MCP server...")
+        
+        # We use CliRunner to invoke the setup command in-process, patching Path.home()
+        # to ensure it modifies the temporary directory, not the user's real home.
+        runner = CliRunner()
+        
+        # Arguments for the setup command
+        args = [
+            "setup",
             "--repo-url", "https://github.com/google/adk-python.git",
             "--version", "v1.20.0",
             "--force",
@@ -46,15 +54,20 @@ async def test_read_source_code_dynamic_clone():
             "--quiet"
         ]
         
-        env = os.environ.copy()
-        env["HOME"] = str(tmp_path) # Force gemini CLI to use this temporary home
-        env["UV_INDEX_STRATEGY"] = "unsafe-best-match"
-        env["UV_EXTRA_INDEX_URL"] = "https://pypi.org/simple"
-        
-        print(f"Setting up isolated codebase-knowledge MCP server...")
-        subprocess.run(setup_cmd, env=env, check=True)
-        
+        # Patch Path.home() to return our temp path
+        with patch("pathlib.Path.home", return_value=tmp_path):
+            result = runner.invoke(manage_mcp.cli, args)
+            
+            if result.exit_code != 0:
+                print(f"Setup failed output: {result.output}")
+                
+            assert result.exit_code == 0, f"Setup failed with code {result.exit_code}"
+
         # 2. Run the Gemini CLI to trigger the dynamic clone
+        # We still shell out to gemini, but we pass HOME so it picks up the config we just wrote.
+        env = os.environ.copy()
+        env["HOME"] = str(tmp_path)
+        
         command_parts = [
             "gemini",
             "--output-format", "json",
@@ -87,4 +100,3 @@ async def test_read_source_code_dynamic_clone():
             pass # Fall back to raw string check
 
         assert "class BaseAgent" in result.stdout or "class BaseAgent" in result.stderr or "class BaseAgent" in response_dict.get("response", ""), "Could not find 'class BaseAgent' in the output, dynamic clone failed to read the file."
-
