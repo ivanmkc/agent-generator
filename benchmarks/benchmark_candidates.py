@@ -42,7 +42,7 @@ _selected_images = [
     # "gemini-cli:base",
     # "gemini-cli:adk-python",
     # "gemini-cli:adk-docs-ext",
-    "gemini-cli:adk-docs-ext",
+    # "gemini-cli:adk-docs-ext",
 ]
 
 CANDIDATE_GENERATORS = []

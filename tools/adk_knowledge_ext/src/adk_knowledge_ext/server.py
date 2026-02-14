@@ -250,6 +250,12 @@ def _validate_kb(kb_id: str | None) -> KnowledgeBaseConfig:
             logger.debug(f"Resolved kb_id='{kb_id}' to default env KB: '{k}'")
             return v
     
+    # Prefer aliases (keys without @) as they point to the latest versions
+    for k, v in kbs.items():
+        if "@" not in k:
+            logger.debug(f"Resolved kb_id='{kb_id}' to default alias: '{k}'")
+            return v
+
     # Fallback to the first one available
     if kbs:
         first_key = next(iter(kbs))
@@ -259,87 +265,107 @@ def _validate_kb(kb_id: str | None) -> KnowledgeBaseConfig:
     raise ValueError("No Knowledge Bases loaded. Cannot resolve default kb_id.")
 
 
+def resolve_index_path(kb_id: str | None = None) -> Path:
+    """
+    Public API to resolve the absolute local path to a ranked_targets.yaml index.
+    
+    Args:
+        kb_id: The ID of the knowledge base (e.g. 'google/adk-python@v1.24.1').
+               If None, resolves to the default/active KB.
+               
+    Returns:
+        Path: The absolute path to the ranked_targets.yaml file.
+        
+    Raises:
+        ValueError: If kb_id is invalid.
+        RuntimeError: If the index is remote (http) or not found locally.
+    """
+    kb_meta = _validate_kb(kb_id)
+    index_url = kb_meta.index_url
+    resolved_id = kb_meta.id
+    
+    if not index_url:
+        raise RuntimeError(f"No index_url defined for KB '{resolved_id}'")
+
+    # 0. Check for file:// URL (Absolute Local Path)
+    if index_url.startswith("file://"):
+        local_path = Path(index_url.replace("file://", ""))
+        if local_path.exists():
+            return local_path
+        raise RuntimeError(f"Index file specified via file:// not found: {local_path}")
+
+    # 1. Check if it's a remote URL
+    if index_url.startswith("http"):
+        # We don't automatically download in this resolver, 
+        # but we can check if it's already in the cache
+        import hashlib
+        url_hash = hashlib.md5(index_url.encode()).hexdigest()[:8]
+        cached_index = Path.home() / ".mcp_cache" / "indices" / f"index_{url_hash}.yaml"
+        if cached_index.exists():
+            return cached_index
+        raise RuntimeError(f"Index for '{resolved_id}' is remote ({index_url}) and not cached. Use _ensure_index() in server to trigger download.")
+
+    # 2. Check bundled paths
+    # Check relative to package root (e.g., data/indices/...)
+    pkg_path = Path(__file__).parent / index_url
+    if pkg_path.exists():
+        return pkg_path
+
+    # Assume it's a relative path from the 'data' directory
+    bundled_path = _BUNDLED_DATA / index_url
+    if bundled_path.exists():
+        return bundled_path
+
+    # Also check if it's just a filename in data/
+    bundled_path_alt = _BUNDLED_DATA / index_url.split("/")[-1]
+    if bundled_path_alt.exists():
+        return bundled_path_alt
+
+    error_msg = f"Local index for '{resolved_id}' not found.\n"
+    error_msg += f"  - Checked package relative path: {pkg_path}\n"
+    error_msg += f"  - Checked bundled data path: {bundled_path}\n"
+    error_msg += f"  - Checked alt bundled path: {bundled_path_alt}"
+    raise RuntimeError(error_msg)
+
+
 def _ensure_index(kb_id: str | None) -> str:
     """Ensures index is loaded and returns the resolved kb_id."""
     kb_meta = _validate_kb(kb_id)
     resolved_id = kb_meta.id
-    repo_url = kb_meta.repo_url
-    logger.debug(f"Ensuring index for resolved_id={resolved_id} (requested={kb_id})")
     
     idx = get_index(resolved_id)
     if idx._loaded:
         return resolved_id
 
-    index_url = kb_meta.index_url
-    
-    # 0. Check for file:// URL (Absolute Local Path)
-    if index_url and index_url.startswith("file://"):
-        local_path = Path(index_url.replace("file://", ""))
-        if local_path.exists():
-            logger.info(f"Using local file index for {resolved_id}: {local_path}")
-            idx.load(local_path)
-            return resolved_id
-
-    # 1. Check if the index_url points to a local bundled file
-    if index_url and not index_url.startswith("http"):
-        # Check relative to package root (e.g., data/indices/...)
-        pkg_path = Path(__file__).parent / index_url
-        if pkg_path.exists():
-            logger.info(f"Using bundled index for {resolved_id}: {pkg_path}")
-            idx.load(pkg_path)
-            return resolved_id
-        # Assume it's a relative path from the 'data' directory
-        bundled_path = _BUNDLED_DATA / index_url
-        if bundled_path.exists():
-            logger.info(f"Using bundled index for {resolved_id}: {bundled_path}")
-            idx.load(bundled_path)
-            return resolved_id
-        # Also check if it's just a filename in data/
-        bundled_path_alt = _BUNDLED_DATA / index_url.split("/")[-1]
-        if bundled_path_alt.exists():
-            logger.info(f"Using bundled index (alt) for {resolved_id}: {bundled_path_alt}")
-            idx.load(bundled_path_alt)
-            return resolved_id
-
-    # 2. Manual URL Download
-    if index_url and index_url.startswith("http"):
-        # ... download logic ...
-        cache_dir = Path.home() / ".mcp_cache" / "indices"
-        cache_dir.mkdir(parents=True, exist_ok=True)
-        import hashlib
-        url_hash = hashlib.md5(index_url.encode()).hexdigest()[:8]
-        cached_index = cache_dir / f"index_{url_hash}.yaml"
-        
-        if not cached_index.exists():
+    try:
+        local_path = resolve_index_path(resolved_id)
+        idx.load(local_path)
+        return resolved_id
+    except RuntimeError as e:
+        # If it failed because it's remote and not cached, try to download
+        if "is remote" in str(e) and kb_meta.index_url.startswith("http"):
+            index_url = kb_meta.index_url
+            cache_dir = Path.home() / ".mcp_cache" / "indices"
+            cache_dir.mkdir(parents=True, exist_ok=True)
+            import hashlib
+            url_hash = hashlib.md5(index_url.encode()).hexdigest()[:8]
+            cached_index = cache_dir / f"index_{url_hash}.yaml"
+            
             logger.info(f"Downloading index from {index_url}...")
             try:
                 cmd = ["curl", "-f", "-L", "-o", str(cached_index)]
-                # Add auth token if available
                 gh_token = os.environ.get("GITHUB_TOKEN")
                 if gh_token:
                     cmd.extend(["-H", f"Authorization: token {gh_token}"])
                 cmd.append(index_url)
-                
                 subprocess.run(cmd, check=True)
-            except Exception as e:
-                logger.error(f"Failed to download index: {e}")
-                cached_index = None
-
-        if cached_index:
-            idx.load(cached_index)
-            return resolved_id
-
-    # 3. Final Failure
-    error_msg = f"""Index for '{resolved_id}' ({repo_url}) not properly set up and no download URL available.
-"""
-    if index_url and not index_url.startswith("http"):
-        error_msg += f"""  - Checked package relative path: {Path(__file__).parent / index_url}
-"""
-        error_msg += f"""  - Checked bundled data path: {_BUNDLED_DATA / index_url}
-"""
-        error_msg += f"""  - Checked alt bundled path: {_BUNDLED_DATA / index_url.split('/')[-1]}
-"""
-    raise RuntimeError(error_msg)
+                
+                idx.load(cached_index)
+                return resolved_id
+            except Exception as download_e:
+                logger.error(f"Failed to download index: {download_e}")
+        
+        raise RuntimeError(f"Index for '{resolved_id}' ({kb_meta.repo_url}) not properly set up: {e}")
 
 
 

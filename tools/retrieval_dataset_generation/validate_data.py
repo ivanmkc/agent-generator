@@ -40,7 +40,7 @@ from benchmarks.data_models import (
     BenchmarkResultType,
 )
 from benchmarks.benchmark_runner import ApiUnderstandingRunner, PytestBenchmarkRunner, MultipleChoiceRunner
-from core.config import MOST_POWERFUL_MODEL
+from core.config import MOST_POWERFUL_MODEL, RANKED_TARGETS_FILE
 from benchmarks.parsing.json_sanitizer import JsonSanitizer
 from core.api_key_manager import API_KEY_MANAGER, KeyType
 from core.models import ModelName
@@ -871,7 +871,7 @@ if __name__ == "__main__":
         print("No API key available.")
         exit(1)
 
-    targets_path = "benchmarks.generator.benchmark_generator/data/ranked_targets.yaml"
+    targets_path = RANKED_TARGETS_FILE
 
     print(f"{Fore.CYAN}Initializing Retrievers...{Style.RESET_ALL}")
     with open(targets_path, "r") as f:

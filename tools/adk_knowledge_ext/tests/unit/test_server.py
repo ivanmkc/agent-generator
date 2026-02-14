@@ -19,7 +19,7 @@ import numpy as np
 from unittest.mock import patch, MagicMock, AsyncMock
 from pathlib import Path
 
-from adk_knowledge_ext.server import _get_available_kbs
+from adk_knowledge_ext.server import _get_available_kbs, resolve_index_path
 from adk_knowledge_ext.search import (
     BM25SearchProvider, 
     KeywordSearchProvider, 
@@ -42,6 +42,48 @@ MOCK_REGISTRY_DATA = {
         }
     }
 }
+
+# --- Resolve Index Path Tests ---
+
+def test_resolve_index_path_default():
+    """Verifies that resolve_index_path(None) returns a valid path to the default index."""
+    try:
+        path = resolve_index_path(None)
+        assert isinstance(path, Path)
+        assert path.name == "ranked_targets.yaml"
+        # We can't guarantee existence in unit test env if not installed, 
+        # but we can check structure.
+        # However, for the default/bundled one, it should actually exist if the package is built right.
+        if path.exists():
+            assert path.stat().st_size > 0
+    except RuntimeError as e:
+        # Acceptable if running in environment where bundled data isn't set up
+        assert "not found" in str(e)
+
+def test_resolve_index_path_bundled_relative():
+    """Verifies resolution of a relative path within the package."""
+    # We'll mock _validate_kb to return a KB with a known relative path
+    with patch("adk_knowledge_ext.server._validate_kb") as mock_validate:
+        mock_kb = MagicMock()
+        mock_kb.id = "test/repo@v1"
+        # Use a file that definitely exists in the package, e.g., registry.yaml
+        mock_kb.index_url = "../registry.yaml" 
+        mock_validate.return_value = mock_kb
+        
+        path = resolve_index_path("test/repo@v1")
+        assert path.name == "registry.yaml"
+        assert path.exists()
+
+def test_resolve_index_path_failure():
+    """Verifies that resolve_index_path raises RuntimeError for missing indices."""
+    with patch("adk_knowledge_ext.server._validate_kb") as mock_validate:
+        mock_kb = MagicMock()
+        mock_kb.id = "test/fail@v1"
+        mock_kb.index_url = "non_existent_file.yaml"
+        mock_validate.return_value = mock_kb
+        
+        with pytest.raises(RuntimeError, match="not found"):
+            resolve_index_path("test/fail@v1")
 
 # --- Server Version Sorting Tests ---
 

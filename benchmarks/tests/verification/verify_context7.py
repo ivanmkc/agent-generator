@@ -52,7 +52,7 @@ async def verify_context7():
         # Test 1: Functional Check (should have passed in setup)
 
         # Test 2: Get MCP Tools
-        print(f"{Fore.CYAN}Fetching MCP tools...{Style.RESET_ALL}")
+        print(f"{Fore.CYAN}Fetching MCP servers...{Style.RESET_ALL}")
     servers = await generator.get_mcp_servers()
     print(f"Found MCP servers: {servers}")
 

@@ -60,14 +60,8 @@ def test_nested_symbol_lookup():
 
 def test_real_index_integrity():
     """Verifies that the extension works with the actual ranked_targets.yaml in this repo."""
-    REAL_INDEX_PATH = (
-        PROJECT_ROOT
-        / "benchmarks"
-        / "generator"
-        / "benchmark_generator"
-        / "data"
-        / "ranked_targets.yaml"
-    )
+    from core.config import RANKED_TARGETS_FILE
+    REAL_INDEX_PATH = RANKED_TARGETS_FILE
 
     if not REAL_INDEX_PATH.exists():
         pytest.skip(f"Real index not found at {REAL_INDEX_PATH}")

@@ -12,11 +12,11 @@ WORKDIR /app
 
 # 1. Copy Source (simulate local checkout)
 COPY tools/adk_knowledge_ext /src/tools/adk_knowledge_ext
-COPY benchmarks/generator/benchmark_generator/data/ranked_targets.yaml /src/benchmarks/generator/benchmark_generator/data/ranked_targets.yaml
+COPY tools/adk_knowledge_ext/src/adk_knowledge_ext/data/indices/google-adk-python/v1.24.1/ranked_targets.yaml /src/tools/adk_knowledge_ext/src/adk_knowledge_ext/data/indices/google-adk-python/v1.24.1/ranked_targets.yaml
 
 # 2. Patch Registry to point to local file (Build-time dependency)
 # This ensures hatch_build.py finds the index and bundles it.
-RUN echo "repositories:\n  google/adk-python:\n    repo_url: https://github.com/google/adk-python.git\n    description: ADK\n    default_version: v1.20.0\n    versions:\n      v1.20.0:\n        index_url: file:///src/benchmarks/generator/benchmark_generator/data/ranked_targets.yaml\n      main:\n        index_url: file:///src/benchmarks/generator/benchmark_generator/data/ranked_targets.yaml" > /src/tools/adk_knowledge_ext/src/adk_knowledge_ext/registry.yaml
+RUN echo "repositories:\n  google/adk-python:\n    repo_url: https://github.com/google/adk-python.git\n    description: ADK\n    default_version: v1.20.0\n    versions:\n      v1.20.0:\n        index_url: file:///src/tools/adk_knowledge_ext/src/adk_knowledge_ext/data/indices/google-adk-python/v1.24.1/ranked_targets.yaml\n      main:\n        index_url: file:///src/tools/adk_knowledge_ext/src/adk_knowledge_ext/data/indices/google-adk-python/v1.24.1/ranked_targets.yaml" > /src/tools/adk_knowledge_ext/src/adk_knowledge_ext/registry.yaml
 
 # 3. Verification Script
 COPY tools/adk_knowledge_ext/tests/integration/full_lifecycle/verify_lifecycle.py /app/verify.py

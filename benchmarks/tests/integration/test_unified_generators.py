@@ -87,7 +87,7 @@ async def test_generator_capabilities(test_case: GeneratorTestCase) -> None:
     # 2. MCP Tools Check
     if hasattr(generator, "get_mcp_servers"):
         checks_performed = True
-        print(f"[{test_case.id}] Fetching MCP tools...")
+        print(f"[{test_case.id}] Fetching MCP servers...")
         actual_mcp = await generator.get_mcp_servers()
         print(f"[{test_case.id}] Discovered MCP servers: {actual_mcp}")
 
@@ -170,6 +170,7 @@ async def test_generator_execution(
                 answer.trace_logs,
                 test_case.expected_sub_agent_calls,
                 test_case.expected_tool_uses,
+                test_case.strict_order,
             )
 
             if not success:
@@ -245,6 +246,11 @@ async def test_generator_memory_context(test_case: GeneratorTestCase) -> None:
         assert (
             expected_file in loaded_paths
         ), f"Expected context file '{expected_file}' not found in loaded memory paths. Available: {loaded_paths}"
+
+
+
+
+
 
 
 # --- Orchestrator Logic ---

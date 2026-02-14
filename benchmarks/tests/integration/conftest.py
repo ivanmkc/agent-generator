@@ -99,6 +99,7 @@ class GeneratorTestCase:
 
     expected_tool_uses: List[str] = field(default_factory=list)
     expected_sub_agent_calls: Optional[List[str]] = field(default=None)
+    strict_order: bool = True
 
     def __post_init__(self):
         if self.custom_case is None:
@@ -223,6 +224,7 @@ async def managed_generator_test_case(
         custom_case=config.custom_case,
         expected_tool_uses=config.expected_tool_uses,
         expected_sub_agent_calls=config.expected_sub_agent_calls,
+        strict_order=config.strict_order,
     )
 
     print(f"--- [Teardown] Cleaning up {gen.name} ---")
@@ -295,6 +297,7 @@ async def test_case(
                 custom_case=custom_case_instance,
                 expected_tool_uses=config.expected_tool_uses,
                 expected_sub_agent_calls=config.expected_sub_agent_calls,
+                strict_order=config.strict_order,
             )
 
         # 2. Local Async Generators (Inlined to avoid event loop conflicts)

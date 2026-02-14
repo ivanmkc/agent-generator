@@ -79,17 +79,6 @@ GENERATOR_METADATA: Dict[str, AnyGeneratorConfig] = {
         ],
         custom_case=STRUCTURED_WORKFLOW_CASE,
     ),
-    "podman_adk_mcp_experiment_test_case": PodmanGeneratorConfig(
-        id="podman_adk_mcp_experiment_test_case",
-        dockerfile_dir=Path(
-            "benchmarks/answer_generators/gemini_cli_docker/adk_mcp_experiment"
-        ),
-        image_name="gemini-cli:adk_mcp_experiment",
-        # Verify that the MCP server is registered and tools are available
-        custom_case=ADK_BASE_AGENT_QUESTION_CASE_INTERMEDIATE,
-        expected_tool_uses=['list_modules', 'inspect_symbol'],
-        expected_mcp_servers=["adk-mcp"],
-    ),
     "podman_base_test_case": PodmanGeneratorConfig(
         id="podman_base_test_case",
         dockerfile_dir=Path(
@@ -138,6 +127,60 @@ GENERATOR_METADATA: Dict[str, AnyGeneratorConfig] = {
         # Expect get_module_help, though prompt is probabilistic.
         # But instructions prioritize it, so it should appear.
         expected_tool_uses=["get_module_help", "run_adk_agent"],
+    ),
+    "podman_adk_mcp_experiment_test_case": PodmanGeneratorConfig(
+        id="podman_adk_mcp_experiment_test_case",
+        dockerfile_dir=Path(
+            "benchmarks/answer_generators/gemini_cli_docker/adk_mcp_experiment"
+        ),
+        image_name="gemini-cli:adk_mcp_experiment",
+        # Verify that the MCP server is registered and tools are available
+        custom_case=ADK_BASE_AGENT_QUESTION_CASE_ADVANCED,
+        expected_tool_uses=['read_source_code'],
+        strict_order=False,
+        expected_mcp_servers=["adk-mcp"],
+        custom_instructions=(
+            "You are evaluating a new MCP server called 'adk-mcp'. "
+            "MANDATORY: You MUST use 'search_knowledge' or 'inspect_symbol' from the 'adk-mcp' server to explore the codebase. "
+            "DO NOT use standard 'glob', 'grep_search', or 'read_file' tools. "
+            "Specifically, do NOT attempt to read files from .venv."
+        ),
+    ),
+    "podman_adk_mcp_experiment_commit_afb26b": PodmanGeneratorConfig(
+        id="podman_adk_mcp_experiment_commit_afb26b",
+        dockerfile_dir=Path(
+            "benchmarks/answer_generators/gemini_cli_docker/adk_mcp_experiment"
+        ),
+        image_name="gemini-cli:adk_mcp_experiment_afb26b",
+        build_args={"COMMIT_HASH": "afb26b55161d5840c138914e3f17705768709d89"},
+        custom_case=ADK_BASE_AGENT_QUESTION_CASE_ADVANCED,
+        expected_tool_uses=['read_source_code'],
+        strict_order=False,
+        expected_mcp_servers=["adk-mcp"],
+        custom_instructions=(
+            "You are evaluating a new MCP server called 'adk-mcp'. "
+            "MANDATORY: You MUST use 'search_knowledge' or 'inspect_symbol' from the 'adk-mcp' server to explore the codebase. "
+            "DO NOT use standard 'glob', 'grep_search', or 'read_file' tools. "
+            "Specifically, do NOT attempt to read files from .venv."
+        ),
+    ),
+    "podman_adk_mcp_experiment_commit_b521e5": PodmanGeneratorConfig(
+        id="podman_adk_mcp_experiment_commit_b521e5",
+        dockerfile_dir=Path(
+            "benchmarks/answer_generators/gemini_cli_docker/adk_mcp_experiment"
+        ),
+        image_name="gemini-cli:adk_mcp_experiment_b521e5",
+        build_args={"COMMIT_HASH": "b521e5fbf8177d888e239f522bf3d8afd1d65234"},
+        custom_case=ADK_BASE_AGENT_QUESTION_CASE_ADVANCED,
+        expected_tool_uses=['read_source_code'],
+        strict_order=False,
+        expected_mcp_servers=["adk-mcp"],
+        custom_instructions=(
+            "You are evaluating a new MCP server called 'adk-mcp'. "
+            "MANDATORY: You MUST use 'search_knowledge' or 'inspect_symbol' from the 'adk-mcp' server to explore the codebase. "
+            "DO NOT use standard 'glob', 'grep_search', or 'read_file' tools. "
+            "Specifically, do NOT attempt to read files from .venv."
+        ),
     ),
     "podman_mcp_adk_runner_remote_main_test_case": PodmanGeneratorConfig(
         id="podman_mcp_adk_runner_remote_main_test_case",

@@ -16,7 +16,7 @@ ENV PATH="/root/.local/bin:$PATH"
 RUN pip install mcp
 
 # 3. Setup Local Data
-COPY benchmarks/generator/benchmark_generator/data/ranked_targets.yaml /tmp/local_index.yaml
+COPY tools/adk_knowledge_ext/src/adk_knowledge_ext/data/indices/google-adk-python/v1.24.1/ranked_targets.yaml /tmp/local_index.yaml
 COPY tools/adk_knowledge_ext /tmp/pkg
 
 COPY tools/adk_knowledge_ext/tests/integration/manual_uvx/settings.json /root/.gemini/settings.json

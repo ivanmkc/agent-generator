@@ -51,6 +51,7 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
         context_instruction: Optional[str] = None,
         extra_env: Optional[dict[str, str]] = None,
         experiment_id: Optional[str] = None,
+        build_args: Optional[dict[str, str]] = None,
     ):
         super().__init__(
             model_name=model_name,
@@ -63,6 +64,7 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
         self.container_name = f"gemini-cli-podman-container-{uuid.uuid4()}"
         self.extra_env = extra_env or {}
         self.experiment_id = experiment_id
+        self.build_args = build_args
 
         self._is_proxy = False
         self._base_url = None
@@ -71,7 +73,8 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
         self.container = PodmanContainer(
             image_name=self.image_name, 
             container_name=self.container_name,
-            image_definitions=self._image_definitions
+            image_definitions=self._image_definitions,
+            build_args=self.build_args,
         )
 
     @classmethod
@@ -84,6 +87,7 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
         context_instruction: Optional[str] = None,
         extra_env: Optional[dict[str, str]] = None,
         experiment_id: Optional[str] = None,
+        build_args: Optional[dict[str, str]] = None,
     ):
         """Async factory for creating an instance."""
         instance = cls(
@@ -94,6 +98,7 @@ class GeminiCliPodmanAnswerGenerator(GeminiCliAnswerGenerator):
             context_instruction,
             extra_env,
             experiment_id,
+            build_args,
         )
         await super(GeminiCliPodmanAnswerGenerator, instance)._async_init()
         return instance

@@ -72,7 +72,7 @@ class ModelName(enum.StrEnum):
     GEMINI_2_5_PRO = "gemini-2.5-pro"
     
     # Warning: Using Gemini 3 may lead to inability to use quota for gemini-cli itself
-    GEMINI_3_FLASH = "gemini-3-flash"
+    GEMINI_3_FLASH = "gemini-3-flash-preview"
     GEMINI_3_PRO_PREVIEW = "gemini-3-pro-preview"
     
     GEMINI_EMBEDDING_001 = "gemini-embedding-001"

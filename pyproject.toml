@@ -22,7 +22,11 @@ dependencies = [
     "python-dotenv",
     "questionary",
     "ipykernel",
+    "codebase-knowledge-mcp",
 ]
+
+[tool.uv.sources]
+codebase-knowledge-mcp = { path = "tools/adk_knowledge_ext", editable = true }
 
 [tool.pytest.ini_options]
 testpaths = ["benchmarks/tests"]
