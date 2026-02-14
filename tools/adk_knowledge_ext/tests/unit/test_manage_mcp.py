@@ -448,6 +448,9 @@ def run_debug_with_env(runner, config_path):
             env["PYTHONPATH"] = f"{pkg_src}:{env['PYTHONPATH']}"
         else:
             env["PYTHONPATH"] = pkg_src
+            
+        # Ensure HOME is set to the temp dir to avoid leaking logs to real user home
+        env["HOME"] = str(config_path.parent.parent)
         
         result = runner.invoke(manage_mcp.debug, env=env)
         

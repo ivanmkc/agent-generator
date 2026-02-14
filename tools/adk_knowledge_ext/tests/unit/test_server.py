@@ -28,6 +28,12 @@ from adk_knowledge_ext.search import (
 )
 from adk_knowledge_ext.index import _initialize_search_provider
 
+@pytest.fixture(autouse=True)
+def mock_home(tmp_path):
+    """Ensure all server operations use a temporary home directory."""
+    with patch("pathlib.Path.home", return_value=tmp_path):
+        yield
+
 # Mock data for registry (from test_server_sorting.py)
 MOCK_REGISTRY_DATA = {
     "repositories": {

@@ -53,7 +53,7 @@ def test_data(tmp_path):
     return index_path
 
 @pytest.mark.asyncio
-async def test_tool_list_modules_e2e(test_data):
+async def test_tool_list_modules_e2e(test_data, tmp_path):
     """
     Scenario: List Modules E2E
     
@@ -95,7 +95,7 @@ async def test_tool_list_modules_e2e(test_data):
             assert "[2] CLASS: test.TargetTwo" in content
 
 @pytest.mark.asyncio
-async def test_tool_inspect_symbol_e2e(test_data):
+async def test_tool_inspect_symbol_e2e(test_data, tmp_path):
     """
     Scenario: Inspect Symbol E2E
     
