@@ -73,6 +73,7 @@ async def test_tool_list_modules_e2e(test_data):
     }]
     env["MCP_KNOWLEDGE_BASES"] = json.dumps(kb_config)
     env["PYTHONPATH"] = str(Path(__file__).parents[2] / "src")
+    env["HOME"] = str(tmp_path)
     
     server_params = StdioServerParameters(
         command=sys.executable,
@@ -113,6 +114,7 @@ async def test_tool_inspect_symbol_e2e(test_data):
     }]
     env["MCP_KNOWLEDGE_BASES"] = json.dumps(kb_config)
     env["PYTHONPATH"] = str(Path(__file__).parents[2] / "src")
+    env["HOME"] = str(tmp_path)
     
     server_params = StdioServerParameters(
         command=sys.executable,

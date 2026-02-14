@@ -50,21 +50,23 @@ _BUNDLED_DATA = Path(__file__).parent / "data"
 
 # --- Setup ---
 
-# Ensure log directory exists
-log_dir = Path.home() / ".mcp_cache" / "logs"
-log_dir.mkdir(parents=True, exist_ok=True)
-log_file = log_dir / "codebase-knowledge.log"
-
-logging.basicConfig(
-    level=logging.DEBUG,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    handlers=[
-        RotatingFileHandler(log_file, maxBytes=10*1024*1024, backupCount=5),
-        logging.StreamHandler()
-    ]
-)
 logger = logging.getLogger("codebase-knowledge-mcp")
-logger.info("Server starting up...")
+
+def setup_logging():
+    # Ensure log directory exists
+    log_dir = Path.home() / ".mcp_cache" / "logs"
+    log_dir.mkdir(parents=True, exist_ok=True)
+    log_file = log_dir / "codebase-knowledge.log"
+
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        handlers=[
+            RotatingFileHandler(log_file, maxBytes=10*1024*1024, backupCount=5),
+            logging.StreamHandler()
+        ]
+    )
+    logger.info("Server starting up...")
 
 # Validation
 # (TARGET_REPO_URL check removed as it is no longer mandatory)
@@ -569,6 +571,7 @@ def inspect_symbol(kb_id: str = None, fqn: str = "") -> str:
 
 
 def main():
+    setup_logging()
     mcp.run()
 
 
