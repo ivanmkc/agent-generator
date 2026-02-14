@@ -35,6 +35,7 @@ class GeneratorConfig(BaseModel, abc.ABC):
     custom_case: Optional[BaseBenchmarkCase] = None
     expected_tool_uses: List[str] = Field(default_factory=list)
     expected_sub_agent_calls: Optional[List[str]] = Field(default=None)
+    strict_order: bool = True
 
     @abc.abstractmethod
     def create_generator(self, model_name: str, project_id: str) -> AnswerGenerator:
@@ -61,6 +62,7 @@ class PodmanGeneratorConfig(GeneratorConfig):
     image_name: Optional[str] = None
     service_url: Optional[str] = None
     context_instruction: Optional[str] = None
+    build_args: Optional[dict[str, str]] = None
 
     def create_generator(
         self, model_name: str, project_id: str, api_key_manager: ApiKeyManager
@@ -95,6 +97,7 @@ class PodmanGeneratorConfig(GeneratorConfig):
             image_definitions=IMAGE_DEFINITIONS,
             api_key_manager=api_key_manager,
             context_instruction=self.context_instruction,
+            build_args=self.build_args,
         )
 
 

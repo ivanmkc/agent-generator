@@ -20,10 +20,11 @@ class PodmanContainer:
     Manages the lifecycle of a Gemini CLI Podman container.
     """
 
-    def __init__(self, image_name: str, container_name: str = None, image_definitions: Optional[Dict[str, Any]] = None):
+    def __init__(self, image_name: str, container_name: str = None, image_definitions: Optional[Dict[str, Any]] = None, build_args: Optional[Dict[str, str]] = None):
         self.image_name = image_name
         self.container_name = container_name or f"gemini-cli-podman-container-{uuid.uuid4().hex}"
         self.image_definitions = image_definitions
+        self.build_args = build_args or {}
         self.base_url: Optional[str] = None
         self._port: Optional[int] = None
         self._setup_lock = asyncio.Lock()
@@ -192,8 +193,13 @@ class PodmanContainer:
             for secret_id in PODMAN_BUILD_SECRET_IDS:
                 build_cmd.extend(["--secret", f"id={secret_id},src=.env"])
 
-        if build_args:
-            for k, v in build_args.items():
+        # Merge instance-level build_args
+        merged_build_args = (build_args or {}).copy()
+        if self.build_args:
+            merged_build_args.update(self.build_args)
+
+        if merged_build_args:
+            for k, v in merged_build_args.items():
                 build_cmd.extend(["--build-arg", f"{k}={v}"])
         if labels:
             for k, v in labels.items():

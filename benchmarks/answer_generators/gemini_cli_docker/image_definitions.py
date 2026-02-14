@@ -126,4 +126,18 @@ IMAGE_DEFINITIONS: Dict[str, ImageDefinition] = {
         dependencies=[f"{IMAGE_PREFIX}:base"],
         build_args={"BASE_IMAGE": f"{IMAGE_PREFIX}:base"},
     ),
+    f"{IMAGE_PREFIX}:adk_mcp_experiment_afb26b": ImageDefinition(
+        source_dir="adk_mcp_experiment",
+        dockerfile="adk_mcp_experiment/Dockerfile",
+        description="ADK MCP Experiment (commit afb26b)",
+        dependencies=[f"{IMAGE_PREFIX}:base"],
+        build_args={"BASE_IMAGE": f"{IMAGE_PREFIX}:base"},
+    ),
+    f"{IMAGE_PREFIX}:adk_mcp_experiment_b521e5": ImageDefinition(
+        source_dir="adk_mcp_experiment",
+        dockerfile="adk_mcp_experiment/Dockerfile",
+        description="ADK MCP Experiment (commit b521e5)",
+        dependencies=[f"{IMAGE_PREFIX}:base"],
+        build_args={"BASE_IMAGE": f"{IMAGE_PREFIX}:base"},
+    ),
 }

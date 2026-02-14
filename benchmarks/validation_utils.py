@@ -197,6 +197,7 @@ def validate_trace_log_expectations(
     trace_logs: list[TraceLogEvent],
     expected_sub_agent_calls: Optional[list[str]],
     expected_tool_uses: Optional[list[str]],
+    strict_order: bool = True,
 ) -> tuple[bool, Optional[str]]:
     """
     Validates trace logs against expected sub-agent calls and tool uses.
@@ -207,6 +208,8 @@ def validate_trace_log_expectations(
                                   If None or empty, no sub-agent validation is performed.
         expected_tool_uses: An ordered list of expected tool names.
                             If None or empty, no tool use validation is performed.
+        strict_order: If True, validates that calls/uses happened in the exact order specified.
+                     If False, validates that each expected item was present at least once.
 
     Returns:
         A tuple (success, error_message).
@@ -239,19 +242,24 @@ def validate_trace_log_expectations(
                 f"Expected sub-agent calls: {expected_sub_agent_calls}, but no sub-agent messages were found.",
             )
 
-        expected_idx = 0
-        for actual_agent_name in actual_sub_agent_calls:
-            if (
-                expected_idx < len(expected_sub_agent_calls)
-                and actual_agent_name == expected_sub_agent_calls[expected_idx]
-            ):
-                expected_idx += 1
+        if strict_order:
+            expected_idx = 0
+            for actual_agent_name in actual_sub_agent_calls:
+                if (
+                    expected_idx < len(expected_sub_agent_calls)
+                    and actual_agent_name == expected_sub_agent_calls[expected_idx]
+                ):
+                    expected_idx += 1
 
-        if expected_idx < len(expected_sub_agent_calls):
-            return (
-                False,
-                f"Expected sub-agent '{expected_sub_agent_calls[expected_idx]}' was not called in the expected order.",
-            )
+            if expected_idx < len(expected_sub_agent_calls):
+                return (
+                    False,
+                    f"Expected sub-agent '{expected_sub_agent_calls[expected_idx]}' was not called in the expected order.",
+                )
+        else:
+            missing = [s for s in expected_sub_agent_calls if s not in actual_sub_agent_calls]
+            if missing:
+                return (False, f"Expected sub-agent calls {missing} were missing from traces.")
 
     # Validate expected tool uses
     if expected_tool_uses:
@@ -266,18 +274,23 @@ def validate_trace_log_expectations(
                 f"Expected tool uses: {expected_tool_uses}, but no tool uses were found.",
             )
 
-        expected_idx = 0
-        for actual_tool_name in actual_tool_uses:
-            if (
-                expected_idx < len(expected_tool_uses)
-                and actual_tool_name == expected_tool_uses[expected_idx]
-            ):
-                expected_idx += 1
+        if strict_order:
+            expected_idx = 0
+            for actual_tool_name in actual_tool_uses:
+                if (
+                    expected_idx < len(expected_tool_uses)
+                    and actual_tool_name == expected_tool_uses[expected_idx]
+                ):
+                    expected_idx += 1
 
-        if expected_idx < len(expected_tool_uses):
-            return (
-                False,
-                f"Expected tool '{expected_tool_uses[expected_idx]}' was not used in the expected order.",
-            )
+            if expected_idx < len(expected_tool_uses):
+                return (
+                    False,
+                    f"Expected tool '{expected_tool_uses[expected_idx]}' was not used in the expected order.",
+                )
+        else:
+            missing = [t for t in expected_tool_uses if t not in actual_tool_uses]
+            if missing:
+                return (False, f"Expected tool uses {missing} were missing from traces.")
 
     return True, None
