@@ -28,311 +28,150 @@ The simulator runs a "Case" which includes:
 **Do NOT assert `result.success is True` in infrastructure tests unless the case is trivial and deterministic (e.g., "echo hello").**
 For complex cases, assert that `result.transcript` is populated and `result.success` is a boolean. We want to test the *runner*, not the *agent*.
 
+To be clear, these verification steps (defined in `InteractiveSimulationCase`) **need NOT pass** for the infrastructure test to be considered "Green":
+-   `expected_files: List[FileExpectation]`
+-   `custom_verify: Optional[Callable[[str, Any], bool]]`
+
 ---
 
-## Implementation Steps
+## Implementation Steps (Junior Engineer Guide)
 
-### Step 1: Update Data Models (`benchmarks/data_models.py`)
+### 1. Update Data Models (`benchmarks/data_models.py`)
 
-We need to define the data structures for our new benchmark type.
+**Goal:** Register the new "Simulator" type so the framework knows how to handle it.
 
-**1. Add `SIMULATOR` to `BenchmarkType` Enum:**
+*   Add `SIMULATOR = "simulator"` to the `BenchmarkType` enum.
+*   Add `SimulatorAnswerOutput` (inheriting from `BaseAnswerOutput`). It should have `transcript: Any` and `is_correct: bool`.
+*   Add `SimulatorBenchmarkCase` (inheriting from `BaseBenchmarkCase`). It should have `simulation_case: Any` (which will hold the `InteractiveSimulationCase`).
+*   Update the `BenchmarkCase` and `AnswerOutput` `Annotated[Union[...]]` blocks at the bottom of the file to include these new classes.
 
-```python
-class BenchmarkType(str, enum.Enum):
-    # ... existing types ...
-    SIMULATOR = "simulator"
-```
+### 2. Implement the Runner (`benchmarks/benchmark_runner.py`)
 
-**2. Define `SimulatorBenchmarkCase`:**
-This class wraps the existing `InteractiveSimulationCase` from the simulator tools.
+**Goal:** Define how to "verify" a simulator result.
 
-*Note: Since `tools/simulator` is not a proper package, we use `Any` for the `simulation_case` field to avoid complex import issues at the module level.*
+*   Create `SimulatorRunner(BenchmarkRunner[SimulatorBenchmarkCase])`.
+*   Implement `run_benchmark`. Use `self.ensure_valid_output(generated_answer, SimulatorAnswerOutput)`.
+*   If `output.is_correct` is True, return `BenchmarkResultType.PASS`. Otherwise, return `BenchmarkResultType.FAIL_VALIDATION`.
 
-```python
-class SimulatorBenchmarkCase(BaseBenchmarkCase):
-    """Represents a single simulator benchmark case."""
-    
-    benchmark_type: Literal[BenchmarkType.SIMULATOR] = BenchmarkType.SIMULATOR
-    
-    # We use Any here to avoid direct dependency on tools.simulator at module level
-    simulation_case: Any = Field(..., description="The InteractiveSimulationCase object.")
+### 3. Refactor Simulator to Async (`tools/simulator/runner.py`)
 
-    @property
-    def runner(self) -> "SimulatorRunner":
-        # Deferred import to avoid circular dependencies
-        from benchmarks.benchmark_runner import SimulatorRunner
-        return SimulatorRunner()
+**Goal:** Make the simulator natively async so it integrates cleanly without thread pools.
 
-    def validate_answer_format(self, output: "AnswerOutput") -> None:
-         if not isinstance(output, SimulatorAnswerOutput):
-            raise AssertionError(f"Expected SimulatorAnswerOutput, got {type(output)}")
+*   Modify `SimulationRunner` to add an `async def run_async(...)` method.
+*   Replace `subprocess.run` with `await asyncio.create_subprocess_exec`.
+*   Ensure any LLM calls (e.g., in `LLMReactor`) use the async version of the Gemini API.
 
-    def get_ground_truth(self) -> Optional[str]:
-        return None
+### 4. Create the Answer Generator (`benchmarks/answer_generators/simulator_answer_generator.py`)
 
-    def get_unfixed_code(self) -> Optional[str]:
-        return None
-```
+**Goal:** The bridge that calls the simulator.
 
-**3. Define `SimulatorAnswerOutput`:**
-This structure holds the result of the simulation.
+*   Create `SimulatorAnswerGenerator(AnswerGenerator)`.
+*   In `generate_answer`, call `await SimulationRunner.run_async(benchmark_case.simulation_case, backend=self.backend)`.
+*   **Path Hack:** You MUST add `tools/simulator` to `sys.path` at the top of this file to allow importing from the `tools` folder.
 
-```python
-class SimulatorAnswerOutput(BaseAnswerOutput):
-    """The expected output structure for a simulator benchmark."""
-    
-    benchmark_type: Literal[BenchmarkType.SIMULATOR] = BenchmarkType.SIMULATOR
-    
-    transcript: Any = Field(..., description="The simulation transcript (JSON-serializable dict).")
-    is_correct: bool = Field(..., description="Whether the simulation was successful.")
-```
+---
 
-**4. Update Unions:**
-Add the new classes to `BenchmarkCase` and `AnswerOutput` unions.
+## Task: Robust Retry Logic & ApiKeyManager Integration
 
-```python
-BenchmarkCase = Annotated[
-    Union[
-        FixErrorBenchmarkCase,
-        ApiUnderstandingBenchmarkCase,
-        MultipleChoiceBenchmarkCase,
-        SimulatorBenchmarkCase, # <--- Added
-    ],
-    Field(discriminator="benchmark_type"),
-]
+**Problem:**
+Currently, `LLMReactor` (which uses an LLM to decide the next user action) appears to fail immediately upon an API error (e.g., 429 Resource Exhausted) or has simple retry logic that doesn't rotate keys. This makes long-running benchmarks flaky.
 
-AnswerOutput = Annotated[
-    Union[
-        FixErrorAnswerOutput,
-        ApiUnderstandingAnswerOutput,
-        MultipleChoiceAnswerOutput,
-        SimulatorAnswerOutput, # <--- Added
-    ],
-    Field(discriminator="benchmark_type"),
-]
-```
+**Requirement:**
+The simulator must be robust against API failures. It should seamlessly integrate with the `core.api_key_manager.ApiKeyManager` to handle key rotation and retries, mirroring the behavior of `run_benchmarks.py`.
 
-### Step 2: Implement the Runner (`benchmarks/benchmark_runner.py`)
+**Implementation Plan:**
 
-The runner is responsible for validating the output. For simulations, validation is simple: check the `is_correct` flag returned by the simulator.
+1.  **Inject ApiKeyManager:**
+    -   Update `SimulationRunner.run_async` (and `run`) to accept an optional `api_key_manager: ApiKeyManager` instance.
+    -   Pass this manager down to `LLMUserSimulant` and `LLMReactor`.
 
-**1. Import Models:**
-Update imports to include `SimulatorBenchmarkCase` and `SimulatorAnswerOutput`.
+2.  **Update LLM Call Sites:**
+    -   Identify where `genai.Client` or `generate_content` is called (in `LLMUserSimulant.generate_reply` and `LLMReactor` evaluation loop).
+    -   Wrap these calls in a retry loop that uses `ApiKeyManager`.
 
-**2. Create `SimulatorRunner` Class:**
+    *Draft Logic (Conceptual):*
+    ```python
+    # In tools/simulator/runner.py or a helper
 
-```python
-class SimulatorRunner(BenchmarkRunner[SimulatorBenchmarkCase]):
-    """Runs a simulator benchmark."""
-
-    async def run_benchmark(
-        self,
-        benchmark_case: SimulatorBenchmarkCase,
-        generated_answer: GeneratedAnswer,
-    ) -> tuple[BenchmarkResultType, Optional[str], Optional[str], Optional[str]]:
-        """Checks if the simulation was successful."""
+    async def generate_with_retry(prompt, model, api_key_manager):
+        # If no manager, fall back to single key from env
+        if not api_key_manager:
+             return await direct_call(prompt, model)
         
-        # 1. Ensure Output is of the correct type
-        output, error = await self.ensure_valid_output(
-            generated_answer, SimulatorAnswerOutput
-        )
-        if not output:
-             from benchmarks.data_models import BenchmarkErrorType
-             return (
-                 BenchmarkResultType.FAIL_VALIDATION,
-                 f"Failed to parse answer: {error}",
-                 None,
-                 BenchmarkErrorType.MODEL_INCORRECT_ANSWER,
-             )
-
-        # 2. Check Success Status
-        if output.is_correct:
-             return BenchmarkResultType.PASS, None, None, None
-        else:
-             from benchmarks.data_models import BenchmarkErrorType
-             return (
-                 BenchmarkResultType.FAIL_VALIDATION,
-                 f"Simulation failed. Transcript available in output.",
-                 None,
-                 BenchmarkErrorType.TEST_FAILURE
-             )
-```
-
-### Step 3: Implement the Answer Generator (`benchmarks/answer_generators/simulator_answer_generator.py`)
-
-This is the most critical part. It bridges the two systems.
-
-**Critical Requirements:**
-1.  **Sys Path Hack:** `tools/simulator` uses absolute imports (e.g., `import models`). To make this work when imported from `benchmarks`, we must add `tools/simulator` to `sys.path`.
-2.  **Async/Sync Bridge:** The simulator code (`SimulationRunner.run`) is synchronous and blocking (it uses `subprocess`). To prevent it from freezing the entire async benchmark runner, we must run it in a separate thread using `loop.run_in_executor`.
-
-**File Content:**
-
-```python
-import asyncio
-import sys
-import os
-from typing import Optional, Any
-from concurrent.futures import ThreadPoolExecutor
-
-# --- CRITICAL: Path Setup for Simulator Tools ---
-# Ensure tools/simulator is in sys.path to support its absolute imports.
-# This must happen BEFORE importing anything from tools.simulator.
-SIMULATOR_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../tools/simulator"))
-if SIMULATOR_DIR not in sys.path:
-    sys.path.insert(0, SIMULATOR_DIR)
-
-from benchmarks.answer_generators.base import AnswerGenerator
-from benchmarks.data_models import BaseBenchmarkCase, GeneratedAnswer, SimulatorAnswerOutput, SimulatorBenchmarkCase
-from benchmarks.logger import BenchmarkLogger
-
-# Import Simulator tools (these work now because of the sys.path hack)
-try:
-    from tools.simulator.runner import SimulationRunner as ToolSimulationRunner
-    from tools.simulator.models import SimulationResult
-except ImportError:
-    # Fallback for different execution contexts
-    from runner import SimulationRunner as ToolSimulationRunner
-    from models import SimulationResult
-
-class SimulatorAnswerGenerator(AnswerGenerator):
-    """
-    Runs interactive CLI simulations using the tools/simulator harness.
-    """
-    
-    def __init__(self, backend: str = "gemini-cli", logger: Optional[BenchmarkLogger] = None):
-        super().__init__(logger)
-        self.backend = backend
-        # We use a ThreadPoolExecutor to run the blocking simulator code off the main thread.
-        self._executor = ThreadPoolExecutor(max_workers=1)
-
-    @property
-    def name(self) -> str:
-        return f"simulator-{self.backend}"
-
-    @property
-    def description(self) -> Optional[str]:
-        return f"Runs interactive CLI simulations using the {self.backend} backend."
-
-    async def generate_answer(
-        self, benchmark_case: BaseBenchmarkCase, run_id: str
-    ) -> GeneratedAnswer:
-        # 1. Validate Case Type
-        if not isinstance(benchmark_case, SimulatorBenchmarkCase):
-             raise ValueError("SimulatorAnswerGenerator only supports SimulatorBenchmarkCase")
-        
-        loop = asyncio.get_running_loop()
-        
-        # 2. Define the blocking task
-        def _run_sim() -> SimulationResult:
-            # This calls the existing simulator logic
-            return ToolSimulationRunner.run(benchmark_case.simulation_case, backend=self.backend)
-
-        try:
-            # 3. Run in separate thread
-            result = await loop.run_in_executor(self._executor, _run_sim)
-            
-            # 4. Convert result to AnswerOutput
-            output = SimulatorAnswerOutput(
-                transcript=result.transcript.model_dump(),
-                is_correct=result.success,
-                rationale=f"Simulation finished with success={result.success}. Backend: {self.backend}"
-            )
-            
-            return GeneratedAnswer(
-                output=output,
-                raw_output=result.transcript.model_dump_json(),
-                usage_metadata=None # Token usage tracking to be added later
-            )
-            
-        except Exception as e:
-            return GeneratedAnswer(
-                raw_output=f"Simulation crashed: {e}",
-                output=None
-            )
-```
-
-## How to Verify Integration
-
-Since `SimulatorAnswerGenerator` is a standard `AnswerGenerator` and `SimulatorBenchmarkCase` is a standard `BaseBenchmarkCase`, validation should be done using the standard framework tests.
-
-### 1. Verification via `test_unified_generators.py`
-
-This existing test file likely iterates over available generators to ensure they can be instantiated and run against a dummy case.
-
-**Action Required:**
-Update `benchmarks/tests/integration/test_unified_generators.py` (or similar) to include a test case for `simulator-gemini-cli`.
-
-**Example Test Addition:**
-
-```python
-# In test_unified_generators.py
-
-@pytest.mark.asyncio
-async def test_simulator_generator_infrastructure():
-    """
-    Verifies that the SimulatorAnswerGenerator can run a trivial simulation case.
-    We do NOT check for success=True, only that the infrastructure doesn't crash.
-    """
-    from benchmarks.answer_generators.simulator_answer_generator import SimulatorAnswerGenerator
-    from benchmarks.data_models import SimulatorBenchmarkCase
-    
-    # Need to import these from the tool path or mock them if we can't easily import
-    # For integration tests, we assume the environment is set up to allow importing via the generator's path hack.
-    # Ideally, define a helper to create the case.
-    
-    # 1. Create a trivial simulation case
-    # We rely on the generator's internal import logic to have set up sys.path 
-    # OR we manually set it up here for the test construction
-    import sys, os
-    SIM_TOOL_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../tools/simulator"))
-    if SIM_TOOL_PATH not in sys.path:
-        sys.path.insert(0, SIM_TOOL_PATH)
-        
-    from models import InteractiveSimulationCase, ReactorAction, ActionType
-    
-    sim_case = InteractiveSimulationCase(
-        name="Trivial Integration Test",
-        initial_prompt="echo 'TEST_INFRA'",
-        reactors=[], # No reactors, just run until turn limit or default action
-        max_turns=1,
-        default_action=ReactorAction(type=ActionType.END_TEST, payload="Done")
-    )
-    
-    bench_case = SimulatorBenchmarkCase(
-        id="sim_integration_01",
-        simulation_case=sim_case
-    )
-    
-    # 2. Run the generator
-    generator = SimulatorAnswerGenerator(backend="gemini-cli")
-    result = await generator.generate_answer(bench_case, run_id="test_run")
-    
-    # 3. Verify Infrastructure Health
-    assert result.output is not None, "Generator failed to produce output"
-    assert result.output.benchmark_type == "simulator"
-    assert "TEST_INFRA" in str(result.output.transcript), "Transcript should capture CLI output"
-    
-    # NOTE: We do NOT assert result.output.is_correct because the agent might output anything.
-    # We only care that the simulator ran and captured the output.
-```
-
-### 2. Verification via `run_benchmarks.py`
-
-This is the end-to-end verification.
-
-1.  **Create a Benchmark Definition File:**
-    Create a file `benchmarks/benchmark_definitions/debug_suite/simulator_test.yaml` (or Python equivalent if your suite uses code).
-
-2.  **Run the Command:**
-    ```bash
-    python -m benchmarks.cli.run_benchmarks --suite debug_suite --generator simulator-gemini-cli
+        # Use the manager's context manager which handles rotation on error
+        async with api_key_manager.get_client(model) as client:
+             return await client.generate_content_async(prompt)
     ```
 
-3.  **Expected Output:**
-    -   The runner should initialize.
-    -   It should pick up the simulator case.
-    -   It should launch the simulator (you might see logs from the subprocess).
-    -   It should produce a `BenchmarkResult`.
-    -   The result status might be `PASS` or `FAIL_VALIDATION` depending on the agent's behavior, but it **MUST NOT be `FAIL_SETUP` or `FAIL_GENERATION`** (which indicate infrastructure crashes).
+3.  **Handle Quota Exhaustion:**
+    -   If an API call fails with `429` (Resource Exhausted), the `ApiKeyManager` should automatically mark the current key as exhausted/rate-limited and provide a fresh key for the retry.
+    -   The simulator should NOT crash; it should log a warning ("Key exhausted, rotating...") and continue the turn.
+
+4.  **Verification:**
+    -   Create a test case where the "first" key is a mock that always returns 429.
+    -   Ensure the simulator successfully rotates to a "second" valid key and completes the simulation.
+
+---
+
+## Integration and Verification
+
+To ensure your changes work with the existing unified test suite and the CLI, follow these steps:
+
+### 1. Register a Test Case in `benchmarks/tests/integration/test_config.py`
+
+This is where all generators are configured for the integration test suite (`test_unified_generators.py`).
+
+1.  **Define a Config Model** in `benchmarks/tests/integration/config_models.py`:
+    ```python
+    class SimulatorGeneratorConfig(GeneratorConfig):
+        type: Literal["simulator"] = "simulator"
+        backend: str = "gemini-cli"
+        
+        def create_generator(self, model_name: str, project_id: str, api_key_manager: ApiKeyManager) -> AnswerGenerator:
+            from benchmarks.answer_generators.simulator_answer_generator import SimulatorAnswerGenerator
+            return SimulatorAnswerGenerator(backend=self.backend)
+    ```
+2.  **Add a Predefined Case** in `benchmarks/tests/integration/predefined_cases.py`:
+    ```python
+    from tools.simulator.models import InteractiveSimulationCase, ReactorAction, ActionType
+    # (Ensure sys.path is handled in predefined_cases.py or imports are safe)
+    
+    TRIVIAL_SIM_CASE = SimulatorBenchmarkCase(
+        id="test:trivial_sim",
+        simulation_case=InteractiveSimulationCase(
+            name="Trivial Integration Test",
+            initial_prompt="echo 'HELLO'",
+            max_turns=1,
+            default_action=ReactorAction(type=ActionType.END_TEST, payload="Done")
+        )
+    )
+    ```
+3.  **Add to `GENERATOR_METADATA`** in `benchmarks/tests/integration/test_config.py`:
+    ```python
+    "simulator_test_case": SimulatorGeneratorConfig(
+        id="simulator_test_case",
+        custom_case=TRIVIAL_SIM_CASE
+    )
+    ```
+
+### 2. Run the Unified Integration Test
+
+Execute the standard test suite. It will now automatically pick up your new generator and run the trivial case.
+
+```bash
+pytest benchmarks/tests/integration/test_unified_generators.py -k simulator_test_case
+```
+
+**What to expect:**
+-   `test_generator_execution` will call your generator.
+-   The generator will run the trivial "echo HELLO" simulation.
+-   The test will pass if the simulator doesn't crash and returns a valid transcript.
+
+### 3. Run a Real Suite via CLI
+
+Verify that the `run_benchmarks` CLI tool works with the new generator.
+
+```bash
+python -m benchmarks.cli.run_benchmarks --suite debug_suite --generator simulator-gemini-cli
+```
+*(Note: You will need to create a YAML suite file that defines a Simulator case or use a mock suite)*.
