@@ -15,13 +15,27 @@
 """Pre-defined benchmark cases for integration tests."""
 
 from pathlib import Path
+import sys
 
-from benchmarks.data_models import AnswerTemplate
-from benchmarks.data_models import ApiUnderstandingBenchmarkCase
-from benchmarks.data_models import BenchmarkType
-from benchmarks.data_models import FixErrorBenchmarkCase
-from benchmarks.data_models import MultipleChoiceBenchmarkCase
-from benchmarks.data_models import StringMatchAnswer
+# HACK: Add tools directory to sys.path to allow importing simulator models
+# This is necessary because the simulator is not a package.
+project_root = Path(__file__).parent.parent.parent.parent
+sys.path.insert(0, str(project_root / 'tools'))
+
+from benchmarks.data_models import (
+    AnswerTemplate,
+    ApiUnderstandingBenchmarkCase,
+    BenchmarkType,
+    FixErrorBenchmarkCase,
+    MultipleChoiceBenchmarkCase,
+    StringMatchAnswer,
+    SimulatorBenchmarkCase,
+)
+from tools.simulator.models import (
+    InteractiveSimulationCase,
+    ReactorAction,
+    ActionType,
+)
 
 # A simple API Understanding case
 SIMPLE_API_UNDERSTANDING_CASE = ApiUnderstandingBenchmarkCase(
@@ -58,6 +72,17 @@ SIMPLE_MULTIPLE_CHOICE_CASE = MultipleChoiceBenchmarkCase(
     correct_answer="B",
     benchmark_type=BenchmarkType.MULTIPLE_CHOICE,
     explanation="The question explicitly provides the answer.",
+)
+
+# A trivial simulator case for integration testing
+TRIVIAL_SIM_CASE = SimulatorBenchmarkCase(
+    id="test:trivial_sim",
+    simulation_case=InteractiveSimulationCase(
+        name="Trivial Integration Test",
+        initial_prompt="echo 'HELLO'",
+        max_turns=1,
+        default_action=ReactorAction(type=ActionType.END_TEST, payload="Done")
+    )
 )
 
 # A multiple choice case for concurrency testing

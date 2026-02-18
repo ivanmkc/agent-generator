@@ -295,6 +295,7 @@ dependencies = [
     { name = "codebase-knowledge-mcp" },
     { name = "colorama" },
     { name = "google-adk" },
+    { name = "google-cloud-aiplatform" },
     { name = "google-cloud-build" },
     { name = "google-cloud-run" },
     { name = "google-cloud-storage" },
@@ -302,6 +303,7 @@ dependencies = [
     { name = "litellm" },
     { name = "pandas" },
     { name = "papermill" },
+    { name = "pexpect" },
     { name = "plotly" },
     { name = "pytest-asyncio" },
     { name = "pytest-profiling" },
@@ -319,6 +321,7 @@ requires-dist = [
     { name = "codebase-knowledge-mcp", editable = "tools/adk_knowledge_ext" },
     { name = "colorama" },
     { name = "google-adk", specifier = "==1.20.0" },
+    { name = "google-cloud-aiplatform" },
     { name = "google-cloud-build" },
     { name = "google-cloud-run" },
     { name = "google-cloud-storage" },
@@ -326,6 +329,7 @@ requires-dist = [
     { name = "litellm" },
     { name = "pandas" },
     { name = "papermill" },
+    { name = "pexpect" },
     { name = "plotly" },
     { name = "pytest-asyncio" },
     { name = "pytest-profiling" },
@@ -2747,7 +2751,7 @@ name = "pexpect"
 version = "4.9.0"
 source = { registry = "https://us-python.pkg.dev/artifact-foundry-prod/ah-3p-staging-python/simple/" }
 dependencies = [
-    { name = "ptyprocess", marker = "(python_full_version < '3.13' and sys_platform == 'emscripten') or (python_full_version < '3.13' and sys_platform == 'win32') or (sys_platform != 'emscripten' and sys_platform != 'win32')" },
+    { name = "ptyprocess" },
 ]
 sdist = { url = "https://us-python.pkg.dev/artifact-foundry-prod/ah-3p-staging-python/pexpect/pexpect-4.9.0.tar.gz", hash = "sha256:ee7d41123f3c9911050ea2c2dac107568dc43b2d3b0c7557a33212c398ead30f" }
 wheels = [

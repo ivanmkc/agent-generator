@@ -35,10 +35,9 @@ class BenchmarkType(str, enum.Enum):
     """The type of benchmark."""
 
     FIX_ERROR = "fix_error"
-
     API_UNDERSTANDING = "api_understanding"
-
     MULTIPLE_CHOICE = "multiple_choice"
+    SIMULATOR = "simulator"
 
 
 class BenchmarkResultType(str, enum.Enum):
@@ -61,7 +60,6 @@ class ExpectedOutcome(str, enum.Enum):
     """The expected outcome of a benchmark."""
 
     PASS = "pass"
-
     FAIL_WITH_ERROR = "fail_with_error"
 
 
@@ -74,14 +72,12 @@ class BaseBenchmarkCase(pydantic.BaseModel, abc.ABC):
 
     def get_identifier(self) -> str:
         """Returns a unique identifier for the benchmark case."""
-
         return self.id
 
     @property
     @abc.abstractmethod
     def runner(self) -> "BaseBenchmarkRunner":
         """Returns the benchmark runner for this case."""
-
         raise NotImplementedError
 
     @abc.abstractmethod
@@ -115,7 +111,6 @@ class FixErrorBenchmarkCase(BaseBenchmarkCase):
     @property
     def runner(self) -> "PytestBenchmarkRunner":
         from benchmarks.benchmark_runner import PytestBenchmarkRunner
-
         return PytestBenchmarkRunner()
 
     def validate_answer_format(self, output: "AnswerOutput") -> None:
@@ -138,13 +133,9 @@ class FixErrorBenchmarkCase(BaseBenchmarkCase):
 
 class StringMatchAnswer(pydantic.BaseModel):
     """Represents an answer that is a string match."""
-
     answer_template: Literal["StringMatchAnswer"]
-
     answer: str
-
-    fully_qualified_class_name: list[str] = pydantic.Field(
-        ...,
+    fully_qualified_class_name: list[str] = pydantic.Field(...,
         description=(
             "A list of fully qualified names (FQN) for the relevant class. This"
             " should include the module path and the class's name only, not"
@@ -156,37 +147,24 @@ class StringMatchAnswer(pydantic.BaseModel):
 
 class AnswerTemplate(str, enum.Enum):
     """The template for the answer."""
-
     CLASS_DEFINITION = "class_definition"
-
     PARAMETER_DEFINITION = "parameter_definition"
-
     METHOD_DEFINITION = "method_definition"
-
     TYPE_ALIAS_DEFINITION = "type_alias_definition"
-
     CODE_BLOCK = "code_block"
-
     IDENTIFIER = "identifier"
 
 
 class ApiUnderstandingBenchmarkCase(BaseBenchmarkCase):
     """Represents a single API understanding benchmark case, where the model answers questions about the ADK's public API."""
-
     category: str
-
     question: str
-
     rationale: str
-
     benchmark_type: Literal[BenchmarkType.API_UNDERSTANDING] = (
         BenchmarkType.API_UNDERSTANDING
     )
-
     template: AnswerTemplate
-
     answers: list[StringMatchAnswer]
-
     file: Path
 
     @pydantic.field_validator("answers", mode="before")
@@ -200,7 +178,6 @@ class ApiUnderstandingBenchmarkCase(BaseBenchmarkCase):
     @property
     def runner(self) -> "ApiUnderstandingRunner":
         from benchmarks.benchmark_runner import ApiUnderstandingRunner
-
         return ApiUnderstandingRunner()
 
     def validate_answer_format(self, output: "AnswerOutput") -> None:
@@ -225,12 +202,10 @@ class ApiUnderstandingBenchmarkCase(BaseBenchmarkCase):
 
 class MultipleChoiceBenchmarkCase(BaseBenchmarkCase):
     """Represents a single multiple choice benchmark case, where the model selects the correct option from a list."""
-
     question: str
     options: dict[str, str]  # e.g., {"A": "Option A", "B": "Option B"}
     correct_answer: str  # e.g., "B"
     explanation: Optional[str] = None
-
     benchmark_type: Literal[BenchmarkType.MULTIPLE_CHOICE] = (
         BenchmarkType.MULTIPLE_CHOICE
     )
@@ -238,7 +213,6 @@ class MultipleChoiceBenchmarkCase(BaseBenchmarkCase):
     @property
     def runner(self) -> "MultipleChoiceRunner":
         from benchmarks.benchmark_runner import MultipleChoiceRunner
-
         return MultipleChoiceRunner()
 
     def validate_answer_format(self, output: "AnswerOutput") -> None:
@@ -257,11 +231,33 @@ class MultipleChoiceBenchmarkCase(BaseBenchmarkCase):
         return None
 
 
+class SimulatorBenchmarkCase(BaseBenchmarkCase):
+    """Represents a benchmark case that runs an interactive CLI simulation."""
+    benchmark_type: Literal[BenchmarkType.SIMULATOR] = BenchmarkType.SIMULATOR
+    simulation_case: Any  # This will hold the InteractiveSimulationCase from the simulator tool
+    
+    @property
+    def runner(self) -> "SimulatorRunner":
+        from benchmarks.benchmark_runner import SimulatorRunner
+        return SimulatorRunner()
+
+    def validate_answer_format(self, output: "AnswerOutput") -> None:
+        if not isinstance(output, SimulatorAnswerOutput):
+            raise AssertionError(f"Expected SimulatorAnswerOutput, got {type(output)}")
+
+    def get_ground_truth(self) -> Optional[str]:
+        return None  # Ground truth is defined by the simulation's verification steps
+
+    def get_unfixed_code(self) -> Optional[str]:
+        return None
+
+
 BenchmarkCase = Annotated[
     Union[
         FixErrorBenchmarkCase,
         ApiUnderstandingBenchmarkCase,
         MultipleChoiceBenchmarkCase,
+        SimulatorBenchmarkCase,
     ],
     Field(discriminator="benchmark_type"),
 ]
@@ -269,14 +265,11 @@ BenchmarkCase = Annotated[
 
 class BenchmarkFile(pydantic.BaseModel):
     """Represents an entire benchmark YAML file."""
-
     benchmarks: list[BenchmarkCase]
 
 
 class BenchmarkErrorType(str, enum.Enum):
     """Categorization of errors encountered during benchmark execution."""
-
-    # Model Failures (The model's output was incorrect or invalid)
     MODEL_INCORRECT_ANSWER = "ModelIncorrectAnswer"
     MODEL_ANSWER_DID_NOT_MATCH_TEMPLATE = "ModelAnswerDidNotMatchTemplate"
     ASSERTION_ERROR = "AssertionError"
@@ -288,14 +281,12 @@ class BenchmarkErrorType(str, enum.Enum):
     ATTRIBUTE_ERROR = "AttributeError"
     INDENTATION_ERROR = "IndentationError"
     MODULE_NOT_FOUND_ERROR = "ModuleNotFoundError"
-
-    # Infrastructure/Environment Failures (The test harness or API failed)
     CLIENT_ERROR = "ClientError"
     SERVER_ERROR = "ServerError"
     RESOURCE_EXHAUSTED = "ResourceExhausted"
     TIMEOUT_ERROR = "TimeoutError"
     CONNECTION_ERROR = "ConnectionError"
-    TEST_FAILURE = (  # Generic pytest failure (could be either, usually infra if not assertion)
+    TEST_FAILURE = (
         "TestFailure"
     )
     SYSTEM_EXIT = "SystemExit"
@@ -307,17 +298,13 @@ from core.models import TraceEventType, TraceLogEvent
 
 class BenchmarkResult(pydantic.BaseModel):
     """Represents the result of a benchmark run."""
-
     outcome: ExpectedOutcome
-
     error_type: Optional[BenchmarkErrorType] = None
-
     error_message: Optional[str] = None
 
 
 class UsageMetadata(pydantic.BaseModel):
     """Metadata regarding the resource usage of the answer generation."""
-
     total_tokens: Optional[int] = None
     prompt_tokens: Optional[int] = None
     completion_tokens: Optional[int] = None
@@ -334,17 +321,12 @@ class UsageMetadata(pydantic.BaseModel):
         return v or {}
 
 
-# --- Structured Answer Output Models ---
-
-
 class BaseAnswerOutput(pydantic.BaseModel, abc.ABC):
     """A base model for the structured output of an AnswerGenerator."""
-
     rationale: str = Field(
         ...,
         description="Explanation of the thinking process leading to the answer.",
     )
-
     refusal_reason: Optional[str] = Field(
         None,
         description=(
@@ -357,9 +339,7 @@ class BaseAnswerOutput(pydantic.BaseModel, abc.ABC):
 
 class FixErrorAnswerOutput(BaseAnswerOutput):
     """The expected output structure for a fix_error benchmark."""
-
     benchmark_type: Literal[BenchmarkType.FIX_ERROR] = BenchmarkType.FIX_ERROR
-
     code: str = Field(
         ...,
         description=(
@@ -371,11 +351,9 @@ class FixErrorAnswerOutput(BaseAnswerOutput):
 
 class ApiUnderstandingAnswerOutput(BaseAnswerOutput):
     """The expected output structure for an api_understanding benchmark."""
-
     benchmark_type: Literal[BenchmarkType.API_UNDERSTANDING] = (
         BenchmarkType.API_UNDERSTANDING
     )
-
     code: str = Field(
         ...,
         description=(
@@ -383,7 +361,6 @@ class ApiUnderstandingAnswerOutput(BaseAnswerOutput):
             " required template."
         ),
     )
-
     fully_qualified_class_name: str = Field(
         description=(
             "The fully qualified name (FQN) for the relevant class. This should"
@@ -398,11 +375,9 @@ class ApiUnderstandingAnswerOutput(BaseAnswerOutput):
 
 class MultipleChoiceAnswerOutput(BaseAnswerOutput):
     """The expected output structure for a multiple_choice benchmark."""
-
     benchmark_type: Literal[BenchmarkType.MULTIPLE_CHOICE] = (
         BenchmarkType.MULTIPLE_CHOICE
     )
-
     answer: str = Field(
         ...,
         description=(
@@ -412,11 +387,19 @@ class MultipleChoiceAnswerOutput(BaseAnswerOutput):
     )
 
 
+class SimulatorAnswerOutput(BaseAnswerOutput):
+    """The expected output structure for a simulator benchmark."""
+    benchmark_type: Literal[BenchmarkType.SIMULATOR] = BenchmarkType.SIMULATOR
+    transcript: Any  # The full transcript from the simulation
+    is_correct: bool  # Whether the simulation's own verification passed
+
+
 AnswerOutput = Annotated[
     Union[
         FixErrorAnswerOutput,
         ApiUnderstandingAnswerOutput,
         MultipleChoiceAnswerOutput,
+        SimulatorAnswerOutput,
     ],
     Field(discriminator="benchmark_type"),
 ]
@@ -427,23 +410,18 @@ class GeneratedAnswer(pydantic.BaseModel):
     Represents the structured output from an AnswerGenerator, akin to an
     LLM's function call result.
     """
-
     output: Optional[AnswerOutput] = None
-
     raw_output: Optional[str] = Field(
         None,
         description="The raw string output from the model, populated if parsing fails.",
     )
-
     trace_logs: Optional[list[TraceLogEvent]] = Field(
         None, description="Detailed execution logs, traces, or tool call history."
     )
-
     usage_metadata: Optional[UsageMetadata] = Field(
         None,
         description=("Metadata regarding the resource usage of the answer generation."),
     )
-
     api_key_id: Optional[str] = Field(
         None, description="The unique ID of the API key used for generation."
     )
@@ -451,7 +429,6 @@ class GeneratedAnswer(pydantic.BaseModel):
 
 class GenerationAttempt(pydantic.BaseModel):
     """Captures details of a single attempt to generate an answer."""
-
     attempt_number: int = Field(
         ..., description="The sequence number of this attempt (1-based)."
     )
@@ -482,12 +459,10 @@ class GenerationAttempt(pydantic.BaseModel):
 class BenchmarkGenerationError(Exception):
     """
     Custom exception raised when an AnswerGenerator fails to produce a valid response.
-
     This exception is used to wrap lower-level exceptions and attach additional metadata
     relevant to the benchmark execution, such as the `api_key_id` that was in use
     during the failed generation attempt. This allows the benchmark orchestrator
     to log specific details about failures for debugging and analysis.
-
     Attributes:
         message (str): A human-readable message describing the error.
         original_exception (Exception): The underlying exception that caused this error.
@@ -495,7 +470,6 @@ class BenchmarkGenerationError(Exception):
         trace_logs (Optional[list[TraceLogEvent]]): Partial trace logs captured before failure.
         usage_metadata (Optional[UsageMetadata]): Resource usage captured before failure.
     """
-
     def __init__(
         self,
         message: str,
@@ -513,7 +487,6 @@ class BenchmarkGenerationError(Exception):
 
 class BenchmarkRunResult(pydantic.BaseModel):
     """Represents the structured result of a single benchmark run."""
-
     id: str = Field(
         ...,
         description="The unique identifier for the benchmark case.",
@@ -605,9 +578,6 @@ class BenchmarkRunResult(pydantic.BaseModel):
     )
 
 
-# --- Forensic Analysis Models ---
-
-
 class ForensicInsight(pydantic.BaseModel):
     root_cause_category: str = Field(
         ...,
@@ -657,7 +627,6 @@ class GeneratorForensicSummary(pydantic.BaseModel):
 
 class ForensicData(pydantic.BaseModel):
     """Aggregated forensic data for the viewer."""
-
     generators: dict[str, GeneratorForensicSummary] = Field(default_factory=dict)
     cases: dict[str, CaseSummary] = Field(default_factory=dict)
     attempts: dict[str, list[ForensicInsight]] = Field(default_factory=dict)

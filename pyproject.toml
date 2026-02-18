@@ -23,7 +23,9 @@ dependencies = [
     "questionary",
     "ipykernel",
     "codebase-knowledge-mcp",
+    "pexpect",
     "anthropic[vertex]",
+    "google-cloud-aiplatform"
 ]
 
 [tool.uv.sources]

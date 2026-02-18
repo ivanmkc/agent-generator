@@ -32,12 +32,13 @@ from pydantic import BaseModel
 from benchmarks.data_models import (
     ApiUnderstandingBenchmarkCase,
     MultipleChoiceBenchmarkCase,
+    SimulatorBenchmarkCase,
 )
 from benchmarks.data_models import BaseBenchmarkCase
 from benchmarks.data_models import BenchmarkResultType
 from benchmarks.data_models import FixErrorBenchmarkCase
 from benchmarks.data_models import GeneratedAnswer
-from benchmarks.data_models import MultipleChoiceAnswerOutput, FixErrorAnswerOutput, ApiUnderstandingAnswerOutput
+from benchmarks.data_models import MultipleChoiceAnswerOutput, FixErrorAnswerOutput, ApiUnderstandingAnswerOutput, SimulatorAnswerOutput
 import benchmarks.validation_utils as validation_utils
 
 # A TypeVar to create a generic link between a runner and the case it handles.
@@ -80,6 +81,42 @@ class BenchmarkRunner(abc.ABC, Generic[BenchmarkCaseT]):
     ) -> tuple[BenchmarkResultType, Optional[str], Optional[str], Optional[str]]:
         """Runs a benchmark and returns the result."""
         pass
+
+
+class SimulatorRunner(BenchmarkRunner[SimulatorBenchmarkCase]):
+    """Runs a CLI simulation benchmark."""
+
+    async def run_benchmark(
+        self,
+        benchmark_case: SimulatorBenchmarkCase,
+        generated_answer: GeneratedAnswer,
+    ) -> tuple[BenchmarkResultType, Optional[str], Optional[str], Optional[str]]:
+        """Checks if the simulation result was successful."""
+        output, error = await self.ensure_valid_output(
+            generated_answer, SimulatorAnswerOutput
+        )
+        if not output:
+            from benchmarks.data_models import BenchmarkErrorType
+
+            return (
+                BenchmarkResultType.FAIL_VALIDATION,
+                f"Failed to parse simulator output: {error}",
+                None,
+                BenchmarkErrorType.OTHER_ERROR, # Or a new type for infrastructure errors
+            )
+
+        if output.is_correct:
+            return BenchmarkResultType.PASS, None, None, None
+        else:
+            from benchmarks.data_models import BenchmarkErrorType
+            # The transcript is often too verbose for a simple error log,
+            # so we provide a concise failure message.
+            return (
+                BenchmarkResultType.FAIL_VALIDATION,
+                "The simulation ran successfully but the final verification failed.",
+                None,
+                BenchmarkErrorType.MODEL_INCORRECT_ANSWER, # This implies the agent's behavior was wrong
+            )
 
 
 class MultipleChoiceRunner(BenchmarkRunner[MultipleChoiceBenchmarkCase]):

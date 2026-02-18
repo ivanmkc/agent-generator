@@ -38,12 +38,22 @@ class GeneratorConfig(BaseModel, abc.ABC):
     strict_order: bool = True
 
     @abc.abstractmethod
-    def create_generator(self, model_name: str, project_id: str) -> AnswerGenerator:
+    def create_generator(self, model_name: str, project_id: str, api_key_manager: ApiKeyManager) -> AnswerGenerator:
         """
         Factory method to create an AnswerGenerator instance based on this configuration.
         Must be implemented by subclasses.
         """
         pass
+
+
+class SimulatorGeneratorConfig(GeneratorConfig):
+    """Configuration for the SimulatorAnswerGenerator."""
+    type: Literal["simulator"] = "simulator"
+    backend: str = "gemini-cli"
+
+    def create_generator(self, model_name: str, project_id: str, api_key_manager: ApiKeyManager) -> AnswerGenerator:
+        from benchmarks.answer_generators.simulator_answer_generator import SimulatorAnswerGenerator
+        return SimulatorAnswerGenerator(backend=self.backend, api_key_manager=api_key_manager)
 
 
 class PodmanGeneratorConfig(GeneratorConfig):
@@ -176,4 +186,5 @@ AnyGeneratorConfig = Union[
     WorkflowAdkGeneratorConfig,
     StructuredWorkflowAdkGeneratorConfig,
     HybridAdkGeneratorConfig,
+    SimulatorGeneratorConfig,
 ]

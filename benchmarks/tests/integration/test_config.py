@@ -25,6 +25,7 @@ from benchmarks.tests.integration.predefined_cases import (
     MCP_ADK_RUNNER_CASE,
     STRUCTURED_WORKFLOW_CASE,
     ADK_SKILL_KNOWLEDGE_CASE,
+    TRIVIAL_SIM_CASE,
 )
 from benchmarks.tests.integration.config_models import (
     AnyGeneratorConfig,
@@ -32,10 +33,15 @@ from benchmarks.tests.integration.config_models import (
     WorkflowAdkGeneratorConfig,
     StructuredWorkflowAdkGeneratorConfig,
     HybridAdkGeneratorConfig,
+    SimulatorGeneratorConfig,
 )
 
 # Map fixture names to their configuration metadata
 GENERATOR_METADATA: Dict[str, AnyGeneratorConfig] = {
+    "simulator_test_case": SimulatorGeneratorConfig(
+        id="simulator_test_case",
+        custom_case=TRIVIAL_SIM_CASE
+    ),
     "workflow_adk_test_case": WorkflowAdkGeneratorConfig(
         id="workflow_adk_test_case",
         expected_context_files=[],  # It clones repo but doesn't use the file-based context check mechanism same way
