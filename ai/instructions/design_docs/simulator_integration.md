@@ -53,20 +53,27 @@ To be clear, these verification steps (defined in `InteractiveSimulationCase`) *
 *   Implement `run_benchmark`. Use `self.ensure_valid_output(generated_answer, SimulatorAnswerOutput)`.
 *   If `output.is_correct` is True, return `BenchmarkResultType.PASS`. Otherwise, return `BenchmarkResultType.FAIL_VALIDATION`.
 
-### 3. Refactor Simulator to Async (`tools/simulator/runner.py`)
+### 3. Refactor Simulator to Async & Pexpect (`tools/simulator/runner.py`)
 
-**Goal:** Make the simulator natively async so it integrates cleanly without thread pools.
+**Goal:** Make the simulator natively async and switch to `pexpect` for true interactive simulation.
 
-*   Modify `SimulationRunner` to add an `async def run_async(...)` method.
-*   Replace `subprocess.run` with `await asyncio.create_subprocess_exec`.
-*   Ensure any LLM calls (e.g., in `LLMReactor`) use the async version of the Gemini API.
+*   **Switch to Pexpect:** The current implementation uses `subprocess.run` with headless flags (`-p`, `-r`). This is brittle and CLI-specific.
+    *   **Why Pexpect?**
+        1.  **True Interactivity:** It allocates a PTY (pseudo-terminal), forcing the CLI to believe it is running in a real terminal. This exercises the exact code paths (Ink UI, keypress handling, spinner rendering) that real users experience, catching bugs that headless modes miss.
+        2.  **State Persistence:** We spawn the process *once* and interact with it over multiple turns. This is far more efficient and realistic than restarting the process with `-r/--resume` flags for every turn, which is slow and risks state serialization bugs.
+        3.  **Universal Backend Support:** `pexpect` works with *any* interactive CLI (Claude, generic Python scripts, Bash), not just ones that implement a specific headless protocol like `gemini-cli`'s `-p` flag.
+    *   **Refactoring Plan:**
+        *   Refactor `SimulationRunner` to use `pexpect`.
+        *   Use `asyncio.create_subprocess_exec` is an alternative if we only needed streams, but for PTY interaction, wrapping blocking `pexpect` calls in `loop.run_in_executor` is acceptable and robust.
+*   **Async Wrapper:** Since `pexpect` is blocking, wrap the interaction loop in a thread using `loop.run_in_executor` inside the `run_async` method.
+*   **API Key Manager:** Integrate `ApiKeyManager` to handle retries and key rotation for the LLM User Simulant.
 
 ### 4. Create the Answer Generator (`benchmarks/answer_generators/simulator_answer_generator.py`)
 
 **Goal:** The bridge that calls the simulator.
 
 *   Create `SimulatorAnswerGenerator(AnswerGenerator)`.
-*   In `generate_answer`, call `await SimulationRunner.run_async(benchmark_case.simulation_case, backend=self.backend)`.
+*   In `generate_answer`, call the simulator runner.
 *   **Path Hack:** You MUST add `tools/simulator` to `sys.path` at the top of this file to allow importing from the `tools` folder.
 
 ---
