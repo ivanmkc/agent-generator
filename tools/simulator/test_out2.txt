@@ -1,0 +1,460 @@
+--- Starting Simulation: Secret Retrieval ---
+Sandbox: /var/folders/nh/n7l064rj4wx0z7jsyr5q4wtc00rmmq/T/tmpy6x_9zom
+Setup: Written secret 334105 to /var/folders/nh/n7l064rj4wx0z7jsyr5q4wtc00rmmq/T/tmpy6x_9zom/secret.txt
+Starting gemini-cli driver: node --import file:///Users/ivanmkc/Documents/code/gemini-cli/node_modules/tsx/dist/loader.mjs /Users/ivanmkc/Documents/code/gemini-cli/packages/cli/index.ts --yolo in /var/folders/nh/n7l064rj4wx0z7jsyr5q4wtc00rmmq/T/tmpy6x_9zom
+Waiting for agent to boot...
+Error: Timeout after 180 seconds. [?u]11;?\[>q[>4;?m[c[?2004h]0;◇  Ready (tmpy6x_9zom)                                                          [?25l
+  ERROR  React is not defined
+
+ /Users/ivanmkc/Documents/code/gemini-cli/packages/cli/src/ui/contexts/MouseCon
+ text.tsx:192:3
+
+ 189:     };
+ 190:   }, [stdin, mouseEventsEnabled, subscribers, debugKeystrokeLogging]);
+ 191:
+ 192:   return (
+ 193:     <MouseContext.Provider value={{ subscribe, unsubscribe }}>
+ 194:       {children}
+ 195:     </MouseContext.Provider>
+
+ -MouseProvid
+  r          (/Users/ivanmkc/Documents/code/gemini-cli/packages/cli/src/ui/cont
+             exts/MouseContext.tsx:192:3)
+ -react-stack-bottom
+  -frame            (/Users/ivanmkc/Documents/code/gemini-cli/node_modules/reac
+                    t-reconciler/cjs/react-reconciler.development.js:15859:20)
+
+ -renderWithHo
+  ks          (/Users/ivanmkc/Documents/code/gemini-cli/node_modules/react-reco
+              nciler/cjs/react-reconciler.development.js:3221:22)
+ -updateFunctionCom
+  onent            (/Users/ivanmkc/Documents/code/gemini-cli/node_modules/react
+                   -reconciler/cjs/react-reconciler.development.js:6475:19)
+ -beginWor
+          (/Users/ivanmkc/Documents/code/gemini-cli/node_modules/react-reconcil
+          er/cjs/react-reconciler.development.js:8009:18)
+ -runWithFiberIn
+  EV            (/Users/ivanmkc/Documents/code/gemini-cli/node_modules/react-re
+                conciler/cjs/react-reconciler.development.js:1735:30)
+ -performUnitOfW
+  rk            (/Users/ivanmkc/Documents/code/gemini-cli/node_modules/react-re
+                conciler/cjs/react-reconciler.development.js:12834:22)
+ -workLoopSy
+  c         (/Users/ivanmkc/Documents/code/gemini-cli/node_modules/react-reconc
+            iler/cjs/react-reconciler.development.js:12644:41)
+ -renderRootSy
+  c           (/Users/ivanmkc/Documents/code/gemini-cli/node_modules/react-reco
+              nciler/cjs/react-reconciler.development.js:12624:11)
+ -performWorkOnR
+  ot            (/Users/ivanmkc/Documents/code/gemini-cli/node_modules/react-re
+                conciler/cjs/react-reconciler.development.js:12135:44)
+
+[?25l[2J[3J[H
+  ERROR  React is not defined
+
+ /Users/ivanmkc/Documents/code/gemini-cli/packages/cli/src/ui/contexts/MouseCon
+ text.tsx:192:3
+
+ 189:     };
+ 190:   }, [stdin, mouseEventsEnabled, subscribers, debugKeystrokeLogging]);
+ 191:
+ 192:   return (
+ 193:     <MouseContext.Provider value={{ subscribe, unsubscribe }}>
+ 194:       {children}
+ 195:     </MouseContext.Provider>
+
+ -MouseProvid
+  r          (/Users/ivanmkc/Documents/code/gemini-cli/packages/cli/src/ui/cont
+             exts/MouseContext.tsx:192:3)
+ -react-stack-bottom
+  -frame            (/Users/ivanmkc/Documents/code/gemini-cli/node_modules/reac
+                    t-reconciler/cjs/react-reconciler.development.js:15859:20)
+
+ -renderWithHo
+  ks          (/Users/ivanmkc/Documents/code/gemini-cli/node_modules/react-reco
+              nciler/cjs/react-reconciler.development.js:3221:22)
+ -updateFunctionCom
+  onent            (/Users/ivanmkc/Documents/code/gemini-cli/node_modules/react
+                   -reconciler/cjs/react-reconciler.development.js:6475:19)
+ -beginWor
+          (/Users/ivanmkc/Documents/code/gemini-cli/node_modules/react-reconcil
+          er/cjs/react-reconciler.development.js:8009:18)
+ -runWithFiberIn
+  EV            (/Users/ivanmkc/Documents/code/gemini-cli/node_modules/react-re
+                conciler/cjs/react-reconciler.development.js:1735:30)
+ -performUnitOfW
+  rk            (/Users/ivanmkc/Documents/code/gemini-cli/node_modules/react-re
+                conciler/cjs/react-reconciler.development.js:12834:22)
+ -workLoopSy
+  c         (/Users/ivanmkc/Documents/code/gemini-cli/node_modules/react-reconc
+            iler/cjs/react-reconciler.development.js:12644:41)
+ -renderRootSy
+  c           (/Users/ivanmkc/Documents/code/gemini-cli/node_modules/react-reco
+              nciler/cjs/react-reconciler.development.js:12624:11)
+ -performWorkOnR
+  ot            (/Users/ivanmkc/Documents/code/gemini-cli/node_modules/react-re
+                conciler/cjs/react-reconciler.development.js:12135:44)
+[?25h[?25h
+Error: Timeout after 180 seconds.   React is not defined
+
+ /Users/ivanmkc/Documents/code/gemini-cli/packages/cli/src/ui/contexts/MouseCon
+ text.tsx:192:3
+
+ 189:     };
+ 190:   }, [stdin, mouseEventsEnabled, subscribers, debugKeystrokeLogging]);
+ 191:
+ 192:   return (
+ 193:     <MouseContext.Provider value={{ subscribe, unsubscribe }}>
+ 194:       {children}
+ 195:     </MouseContext.Provider>
+
+ -MouseProvid
+  r          (/Users/ivanmkc/Documents/code/gemini-cli/packages/cli/src/ui/cont
+             exts/MouseContext.tsx:192:3)
+ -react-stack-bottom
+  -frame            (/Users/ivanmkc/Documents/code/gemini-cli/node_modules/reac
+                    t-reconciler/cjs/react-reconciler.development.js:15859:20)
+
+ -renderWithHo
+  ks          (/Users/ivanmkc/Documents/code/gemini-cli/node_modules/react-reco
+              nciler/cjs/react-reconciler.development.js:3221:22)
+ -updateFunctionCom
+  onent            (/Users/ivanmkc/Documents/code/gemini-cli/node_modules/react
+                   -reconciler/cjs/react-reconciler.development.js:6475:19)
+ -beginWor
+          (/Users/ivanmkc/Documents/code/gemini-cli/node_modules/react-reconcil
+          er/cjs/react-reconciler.development.js:8009:18)
+ -runWithFiberIn
+  EV            (/Users/ivanmkc/Documents/code/gemini-cli/node_modules/react-re
+                conciler/cjs/react-reconciler.development.js:1735:30)
+ -performUnitOfW
+  rk            (/Users/ivanmkc/Documents/code/gemini-cli/node_modules/react-re
+                conciler/cjs/react-reconciler.development.js:12834:22)
+ -workLoopSy
+  c         (/Users/ivanmkc/Documents/code/gemini-cli/node_modules/react-reconc
+            iler/cjs/react-reconciler.development.js:12644:41)
+ -renderRootSy
+  c           (/Users/ivanmkc/Documents/code/gemini-cli/node_modules/react-reco
+              nciler/cjs/react-reconciler.development.js:12624:11)
+ -performWorkOnR
+  ot            (/Users/ivanmkc/Documents/code/gemini-cli/node_modules/react-re
+                conciler/cjs/react-reconciler.development.js:12135:44)
+[?25h[?25h
+Error: Timeout after 180 seconds.   React is not defined
+
+ /Users/ivanmkc/Documents/code/gemini-cli/packages/cli/src/ui/contexts/MouseCon
+ text.tsx:192:3
+
+ 189:     };
+ 190:   }, [stdin, mouseEventsEnabled, subscribers, debugKeystrokeLogging]);
+ 191:
+ 192:   return (
+ 193:     <MouseContext.Provider value={{ subscribe, unsubscribe }}>
+ 194:       {children}
+ 195:     </MouseContext.Provider>
+
+ -MouseProvid
+  r          (/Users/ivanmkc/Documents/code/gemini-cli/packages/cli/src/ui/cont
+             exts/MouseContext.tsx:192:3)
+ -react-stack-bottom
+  -frame            (/Users/ivanmkc/Documents/code/gemini-cli/node_modules/reac
+                    t-reconciler/cjs/react-reconciler.development.js:15859:20)
+
+ -renderWithHo
+  ks          (/Users/ivanmkc/Documents/code/gemini-cli/node_modules/react-reco
+              nciler/cjs/react-reconciler.development.js:3221:22)
+ -updateFunctionCom
+  onent            (/Users/ivanmkc/Documents/code/gemini-cli/node_modules/react
+                   -reconciler/cjs/react-reconciler.development.js:6475:19)
+ -beginWor
+          (/Users/ivanmkc/Documents/code/gemini-cli/node_modules/react-reconcil
+          er/cjs/react-reconciler.development.js:8009:18)
+ -runWithFiberIn
+  EV            (/Users/ivanmkc/Documents/code/gemini-cli/node_modules/react-re
+                conciler/cjs/react-reconciler.development.js:1735:30)
+ -performUnitOfW
+  rk            (/Users/ivanmkc/Documents/code/gemini-cli/node_modules/react-re
+                conciler/cjs/react-reconciler.development.js:12834:22)
+ -workLoopSy
+  c         (/Users/ivanmkc/Documents/code/gemini-cli/node_modules/react-reconc
+            iler/cjs/react-reconciler.development.js:12644:41)
+ -renderRootSy
+  c           (/Users/ivanmkc/Documents/code/gemini-cli/node_modules/react-reco
+              nciler/cjs/react-reconciler.development.js:12624:11)
+ -performWorkOnR
+  ot            (/Users/ivanmkc/Documents/code/gemini-cli/node_modules/react-re
+                conciler/cjs/react-reconciler.development.js:12135:44)
+[?25h[?25h
+Error: Timeout after 180 seconds.   React is not defined
+
+ /Users/ivanmkc/Documents/code/gemini-cli/packages/cli/src/ui/contexts/MouseCon
+ text.tsx:192:3
+
+ 189:     };
+ 190:   }, [stdin, mouseEventsEnabled, subscribers, debugKeystrokeLogging]);
+ 191:
+ 192:   return (
+ 193:     <MouseContext.Provider value={{ subscribe, unsubscribe }}>
+ 194:       {children}
+ 195:     </MouseContext.Provider>
+
+ -MouseProvid
+  r          (/Users/ivanmkc/Documents/code/gemini-cli/packages/cli/src/ui/cont
+             exts/MouseContext.tsx:192:3)
+ -react-stack-bottom
+  -frame            (/Users/ivanmkc/Documents/code/gemini-cli/node_modules/reac
+                    t-reconciler/cjs/react-reconciler.development.js:15859:20)
+
+ -renderWithHo
+  ks          (/Users/ivanmkc/Documents/code/gemini-cli/node_modules/react-reco
+              nciler/cjs/react-reconciler.development.js:3221:22)
+ -updateFunctionCom
+  onent            (/Users/ivanmkc/Documents/code/gemini-cli/node_modules/react
+                   -reconciler/cjs/react-reconciler.development.js:6475:19)
+ -beginWor
+          (/Users/ivanmkc/Documents/code/gemini-cli/node_modules/react-reconcil
+          er/cjs/react-reconciler.development.js:8009:18)
+ -runWithFiberIn
+  EV            (/Users/ivanmkc/Documents/code/gemini-cli/node_modules/react-re
+                conciler/cjs/react-reconciler.development.js:1735:30)
+ -performUnitOfW
+  rk            (/Users/ivanmkc/Documents/code/gemini-cli/node_modules/react-re
+                conciler/cjs/react-reconciler.development.js:12834:22)
+ -workLoopSy
+  c         (/Users/ivanmkc/Documents/code/gemini-cli/node_modules/react-reconc
+            iler/cjs/react-reconciler.development.js:12644:41)
+ -renderRootSy
+  c           (/Users/ivanmkc/Documents/code/gemini-cli/node_modules/react-reco
+              nciler/cjs/react-reconciler.development.js:12624:11)
+ -performWorkOnR
+  ot            (/Users/ivanmkc/Documents/code/gemini-cli/node_modules/react-re
+                conciler/cjs/react-reconciler.development.js:12135:44)
+[?25h[?25h
+Error: Timeout after 180 seconds.   React is not defined
+
+ /Users/ivanmkc/Documents/code/gemini-cli/packages/cli/src/ui/contexts/MouseCon
+ text.tsx:192:3
+
+ 189:     };
+ 190:   }, [stdin, mouseEventsEnabled, subscribers, debugKeystrokeLogging]);
+ 191:
+ 192:   return (
+ 193:     <MouseContext.Provider value={{ subscribe, unsubscribe }}>
+ 194:       {children}
+ 195:     </MouseContext.Provider>
+
+ -MouseProvid
+  r          (/Users/ivanmkc/Documents/code/gemini-cli/packages/cli/src/ui/cont
+             exts/MouseContext.tsx:192:3)
+ -react-stack-bottom
+  -frame            (/Users/ivanmkc/Documents/code/gemini-cli/node_modules/reac
+                    t-reconciler/cjs/react-reconciler.development.js:15859:20)
+
+ -renderWithHo
+  ks          (/Users/ivanmkc/Documents/code/gemini-cli/node_modules/react-reco
+              nciler/cjs/react-reconciler.development.js:3221:22)
+ -updateFunctionCom
+  onent            (/Users/ivanmkc/Documents/code/gemini-cli/node_modules/react
+                   -reconciler/cjs/react-reconciler.development.js:6475:19)
+ -beginWor
+          (/Users/ivanmkc/Documents/code/gemini-cli/node_modules/react-reconcil
+          er/cjs/react-reconciler.development.js:8009:18)
+ -runWithFiberIn
+  EV            (/Users/ivanmkc/Documents/code/gemini-cli/node_modules/react-re
+                conciler/cjs/react-reconciler.development.js:1735:30)
+ -performUnitOfW
+  rk            (/Users/ivanmkc/Documents/code/gemini-cli/node_modules/react-re
+                conciler/cjs/react-reconciler.development.js:12834:22)
+ -workLoopSy
+  c         (/Users/ivanmkc/Documents/code/gemini-cli/node_modules/react-reconc
+            iler/cjs/react-reconciler.development.js:12644:41)
+ -renderRootSy
+  c           (/Users/ivanmkc/Documents/code/gemini-cli/node_modules/react-reco
+              nciler/cjs/react-reconciler.development.js:12624:11)
+ -performWorkOnR
+  ot            (/Users/ivanmkc/Documents/code/gemini-cli/node_modules/react-re
+                conciler/cjs/react-reconciler.development.js:12135:44)
+[?25h[?25h
+Error: Timeout after 180 seconds.   React is not defined
+
+ /Users/ivanmkc/Documents/code/gemini-cli/packages/cli/src/ui/contexts/MouseCon
+ text.tsx:192:3
+
+ 189:     };
+ 190:   }, [stdin, mouseEventsEnabled, subscribers, debugKeystrokeLogging]);
+ 191:
+ 192:   return (
+ 193:     <MouseContext.Provider value={{ subscribe, unsubscribe }}>
+ 194:       {children}
+ 195:     </MouseContext.Provider>
+
+ -MouseProvid
+  r          (/Users/ivanmkc/Documents/code/gemini-cli/packages/cli/src/ui/cont
+             exts/MouseContext.tsx:192:3)
+ -react-stack-bottom
+  -frame            (/Users/ivanmkc/Documents/code/gemini-cli/node_modules/reac
+                    t-reconciler/cjs/react-reconciler.development.js:15859:20)
+
+ -renderWithHo
+  ks          (/Users/ivanmkc/Documents/code/gemini-cli/node_modules/react-reco
+              nciler/cjs/react-reconciler.development.js:3221:22)
+ -updateFunctionCom
+  onent            (/Users/ivanmkc/Documents/code/gemini-cli/node_modules/react
+                   -reconciler/cjs/react-reconciler.development.js:6475:19)
+ -beginWor
+          (/Users/ivanmkc/Documents/code/gemini-cli/node_modules/react-reconcil
+          er/cjs/react-reconciler.development.js:8009:18)
+ -runWithFiberIn
+  EV            (/Users/ivanmkc/Documents/code/gemini-cli/node_modules/react-re
+                conciler/cjs/react-reconciler.development.js:1735:30)
+ -performUnitOfW
+  rk            (/Users/ivanmkc/Documents/code/gemini-cli/node_modules/react-re
+                conciler/cjs/react-reconciler.development.js:12834:22)
+ -workLoopSy
+  c         (/Users/ivanmkc/Documents/code/gemini-cli/node_modules/react-reconc
+            iler/cjs/react-reconciler.development.js:12644:41)
+ -renderRootSy
+  c           (/Users/ivanmkc/Documents/code/gemini-cli/node_modules/react-reco
+              nciler/cjs/react-reconciler.development.js:12624:11)
+ -performWorkOnR
+  ot            (/Users/ivanmkc/Documents/code/gemini-cli/node_modules/react-re
+                conciler/cjs/react-reconciler.development.js:12135:44)
+[?25h[?25h
+Error: Timeout after 180 seconds.   React is not defined
+
+ /Users/ivanmkc/Documents/code/gemini-cli/packages/cli/src/ui/contexts/MouseCon
+ text.tsx:192:3
+
+ 189:     };
+ 190:   }, [stdin, mouseEventsEnabled, subscribers, debugKeystrokeLogging]);
+ 191:
+ 192:   return (
+ 193:     <MouseContext.Provider value={{ subscribe, unsubscribe }}>
+ 194:       {children}
+ 195:     </MouseContext.Provider>
+
+ -MouseProvid
+  r          (/Users/ivanmkc/Documents/code/gemini-cli/packages/cli/src/ui/cont
+             exts/MouseContext.tsx:192:3)
+ -react-stack-bottom
+  -frame            (/Users/ivanmkc/Documents/code/gemini-cli/node_modules/reac
+                    t-reconciler/cjs/react-reconciler.development.js:15859:20)
+
+ -renderWithHo
+  ks          (/Users/ivanmkc/Documents/code/gemini-cli/node_modules/react-reco
+              nciler/cjs/react-reconciler.development.js:3221:22)
+ -updateFunctionCom
+  onent            (/Users/ivanmkc/Documents/code/gemini-cli/node_modules/react
+                   -reconciler/cjs/react-reconciler.development.js:6475:19)
+ -beginWor
+          (/Users/ivanmkc/Documents/code/gemini-cli/node_modules/react-reconcil
+          er/cjs/react-reconciler.development.js:8009:18)
+ -runWithFiberIn
+  EV            (/Users/ivanmkc/Documents/code/gemini-cli/node_modules/react-re
+                conciler/cjs/react-reconciler.development.js:1735:30)
+ -performUnitOfW
+  rk            (/Users/ivanmkc/Documents/code/gemini-cli/node_modules/react-re
+                conciler/cjs/react-reconciler.development.js:12834:22)
+ -workLoopSy
+  c         (/Users/ivanmkc/Documents/code/gemini-cli/node_modules/react-reconc
+            iler/cjs/react-reconciler.development.js:12644:41)
+ -renderRootSy
+  c           (/Users/ivanmkc/Documents/code/gemini-cli/node_modules/react-reco
+              nciler/cjs/react-reconciler.development.js:12624:11)
+ -performWorkOnR
+  ot            (/Users/ivanmkc/Documents/code/gemini-cli/node_modules/react-re
+                conciler/cjs/react-reconciler.development.js:12135:44)
+[?25h[?25h
+Error: Timeout after 180 seconds.   React is not defined
+
+ /Users/ivanmkc/Documents/code/gemini-cli/packages/cli/src/ui/contexts/MouseCon
+ text.tsx:192:3
+
+ 189:     };
+ 190:   }, [stdin, mouseEventsEnabled, subscribers, debugKeystrokeLogging]);
+ 191:
+ 192:   return (
+ 193:     <MouseContext.Provider value={{ subscribe, unsubscribe }}>
+ 194:       {children}
+ 195:     </MouseContext.Provider>
+
+ -MouseProvid
+  r          (/Users/ivanmkc/Documents/code/gemini-cli/packages/cli/src/ui/cont
+             exts/MouseContext.tsx:192:3)
+ -react-stack-bottom
+  -frame            (/Users/ivanmkc/Documents/code/gemini-cli/node_modules/reac
+                    t-reconciler/cjs/react-reconciler.development.js:15859:20)
+
+ -renderWithHo
+  ks          (/Users/ivanmkc/Documents/code/gemini-cli/node_modules/react-reco
+              nciler/cjs/react-reconciler.development.js:3221:22)
+ -updateFunctionCom
+  onent            (/Users/ivanmkc/Documents/code/gemini-cli/node_modules/react
+                   -reconciler/cjs/react-reconciler.development.js:6475:19)
+ -beginWor
+          (/Users/ivanmkc/Documents/code/gemini-cli/node_modules/react-reconcil
+          er/cjs/react-reconciler.development.js:8009:18)
+ -runWithFiberIn
+  EV            (/Users/ivanmkc/Documents/code/gemini-cli/node_modules/react-re
+                conciler/cjs/react-reconciler.development.js:1735:30)
+ -performUnitOfW
+  rk            (/Users/ivanmkc/Documents/code/gemini-cli/node_modules/react-re
+                conciler/cjs/react-reconciler.development.js:12834:22)
+ -workLoopSy
+  c         (/Users/ivanmkc/Documents/code/gemini-cli/node_modules/react-reconc
+            iler/cjs/react-reconciler.development.js:12644:41)
+ -renderRootSy
+  c           (/Users/ivanmkc/Documents/code/gemini-cli/node_modules/react-reco
+              nciler/cjs/react-reconciler.development.js:12624:11)
+ -performWorkOnR
+  ot            (/Users/ivanmkc/Documents/code/gemini-cli/node_modules/react-re
+                conciler/cjs/react-reconciler.development.js:12135:44)
+[?25h[?25h
+Error: Timeout after 180 seconds.   React is not defined
+
+ /Users/ivanmkc/Documents/code/gemini-cli/packages/cli/src/ui/contexts/MouseCon
+ text.tsx:192:3
+
+ 189:     };
+ 190:   }, [stdin, mouseEventsEnabled, subscribers, debugKeystrokeLogging]);
+ 191:
+ 192:   return (
+ 193:     <MouseContext.Provider value={{ subscribe, unsubscribe }}>
+ 194:       {children}
+ 195:     </MouseContext.Provider>
+
+ -MouseProvid
+  r          (/Users/ivanmkc/Documents/code/gemini-cli/packages/cli/src/ui/cont
+             exts/MouseContext.tsx:192:3)
+ -react-stack-bottom
+  -frame            (/Users/ivanmkc/Documents/code/gemini-cli/node_modules/reac
+                    t-reconciler/cjs/react-reconciler.development.js:15859:20)
+
+ -renderWithHo
+  ks          (/Users/ivanmkc/Documents/code/gemini-cli/node_modules/react-reco
+              nciler/cjs/react-reconciler.development.js:3221:22)
+ -updateFunctionCom
+  onent            (/Users/ivanmkc/Documents/code/gemini-cli/node_modules/react
+                   -reconciler/cjs/react-reconciler.development.js:6475:19)
+ -beginWor
+          (/Users/ivanmkc/Documents/code/gemini-cli/node_modules/react-reconcil
+          er/cjs/react-reconciler.development.js:8009:18)
+ -runWithFiberIn
+  EV            (/Users/ivanmkc/Documents/code/gemini-cli/node_modules/react-re
+                conciler/cjs/react-reconciler.development.js:1735:30)
+ -performUnitOfW
+  rk            (/Users/ivanmkc/Documents/code/gemini-cli/node_modules/react-re
+                conciler/cjs/react-reconciler.development.js:12834:22)
+ -workLoopSy
+  c         (/Users/ivanmkc/Documents/code/gemini-cli/node_modules/react-reconc
+            iler/cjs/react-reconciler.development.js:12644:41)
+ -renderRootSy
+  c           (/Users/ivanmkc/Documents/code/gemini-cli/node_modules/react-reco
+              nciler/cjs/react-reconciler.development.js:12624:11)
+ -performWorkOnR
+  ot            (/Users/ivanmkc/Documents/code/gemini-cli/node_modules/react-re
+                conciler/cjs/react-reconciler.development.js:12135:44)
+[?25h[?25h
+Metadata extracted to /Users/ivanmkc/Documents/code/gemini-cli/py/metadata_secret_retrieval.json
+--- Simulation Secret Retrieval Finished (Success: False) ---
+
