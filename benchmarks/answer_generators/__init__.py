@@ -16,6 +16,7 @@
 
 from benchmarks.answer_generators.adk_answer_generator import AdkAnswerGenerator
 from benchmarks.answer_generators.base import AnswerGenerator
+from benchmarks.answer_generators.claude_cli_podman_answer_generator import ClaudeCliPodmanAnswerGenerator
 from benchmarks.answer_generators.gemini_answer_generator import GeminiAnswerGenerator
 from benchmarks.answer_generators.gemini_cli_answer_generator import (
     GeminiCliAnswerGenerator,
@@ -31,6 +32,7 @@ from benchmarks.answer_generators.trivial import TrivialAnswerGenerator
 __all__ = [
     "AdkAnswerGenerator",
     "AnswerGenerator",
+    "ClaudeCliPodmanAnswerGenerator",
     "GeminiAnswerGenerator",
     "GeminiCliAnswerGenerator",
     "GeminiCliLocalAnswerGenerator",
