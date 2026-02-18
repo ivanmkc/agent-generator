@@ -1,9 +1,9 @@
 """  Init   module."""
 
-# from .gemini_cli_docker_answer_generator import GeminiCliDockerAnswerGenerator
-# from .gemini_cli_podman_answer_generator import GeminiCliPodmanAnswerGenerator
+from .claude_cli_docker_answer_generator import ClaudeCliDockerAnswerGenerator
+from .claude_cli_podman_answer_generator import ClaudeCliPodmanAnswerGenerator
 
-# __all__ = [
-#     "GeminiCliDockerAnswerGenerator",
-#     "GeminiCliPodmanAnswerGenerator",
-# ]
+__all__ = [
+    "ClaudeCliDockerAnswerGenerator",
+    "ClaudeCliPodmanAnswerGenerator",
+]

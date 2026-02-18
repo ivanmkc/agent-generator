@@ -166,6 +166,30 @@ wheels = [
 ]
 
 [[package]]
+name = "anthropic"
+version = "0.81.0"
+source = { registry = "https://us-python.pkg.dev/artifact-foundry-prod/ah-3p-staging-python/simple/" }
+dependencies = [
+    { name = "anyio" },
+    { name = "distro" },
+    { name = "docstring-parser" },
+    { name = "httpx" },
+    { name = "jiter" },
+    { name = "pydantic" },
+    { name = "sniffio" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://us-python.pkg.dev/artifact-foundry-prod/ah-3p-staging-python/anthropic/anthropic-0.81.0.tar.gz", hash = "sha256:bab2d4e45c2e81a0668fdc2da2f7fd665ed8a0295ba3c86450f9dcc3a7804524" }
+wheels = [
+    { url = "https://us-python.pkg.dev/artifact-foundry-prod/ah-3p-staging-python/anthropic/anthropic-0.81.0-py3-none-any.whl", hash = "sha256:ac54407e9a1f9b35e6e6c86f75bf403f0e54d60944f99f15f685a38d6829f20b" },
+]
+
+[package.optional-dependencies]
+vertex = [
+    { name = "google-auth", extra = ["requests"] },
+]
+
+[[package]]
 name = "anyio"
 version = "4.12.1"
 source = { registry = "https://us-python.pkg.dev/artifact-foundry-prod/ah-3p-staging-python/simple/" }
@@ -267,6 +291,7 @@ name = "case-quality"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
+    { name = "anthropic", extra = ["vertex"] },
     { name = "codebase-knowledge-mcp" },
     { name = "colorama" },
     { name = "google-adk" },
@@ -290,6 +315,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
+    { name = "anthropic", extras = ["vertex"] },
     { name = "codebase-knowledge-mcp", editable = "tools/adk_knowledge_ext" },
     { name = "colorama" },
     { name = "google-adk", specifier = "==1.20.0" },
