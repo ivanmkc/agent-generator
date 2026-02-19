@@ -35,6 +35,7 @@ from tools.simulator.models import (
     InteractiveSimulationCase,
     ReactorAction,
     ActionType,
+    RegexReactor,
 )
 
 # A simple API Understanding case

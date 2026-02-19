@@ -102,3 +102,13 @@ class CodexHarness(BaseSimulatorHarness):
 
     def extract_latest_session(self, target_path: str) -> str | None:
         return None
+
+class FakeCliHarness(BaseSimulatorHarness):
+    def get_base_cmd(self, py_dir: str) -> list[str]:
+        return [os.path.join(py_dir, "fake_gemini_cli.py")]
+
+    def get_turn_args(self, turn_count: int, prompt: str) -> list[str]:
+        return []
+
+    def extract_latest_session(self, target_path: str) -> str | None:
+        return None
