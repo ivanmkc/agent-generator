@@ -59,6 +59,8 @@ class InteractiveSimulationCase(BaseModel):
     setup_files: Dict[str, str] = Field(default_factory=dict, description="Map of filename -> content to create before test begins.")
     
     # State Machine Rules
+    persona_script: Optional[str] = Field(None, description="Script for the Simulant to follow if no reactor overrides the action.")
+
     reactors: List[ReactorType] = Field(
         default_factory=list, 
         description="Rules evaluated in order to determine the next action."

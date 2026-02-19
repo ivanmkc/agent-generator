@@ -6,7 +6,7 @@ import tempfile
 import shutil
 import time
 import random
-import pexpect
+
 import subprocess
 import traceback
 from google import genai
@@ -14,7 +14,7 @@ from models import InteractiveSimulationCase, ActionType, ReactorAction, CommonA
 from harness import BaseSimulatorHarness, GeminiCliHarness, ClaudeCodeHarness, AntigravityHarness, CodexHarness
 
 class LLMUserSimulant:
-    def __init__(self, persona_script: str, model: str = "gemini-2.0-flash") -> None:
+    def __init__(self, persona_script: str, model: str = "gemini-3-flash-preview") -> None:
         self.persona_script: str = persona_script
         self.model: str = model
         api_key: str | None = os.environ.get("GEMINI_API_KEY")
@@ -25,10 +25,13 @@ class LLMUserSimulant:
 
     def generate_reply(self, agent_output: str) -> str:
         prompt: str = (
-            f"You are a human user testing a CLI agent. Follow this script EXACTLY:\n"
-            f"{self.persona_script}\n\n"
-            f"The agent just said:\n{agent_output}\n\n"
+            f"You are roleplaying as a user testing a CLI agent. Follow this persona script EXACTLY. "
+            f"Do not refuse to answer. Do not say you are an AI. Do not provide explanations outside of the persona.\n\n"
+            f"PERSONA SCRIPT:\n{self.persona_script}\n\n"
+            f"--- INTERACTION LOG ---\n"
+            f"Agent just said:\n{agent_output}\n\n"
             f"Current History:\n{self.history}\n"
+            f"--- INSTRUCTION ---\n"
             f"Respond as the user in plain English text WITHOUT markdown code blocks or tool calls.\n"
             f"If the script is finished, say 'TEST_COMPLETE'.\n"
             f"Do not include any other text in your response."
@@ -207,6 +210,11 @@ class SimulationRunner:
                     )
                     current_prompt += schema_instruction
                 
+                # Instantiate Simulant if a script is provided
+                simulant = None
+                if case.persona_script:
+                    simulant = LLMUserSimulant(case.persona_script)
+                
                 # Setup LLM Simulant specifically for LLMReactors
                 use_vertex = os.environ.get("GOOGLE_GENAI_USE_VERTEXAI") == "1"
                 
@@ -285,7 +293,7 @@ class SimulationRunner:
                                 for attempt in range(max_retries):
                                     try:
                                         response = llm_engine.models.generate_content(
-                                            model="gemini-2.0-flash",
+                                            model="gemini-3-flash-preview",
                                             contents=prompt
                                         )
                                         reply = str(response.text).strip()
@@ -337,7 +345,12 @@ class SimulationRunner:
                             logfile.write(f"{msg_end}\n")
                             break
                             
-                        current_prompt = selected_action.payload or "Okay."
+                        # If no specific action was triggered (default remained), try dynamic generation
+                        if selected_action == case.default_action and simulant:
+                            dynamic_reply = simulant.generate_reply(agent_text)
+                            current_prompt = dynamic_reply
+                        else:
+                            current_prompt = selected_action.payload or CommonActions.DONT_KNOW.payload
                 
 
                 
@@ -422,7 +435,8 @@ class SimulationRunner:
                 import traceback
                 traceback.print_exc()
                 
-            print(f"--- Simulation {case.name} Finished (Success: {success}) ---\n")
+            print(f"--- Simulation {case.name} Finished (Success: {success}) ---")
+            print(f"See full log at: {log_path}\n")
             
             # Formulate the final result object
             transcript = SimulationTranscript(

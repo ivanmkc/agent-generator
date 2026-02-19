@@ -7,14 +7,23 @@ obstructed by interactive TTY (Ink UI) racing conditions.
 
 ## Architecture
 
+The simulator is built on a modular architecture to support extensibility and
+separation of concerns:
+
+- **`simulator.py`**: The entry point facade.
+- **`harness.py`**: Abstract base class (`BaseSimulatorHarness`) and concrete
+  implementations for different backends (`GeminiCliHarness`,
+  `ClaudeCodeHarness`, etc.).
+- **`runner.py`**: Orchestrates the simulation loop (`SimulationRunner`) and the
+  user simulant (`LLMUserSimulant`).
+- **`models.py`**: Pydantic data models defining the simulation state, cases,
+  and results.
+
 The harness utilizes the native `-p/--prompt` (Headless) and `-r/--resume` flags
 to simulate multi-turn interactions with the user simulator LLM
-(`LLMUserSimulant`). This operates without requiring any special debug hooks in
-the `packages/cli` codebase, allowing robust integration testing on the
-production bundle.
+(`LLMUserSimulant`).
 
-The simulator can interchangeably invoke standard CLI binaries (using the
-`InteractiveSimulationCase` abstraction).
+### Supported Backends
 
 - **gemini-cli**: The primary target. Uses experimental
   `GEMINI_APPROVAL_MODE=yolo`.
@@ -26,38 +35,39 @@ The simulator can interchangeably invoke standard CLI binaries (using the
 > `429 RESOURCE_EXHAUSTED` errors from the Gemini API to verify agent behavior
 > robustly even under rate limits.
 
-## Running Tests Local
+## Running Tests (Recommended)
 
-Execute tests natively utilizing `pytest`:
+The ONLY supported method for running integration tests (especially with
+`claude-code`) is via the hermetic podman runner. This ensures a consistent
+environment and handles all dependency installation.
+
+1. **Authentication:** Create a `.env` file in the `simulator/` directory with
+   your API keys:
+
+   ```env
+   GEMINI_API_KEY="AIza..."
+   ANTHROPIC_API_KEY="sk-ant-..."
+   ```
+
+2. **Execution:** Launch the wrapper shell script:
+   ```bash
+   ./podman_test.sh
+   ```
+   This script autonomously builds the Docker images, installs dependencies,
+   runs `pytest`, and dumps artifacts to `outputs/<RUN_TIMESTAMP>`.
+
+_(Note: The `claude-code` container supports `~/.claude.json` mapping if `.env`
+auth is skipped)_
+
+## Running Tests Locally (Legacy / Debug Only)
+
+You can run tests natively with `pytest` for quick debugging of `gemini-cli`
+only, but this is NOT guaranteed to work for all backends:
 
 ```bash
 cd simulator
 python3 -m pytest tests/integration/ --backend=gemini-cli
 ```
-
-## Running Tests Hermetically (Podman)
-
-You can run the validation suite completely independent of the GitHub repository
-context inside Podman. It globally installs the CLI bundles and routes tests
-identically to ensure consistent framework metrics.
-
-1. **Authentication:** Create a `.env` file in the `simulator/` directory
-   explicitly stipulating test overrides. The host `GEMINI_API_KEY` is bound
-   automatically via `~/.gemini/settings.json`, but Claude Code requires you to
-   map the Auth key:
-   ```env
-   ANTHROPIC_API_KEY="sk-ant-..."
-   ```
-2. **Execution:** Launch the wrapper shell script which will autonomously build
-   the `Dockerfile` implementations, run `pytest`, and dump testing artifacts
-   organized by a strict `RUN_TIMESTAMP`.
-   ```bash
-   ./podman_test.sh
-   ```
-
-_(Note: The `claude-code` container will additionally mount your
-`~/.claude.json` configuration locally if you choose to bypass the `.env` token
-and use standard Claude API authentication using a DevContainer mechanism)_
 
 ## Test Artifacts & Logs
 
@@ -73,3 +83,28 @@ At the climax of the test suite execution, the `podman_test.sh` orchestration
 script will evaluate all metrics to compile and export:
 
 - `outputs/<run_timestamp>/final_report.md`
+
+## Agent Generation
+
+The simulator includes a utility to mass-generate `adk-python` agents by
+simulating an expert developer persona.
+
+### Usage
+
+```bash
+python3 generate_agents.py
+```
+
+This script:
+
+1. Iterates through a list of defined **Agent Personas** (e.g., "Universal Fact
+   Checker", "Polyglot Translator").
+2. Spins up a `gemini-cli` session with a prompt to write the agent code to
+   `generated_agents/<agent_name>.py`.
+3. **Verifies** the agent by instructing the CLI to execute the generated script
+   locally and fix any errors.
+4. Extracts the final, working python file to `../generated_agents/`.
+
+This automated "coding loop" ensures that the generated agents are not just
+hallucinated code, but valid, executable Python scripts that have passed a local
+smoke test.

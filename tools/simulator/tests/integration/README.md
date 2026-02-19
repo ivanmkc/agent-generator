@@ -46,3 +46,18 @@ LLMReactor(
    `assert result.success, "Simulation failed"`.
 5. The test runner (`podman_test.sh`) utilizes `pytest` to natively discover and
    evaluate all test scenarios.
+
+## CLI Options
+
+The `conftest.py` file exposes custom CLI hooks for `pytest`:
+
+- `--backend`: Specify the backend harness to use (default: `gemini-cli`).
+  (Note: `claude-code` generally requires running via `podman_test.sh` for
+  proper environment setup)
+- `--output-dir`: content root for artifacts (default: `outputs/<timestamp>`).
+
+### Running Tests
+
+It is strongly recommended to use the `podman_test.sh` script in the parent
+directory (`simulator/`) to run these tests, as it handles all environment setup
+and backend dependencies automatically.

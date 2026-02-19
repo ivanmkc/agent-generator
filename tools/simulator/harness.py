@@ -68,7 +68,10 @@ class ClaudeCodeHarness(BaseSimulatorHarness):
         return base_cmd
 
     def get_turn_args(self, turn_count: int, prompt: str) -> list[str]:
-        return ["-p", prompt]
+        args = ["-p", prompt]
+        if turn_count > 1:
+            args.append("-c")
+        return args
 
     def extract_latest_session(self, target_path: str) -> str | None:
         # Claude code might not export sessions exactly the same way, stubbing it.
