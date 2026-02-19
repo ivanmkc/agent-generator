@@ -33,6 +33,7 @@ class KeyType(Enum):
     ANTHROPIC_API = "ANTHROPIC_API"
     XAI_API = "XAI_API"
     GROQ_API = "GROQ_API"
+    VERTEX_API = "VERTEX_API"
 
 
 class KeyStatus(str, Enum):

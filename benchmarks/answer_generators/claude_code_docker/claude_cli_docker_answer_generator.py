@@ -111,6 +111,9 @@ class ClaudeCliDockerAnswerGenerator(GeminiCliAnswerGenerator):
             if os.environ.get("CONTEXT7_API_KEY"):
                 docker_args.extend(["-e", "CONTEXT7_API_KEY"])
 
+            if os.environ.get("ANTHROPIC_API_KEY"):
+                docker_args.extend(["-e", "ANTHROPIC_API_KEY"])
+
             # 2. Pass explicit extra_env variables
             if extra_env:
                 for k, v in extra_env.items():
@@ -126,9 +129,9 @@ class ClaudeCliDockerAnswerGenerator(GeminiCliAnswerGenerator):
                 if os.environ.get("GOOGLE_CLOUD_LOCATION"):
                     docker_args.extend(["-e", "GOOGLE_CLOUD_LOCATION"])
 
-                # Handle ADC file mapping
+                # Handle ADC file mapping. Prioritize API key if both are available.
                 adc_path = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
-                if adc_path:
+                if adc_path and not os.environ.get("GOOGLE_API_KEY"):
                     # We must mount the file into the container
                     # Use a fixed path inside the container to avoid path issues
                     container_adc_path = "/tmp/google_credentials.json"
