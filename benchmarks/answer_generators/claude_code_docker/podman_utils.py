@@ -72,14 +72,15 @@ class PodmanContainer:
                 "CONTEXT7_API_KEY",
                 "GOOGLE_API_KEY",
                 "GITHUB_TOKEN",
+                "ANTHROPIC_API_KEY",
             ]
             for var in env_vars:
                 if os.environ.get(var):
                     cmd.extend(["-e", var])
 
-            # Handle ADC credentials mount
+            # Handle ADC credentials mount. Prioritize API key if both are available.
             adc_path = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
-            if adc_path:
+            if adc_path and not os.environ.get("GOOGLE_API_KEY"):
                 container_path = "/tmp/google_credentials.json"
                 cmd.extend(["-v", f"{adc_path}:{container_path}"])
                 cmd.extend(["-e", f"GOOGLE_APPLICATION_CREDENTIALS={container_path}"])
