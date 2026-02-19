@@ -53,7 +53,7 @@ def test_data(tmp_path):
     return index_path
 
 @pytest.mark.asyncio
-async def test_tool_list_modules_e2e(test_data):
+async def test_tool_list_modules_e2e(test_data, tmp_path):
     """
     Scenario: List Modules E2E
     
@@ -73,6 +73,7 @@ async def test_tool_list_modules_e2e(test_data):
     }]
     env["MCP_KNOWLEDGE_BASES"] = json.dumps(kb_config)
     env["PYTHONPATH"] = str(Path(__file__).parents[2] / "src")
+    env["HOME"] = str(tmp_path)
     
     server_params = StdioServerParameters(
         command=sys.executable,
@@ -94,7 +95,7 @@ async def test_tool_list_modules_e2e(test_data):
             assert "[2] CLASS: test.TargetTwo" in content
 
 @pytest.mark.asyncio
-async def test_tool_inspect_symbol_e2e(test_data):
+async def test_tool_inspect_symbol_e2e(test_data, tmp_path):
     """
     Scenario: Inspect Symbol E2E
     
@@ -113,6 +114,7 @@ async def test_tool_inspect_symbol_e2e(test_data):
     }]
     env["MCP_KNOWLEDGE_BASES"] = json.dumps(kb_config)
     env["PYTHONPATH"] = str(Path(__file__).parents[2] / "src")
+    env["HOME"] = str(tmp_path)
     
     server_params = StdioServerParameters(
         command=sys.executable,

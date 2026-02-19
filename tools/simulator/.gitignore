@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+.env
+.DS_Store
+outputs/
+venv-linux/
+.pytest_cache/
+debug.log
+generated_agents/
+*.log
+metadata_*.json
+structured_metadata*.json
+tmp_agent_state.json
